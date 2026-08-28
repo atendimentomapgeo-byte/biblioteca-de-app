@@ -486,6 +486,10 @@ const firebaseConfig = {
   appId: "1:1030591360254:web:0ddc57bd89a8146521c9af"
 };
 firebase.initializeApp(firebaseConfig);
+// Firebase Storage requires the paid Blaze plan and hasn't been activated on this project yet.
+// Keep this as `false` so PDF attachments stay local-only (no slow/failing network attempts).
+// Flip to `true` once Storage is enabled in the Firebase console — no other code changes needed.
+const STORAGE_ENABLED = false;
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
 const fbStorage = firebase.storage();
@@ -767,9 +771,8 @@ async function deletePdfBlobLocal(id){
 /* ---------- PDF anexos: cache local (rápido) + Firebase Storage (compartilhado entre usuários) ---------- */
 async function savePdfBlob(id, file){
   try{ await savePdfBlobLocal(id, file); }catch(e){ console.error('Falha ao salvar PDF localmente', e); throw e; }
+  if(!STORAGE_ENABLED) return; // Storage not provisioned yet — PDF stays local to this device.
   // Best-effort upload to Firebase Storage so other users/devices can see the PDF too.
-  // Non-fatal: while Storage isn't enabled on the project (requires the Blaze plan),
-  // this silently fails and the PDF simply stays local to this browser/device.
   try{
     const ref = fbStorage.ref().child('pdfs/' + id);
     await ref.put(file, {contentType: file.type || 'application/pdf'});
@@ -780,6 +783,7 @@ async function getPdfBlob(id){
     const local = await getPdfBlobLocal(id);
     if(local) return local;
   }catch(e){ /* fall through to remote */ }
+  if(!STORAGE_ENABLED) return null;
   try{
     const ref = fbStorage.ref().child('pdfs/' + id);
     const url = await ref.getDownloadURL();
@@ -794,6 +798,7 @@ async function getPdfBlob(id){
 }
 async function deletePdfBlob(id){
   try{ await deletePdfBlobLocal(id); }catch(e){ /* non-fatal */ }
+  if(!STORAGE_ENABLED) return;
   try{ await fbStorage.ref().child('pdfs/' + id).delete(); }catch(e){ /* may not exist remotely */ }
 }
 async function saveMeta(key, value){
