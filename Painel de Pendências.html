@@ -66,6 +66,8 @@
   .titleblock-grid div{ display:flex; flex-direction:column; gap:3px; min-width:90px; }
   .titleblock-grid label{ font-size:10px; letter-spacing:1.5px; color: var(--ink-faint); text-transform:uppercase; }
   .titleblock-grid span{ font-size:14px; color: var(--ink); }
+  .sync-status.sync-ok{ color: var(--ok); }
+  .sync-status.sync-bad{ color: var(--bad); }
 
   /* ---------- Dashboard cards ---------- */
   .dashboard{
@@ -244,6 +246,42 @@
   .close-x{ position:absolute; top:16px; right:16px; background:none; border:none; color: var(--ink-faint); font-size:20px; cursor:pointer; line-height:1; }
   .close-x:hover{ color: var(--ink); }
 
+  /* ---------- Login ---------- */
+  .login-modal{ max-width:380px; }
+  .login-fields{ display:flex; flex-direction:column; gap:12px; margin-top:4px; }
+  .login-fields label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:1px; color: var(--ink-faint); text-transform:uppercase; }
+  .login-fields input{
+    width:100%; margin-top:5px; background: var(--panel-2); border:1px solid var(--line-strong); color: var(--ink);
+    padding:9px 11px; font-family:'Inter',sans-serif; font-size:13.5px; border-radius:var(--radius);
+  }
+  .login-error{ color: var(--bad); font-size:12.5px; margin-top:12px; font-family:'IBM Plex Mono', monospace; }
+  .login-error.hidden{ display:none; }
+  .login-toggle-row{ margin-top:14px; }
+  .link-btn{
+    background:none; border:none; color: var(--cyan); font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:0.3px; cursor:pointer; padding:0; text-decoration:underline;
+  }
+  .pending-msg{ font-size:13.5px; color: var(--ink-dim); line-height:1.6; margin: 10px 0 0; }
+  .pending-msg span{ color: var(--cyan); }
+
+  /* ---------- Users admin panel ---------- */
+  .users-modal{ max-width:640px; }
+  .users-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .user-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    border:1px solid var(--line-strong); background: var(--panel-2); padding:10px 14px; border-radius:var(--radius);
+  }
+  .user-row .user-email{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color: var(--ink); }
+  .user-row .user-meta{ font-size:10.5px; color: var(--ink-faint); letter-spacing:0.5px; text-transform:uppercase; margin-top:2px; }
+  .user-row .user-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .user-badge{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.5px; border-radius:20px; padding:2px 8px; text-transform:uppercase; }
+  .user-badge.pendente{ color: var(--warn); border:1px solid var(--warn); }
+  .user-badge.aprovado{ color: var(--ok); border:1px solid var(--ok); }
+  .user-badge.recusado{ color: var(--bad); border:1px solid var(--bad); }
+  .user-badge.admin{ color: var(--cyan); border:1px solid var(--cyan); margin-left:6px; }
+  #adminUsersBtn{ margin-left:8px; }
+  .titleblock-grid div:last-child span{ display:flex; gap:6px; }
+
   @media (max-width: 720px){
     .dashboard{ grid-template-columns: repeat(2,1fr); }
     .status-block .top-row{ flex-direction:column; align-items:flex-start; }
@@ -253,7 +291,47 @@
 </style>
 </head>
 <body>
-<div class="sheet">
+
+<div class="modal-overlay" id="loginOverlay">
+  <div class="modal login-modal">
+    <h2 id="loginTitle">Painel de Pendências</h2>
+    <div class="text-popup-subtitle">SIMCAR / SEMA-MT / INCRA-SIGEF — acesso restrito</div>
+    <div class="login-fields">
+      <label>E-mail<input type="email" id="loginEmail" autocomplete="username" placeholder="seuemail@exemplo.com"></label>
+      <label>Senha<input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••"></label>
+      <label id="loginPasswordConfirmWrap" class="hidden">Confirmar senha<input type="password" id="loginPasswordConfirm" autocomplete="new-password" placeholder="••••••••"></label>
+    </div>
+    <div id="loginError" class="login-error hidden"></div>
+    <div class="login-toggle-row">
+      <button type="button" class="link-btn" id="loginToggleMode">Ainda não tenho conta — quero me cadastrar</button>
+    </div>
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="btn primary" id="loginBtn">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="pendingOverlay">
+  <div class="modal login-modal">
+    <h2>Cadastro em análise</h2>
+    <div class="text-popup-subtitle">SIMCAR / SEMA-MT / INCRA-SIGEF</div>
+    <p class="pending-msg">Sua conta (<span id="pendingEmail"></span>) foi criada e está aguardando aprovação do administrador. Assim que for aprovado, é só entrar novamente com o mesmo e-mail e senha.</p>
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="btn ghost" id="pendingLogoutBtn">Sair</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="usersOverlay">
+  <div class="modal users-modal">
+    <button class="close-x" id="closeUsersOverlay">✕</button>
+    <h2>Usuários do painel</h2>
+    <div class="text-popup-subtitle">Aprove, bloqueie ou promova contas cadastradas</div>
+    <div id="usersList" class="users-list"></div>
+  </div>
+</div>
+
+<div class="sheet" id="appSheet" style="display:none;">
 
   <header class="titleblock">
     <div>
@@ -263,6 +341,8 @@
       <div><label>Projeto</label><span>Map GEO</span></div>
       <div><label>Registros</label><span id="tbTotal">0</span></div>
       <div><label>Atualizado</label><span id="tbUpdated">—</span></div>
+      <div><label>Servidor</label><span id="syncStatus" class="sync-status">Conectando…</span></div>
+      <div><label>Conta</label><span><button class="btn ghost small hidden" id="adminUsersBtn" type="button">Usuários</button><button class="btn ghost small" id="logoutBtn" type="button">Sair</button></span></div>
     </div>
   </header>
 
@@ -391,7 +471,226 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script>
+/* ---------- Firebase (dados compartilhados entre todos os usuários do painel) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCb-TUsJ3T274JvvG8YA35Jq5K__mtSUS0",
+  authDomain: "painel-pendencias-simcar.firebaseapp.com",
+  projectId: "painel-pendencias-simcar",
+  storageBucket: "painel-pendencias-simcar.firebasestorage.app",
+  messagingSenderId: "1030591360254",
+  appId: "1:1030591360254:web:0ddc57bd89a8146521c9af"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDb = firebase.firestore();
+const fbStorage = firebase.storage();
+const RECORDS_COL = 'pendencias';
+let firestoreOnline = true; // becomes false after a failed write, shown in the UI
+
+/* ---------- Login gate (Firebase Authentication — cadastro + aprovação do administrador) ---------- */
+const USERS_COL = 'usuarios';
+let loginMode = 'login'; // 'login' | 'signup'
+let currentProfile = null; // {email, status, role} of the signed-in user
+
+function showOverlay(id){
+  ['loginOverlay','pendingOverlay'].forEach(o => document.getElementById(o).classList.toggle('hidden', o !== id));
+  document.getElementById('appSheet').style.display = id ? 'none' : '';
+}
+
+function setLoginMode(mode){
+  loginMode = mode;
+  const confirmWrap = document.getElementById('loginPasswordConfirmWrap');
+  const toggleBtn = document.getElementById('loginToggleMode');
+  const title = document.getElementById('loginTitle');
+  const loginBtn = document.getElementById('loginBtn');
+  document.getElementById('loginError').classList.add('hidden');
+  if(mode === 'signup'){
+    confirmWrap.classList.remove('hidden');
+    toggleBtn.textContent = 'Já tenho conta — quero entrar';
+    title.textContent = 'Criar conta';
+    loginBtn.textContent = 'Cadastrar';
+  } else {
+    confirmWrap.classList.add('hidden');
+    toggleBtn.textContent = 'Ainda não tenho conta — quero me cadastrar';
+    title.textContent = 'Painel de Pendências';
+    loginBtn.textContent = 'Entrar';
+  }
+}
+document.getElementById('loginToggleMode').addEventListener('click', () => {
+  setLoginMode(loginMode === 'login' ? 'signup' : 'login');
+});
+
+const AUTH_ERROR_MAP = {
+  'auth/invalid-credential':'E-mail ou senha incorretos.',
+  'auth/invalid-email':'E-mail inválido.',
+  'auth/user-not-found':'E-mail ou senha incorretos.',
+  'auth/wrong-password':'E-mail ou senha incorretos.',
+  'auth/too-many-requests':'Muitas tentativas — aguarde um pouco e tente novamente.',
+  'auth/email-already-in-use':'Já existe uma conta com esse e-mail — tente entrar em vez de cadastrar.',
+  'auth/weak-password':'Senha muito curta — use pelo menos 6 caracteres.',
+};
+
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const confirmPw = document.getElementById('loginPasswordConfirm').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  errEl.classList.add('hidden');
+
+  if(!email || !password){ errEl.textContent = 'Informe e-mail e senha.'; errEl.classList.remove('hidden'); return; }
+  if(loginMode === 'signup' && password !== confirmPw){ errEl.textContent = 'As senhas não coincidem.'; errEl.classList.remove('hidden'); return; }
+
+  btn.disabled = true; btn.textContent = loginMode === 'signup' ? 'Cadastrando…' : 'Entrando…';
+  try{
+    if(loginMode === 'signup'){
+      const cred = await fbAuth.createUserWithEmailAndPassword(email, password);
+      await fbDb.collection(USERS_COL).doc(cred.user.uid).set({
+        email, status: 'pendente', role: 'membro',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      // onAuthStateChanged below picks this up and shows the "aguardando aprovação" screen
+    } else {
+      await fbAuth.signInWithEmailAndPassword(email, password);
+      // onAuthStateChanged below reveals the app (or the pending screen) once sign-in succeeds
+    }
+  }catch(e){
+    errEl.textContent = AUTH_ERROR_MAP[e.code] || ('Não foi possível continuar: ' + e.message);
+    errEl.classList.remove('hidden');
+  }finally{
+    btn.disabled = false; btn.textContent = loginMode === 'signup' ? 'Cadastrar' : 'Entrar';
+  }
+}
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('loginPassword').addEventListener('keydown', (e) => { if(e.key === 'Enter') doLogin(); });
+document.getElementById('loginPasswordConfirm').addEventListener('keydown', (e) => { if(e.key === 'Enter') doLogin(); });
+document.getElementById('loginEmail').addEventListener('keydown', (e) => { if(e.key === 'Enter') document.getElementById('loginPassword').focus(); });
+async function doLogout(){
+  try{ await saveRecordsToDB([]); }catch(e){ /* non-fatal */ }
+  records = [];
+  await fbAuth.signOut();
+}
+document.getElementById('pendingLogoutBtn').addEventListener('click', doLogout);
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+
+let appStarted = false;
+let profileUnsub = null;
+
+fbAuth.onAuthStateChanged((user) => {
+  if(profileUnsub){ profileUnsub(); profileUnsub = null; }
+  if(!user){
+    currentProfile = null;
+    appStarted = false;
+    setLoginMode('login');
+    showOverlay('loginOverlay');
+    return;
+  }
+
+  // Live-watch this user's own profile doc, so an approval by the admin unlocks
+  // the screen immediately without the person needing to log in again.
+  profileUnsub = fbDb.collection(USERS_COL).doc(user.uid).onSnapshot(async (snap) => {
+    if(!snap.exists){
+      // Shouldn't normally happen (the signup flow always creates this doc), but recover gracefully.
+      try{
+        await fbDb.collection(USERS_COL).doc(user.uid).set({
+          email: user.email, status: 'pendente', role: 'membro',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }catch(e){ console.error('Falha ao criar perfil do usuário', e); }
+      return;
+    }
+    currentProfile = snap.data();
+    if(currentProfile.status === 'aprovado'){
+      showOverlay(null);
+      document.getElementById('adminUsersBtn').classList.toggle('hidden', currentProfile.role !== 'admin');
+      if(!appStarted){
+        appStarted = true;
+        await load();
+        render();
+        initAutoBackup();
+      }
+    } else {
+      document.getElementById('pendingEmail').textContent = currentProfile.email || user.email || '';
+      showOverlay('pendingOverlay');
+    }
+  }, (err) => {
+    console.error('Falha ao ler perfil do usuário', err);
+  });
+});
+
+/* ---------- Painel de administração de usuários (visível só para quem tem role: 'admin') ---------- */
+function userRowActions(uid, data){
+  const actions = [];
+  if(data.status !== 'aprovado') actions.push(`<button class="btn primary small" data-act="aprovar" data-uid="${uid}">Aprovar</button>`);
+  if(data.status !== 'recusado') actions.push(`<button class="btn danger small" data-act="recusar" data-uid="${uid}">Recusar</button>`);
+  if(data.status === 'aprovado' && data.role !== 'admin') actions.push(`<button class="btn ghost small" data-act="bloquear" data-uid="${uid}">Bloquear</button>`);
+  if(data.role !== 'admin') actions.push(`<button class="btn ghost small" data-act="promover" data-uid="${uid}">Tornar admin</button>`);
+  return actions.join('');
+}
+function renderUsersList(docs){
+  const el = document.getElementById('usersList');
+  if(docs.length === 0){ el.innerHTML = '<p class="pending-msg">Nenhum usuário cadastrado ainda.</p>'; return; }
+  el.innerHTML = docs.map(({id, data}) => `
+    <div class="user-row">
+      <div>
+        <div class="user-email">${escapeHtml(data.email || id)}${data.role === 'admin' ? '<span class="user-badge admin">Admin</span>' : ''}</div>
+        <div class="user-meta"><span class="user-badge ${data.status}">${data.status}</span></div>
+      </div>
+      <div class="user-actions">${userRowActions(id, data)}</div>
+    </div>
+  `).join('');
+  el.querySelectorAll('button[data-act]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid = btn.dataset.uid;
+      const act = btn.dataset.act;
+      const patch = act === 'aprovar' ? {status:'aprovado'}
+        : act === 'recusar' ? {status:'recusado'}
+        : act === 'bloquear' ? {status:'recusado'}
+        : act === 'promover' ? {role:'admin', status:'aprovado'}
+        : null;
+      if(!patch) return;
+      btn.disabled = true;
+      try{ await fbDb.collection(USERS_COL).doc(uid).update(patch); }
+      catch(e){ alert('Não foi possível atualizar este usuário: ' + e.message); }
+    });
+  });
+}
+let usersUnsub = null;
+document.getElementById('adminUsersBtn').addEventListener('click', () => {
+  document.getElementById('usersOverlay').classList.remove('hidden');
+  if(!usersUnsub){
+    usersUnsub = fbDb.collection(USERS_COL).orderBy('email').onSnapshot(snap => {
+      renderUsersList(snap.docs.map(d => ({id: d.id, data: d.data()})));
+    }, err => { console.error('Falha ao listar usuários', err); document.getElementById('usersList').innerHTML = '<p class="pending-msg">Não foi possível carregar a lista de usuários.</p>'; });
+  }
+});
+document.getElementById('closeUsersOverlay').addEventListener('click', () => {
+  document.getElementById('usersOverlay').classList.add('hidden');
+});
+
+function recDocRef(id){ return fbDb.collection(RECORDS_COL).doc(id); }
+
+function setSyncStatus(ok, msg){
+  firestoreOnline = ok;
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'sync-status ' + (ok ? 'sync-ok' : 'sync-bad');
+}
+
+async function pushRecordToFirestore(rec){
+  const clean = JSON.parse(JSON.stringify(rec));
+  await recDocRef(rec.id).set(clean);
+}
+async function deleteRecordFromFirestore(id){
+  await recDocRef(id).delete();
+}
+
 const STORAGE_KEY = 'simcar_pendencias_v1'; // legacy localStorage key — read once for migration, then unused
 
 /* ---------- IndexedDB (records + PDFs + settings — much larger quota than localStorage, works reliably on file:// pages) ---------- */
@@ -437,7 +736,7 @@ async function loadRecordsFromDB(){
     req.onerror = () => reject(req.error);
   });
 }
-async function savePdfBlob(id, file){
+async function savePdfBlobLocal(id, file){
   const db = await openPdfDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(PDF_STORE, 'readwrite');
@@ -446,7 +745,7 @@ async function savePdfBlob(id, file){
     tx.onerror = () => reject(tx.error);
   });
 }
-async function getPdfBlob(id){
+async function getPdfBlobLocal(id){
   const db = await openPdfDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(PDF_STORE, 'readonly');
@@ -455,7 +754,7 @@ async function getPdfBlob(id){
     req.onerror = () => reject(req.error);
   });
 }
-async function deletePdfBlob(id){
+async function deletePdfBlobLocal(id){
   const db = await openPdfDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(PDF_STORE, 'readwrite');
@@ -463,6 +762,39 @@ async function deletePdfBlob(id){
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
+}
+
+/* ---------- PDF anexos: cache local (rápido) + Firebase Storage (compartilhado entre usuários) ---------- */
+async function savePdfBlob(id, file){
+  try{ await savePdfBlobLocal(id, file); }catch(e){ console.error('Falha ao salvar PDF localmente', e); throw e; }
+  // Best-effort upload to Firebase Storage so other users/devices can see the PDF too.
+  // Non-fatal: while Storage isn't enabled on the project (requires the Blaze plan),
+  // this silently fails and the PDF simply stays local to this browser/device.
+  try{
+    const ref = fbStorage.ref().child('pdfs/' + id);
+    await ref.put(file, {contentType: file.type || 'application/pdf'});
+  }catch(e){ console.warn('PDF salvo apenas localmente (Storage não disponível):', e.message); }
+}
+async function getPdfBlob(id){
+  try{
+    const local = await getPdfBlobLocal(id);
+    if(local) return local;
+  }catch(e){ /* fall through to remote */ }
+  try{
+    const ref = fbStorage.ref().child('pdfs/' + id);
+    const url = await ref.getDownloadURL();
+    const resp = await fetch(url);
+    if(resp.ok){
+      const blob = await resp.blob();
+      try{ await savePdfBlobLocal(id, blob); }catch(e){}
+      return blob;
+    }
+  }catch(e){ /* not found in Storage either */ }
+  return null;
+}
+async function deletePdfBlob(id){
+  try{ await deletePdfBlobLocal(id); }catch(e){ /* non-fatal */ }
+  try{ await fbStorage.ref().child('pdfs/' + id).delete(); }catch(e){ /* may not exist remotely */ }
 }
 async function saveMeta(key, value){
   const db = await openPdfDB();
@@ -555,7 +887,7 @@ async function importFullBackup(file){
     const idx = records.findIndex(r => r.id === rec.id);
     if(idx >= 0){ records[idx] = rec; } else { records.push(rec); }
   }
-  save();
+  await save();
   render();
   alert('Backup importado com sucesso.');
 }
@@ -690,47 +1022,110 @@ function seedData(){
 }
 
 let records = [];
-async function load(){
-  let fromDB = null;
-  try{ fromDB = await loadRecordsFromDB(); }catch(e){ console.error('Falha ao ler IndexedDB', e); }
 
+function normalizeRecord(r){
+  r.results = migrateResults(r.results);
+  if(typeof r.arquivado !== 'boolean') r.arquivado = false;
+  if(r.arquivadoEm === undefined) r.arquivadoEm = null;
+  if(r._pendTextos){
+    Object.keys(r._pendTextos).forEach(key => {
+      if(r.results[key]) r.results[key].texto = r._pendTextos[key];
+    });
+    delete r._pendTextos;
+  }
+  return r;
+}
+
+// Called every time the shared Firestore collection changes — including changes made by
+// other users on other devices — so everyone's screen stays in sync automatically.
+function applySnapshotToRecords(snapshot){
+  const remote = [];
+  snapshot.forEach(doc => remote.push(normalizeRecord(doc.data())));
+  records = remote;
+  saveRecordsToDB(records).catch(e => console.error('Falha ao atualizar cache local', e));
+  setSyncStatus(true, '☁ Sincronizado');
+  render();
+}
+
+async function load(){
+  // Paint instantly from the local cache (fast, works offline) while Firestore loads.
+  let fromDB = null;
+  try{ fromDB = await loadRecordsFromDB(); }catch(e){ console.error('Falha ao ler cache local', e); }
   if(fromDB && Array.isArray(fromDB)){
-    records = fromDB;
+    records = fromDB.map(normalizeRecord);
   } else {
-    // Migration path: pull any pre-existing data from the old localStorage key (v1 of this app)
     let raw = null;
     try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){ /* localStorage may be unavailable/full */ }
     if(raw){
-      try{ records = JSON.parse(raw); }catch(e){ records = seedData(); }
-    } else {
-      records = seedData();
+      try{ records = JSON.parse(raw).map(normalizeRecord); }catch(e){ records = []; }
     }
   }
-
-  records.forEach(r => {
-    r.results = migrateResults(r.results);
-    if(typeof r.arquivado !== 'boolean') r.arquivado = false;
-    if(r.arquivadoEm === undefined) r.arquivadoEm = null;
-    if(r._pendTextos){
-      Object.keys(r._pendTextos).forEach(key => {
-        if(r.results[key]) r.results[key].texto = r._pendTextos[key];
-      });
-      delete r._pendTextos;
-    }
-  });
-
-  await save();
-  // Free up the old localStorage key now that data lives in IndexedDB (avoids the file:// quota ceiling)
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+
+  // Now connect to the shared server database. Regular users only ever query their OWN
+  // records (ownerId == their uid); the admin's query is unfiltered and sees everyone's.
+  const currentUid = fbAuth.currentUser ? fbAuth.currentUser.uid : null;
+  const isAdminUser = !!(currentProfile && currentProfile.role === 'admin');
+  let query = fbDb.collection(RECORDS_COL);
+  if(!isAdminUser && currentUid){ query = query.where('ownerId', '==', currentUid); }
+
+  // First snapshot resolves this promise; every snapshot after that (from this user's
+  // own records, or from everyone if admin) updates the screen live.
+  return new Promise((resolve) => {
+    let first = true;
+    query.onSnapshot(async (snapshot) => {
+      if(snapshot.empty && first){
+        if(isAdminUser){
+          // Nothing on the server yet — seed it once (from local cache, or fresh sample data),
+          // tagged as the admin's own records.
+          if(records.length === 0){ records = seedData().map(normalizeRecord); }
+          records.forEach(r => { if(!r.ownerId) r.ownerId = currentUid; });
+          try{
+            await Promise.all(records.map(r => pushRecordToFirestore(r)));
+            setSyncStatus(true, '☁ Sincronizado');
+          }catch(e){
+            console.error('Falha ao inicializar dados no servidor', e);
+            setSyncStatus(false, '⚠ Sem conexão com o servidor — trabalhando localmente');
+          }
+        } else {
+          // A regular user with no records of their own yet — nothing to show, nothing to seed.
+          records = [];
+          setSyncStatus(true, '☁ Sincronizado');
+        }
+        render();
+      } else {
+        applySnapshotToRecords(snapshot);
+      }
+      if(first){ first = false; resolve(); }
+    }, (err) => {
+      console.error('Erro de sincronização com o servidor', err);
+      setSyncStatus(false, '⚠ Sem conexão com o servidor — trabalhando localmente');
+      if(first){ first = false; render(); resolve(); }
+    });
+  });
 }
-async function save(){
+
+// Saves the record `id` (or the whole array, if no id given) both to the local cache
+// and to the shared server database, so other users see the change too.
+async function save(id){
   document.getElementById('tbUpdated').textContent = new Date().toLocaleDateString('pt-BR');
   scheduleAutoBackup();
   try{
     await saveRecordsToDB(records);
   }catch(e){
-    console.error('Falha ao salvar no IndexedDB', e);
-    alert('Não foi possível salvar os dados: ' + e.message + '\n\nSe o problema persistir, fecha outras abas deste arquivo abertas no navegador.');
+    console.error('Falha ao salvar no cache local', e);
+  }
+  try{
+    if(id){
+      const rec = records.find(r => r.id === id);
+      if(rec) await pushRecordToFirestore(rec);
+    } else {
+      await Promise.all(records.map(r => pushRecordToFirestore(r)));
+    }
+    setSyncStatus(true, '☁ Sincronizado');
+  }catch(e){
+    console.error('Falha ao sincronizar com o servidor', e);
+    setSyncStatus(false, '⚠ Alteração salva só neste dispositivo — verifique sua internet');
   }
 }
 
@@ -865,7 +1260,7 @@ function render(){
           const key = toggle.dataset.key;
           const cur = rec.results[key].status;
           rec.results[key].status = STATUS_CYCLE[(STATUS_CYCLE.indexOf(cur)+1) % STATUS_CYCLE.length];
-          save();
+          save(rec.id);
           render();
         });
       });
@@ -873,7 +1268,7 @@ function render(){
         ta.addEventListener('click', (e) => e.stopPropagation());
         ta.addEventListener('change', () => {
           rec.results[ta.dataset.key].texto = ta.value;
-          save();
+          save(rec.id);
         });
       });
       td.querySelectorAll('.pend-expand-btn').forEach(btn => {
@@ -885,7 +1280,7 @@ function render(){
             rec.results[key].texto = val;
             const ta = td.querySelector(`.pend-text[data-key="${key}"]`);
             if(ta) ta.value = val;
-          }, () => { save(); });
+          }, () => { save(rec.id); });
         });
       });
       td.querySelector('.edit-row').addEventListener('click', (e) => {
@@ -906,7 +1301,7 @@ function render(){
           rec.arquivado = true;
           rec.arquivadoEm = new Date().toISOString();
           expandedId = null;
-          save();
+          save(rec.id);
           render();
         });
       }
@@ -917,7 +1312,7 @@ function render(){
           rec.arquivado = false;
           rec.arquivadoEm = null;
           expandedId = null;
-          save();
+          save(rec.id);
           render();
         });
       }
@@ -1128,15 +1523,8 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
       pdfName: existing ? existing.pdfName : '',
       arquivado: existing ? existing.arquivado : false,
       arquivadoEm: existing ? existing.arquivadoEm : null,
+      ownerId: existing ? (existing.ownerId || null) : (fbAuth.currentUser ? fbAuth.currentUser.uid : null),
     };
-
-    if(pendingPdfFile){
-      try{ await savePdfBlob(id, pendingPdfFile); data.pdfName = pendingPdfFile.name; }
-      catch(e){ alert('Aviso: o PDF não foi salvo (' + e.message + '). O restante do processo será salvo normalmente — tente anexar o PDF novamente depois.'); }
-    } else if(pendingPdfRemove){
-      try{ await deletePdfBlob(id); }catch(e){ /* non-fatal */ }
-      data.pdfName = '';
-    }
 
     const idx = records.findIndex(r => r.id === id);
     if(idx >= 0){
@@ -1144,7 +1532,24 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     } else {
       records.push({ id, ...data });
     }
-    save();
+    // Write the record itself first — PDF uploads are only allowed once the matching
+    // record exists on the server with the right owner (see storage.rules).
+    await save(id);
+
+    if(pendingPdfFile){
+      try{
+        await savePdfBlob(id, pendingPdfFile);
+        const rec = records.find(r => r.id === id);
+        if(rec){ rec.pdfName = pendingPdfFile.name; await save(id); }
+      }catch(e){ alert('Aviso: o processo foi salvo, mas o PDF não foi anexado (' + e.message + '). Tente anexá-lo novamente depois.'); }
+    } else if(pendingPdfRemove){
+      try{
+        await deletePdfBlob(id);
+        const rec = records.find(r => r.id === id);
+        if(rec){ rec.pdfName = ''; await save(id); }
+      }catch(e){ /* non-fatal */ }
+    }
+
     closeModal();
     render();
   }catch(e){
@@ -1160,9 +1565,11 @@ document.getElementById('deleteBtn').addEventListener('click', async () => {
   if(!id) return;
   if(!confirm('Excluir este processo da lista? O PDF anexado também será removido.')) return;
   try{ await deletePdfBlob(id); }catch(e){}
+  try{ await deleteRecordFromFirestore(id); setSyncStatus(true, '☁ Sincronizado'); }
+  catch(e){ console.error('Falha ao excluir no servidor', e); setSyncStatus(false, '⚠ Exclusão salva só neste dispositivo — verifique sua internet'); }
   records = records.filter(r => r.id !== id);
   expandedId = null;
-  save();
+  try{ await saveRecordsToDB(records); }catch(e){ console.error('Falha ao atualizar cache local', e); }
   closeModal();
   render();
 });
@@ -1234,12 +1641,6 @@ document.getElementById('autoBackupBtn').addEventListener('click', async () => {
   }
   await updateAutoBackupUI();
 });
-
-(async () => {
-  await load();
-  render();
-  initAutoBackup();
-})();
 </script>
 </body>
 </html>
