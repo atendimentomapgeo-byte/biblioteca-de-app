@@ -135,7 +135,9 @@
 const GITHUB_USER = 'atendimentomapgeo-byte';
 const GITHUB_REPO = 'biblioteca-de-app';
 const GITHUB_BRANCH = 'main';
-const REFRESH_MS = 60000; // reconsulta a cada 60s
+const REFRESH_MS = 600000; // reconsulta a cada 10 minutos
+const CACHE_KEY = 'biblioteca-apps-cache';
+const CACHE_MAX_IDADE_MS = 30 * 60 * 1000; // usa cache de até 30min como plano B
 
 const PAGES_BASE = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
 const API_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
@@ -167,18 +169,55 @@ function setStatus(msg, tipo) {
   statusEl.className = tipo || '';
 }
 
+function lerCache() {
+  try {
+    const bruto = localStorage.getItem(CACHE_KEY);
+    if (!bruto) return null;
+    const cache = JSON.parse(bruto);
+    if (!Array.isArray(cache.apps)) return null;
+    return cache;
+  } catch (e) {
+    return null;
+  }
+}
+
+function salvarCache(apps) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ apps, timestamp: Date.now() }));
+  } catch (e) {
+    // localStorage indisponível (modo privado, por ex.) — segue sem cache
+  }
+}
+
+function usarCacheComoFallback(motivoErro) {
+  const cache = lerCache();
+  if (cache && cache.apps.length > 0) {
+    todosOsApps = cache.apps;
+    const minutos = Math.round((Date.now() - cache.timestamp) / 60000);
+    carregandoEl.style.display = 'none';
+    setStatus(`${motivoErro} — mostrando lista salva há ${minutos} min`, 'erro');
+    renderizar();
+    return true;
+  }
+  return false;
+}
+
 async function buscarApps() {
   try {
     const resp = await fetch(API_URL);
     if (!resp.ok) {
+      let motivo;
       if (resp.status === 404) {
-        setStatus('Repositório ou branch não encontrado', 'erro');
+        motivo = 'Repositório ou branch não encontrado';
       } else if (resp.status === 403) {
-        setStatus('Limite da API do GitHub atingido, tente em instantes', 'erro');
+        motivo = 'Limite da API do GitHub atingido';
       } else {
-        setStatus('Erro ao consultar o GitHub (' + resp.status + ')', 'erro');
+        motivo = 'Erro ao consultar o GitHub (' + resp.status + ')';
       }
-      carregandoEl.style.display = 'none';
+      if (!usarCacheComoFallback(motivo)) {
+        setStatus(motivo, 'erro');
+        carregandoEl.style.display = 'none';
+      }
       return;
     }
     const dados = await resp.json();
@@ -186,14 +225,27 @@ async function buscarApps() {
       .filter(item => item.type === 'file' && /\.html?$/i.test(item.name) && !/^index\.html?$/i.test(item.name))
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
+    salvarCache(todosOsApps);
     carregandoEl.style.display = 'none';
     setStatus(`${todosOsApps.length} app(s) encontrado(s)`, 'ok');
     renderizar();
   } catch (e) {
     console.error(e);
-    setStatus('Falha ao conectar com o GitHub', 'erro');
-    carregandoEl.style.display = 'none';
+    if (!usarCacheComoFallback('Falha ao conectar com o GitHub')) {
+      setStatus('Falha ao conectar com o GitHub', 'erro');
+      carregandoEl.style.display = 'none';
+    }
   }
+}
+
+// Mostra o cache instantaneamente ao abrir a página, sem esperar a rede,
+// e só então dispara a busca atualizada por trás.
+const cacheInicial = lerCache();
+if (cacheInicial && cacheInicial.apps.length > 0 && (Date.now() - cacheInicial.timestamp) < CACHE_MAX_IDADE_MS) {
+  todosOsApps = cacheInicial.apps;
+  carregandoEl.style.display = 'none';
+  setStatus('Carregando lista salva...', '');
+  renderizar();
 }
 
 function renderizar() {
