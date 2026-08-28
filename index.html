@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca de Aplicativos — mapgeo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #22303f;
+    --panel: #263646;
+    --border: #37495c;
+    --text: #ecf0f4;
+    --muted: #93a1b0;
+    --accent: #4b8bf5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  a { color: var(--accent); text-decoration: none; }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 28px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+  }
+  .logo {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, #4b8bf5, #8f7ff2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  #busca {
+    flex: 1; min-width: 200px; max-width: 420px;
+    position: relative;
+  }
+  #busca input {
+    width: 100%;
+    background: #1b2734;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 14px 9px 34px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+  }
+  #busca span {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--muted);
+  }
+  #status {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    margin-left: auto;
+  }
+  #status.ok { color: #7fd88f; }
+  #status.erro { color: #e0678a; }
+
+  main { padding: 28px; flex: 1; }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color .15s, transform .15s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .icone {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 700; color: #14202c;
+  }
+  .titulo { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .nomearq {
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  #vazio, #carregando {
+    text-align: center; color: var(--muted); margin-top: 80px; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="logo">📚</span> Biblioteca de Aplicativos</h1>
+  <div id="busca">
+    <span>🔎</span>
+    <input type="text" id="inputBusca" placeholder="Buscar app...">
+  </div>
+  <div id="status">Carregando...</div>
+</header>
+
+<main>
+  <div id="carregando">Buscando apps no repositório...</div>
+  <div id="vazio" style="display:none">Nenhum app .html encontrado no repositório.</div>
+  <div id="grid"></div>
+</main>
+
+<script>
+// ---- CONFIGURAÇÃO ----
+const GITHUB_USER = 'atendimentomapgeo-byte';
+const GITHUB_REPO = 'mapgeo';
+const GITHUB_BRANCH = 'main';
+const REFRESH_MS = 60000; // reconsulta a cada 60s
+
+const PAGES_BASE = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
+const API_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
+
+const CORES = ['#4b8bf5','#4bc0d9','#7fd88f','#f2b84b','#e0678a','#8f7ff2'];
+
+function corParaNome(nome) {
+  let hash = 0;
+  for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+  return CORES[Math.abs(hash) % CORES.length];
+}
+
+function tituloBonito(nomeArquivo) {
+  const semExt = nomeArquivo.replace(/\.html?$/i, '');
+  const espacado = semExt.replace(/[_-]+/g, ' ').trim();
+  return espacado.charAt(0).toUpperCase() + espacado.slice(1);
+}
+
+const statusEl = document.getElementById('status');
+const gridEl = document.getElementById('grid');
+const vazioEl = document.getElementById('vazio');
+const carregandoEl = document.getElementById('carregando');
+const inputBusca = document.getElementById('inputBusca');
+
+let todosOsApps = [];
+
+function setStatus(msg, tipo) {
+  statusEl.textContent = msg;
+  statusEl.className = tipo || '';
+}
+
+async function buscarApps() {
+  try {
+    const resp = await fetch(API_URL);
+    if (!resp.ok) {
+      if (resp.status === 404) {
+        setStatus('Repositório ou branch não encontrado', 'erro');
+      } else if (resp.status === 403) {
+        setStatus('Limite da API do GitHub atingido, tente em instantes', 'erro');
+      } else {
+        setStatus('Erro ao consultar o GitHub (' + resp.status + ')', 'erro');
+      }
+      carregandoEl.style.display = 'none';
+      return;
+    }
+    const dados = await resp.json();
+    todosOsApps = dados
+      .filter(item => item.type === 'file' && /\.html?$/i.test(item.name) && !/^index\.html?$/i.test(item.name))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+    carregandoEl.style.display = 'none';
+    setStatus(`${todosOsApps.length} app(s) encontrado(s)`, 'ok');
+    renderizar();
+  } catch (e) {
+    console.error(e);
+    setStatus('Falha ao conectar com o GitHub', 'erro');
+    carregandoEl.style.display = 'none';
+  }
+}
+
+function renderizar() {
+  const termo = inputBusca.value.trim().toLowerCase();
+  const filtrados = todosOsApps.filter(app =>
+    !termo ||
+    tituloBonito(app.name).toLowerCase().includes(termo) ||
+    app.name.toLowerCase().includes(termo)
+  );
+
+  gridEl.innerHTML = '';
+  vazioEl.style.display = filtrados.length === 0 ? 'block' : 'none';
+
+  for (const app of filtrados) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.onclick = () => window.open(PAGES_BASE + encodeURIComponent(app.name), '_blank');
+
+    const icone = document.createElement('div');
+    icone.className = 'icone';
+    icone.style.background = corParaNome(app.name);
+    icone.textContent = (tituloBonito(app.name).charAt(0) || '?').toUpperCase();
+
+    const titulo = document.createElement('div');
+    titulo.className = 'titulo';
+    titulo.textContent = tituloBonito(app.name);
+
+    const nomearq = document.createElement('div');
+    nomearq.className = 'nomearq';
+    nomearq.textContent = app.name;
+
+    card.appendChild(icone);
+    card.appendChild(titulo);
+    card.appendChild(nomearq);
+    gridEl.appendChild(card);
+  }
+}
+
+inputBusca.addEventListener('input', renderizar);
+
+buscarApps();
+setInterval(buscarApps, REFRESH_MS);
+</script>
+
+</body>
+</html>
