@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEOÁRVORE — Coordenadas de Árvores em Manejo Florestal</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --bg0:#0b0f12; --bg1:#11171b; --bg2:#161e23; --bg3:#1c262c;
+  --line:#263139; --line-lt:#324049;
+  --txt:#d7e0e4; --txt-dim:#8ea0a8; --txt-mute:#5c6d75;
+  --accent:#4fd1a5; --accent-dim:#2c7a5e; --accent-bg:#0f2620;
+  --warn:#e8b04b; --err:#e8654f; --err-bg:#2c1613;
+  --ok:#4fd1a5;
+  --mono:'IBM Plex Mono','Consolas','SFMono-Regular',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg0);color:var(--txt);font-family:var(--mono);font-size:12.5px;height:100%;}
+button,input,select,textarea{font-family:var(--mono);font-size:12px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:var(--bg1);}
+::-webkit-scrollbar-thumb{background:var(--line-lt);border-radius:2px;}
+
+.app{display:flex;flex-direction:column;height:100vh;}
+
+/* HEADER */
+header{background:var(--bg1);border-bottom:1px solid var(--line);padding:6px 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.brand{display:flex;align-items:baseline;gap:6px;}
+.brand b{color:var(--accent);letter-spacing:.5px;font-size:14px;}
+.brand span{color:var(--txt-mute);font-size:10.5px;}
+.proj-name{background:var(--bg2);border:1px solid var(--line);color:var(--txt);padding:4px 8px;min-width:200px;}
+.header-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
+
+button.btn{background:var(--bg2);border:1px solid var(--line-lt);color:var(--txt);padding:5px 10px;cursor:pointer;letter-spacing:.3px;white-space:nowrap;}
+button.btn:hover{border-color:var(--accent-dim);color:var(--accent);}
+button.btn.primary{background:var(--accent-bg);border-color:var(--accent-dim);color:var(--accent);}
+button.btn.primary:hover{background:var(--accent-dim);color:#03140e;}
+button.btn.danger{border-color:#5c2c25;color:var(--err);}
+button.btn.danger:hover{background:var(--err-bg);}
+button.btn:disabled{opacity:.35;cursor:not-allowed;}
+button.btn.sm{padding:3px 7px;font-size:11px;}
+
+/* TABS */
+nav.tabs{display:flex;background:var(--bg1);border-bottom:1px solid var(--line);overflow-x:auto;}
+nav.tabs button{background:transparent;border:none;color:var(--txt-dim);padding:9px 16px;cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.4px;border-bottom:2px solid transparent;white-space:nowrap;}
+nav.tabs button:hover{color:var(--txt);}
+nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--bg2);}
+nav.tabs .tab-badge{background:var(--line-lt);color:var(--txt-dim);border-radius:8px;font-size:9.5px;padding:1px 5px;margin-left:5px;}
+nav.tabs button.active .tab-badge{background:var(--accent-dim);color:#03140e;}
+
+main{flex:1;overflow:auto;padding:14px;}
+.panel{display:none;max-width:1400px;margin:0 auto;}
+.panel.active{display:block;}
+
+h2.section-title{font-size:12.5px;color:var(--accent);letter-spacing:.8px;margin:0 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;text-transform:uppercase;}
+h3.sub-title{font-size:11px;color:var(--txt-dim);letter-spacing:.5px;margin:16px 0 8px;text-transform:uppercase;}
+.card{background:var(--bg1);border:1px solid var(--line);padding:12px;margin-bottom:12px;}
+.grid{display:grid;gap:10px;}
+.grid.c2{grid-template-columns:1fr 1fr;}
+.grid.c3{grid-template-columns:1fr 1fr 1fr;}
+.grid.c4{grid-template-columns:1fr 1fr 1fr 1fr;}
+.grid.c6{grid-template-columns:repeat(6,1fr);}
+@media(max-width:900px){.grid.c2,.grid.c3,.grid.c4,.grid.c6{grid-template-columns:1fr 1fr;}}
+
+label.field{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--txt-dim);letter-spacing:.3px;}
+label.field input,label.field select{background:var(--bg2);border:1px solid var(--line-lt);color:var(--txt);padding:5px 7px;}
+label.field input:focus,label.field select:focus{outline:none;border-color:var(--accent-dim);}
+.checkline{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt-dim);}
+
+.dropzone{border:1px dashed var(--line-lt);background:var(--bg2);padding:26px;text-align:center;color:var(--txt-dim);cursor:pointer;transition:.15s;}
+.dropzone:hover,.dropzone.drag{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);}
+.dropzone b{display:block;color:var(--txt);margin-bottom:4px;font-size:13px;}
+.dropzone.drag b{color:var(--accent);}
+
+table{border-collapse:collapse;width:100%;font-size:11px;}
+table th{background:var(--bg2);color:var(--txt-dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-lt);white-space:nowrap;position:sticky;top:0;cursor:pointer;letter-spacing:.3px;}
+table th:hover{color:var(--accent);}
+table th.sorted{color:var(--accent);}
+table td{padding:5px 8px;border-bottom:1px solid var(--line);color:var(--txt);white-space:nowrap;}
+table tr:hover td{background:var(--bg2);}
+.table-wrap{max-height:560px;overflow:auto;border:1px solid var(--line);}
+td input{background:var(--bg2);border:1px solid var(--line);color:var(--txt);width:100%;padding:2px 4px;border-radius:2px;}
+td input:hover{border-color:var(--line-lt);}
+td input:focus{background:var(--bg3);border-color:var(--accent-dim);outline:none;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+.mapfield-row{display:grid;grid-template-columns:1.4fr 2fr;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);}
+.mapfield-row span{color:var(--txt-dim);font-size:11px;}
+.mapfield-row select{background:var(--bg2);border:1px solid var(--line-lt);color:var(--txt);padding:4px 6px;width:100%;}
+.req::after{content:' *';color:var(--warn);}
+
+.msg{padding:8px 10px;font-size:11.5px;border-left:3px solid;margin-bottom:8px;}
+.msg.err{background:var(--err-bg);border-color:var(--err);color:#ffb3a3;}
+.msg.warn{background:#2c2413;border-color:var(--warn);color:#f5d69a;}
+.msg.ok{background:var(--accent-bg);border-color:var(--accent);color:#a8f0d4;}
+.msg.info{background:var(--bg2);border-color:var(--txt-mute);color:var(--txt-dim);}
+
+.kpi-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.kpi{background:var(--bg1);border:1px solid var(--line);padding:8px 14px;min-width:120px;}
+.kpi b{display:block;font-size:19px;color:var(--accent);}
+.kpi span{font-size:10px;color:var(--txt-mute);letter-spacing:.4px;text-transform:uppercase;}
+
+#mapview{height:600px;border:1px solid var(--line);background:var(--bg2);}
+.legend-box{background:rgba(17,23,27,.92);border:1px solid var(--line-lt);padding:8px 10px;font-size:11px;color:var(--txt);}
+.legend-box div{display:flex;align-items:center;gap:6px;margin:3px 0;}
+.swatch{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+.toolbar input.search{background:var(--bg2);border:1px solid var(--line-lt);color:var(--txt);padding:5px 8px;min-width:200px;}
+.spacer{flex:1;}
+.pill{background:var(--bg2);border:1px solid var(--line-lt);color:var(--txt-dim);padding:3px 8px;font-size:10.5px;}
+
+.export-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;}
+.export-card{background:var(--bg2);border:1px solid var(--line-lt);padding:14px;text-align:left;}
+.export-card b{display:block;color:var(--accent);font-size:12.5px;margin-bottom:4px;}
+.export-card p{color:var(--txt-dim);font-size:10.5px;margin:0 0 10px;line-height:1.5;}
+
+.sign-diagram{background:var(--bg2);border:1px solid var(--line-lt);padding:20px;text-align:center;font-size:12px;line-height:1.9;white-space:pre;color:var(--txt-dim);}
+.sign-diagram b{color:var(--accent);}
+
+footer.statusbar{background:var(--bg1);border-top:1px solid var(--line);padding:4px 12px;font-size:10.5px;color:var(--txt-mute);display:flex;gap:16px;}
+footer.statusbar b{color:var(--txt-dim);}
+
+.hidden{display:none !important;}
+a.link{color:var(--accent);}
+.small-note{font-size:10.5px;color:var(--txt-mute);margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="brand"><b>GEOÁRVORE</b><span>coordenadas de árvores — manejo florestal</span></div>
+  <input class="proj-name" id="projName" value="Projeto sem título" title="Nome do projeto">
+  <div class="header-actions">
+    <button class="btn" onclick="Proj.save()">💾 SALVAR PROJETO</button>
+    <button class="btn" onclick="document.getElementById('loadProjInput').click()">📂 CARREGAR PROJETO</button>
+    <input type="file" id="loadProjInput" accept=".json" class="hidden" onchange="Proj.load(this.files[0])">
+    <button class="btn" onclick="App.loadExample()">▶ CARREGAR EXEMPLO</button>
+    <button class="btn danger" onclick="App.newProject()">🗑 NOVO PROJETO (APAGAR TUDO)</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="importar" class="active">1. IMPORTAR DADOS</button>
+  <button data-tab="picadas">2. PICADAS <span class="tab-badge" id="badgePicadas">0</span></button>
+  <button data-tab="config">3. CONFIGURAÇÃO</button>
+  <button data-tab="processamento">4. PROCESSAMENTO</button>
+  <button data-tab="resultados">5. RESULTADOS <span class="tab-badge" id="badgeResultados">0</span></button>
+  <button data-tab="mapa">6. MAPA</button>
+  <button data-tab="exportacao">7. EXPORTAÇÃO</button>
+</nav>
+
+<main>
+
+<!-- ===================== TAB 1: IMPORTAR ===================== -->
+<section class="panel active" id="tab-importar">
+  <h2 class="section-title">Importação de Dados — Árvores</h2>
+  <div class="card">
+    <div class="dropzone" id="dropzoneTrees" onclick="document.getElementById('fileTrees').click()">
+      <b>Clique ou arraste o arquivo de árvores (CSV, XLSX, TXT)</b>
+      Colunas serão mapeadas na etapa seguinte — nenhum campo original é descartado.
+    </div>
+    <input type="file" id="fileTrees" class="hidden" accept=".csv,.xlsx,.xls,.txt" onchange="Importer.handleFile(this.files[0],'trees')">
+  </div>
+
+  <div class="card hidden" id="mappingCard">
+    <h3 class="sub-title">Mapeamento de Colunas — Árvores</h3>
+    <div class="msg info">Arquivo: <b id="fileNameLabel"></b> — <span id="fileRowsLabel"></span> linha(s) detectada(s). Associe cada campo do sistema à coluna correspondente da planilha.</div>
+    <div id="mappingRows"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn primary" id="btnConfirmMapping" onclick="Importer.confirmMapping()">CONFIRMAR IMPORTAÇÃO</button>
+      <button class="btn" onclick="Importer.cancelMapping()">CANCELAR</button>
+    </div>
+  </div>
+
+  <div class="card" id="importedPreviewCard" style="display:none">
+    <div class="toolbar" style="margin-bottom:6px;">
+      <h3 class="sub-title" style="margin:0;">Árvores Importadas (<span id="importedCount">0</span>)</h3>
+      <div class="spacer"></div>
+      <button class="btn sm" onclick="Importer.startRemap()">✎ REMAPEAR COLUNAS</button>
+      <button class="btn sm danger" onclick="Importer.clearAllTrees()">🗑 APAGAR TODAS AS ÁRVORES</button>
+    </div>
+    <div class="table-wrap" style="max-height:320px;"><table id="importedPreviewTable"></table></div>
+  </div>
+</section>
+
+<!-- ===================== TAB 2: PICADAS ===================== -->
+<section class="panel" id="tab-picadas">
+  <h2 class="section-title">Cadastro de Picadas</h2>
+
+  <div class="card">
+    <h3 class="sub-title">Importar Picadas (opcional)</h3>
+    <div class="dropzone" id="dropzonePicadas" onclick="document.getElementById('filePicadas').click()">
+      <b>Clique ou arraste o arquivo de picadas (CSV, XLSX, TXT)</b>
+      Aceita: PICADA;X_INICIAL;Y_INICIAL;X_FINAL;Y_FINAL &nbsp;ou&nbsp; PICADA;X_INICIAL;Y_INICIAL;AZIMUTE;COMPRIMENTO
+    </div>
+    <input type="file" id="filePicadas" class="hidden" accept=".csv,.xlsx,.xls,.txt" onchange="Importer.handleFile(this.files[0],'picadas')">
+  </div>
+
+  <div class="card hidden" id="mappingCardPicadas">
+    <h3 class="sub-title">Mapeamento de Colunas — Picadas</h3>
+    <div class="msg info"><span id="filePicadasRowsLabel"></span></div>
+    <div id="mappingRowsPicadas"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn primary" onclick="Importer.confirmMappingPicadas()">CONFIRMAR IMPORTAÇÃO</button>
+      <button class="btn" onclick="Importer.cancelMappingPicadas()">CANCELAR</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub-title">Cadastro Manual</h3>
+    <div class="grid c6">
+      <label class="field"><span class="req">ID PICADA</span><input id="pkId" placeholder="P01"></label>
+      <label class="field"><span>MODO</span>
+        <select id="pkModo" onchange="Picadas.toggleModo()">
+          <option value="coords">Coord. inicial/final</option>
+          <option value="azimute">Coord. inicial + azimute/comprimento</option>
+        </select>
+      </label>
+      <label class="field"><span class="req">X INICIAL (E)</span><input id="pkXi" type="number" step="any" placeholder="450000.000"></label>
+      <label class="field"><span class="req">Y INICIAL (N)</span><input id="pkYi" type="number" step="any" placeholder="8815000.000"></label>
+      <label class="field" id="pkXfWrap"><span class="req">X FINAL (E)</span><input id="pkXf" type="number" step="any" placeholder="451000.000"></label>
+      <label class="field" id="pkYfWrap"><span class="req">Y FINAL (N)</span><input id="pkYf" type="number" step="any" placeholder="8815000.000"></label>
+      <label class="field hidden" id="pkAzWrap"><span class="req">AZIMUTE (°)</span><input id="pkAz" type="number" step="any" placeholder="90.000"></label>
+      <label class="field hidden" id="pkCompWrap"><span class="req">COMPRIMENTO (m)</span><input id="pkComp" type="number" step="any" placeholder="1000.000"></label>
+      <label class="field"><span>OBSERVAÇÃO</span><input id="pkObs" placeholder="opcional"></label>
+      <label class="field"><span>LARGURA DA FAIXA (m)</span><input id="pkLargura" type="number" step="any" min="0" placeholder="usa padrão da config."></label>
+    </div>
+    <div style="margin-top:10px;"><button class="btn primary" onclick="Picadas.add()">+ ADICIONAR PICADA</button></div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub-title">Gerar Picadas em Série (Propagação Paralela)</h3>
+    <p class="small-note" style="margin-bottom:10px;line-height:1.6;">
+      Usa o azimute e o comprimento de uma picada já cadastrada como referência e gera automaticamente as demais,
+      todas paralelas a ela, espaçadas pela largura da faixa configurada (ou outro valor à sua escolha) — evitando
+      sobreposição de árvores entre picadas vizinhas.
+    </p>
+    <div class="grid c4">
+      <label class="field"><span class="req">PICADA BASE (referência)</span><select id="genBaseId"></select></label>
+      <label class="field"><span class="req">QUANTIDADE A GERAR</span><input id="genQtd" type="number" min="1" value="27"></label>
+      <label class="field"><span>ESPAÇAMENTO ENTRE PICADAS (m)</span><input id="genEspacamento" type="number" step="any" min="0" placeholder="usa a largura da faixa"></label>
+      <label class="field"><span>LADO DA PROPAGAÇÃO</span>
+        <select id="genLado">
+          <option value="mesmo">Mesmo lado do Y positivo</option>
+          <option value="oposto">Lado oposto</option>
+        </select>
+      </label>
+    </div>
+    <div style="margin-top:10px;"><button class="btn primary" onclick="Picadas.generateSeries()">⚡ GERAR PICADAS EM SÉRIE</button></div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar" style="margin-bottom:6px;">
+      <h3 class="sub-title" style="margin:0;">Picadas Cadastradas</h3>
+      <div class="spacer"></div>
+      <button class="btn sm danger" onclick="Picadas.clearAll()">🗑 APAGAR TODAS AS PICADAS</button>
+    </div>
+    <div class="table-wrap"><table id="picadasTable"></table></div>
+  </div>
+</section>
+
+<!-- ===================== TAB 3: CONFIGURAÇÃO ===================== -->
+<section class="panel" id="tab-config">
+  <h2 class="section-title">Configuração Cartográfica</h2>
+  <div class="card">
+    <div class="grid c3">
+      <label class="field"><span>SISTEMA DE REFERÊNCIA</span>
+        <select id="cfgDatum">
+          <option value="SIRGAS2000">SIRGAS 2000 / UTM</option>
+          <option value="WGS84">WGS84 / UTM</option>
+        </select>
+      </label>
+      <label class="field"><span>FUSO UTM</span>
+        <select id="cfgZone"></select>
+      </label>
+      <label class="field"><span>HEMISFÉRIO</span>
+        <select id="cfgHemis">
+          <option value="S">Sul (S)</option>
+          <option value="N">Norte (N)</option>
+        </select>
+      </label>
+    </div>
+    <div class="grid c3" style="margin-top:10px;">
+      <label class="field"><span>EPSG (calculado automaticamente — editável)</span><input id="cfgEpsg" placeholder="31981"></label>
+      <label class="field"><span>UNIDADE DE ENTRADA (X/Y das árvores e picadas)</span>
+        <select id="cfgUnit"><option value="m">Metros (m)</option><option value="cm">Centímetros (cm)</option></select>
+      </label>
+      <label class="field"><span>LADO POSITIVO DO Y</span>
+        <select id="cfgYSide"><option value="esquerda">Esquerda da picada</option><option value="direita">Direita da picada</option></select>
+      </label>
+    </div>
+    <div class="msg info" style="margin-top:10px;" id="epsgPreview"></div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub-title">Controle de Sinal — Convenção do Y</h3>
+    <div class="grid c2">
+      <div class="sign-diagram" id="signDiagram"></div>
+      <div>
+        <p class="small-note" style="font-size:11.5px;line-height:1.7;color:var(--txt-dim)">
+        O deslocamento perpendicular <b style="color:var(--accent)">Y</b> é medido em relação ao sentido de percurso da picada
+        (do ponto inicial para o ponto final). Escolha se valores positivos de Y representam deslocamento para a
+        <b style="color:var(--accent)">esquerda</b> ou para a <b style="color:var(--accent)">direita</b> de quem caminha
+        nesse sentido. Essa convenção é aplicada a todas as picadas do projeto e pode ser alterada a qualquer momento —
+        recalcule o processamento após qualquer mudança.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub-title">Precisão de Exibição</h3>
+    <div class="grid c4">
+      <label class="field"><span>CASAS — UTM (m)</span><input id="cfgPrecUtm" type="number" min="0" max="6" value="3"></label>
+      <label class="field"><span>CASAS — LAT/LON DECIMAL</span><input id="cfgPrecDeg" type="number" min="0" max="10" value="8"></label>
+      <label class="field"><span>CASAS — SEGUNDOS (GMS)</span><input id="cfgPrecGms" type="number" min="0" max="6" value="3"></label>
+      <label class="field"><span>CASAS — X/Y (m)</span><input id="cfgPrecXy" type="number" min="0" max="4" value="2"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub-title">Faixa (Corredor de Amostragem)</h3>
+    <div class="grid c3">
+      <label class="field"><span>LARGURA PADRÃO DA FAIXA (m)</span><input id="cfgLarguraPadrao" type="number" step="any" min="0" value="20"></label>
+    </div>
+    <p class="small-note" style="line-height:1.6;font-size:11px;margin-top:8px;">
+      Usada como largura de faixa para picadas que não definem uma largura própria (aba Picadas). A partir dela, o
+      sistema gera um retângulo perpendicular (90°) à picada — visível no Mapa — delimitando os limites da faixa
+      amostrada. Esse mesmo retângulo é estendido automaticamente ao longo da direção da picada para acomodar árvores
+      cujo X ultrapassa o trecho com coordenadas mapeadas, servindo de referência geométrica para o posicionamento
+      dessas árvores seguintes.
+    </p>
+  </div>
+</section>
+
+<!-- ===================== TAB 4: PROCESSAMENTO ===================== -->
+<section class="panel" id="tab-processamento">
+  <h2 class="section-title">Processamento</h2>
+  <div class="kpi-row">
+    <div class="kpi"><b id="kpiTrees">0</b><span>Árvores importadas</span></div>
+    <div class="kpi"><b id="kpiPicadas">0</b><span>Picadas cadastradas</span></div>
+    <div class="kpi"><b id="kpiErrors">0</b><span>Erros de validação</span></div>
+    <div class="kpi"><b id="kpiProcessed">0</b><span>Árvores processadas</span></div>
+  </div>
+  <div class="card">
+    <p style="color:var(--txt-dim);line-height:1.6;font-size:11.5px;">
+      O processamento valida os dados, calcula o vetor da picada (direção, comprimento, azimute), posiciona cada
+      árvore por geometria vetorial (deslocamento longitudinal X + deslocamento perpendicular Y), converte o
+      resultado para coordenadas geográficas (Lat/Lon, decimal e GMS) e monta a tabela de resultados.
+    </p>
+    <button class="btn primary" style="padding:9px 22px;font-size:13px;" onclick="Engine.process()">▶ PROCESSAR COORDENADAS</button>
+  </div>
+  <div class="card" id="validationCard" style="display:none">
+    <h3 class="sub-title">Log de Validação</h3>
+    <div id="validationLog"></div>
+  </div>
+</section>
+
+<!-- ===================== TAB 5: RESULTADOS ===================== -->
+<section class="panel" id="tab-resultados">
+  <h2 class="section-title">Resultados</h2>
+  <div class="toolbar">
+    <input class="search" id="resultSearch" placeholder="Pesquisar árvore, picada, espécie..." oninput="Results.render()">
+    <select class="pill" id="resultFilterPicada" onchange="Results.render()"><option value="">Todas as picadas</option></select>
+    <div class="spacer"></div>
+    <span class="pill" id="resultCountPill">0 árvore(s)</span>
+    <button class="btn sm" onclick="Engine.process()">↻ RECALCULAR</button>
+    <button class="btn sm danger" onclick="Results.clearAll()">🗑 LIMPAR RESULTADOS</button>
+  </div>
+  <div class="table-wrap"><table id="resultsTable"></table></div>
+</section>
+
+<!-- ===================== TAB 6: MAPA ===================== -->
+<section class="panel" id="tab-mapa">
+  <h2 class="section-title">Mapa</h2>
+  <div class="toolbar">
+    <select class="pill" id="mapBaseLayer" onchange="MapView.switchBase()">
+      <option value="osm">Mapa (OpenStreetMap)</option>
+      <option value="sat">Satélite</option>
+      <option value="hybrid">Satélite + rótulos</option>
+    </select>
+    <label class="checkline"><input type="checkbox" id="layerTrees" checked onchange="MapView.refresh()">Árvores</label>
+    <label class="checkline"><input type="checkbox" id="layerPicadas" checked onchange="MapView.refresh()">Picadas</label>
+    <label class="checkline"><input type="checkbox" id="layerFaixa" checked onchange="MapView.refresh()">Faixa (retângulo)</label>
+    <label class="checkline"><input type="checkbox" id="layerLabels" checked onchange="MapView.refresh()">Rótulos</label>
+    <label class="checkline" style="color:var(--accent)"><input type="checkbox" id="mapEditMode" onchange="MapView.refresh()">✎ Habilitar edição (arrastar pontos)</label>
+    <div class="spacer"></div>
+    <select class="pill" id="mapFocusPicada" onchange="MapView.focusPicada()"><option value="">Destacar picada...</option></select>
+    <button class="btn sm" onclick="MapView.fitAll()">⤢ AJUSTAR VISÃO</button>
+  </div>
+  <div id="mapview"></div>
+</section>
+
+<!-- ===================== TAB 7: EXPORTAÇÃO ===================== -->
+<section class="panel" id="tab-exportacao">
+  <h2 class="section-title">Exportação</h2>
+  <div class="export-grid">
+    <div class="export-card">
+      <b>CSV</b><p>Tabela completa com coordenadas UTM, geográficas e todos os atributos originais.</p>
+      <button class="btn primary" onclick="Exporter.csv()">EXPORTAR CSV</button>
+    </div>
+    <div class="export-card">
+      <b>EXCEL (XLSX)</b><p>Planilha com todos os campos, formatada para uso em GIS/laudos.</p>
+      <button class="btn primary" onclick="Exporter.xlsx()">EXPORTAR XLSX</button>
+    </div>
+    <div class="export-card">
+      <b>TXT</b><p>Texto delimitado — escolha o separador abaixo.</p>
+      <select class="pill" id="txtSep" style="margin-bottom:8px;">
+        <option value=";">Ponto-e-vírgula ( ; )</option>
+        <option value=",">Vírgula ( , )</option>
+        <option value="\t">Tabulação</option>
+      </select><br>
+      <button class="btn primary" onclick="Exporter.txt()">EXPORTAR TXT</button>
+    </div>
+    <div class="export-card">
+      <b>KML</b><p>Ponto georreferenciado por árvore, com nome e atributos na descrição.</p>
+      <button class="btn primary" onclick="Exporter.kml()">EXPORTAR KML</button>
+    </div>
+    <div class="export-card">
+      <b>GeoJSON</b><p>FeatureCollection de pontos com todos os atributos em <i>properties</i>.</p>
+      <button class="btn primary" onclick="Exporter.geojson()">EXPORTAR GEOJSON</button>
+    </div>
+    <div class="export-card">
+      <b>RELATÓRIO</b><p>Resumo do projeto: sistema de referência, EPSG, contagens e tabela completa — pronto para impressão/PDF.</p>
+      <button class="btn primary" onclick="Exporter.report()">GERAR RELATÓRIO</button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="statusbar">
+  <span>Datum: <b id="stDatum">—</b></span>
+  <span>Fuso: <b id="stZone">—</b></span>
+  <span>EPSG: <b id="stEpsg">—</b></span>
+  <span>Árvores: <b id="stTrees">0</b></span>
+  <span>Picadas: <b id="stPicadas">0</b></span>
+  <span>Status: <b id="stStatus">aguardando dados</b></span>
+</footer>
+
+</div>
+
+<script>
+/* =========================================================================
+   GEOÁRVORE — Aplicativo de coordenadas de árvores para manejo florestal
+   Arquitetura:
+     Importação → Leitura → Cadastro de picadas → Configuração CRS →
+     Cálculo geométrico → Conversão de coordenadas → Resultados → Mapa → Exportação
+   ========================================================================= */
+
+/* ---------------------------------------------------------------------
+   ESTADO GLOBAL
+--------------------------------------------------------------------- */
+const State = {
+  trees: [],          // {_id, _origIndex, ...camposOriginais, picada, x, y}
+  treeFields: [],      // nomes de colunas originais da planilha de árvores
+  picadas: [],         // {id, xi, yi, xf, yf, azimute, comprimento, obs, modo}
+  results: [],         // saída processada
+  config: {
+    datum: 'SIRGAS2000', zone: 21, hemis: 'S', epsg: 31981,
+    unit: 'm', ySide: 'esquerda',
+    precUtm: 3, precDeg: 8, precGms: 3, precXy: 2,
+    larguraFaixaPadrao: 20
+  },
+  pendingImport: null,  // {rows, headers, target}
+  fieldMapping: {},
+  fieldMappingPicadas: {},
+  errors: []
+};
+
+const SYSTEM_FIELDS_TREES = [
+  {key:'id', label:'ID da árvore', req:true},
+  {key:'picada', label:'Número/ID da picada', req:true},
+  {key:'x', label:'X (deslocamento lateral, perpendicular à picada)', req:true},
+  {key:'y', label:'Y (distância longitudinal, ao longo da picada)', req:true},
+  {key:'especie', label:'Espécie', req:false},
+  {key:'nomePopular', label:'Nome popular', req:false},
+  {key:'dap', label:'DAP', req:false},
+  {key:'altura', label:'Altura', req:false},
+  {key:'obs', label:'Observação', req:false}
+];
+
+const SYSTEM_FIELDS_PICADAS = [
+  {key:'id', label:'ID da picada', req:true},
+  {key:'xi', label:'X inicial', req:true},
+  {key:'yi', label:'Y inicial', req:true},
+  {key:'xf', label:'X final (deixe em branco se usar azimute)', req:false},
+  {key:'yf', label:'Y final (deixe em branco se usar azimute)', req:false},
+  {key:'azimute', label:'Azimute em graus (alternativa a X/Y final)', req:false},
+  {key:'comprimento', label:'Comprimento (alternativa a X/Y final)', req:false},
+  {key:'obs', label:'Observação', req:false}
+];
+
+/* ---------------------------------------------------------------------
+   UTILITÁRIOS NUMÉRICOS / GEOMÉTRICOS
+--------------------------------------------------------------------- */
+const Geo = {
+  toRad(deg){ return deg * Math.PI / 180; },
+  toDeg(rad){ return rad * 180 / Math.PI; },
+
+  /* Comprimento de um vetor (dx,dy) — usado para comprimento de picada */
+  length(dx, dy){ return Math.sqrt(dx*dx + dy*dy); },
+
+  /* Azimute (graus, 0-360, a partir do Norte, sentido horário) dado dx=ΔE, dy=ΔN */
+  azimuthFromDelta(dx, dy){
+    let az = Geo.toDeg(Math.atan2(dx, dy));
+    if (az < 0) az += 360;
+    return az;
+  },
+
+  /* Direção cardeal aproximada a partir do azimute */
+  cardinal(az){
+    const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    const idx = Math.round(az / 22.5) % 16;
+    return dirs[idx];
+  },
+
+  /* Quadrante clássico (NE, SE, SW, NW) */
+  quadrant(az){
+    if (az >= 0 && az < 90) return 'NE';
+    if (az >= 90 && az < 180) return 'SE';
+    if (az >= 180 && az < 270) return 'SW';
+    return 'NW';
+  },
+
+  /* Vetor unitário de direção da picada a partir de dois pontos.
+     dx = X_final - X_inicial (componente Este)
+     dy = Y_final - Y_inicial (componente Norte)
+     L  = comprimento
+     ux, uy = vetor normalizado (direção de percurso) */
+  unitVectorFromPoints(xi, yi, xf, yf){
+    const dx = xf - xi, dy = yf - yi;
+    const L = Geo.length(dx, dy);
+    if (L === 0) return null;
+    return { ux: dx / L, uy: dy / L, L, dx, dy };
+  },
+
+  /* Vetor unitário de direção da picada a partir de azimute (graus, a partir do Norte, horário).
+     Convenção: componente Este = sin(Az), componente Norte = cos(Az) */
+  unitVectorFromAzimuth(azDeg){
+    const rad = Geo.toRad(azDeg);
+    return { ux: Math.sin(rad), uy: Math.cos(rad) };
+  },
+
+  /* Vetor perpendicular ao vetor de direção (ux,uy).
+     Rotação +90° (anti-horária): (px,py) = (-uy, ux) → aponta para a ESQUERDA do sentido de percurso.
+     Se a convenção escolhida for "direita", o vetor é invertido. */
+  perpendicular(ux, uy, ySide){
+    let px = -uy, py = ux;
+    if (ySide === 'direita'){ px = -px; py = -py; }
+    return { px, py };
+  },
+
+  /* Posição final da árvore por geometria vetorial:
+     X_arvore = X_inicial + (X * ux) + (Y * px)
+     Y_arvore = Y_inicial + (X * uy) + (Y * py)
+     onde X = deslocamento longitudinal (ao longo da picada),
+          Y = deslocamento perpendicular (lateral) */
+  treePosition(xi, yi, ux, uy, px, py, xLong, yPerp){
+    return {
+      x: xi + (xLong * ux) + (yPerp * px),
+      y: yi + (xLong * uy) + (yPerp * py)
+    };
+  },
+
+  /* Retângulo perpendicular (90°) à picada, delimitando os limites da faixa
+     amostrada. A faixa fica INTEIRA do lado configurado em "Lado positivo
+     do Y" (mesma convenção da tela de Controle de Sinal) — não dividida
+     meio a meio entre os dois lados. 'startAlong'/'endAlong' são as
+     distâncias longitudinais (a partir do ponto inicial da picada) que o
+     retângulo deve cobrir — normalmente 0..comprimento, estendidas para
+     acomodar árvores com X além do trecho com coordenadas mapeadas.
+     px,py já é o vetor perpendicular na direção positiva configurada
+     (calculado por Geo.perpendicular). 'largura' é a largura total da faixa. */
+  stripRectangle(xi, yi, ux, uy, px, py, startAlong, endAlong, largura){
+    const pt = (along, side) => ({
+      x: xi + along * ux + side * largura * px,
+      y: yi + along * uy + side * largura * py
+    });
+    // lado 0 = sobre a linha da picada, lado 1 = borda externa da faixa (lado positivo do Y)
+    return [ pt(startAlong, 0), pt(startAlong, 1), pt(endAlong, 1), pt(endAlong, 0) ];
+  }
+};
+
+/* ---------------------------------------------------------------------
+   CONVERSÃO DE COORDENADAS (UTM ↔ Geográfica) via proj4js
+--------------------------------------------------------------------- */
+const CRS = {
+  /* Monta a string PROJ4 a partir da configuração cartográfica */
+  proj4String(cfg){
+    const southFlag = cfg.hemis === 'S' ? ' +south' : '';
+    if (cfg.datum === 'SIRGAS2000'){
+      return `+proj=utm +zone=${cfg.zone}${southFlag} +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`;
+    }
+    return `+proj=utm +zone=${cfg.zone}${southFlag} +datum=WGS84 +units=m +no_defs`;
+  },
+
+  /* Calcula o código EPSG oficial (famílias SIRGAS2000/WGS84 UTM) */
+  computeEpsg(cfg){
+    if (cfg.datum === 'SIRGAS2000'){
+      // SIRGAS2000/UTM Sul: EPSG = 31960 + zona (zonas 17S-25S)
+      // SIRGAS2000/UTM Norte: EPSG = 31954 + zona (zonas 11N-22N)
+      return cfg.hemis === 'S' ? 31960 + cfg.zone : 31954 + cfg.zone;
+    }
+    // WGS84/UTM: Sul = 32700+zona, Norte = 32600+zona (padrão internacional)
+    return cfg.hemis === 'S' ? 32700 + cfg.zone : 32600 + cfg.zone;
+  },
+
+  /* UTM (E,N) -> Geográfica [lon, lat] em graus decimais (WGS84) */
+  utmToGeo(easting, northing, cfg){
+    const projStr = CRS.proj4String(cfg);
+    const [lon, lat] = proj4(projStr, 'WGS84', [easting, northing]);
+    return { lon, lat };
+  },
+
+  /* Geográfica (lat,lon) -> UTM (E,N) — usada para reposicionar pontos arrastados no mapa */
+  geoToUtm(lat, lon, cfg){
+    const projStr = CRS.proj4String(cfg);
+    const [e, n] = proj4('WGS84', projStr, [lon, lat]);
+    return { e, n };
+  },
+
+  /* Decimal -> Graus, Minutos, Segundos */
+  toGMS(deg, isLat, precSec){
+    const hemis = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+    let d = Math.abs(deg);
+    const g = Math.floor(d);
+    const mFull = (d - g) * 60;
+    const m = Math.floor(mFull);
+    let s = (mFull - m) * 60;
+    s = parseFloat(s.toFixed(precSec));
+    // Correção de arredondamento: se segundos "estourar" 60 pelo toFixed
+    let mm = m, gg = g;
+    if (s >= 60){ s -= 60; mm += 1; }
+    if (mm >= 60){ mm -= 60; gg += 1; }
+    return `${gg}°${String(mm).padStart(2,'0')}'${s.toFixed(precSec).padStart(precSec>0?3+precSec:2,'0')}"${hemis}`;
+  }
+};
+
+/* ---------------------------------------------------------------------
+   IMPORTAÇÃO DE ARQUIVOS (CSV / XLSX / TXT)
+--------------------------------------------------------------------- */
+const Importer = {
+  handleFile(file, target){
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'xlsx' || ext === 'xls'){
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+        Importer.startMapping(rows, file.name, target);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        const delim = Importer.detectDelimiter(text);
+        const parsed = Papa.parse(text, {header:true, skipEmptyLines:true, delimiter: delim === 'tab' ? '\t' : delim});
+        Importer.startMapping(parsed.data, file.name, target);
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+  },
+
+  detectDelimiter(text){
+    const firstLine = text.split(/\r?\n/)[0] || '';
+    const counts = { ';': (firstLine.match(/;/g)||[]).length, ',': (firstLine.match(/,/g)||[]).length, 'tab': (firstLine.match(/\t/g)||[]).length };
+    return Object.keys(counts).reduce((a,b) => counts[a] >= counts[b] ? a : b);
+  },
+
+  startMapping(rows, fileName, target){
+    rows = rows.filter(r => Object.values(r).some(v => String(v).trim() !== ''));
+    if (rows.length === 0){ alert('Arquivo vazio ou não foi possível ler as linhas.'); return; }
+    const headers = Object.keys(rows[0]);
+    State.pendingImport = { rows, headers, target, fileName };
+
+    const sysFields = target === 'trees' ? SYSTEM_FIELDS_TREES : SYSTEM_FIELDS_PICADAS;
+    const containerId = target === 'trees' ? 'mappingRows' : 'mappingRowsPicadas';
+    const cardId = target === 'trees' ? 'mappingCard' : 'mappingCardPicadas';
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    sysFields.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'mapfield-row';
+      // Prioriza o último mapeamento usado (se o cabeçalho ainda existir no
+      // arquivo atual) sobre o palpite automático — assim, arquivos do mesmo
+      // formato (ex.: mesma planilha de campo) não exigem reconfigurar toda vez.
+      const rememberedMap = target === 'trees' ? State.fieldMapping : State.fieldMappingPicadas;
+      const remembered = rememberedMap && rememberedMap[f.key] && headers.includes(rememberedMap[f.key]) ? rememberedMap[f.key] : null;
+      const guess = remembered || Importer.guessColumn(headers, f.key, f.label);
+      row.innerHTML = `<span class="${f.req?'req':''}">${f.label}</span>
+        <select data-field="${f.key}">
+          <option value="">— não mapear —</option>
+          ${headers.map(h => `<option value="${Utils.escAttr(h)}" ${h===guess?'selected':''}>${Utils.esc(h)}</option>`).join('')}
+        </select>`;
+      container.appendChild(row);
+    });
+
+    if (target === 'trees'){
+      document.getElementById('fileNameLabel').textContent = fileName;
+      document.getElementById('fileRowsLabel').textContent = rows.length;
+      document.getElementById('btnConfirmMapping').textContent = 'CONFIRMAR IMPORTAÇÃO';
+    } else {
+      document.getElementById('filePicadasRowsLabel').textContent = `Arquivo: ${fileName} — ${rows.length} linha(s) detectada(s).`;
+    }
+    document.getElementById(cardId).classList.remove('hidden');
+  },
+
+  guessColumn(headers, key, label){
+    const normalize = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+    const target = normalize(key);
+    const aliases = {
+      id: ['id','arvore','arv','codigo','numero','num'],
+      picada: ['picada','trilha','linha'],
+      x: ['x','distx','distancialateral','lateral','perpendicular'],
+      y: ['y','disty','distanciay','distancialongitudinal','longitudinal'],
+      especie: ['especie','species'],
+      nomePopular: ['nomepopular','popular','nomecomum'],
+      dap: ['dap','diametro'],
+      altura: ['altura','ht','h'],
+      obs: ['obs','observacao','observacoes','nota'],
+      xi: ['xinicial','xi','xinit','einicial'],
+      yi: ['yinicial','yi','yinit','ninicial'],
+      xf: ['xfinal','xf','efinal'],
+      yf: ['yfinal','yf','nfinal'],
+      azimute: ['azimute','azimuth','az'],
+      comprimento: ['comprimento','distancia','tamanho','length']
+    };
+    const candidates = aliases[key] || [target];
+    for (const h of headers){
+      const nh = normalize(h);
+      if (candidates.includes(nh)) return h;
+    }
+    for (const h of headers){
+      const nh = normalize(h);
+      if (candidates.some(c => nh.includes(c) || c.includes(nh))) return h;
+    }
+    return '';
+  },
+
+  cancelMapping(){
+    document.getElementById('mappingCard').classList.add('hidden');
+    const wasRemap = State.pendingImport && State.pendingImport.remap;
+    State.pendingImport = null;
+    if (!wasRemap) document.getElementById('fileTrees').value = '';
+  },
+  cancelMappingPicadas(){
+    document.getElementById('mappingCardPicadas').classList.add('hidden');
+    State.pendingImport = null;
+    document.getElementById('filePicadas').value = '';
+  },
+
+  /* Reabre a tela de mapeamento reaproveitando as árvores já importadas —
+     não é preciso reimportar o arquivo do zero. Cada árvore mantém, como
+     propriedades próprias, todas as colunas originais da planilha (nada
+     é descartado na importação), então basta reatribuir qual coluna vai
+     para cada campo do sistema (ID, Picada, X, Y, etc.). */
+  startRemap(){
+    if (State.trees.length === 0){ alert('Nenhuma árvore importada ainda.'); return; }
+    const headers = State.treeFields.length ? State.treeFields : Object.keys(State.trees[0]).filter(k => !k.startsWith('_'));
+    const container = document.getElementById('mappingRows');
+    container.innerHTML = '';
+    SYSTEM_FIELDS_TREES.forEach(f => {
+      const current = State.fieldMapping[f.key] || '';
+      const row = document.createElement('div');
+      row.className = 'mapfield-row';
+      row.innerHTML = `<span class="${f.req?'req':''}">${f.label}</span>
+        <select data-field="${f.key}">
+          <option value="">— não mapear —</option>
+          ${headers.map(h => `<option value="${Utils.escAttr(h)}" ${h===current?'selected':''}>${Utils.esc(h)}</option>`).join('')}
+        </select>`;
+      container.appendChild(row);
+    });
+    document.getElementById('fileNameLabel').textContent = '(remapeamento de colunas — dados já importados)';
+    document.getElementById('fileRowsLabel').textContent = State.trees.length;
+    document.getElementById('btnConfirmMapping').textContent = 'CONFIRMAR REMAPEAMENTO';
+    State.pendingImport = { remap: true };
+    const card = document.getElementById('mappingCard');
+    card.classList.remove('hidden');
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+  },
+
+  confirmMapping(){
+    const container = document.getElementById('mappingRows');
+    const mapping = {};
+    container.querySelectorAll('select').forEach(sel => { mapping[sel.dataset.field] = sel.value; });
+
+    const missing = SYSTEM_FIELDS_TREES.filter(f => f.req && !mapping[f.key]);
+    if (missing.length){
+      alert('Campos obrigatórios não mapeados: ' + missing.map(f=>f.label).join(', '));
+      return;
+    }
+
+    if (State.pendingImport && State.pendingImport.remap){
+      // Remapeamento: reatribui os campos do sistema a partir das colunas
+      // originais já guardadas em cada árvore — não recria nem perde dados.
+      State.trees.forEach(t => {
+        t.id = String(mapping.id ? t[mapping.id] : t.id).trim();
+        t.picada = String(mapping.picada ? t[mapping.picada] : t.picada).trim();
+        t.x = Utils.parseNum(mapping.x ? t[mapping.x] : t.x);
+        t.y = Utils.parseNum(mapping.y ? t[mapping.y] : t.y);
+        t.especie = mapping.especie ? t[mapping.especie] : t.especie;
+        t.nomePopular = mapping.nomePopular ? t[mapping.nomePopular] : t.nomePopular;
+        t.dap = mapping.dap ? t[mapping.dap] : t.dap;
+        t.altura = mapping.altura ? t[mapping.altura] : t.altura;
+        t.obs = mapping.obs ? t[mapping.obs] : t.obs;
+      });
+      State.fieldMapping = mapping;
+      document.getElementById('mappingCard').classList.add('hidden');
+      State.pendingImport = null;
+      Importer.renderTreesPreview();
+      App.refreshBadges();
+      App.setStatus(`Colunas remapeadas — ${State.trees.length} árvore(s) atualizadas`);
+      alert('Remapeamento concluído. Vá até a aba Processamento e clique em RECALCULAR para atualizar as coordenadas.');
+      return;
+    }
+
+    const { rows, headers } = State.pendingImport;
+    State.treeFields = headers.slice();
+    State.trees = rows.map((r, i) => {
+      const obj = { _id: 'T' + (i+1), _origIndex: i };
+      headers.forEach(h => { obj[h] = r[h]; });
+      obj.id = String(mapping.id ? r[mapping.id] : ('ARV-' + (i+1))).trim();
+      obj.picada = String(mapping.picada ? r[mapping.picada] : '').trim();
+      obj.x = Utils.parseNum(mapping.x ? r[mapping.x] : '');
+      obj.y = Utils.parseNum(mapping.y ? r[mapping.y] : '');
+      obj.especie = mapping.especie ? r[mapping.especie] : '';
+      obj.nomePopular = mapping.nomePopular ? r[mapping.nomePopular] : '';
+      obj.dap = mapping.dap ? r[mapping.dap] : '';
+      obj.altura = mapping.altura ? r[mapping.altura] : '';
+      obj.obs = mapping.obs ? r[mapping.obs] : '';
+      return obj;
+    });
+
+    State.fieldMapping = mapping;
+    document.getElementById('mappingCard').classList.add('hidden');
+    Importer.renderTreesPreview();
+    App.refreshBadges();
+    App.setStatus(`${State.trees.length} árvore(s) importada(s)`);
+  },
+
+  confirmMappingPicadas(){
+    const container = document.getElementById('mappingRowsPicadas');
+    const mapping = {};
+    container.querySelectorAll('select').forEach(sel => { mapping[sel.dataset.field] = sel.value; });
+    if (!mapping.id || !mapping.xi || !mapping.yi){
+      alert('Campos obrigatórios não mapeados: ID da picada, X inicial, Y inicial.');
+      return;
+    }
+    if (!( (mapping.xf && mapping.yf) || (mapping.azimute && mapping.comprimento) )){
+      alert('Informe X final + Y final, OU Azimute + Comprimento.');
+      return;
+    }
+    const hasVal = v => v !== '' && v !== undefined && v !== null;
+    const { rows } = State.pendingImport;
+    let added = 0;
+    const skipped = [];
+    const overwritten = [];
+
+    rows.forEach((r, i) => {
+      const rowNum = i + 2; // linha 1 = cabeçalho da planilha
+      const id = String(r[mapping.id] ?? '').trim();
+      if (!id){ skipped.push(`Linha ${rowNum}: ID da picada vazio.`); return; }
+
+      const xi = Utils.parseNum(r[mapping.xi]);
+      const yi = Utils.parseNum(r[mapping.yi]);
+      if (isNaN(xi)){ skipped.push(`Linha ${rowNum} (ID ${id}): X inicial vazio ou inválido.`); return; }
+      if (isNaN(yi)){ skipped.push(`Linha ${rowNum} (ID ${id}): Y inicial vazio ou inválido.`); return; }
+
+      const p = { id, xi, yi, obs: mapping.obs ? (r[mapping.obs] ?? '') : '' };
+      const temXf = mapping.xf && hasVal(r[mapping.xf]);
+      const temYf = mapping.yf && hasVal(r[mapping.yf]);
+      const temAz = mapping.azimute && hasVal(r[mapping.azimute]);
+      const temComp = mapping.comprimento && hasVal(r[mapping.comprimento]);
+
+      if (temXf && temYf){
+        const xf = Utils.parseNum(r[mapping.xf]);
+        const yf = Utils.parseNum(r[mapping.yf]);
+        if (isNaN(xf) || isNaN(yf)){ skipped.push(`Linha ${rowNum} (ID ${id}): X/Y final inválido.`); return; }
+        p.modo = 'coords'; p.xf = xf; p.yf = yf;
+      } else if (temAz && temComp){
+        const az = Utils.parseNum(r[mapping.azimute]);
+        const comp = Utils.parseNum(r[mapping.comprimento]);
+        if (isNaN(az) || isNaN(comp)){ skipped.push(`Linha ${rowNum} (ID ${id}): azimute/comprimento inválido.`); return; }
+        p.modo = 'azimute'; p.azimute = az; p.comprimento = comp;
+      } else {
+        skipped.push(`Linha ${rowNum} (ID ${id}): não tem X/Y final NEM azimute/comprimento preenchidos — nenhuma coluna de mapeamento encontrou dado válido nessa linha.`);
+        return;
+      }
+
+      if (State.picadas.some(x => x.id === id)) overwritten.push(`${id} (linha ${rowNum})`);
+      State.picadas = State.picadas.filter(x => x.id !== id);
+      State.picadas.push(p);
+      added++;
+    });
+
+    document.getElementById('mappingCardPicadas').classList.add('hidden');
+    Picadas.render();
+    App.refreshBadges();
+    Persist.save();
+    State.fieldMappingPicadas = mapping;
+
+    let msg = `${added} de ${rows.length} linha(s) importada(s) como picada.`;
+    if (overwritten.length) msg += `\n\n${overwritten.length} ID(s) já existiam e foram sobrescritos:\n` + overwritten.slice(0,15).join(', ') + (overwritten.length>15 ? ` ... e mais ${overwritten.length-15}.` : '');
+    if (skipped.length){
+      msg += `\n\n${skipped.length} linha(s) IGNORADA(S) — motivo:\n` + skipped.slice(0,25).join('\n') + (skipped.length>25 ? `\n... e mais ${skipped.length-25} linha(s).` : '');
+    }
+    App.setStatus(`${added} picada(s) importada(s)${skipped.length ? `, ${skipped.length} ignorada(s) — veja o alerta` : ''}`);
+    alert(msg);
+  },
+
+  renderTreesPreview(){
+    const card = document.getElementById('importedPreviewCard');
+    const count = document.getElementById('importedCount');
+    const table = document.getElementById('importedPreviewTable');
+    if (State.trees.length === 0){ card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    count.textContent = State.trees.length;
+    const numericCols = ['x','y'];
+    const cols = ['id','picada','x','y','especie','nomePopular','dap','altura','obs'];
+    const labels = ['ID','Picada','X','Y','Espécie','Nome popular','DAP','Altura','Obs.'];
+    const showLimit = 300;
+    let html = '<thead><tr>' + labels.map(l=>`<th>${l}</th>`).join('') + '<th>Ações</th></tr></thead><tbody>';
+    State.trees.slice(0, showLimit).forEach(t => {
+      const idx = State.trees.indexOf(t); // índice real no array (usado para editar/excluir)
+      html += '<tr>' + cols.map(c => {
+        const isNum = numericCols.includes(c);
+        return `<td class="${isNum?'num':''}"><input type="${isNum?'number':'text'}" ${isNum?'step="any"':''} value="${Utils.escAttr(t[c] ?? '')}" onchange="Importer.editTree(${idx},'${c}',this.value)"></td>`;
+      }).join('') + `<td><button class="btn sm danger" onclick="Importer.removeTree(${idx})">EXCLUIR</button></td></tr>`;
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+    const oldNote = document.getElementById('importedPreviewNote');
+    if (oldNote) oldNote.remove();
+    if (State.trees.length > showLimit){
+      table.insertAdjacentHTML('afterend', `<div class="small-note" id="importedPreviewNote">Exibindo as primeiras ${showLimit} de ${State.trees.length} árvores. As demais foram importadas normalmente e aparecerão nos resultados após o processamento — use a busca na aba Resultados para localizá-las.</div>`);
+    }
+  },
+
+  /* Edita X/Y ou qualquer outro campo de uma árvore ainda não processada. */
+  editTree(index, key, value){
+    const t = State.trees[index];
+    if (!t) return;
+    if (key === 'x' || key === 'y'){
+      const n = Utils.parseNum(value);
+      t[key] = isNaN(n) ? value : n;
+    } else {
+      t[key] = value;
+    }
+  },
+
+  removeTree(index){
+    State.trees.splice(index, 1);
+    Importer.renderTreesPreview();
+    App.refreshBadges();
+    Persist.save();
+  },
+
+  /* Apaga todas as árvores importadas (mantém picadas e configuração). */
+  clearAllTrees(){
+    if (State.trees.length === 0) return;
+    if (!confirm(`Apagar todas as ${State.trees.length} árvore(s) importadas? Essa ação não pode ser desfeita.`)) return;
+    State.trees = [];
+    State.treeFields = [];
+    State.results = [];
+    Importer.renderTreesPreview();
+    document.getElementById('importedPreviewCard').style.display = 'none';
+    Results.render();
+    App.refreshBadges();
+    MapView.refresh();
+    Persist.save();
+    App.setStatus('Todas as árvores foram apagadas');
+  }
+};
+
+/* ---------------------------------------------------------------------
+   PICADAS — cadastro manual e cálculo de propriedades derivadas
+--------------------------------------------------------------------- */
+const Picadas = {
+  toggleModo(){
+    const modo = document.getElementById('pkModo').value;
+    document.getElementById('pkXfWrap').classList.toggle('hidden', modo !== 'coords');
+    document.getElementById('pkYfWrap').classList.toggle('hidden', modo !== 'coords');
+    document.getElementById('pkAzWrap').classList.toggle('hidden', modo !== 'azimute');
+    document.getElementById('pkCompWrap').classList.toggle('hidden', modo !== 'azimute');
+    document.getElementById('pkXfWrap').querySelector('span').classList.toggle('req', modo === 'coords');
+    document.getElementById('pkYfWrap').querySelector('span').classList.toggle('req', modo === 'coords');
+    document.getElementById('pkAzWrap').querySelector('span').classList.toggle('req', modo === 'azimute');
+    document.getElementById('pkCompWrap').querySelector('span').classList.toggle('req', modo === 'azimute');
+  },
+
+  add(){
+    const id = document.getElementById('pkId').value.trim();
+    const modo = document.getElementById('pkModo').value;
+    const xi = Utils.parseNum(document.getElementById('pkXi').value);
+    const yi = Utils.parseNum(document.getElementById('pkYi').value);
+    const obs = document.getElementById('pkObs').value;
+    const larguraRaw = document.getElementById('pkLargura').value;
+    if (!id){ alert('Informe o ID da picada.'); return; }
+    if (isNaN(xi) || isNaN(yi)){ alert('Coordenada inicial inválida.'); return; }
+
+    const p = { id, xi, yi, obs, modo };
+    if (larguraRaw !== ''){
+      const l = Utils.parseNum(larguraRaw);
+      if (!isNaN(l) && l >= 0) p.largura = l;
+    }
+    if (modo === 'coords'){
+      const xf = Utils.parseNum(document.getElementById('pkXf').value);
+      const yf = Utils.parseNum(document.getElementById('pkYf').value);
+      if (isNaN(xf) || isNaN(yf)){ alert('Coordenada final inválida.'); return; }
+      p.xf = xf; p.yf = yf;
+    } else {
+      const az = Utils.parseNum(document.getElementById('pkAz').value);
+      const comp = Utils.parseNum(document.getElementById('pkComp').value);
+      if (isNaN(az) || isNaN(comp) || comp <= 0){ alert('Azimute/comprimento inválido.'); return; }
+      p.azimute = az; p.comprimento = comp;
+    }
+
+    State.picadas = State.picadas.filter(x => x.id !== id);
+    State.picadas.push(p);
+    ['pkId','pkXi','pkYi','pkXf','pkYf','pkAz','pkComp','pkObs','pkLargura'].forEach(fid => document.getElementById(fid).value = '');
+    Picadas.render();
+    App.refreshBadges();
+    Persist.save();
+  },
+
+  /* Largura efetiva da faixa: usa a largura própria da picada, se definida,
+     senão cai para a largura padrão configurada globalmente. */
+  effectiveLargura(p){
+    return (p.largura !== undefined && p.largura !== null && !isNaN(p.largura)) ? p.largura : (State.config.larguraFaixaPadrao || 0);
+  },
+
+  /* Renomeia o ID de uma picada já cadastrada. Atualiza também o vínculo
+     de todas as árvores que referenciam o ID antigo (comparação tolerante,
+     mesma lógica usada no processamento), para que não percam a picada. */
+  renameId(oldId, newValue){
+    const val = String(newValue).trim();
+    if (!val){ Picadas.render(); return; }
+    if (val !== oldId && State.picadas.some(p => p.id === val)){
+      alert(`Já existe uma picada com o ID "${val}".`);
+      Picadas.render();
+      return;
+    }
+    const p = State.picadas.find(x => x.id === oldId);
+    if (!p) return;
+    p.id = val;
+    let updated = 0;
+    State.trees.forEach(t => {
+      if (Utils.normalizeId(t.picada) === Utils.normalizeId(oldId)){ t.picada = val; updated++; }
+    });
+    Picadas.render();
+    MapView.refresh();
+    App.refreshBadges();
+    App.setStatus(`Picada renomeada para "${val}"${updated ? ` — ${updated} árvore(s) atualizada(s)` : ''}. Clique em RECALCULAR se houver árvores vinculadas.`);
+  },
+
+  /* Carrega uma picada já cadastrada de volta no formulário manual, para
+     edição — reaproveita todos os dados já digitados (coordenadas, modo,
+     largura, obs.) em vez de exigir redigitação do zero. Salvar de novo
+     (mesmo ID) sobrescreve a picada existente. */
+  loadToForm(id){
+    const p = State.picadas.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('pkId').value = p.id;
+    document.getElementById('pkModo').value = p.modo;
+    Picadas.toggleModo();
+    document.getElementById('pkXi').value = p.xi;
+    document.getElementById('pkYi').value = p.yi;
+    if (p.modo === 'coords'){
+      document.getElementById('pkXf').value = p.xf;
+      document.getElementById('pkYf').value = p.yf;
+    } else {
+      document.getElementById('pkAz').value = p.azimute;
+      document.getElementById('pkComp').value = p.comprimento;
+    }
+    document.getElementById('pkObs').value = p.obs || '';
+    document.getElementById('pkLargura').value = (p.largura !== undefined && p.largura !== null) ? p.largura : '';
+    document.getElementById('pkId').scrollIntoView({behavior:'smooth', block:'center'});
+    document.getElementById('pkId').focus();
+    App.setStatus(`Editando picada "${id}" — ajuste os campos e clique em + ADICIONAR PICADA para salvar as alterações`);
+  },
+
+  remove(id){
+    State.picadas = State.picadas.filter(p => p.id !== id);
+    Picadas.render();
+    App.refreshBadges();
+    MapView.refresh();
+    Persist.save();
+  },
+
+  /* Apaga todas as picadas cadastradas (mantém árvores e resultados já
+     processados — mas eles ficarão sem picadas válidas até novo cadastro
+     e RECALCULAR). */
+  clearAll(){
+    if (State.picadas.length === 0) return;
+    if (!confirm(`Apagar todas as ${State.picadas.length} picada(s) cadastradas? Essa ação não pode ser desfeita.`)) return;
+    State.picadas = [];
+    Picadas.render();
+    App.refreshBadges();
+    MapView.refresh();
+    Persist.save();
+    App.setStatus('Todas as picadas foram apagadas');
+  },
+
+  /* Edita um campo numérico/texto de uma picada já cadastrada.
+     Recalcula automaticamente a geometria derivada (comprimento/azimute)
+     ao renderizar novamente. Não recalcula sozinha as árvores — o usuário
+     deve clicar em RECALCULAR na aba de Processamento. */
+  editField(id, key, value){
+    const p = State.picadas.find(x => x.id === id);
+    if (!p) return;
+    if (key === 'obs'){ p.obs = value; return; }
+    if (key === 'largura'){
+      if (value === ''){ delete p.largura; } else {
+        const l = Utils.parseNum(value);
+        if (!isNaN(l) && l >= 0) p.largura = l;
+      }
+      Picadas.render();
+      MapView.refresh();
+      return;
+    }
+    const n = Utils.parseNum(value);
+    if (isNaN(n)){ Picadas.render(); return; }
+    p[key] = n;
+    Picadas.render();
+    MapView.refresh();
+  },
+
+  /* Troca o modo de definição da picada (coordenadas <-> azimute/comprimento),
+     convertendo os valores atuais para não perder a geometria já definida. */
+  editMode(id, newModo){
+    const p = State.picadas.find(x => x.id === id);
+    if (!p) return;
+    let d;
+    try { d = Picadas.derive(p); } catch(e){ d = null; }
+    if (newModo === 'azimute'){
+      p.azimute = d ? d.azimute : 0;
+      p.comprimento = d ? d.comprimento : 100;
+      delete p.xf; delete p.yf;
+    } else {
+      p.xf = d ? d.xf : p.xi + 100;
+      p.yf = d ? d.yf : p.yi;
+      delete p.azimute; delete p.comprimento;
+    }
+    p.modo = newModo;
+    Picadas.render();
+    MapView.refresh();
+  },
+
+  derive(p){
+    // Retorna {xf, yf, comprimento, azimute, quadrante, direcao} calculados de forma consistente
+    let xf, yf, vec;
+    if (p.modo === 'coords'){
+      xf = p.xf; yf = p.yf;
+      vec = Geo.unitVectorFromPoints(p.xi, p.yi, xf, yf);
+    } else {
+      vec = Geo.unitVectorFromAzimuth(p.azimute);
+      xf = p.xi + p.comprimento * vec.ux;
+      yf = p.yi + p.comprimento * vec.uy;
+      vec.L = p.comprimento; vec.dx = xf - p.xi; vec.dy = yf - p.yi;
+    }
+    const azimute = p.modo === 'azimute' ? p.azimute : Geo.azimuthFromDelta(vec.dx, vec.dy);
+    return {
+      xf, yf, comprimento: vec.L, azimute,
+      quadrante: Geo.quadrant(azimute), direcao: Geo.cardinal(azimute),
+      ux: vec.ux, uy: vec.uy
+    };
+  },
+
+  render(){
+    const table = document.getElementById('picadasTable');
+    if (State.picadas.length === 0){
+      table.innerHTML = '<thead><tr><th>ID</th></tr></thead><tbody><tr><td style="color:var(--txt-mute)">Nenhuma picada cadastrada.</td></tr></tbody>';
+      Picadas.refreshSelects();
+      return;
+    }
+    let html = `<thead><tr>
+      <th>ID</th><th>Modo</th><th>X inicial</th><th>Y inicial</th><th>X final</th><th>Y final</th>
+      <th>Azimute (°)</th><th>Comprimento (m)</th><th>Largura (m)</th><th>Quadrante</th><th>Direção</th><th>Obs.</th><th></th>
+    </tr></thead><tbody>`;
+    State.picadas.forEach(p => {
+      let d;
+      try { d = Picadas.derive(p); } catch(e){ d = {xf:NaN,yf:NaN,comprimento:NaN,azimute:NaN,quadrante:'—',direcao:'—'}; }
+      const idA = Utils.escAttr(p.id);
+      const isCoords = p.modo === 'coords';
+      const larguraVal = (p.largura !== undefined && p.largura !== null) ? p.largura : '';
+      html += `<tr>
+        <td><input value="${Utils.escAttr(p.id)}" onchange="Picadas.renameId('${idA}',this.value)" style="min-width:60px;"></td>
+        <td><select onchange="Picadas.editMode('${idA}',this.value)">
+          <option value="coords" ${isCoords?'selected':''}>Coord. final</option>
+          <option value="azimute" ${!isCoords?'selected':''}>Azimute/comprim.</option>
+        </select></td>
+        <td class="num"><input type="number" step="any" value="${Utils.fmt(p.xi,3)}" onchange="Picadas.editField('${idA}','xi',this.value)"></td>
+        <td class="num"><input type="number" step="any" value="${Utils.fmt(p.yi,3)}" onchange="Picadas.editField('${idA}','yi',this.value)"></td>
+        <td class="num">${isCoords
+          ? `<input type="number" step="any" value="${Utils.fmt(p.xf,3)}" onchange="Picadas.editField('${idA}','xf',this.value)">`
+          : `<span style="color:var(--txt-mute)">${Utils.fmt(d.xf,3)} (calc.)</span>`}</td>
+        <td class="num">${isCoords
+          ? `<input type="number" step="any" value="${Utils.fmt(p.yf,3)}" onchange="Picadas.editField('${idA}','yf',this.value)">`
+          : `<span style="color:var(--txt-mute)">${Utils.fmt(d.yf,3)} (calc.)</span>`}</td>
+        <td class="num">${!isCoords
+          ? `<input type="number" step="any" value="${Utils.fmt(p.azimute,3)}" onchange="Picadas.editField('${idA}','azimute',this.value)">`
+          : `<span style="color:var(--txt-mute)">${Utils.fmt(d.azimute,3)} (calc.)</span>`}</td>
+        <td class="num">${!isCoords
+          ? `<input type="number" step="any" value="${Utils.fmt(p.comprimento,2)}" onchange="Picadas.editField('${idA}','comprimento',this.value)">`
+          : `<span style="color:var(--txt-mute)">${Utils.fmt(d.comprimento,2)} (calc.)</span>`}</td>
+        <td class="num"><input type="number" step="any" min="0" placeholder="padrão (${Utils.fmt(State.config.larguraFaixaPadrao,0)})" value="${larguraVal}" onchange="Picadas.editField('${idA}','largura',this.value)" style="min-width:90px;"></td>
+        <td>${d.quadrante}</td><td>${d.direcao}</td>
+        <td><input value="${Utils.escAttr(p.obs||'')}" onchange="Picadas.editField('${idA}','obs',this.value)"></td>
+        <td style="white-space:nowrap;">
+          <button class="btn sm" onclick="Picadas.loadToForm('${idA}')">EDITAR</button>
+          <button class="btn sm danger" onclick="Picadas.remove('${idA}')">EXCLUIR</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+    Picadas.refreshSelects();
+  },
+
+  refreshSelects(){
+    const opts = State.picadas.map(p => `<option value="${Utils.escAttr(p.id)}">${Utils.esc(p.id)}</option>`).join('');
+    const selMap = document.getElementById('mapFocusPicada');
+    const selRes = document.getElementById('resultFilterPicada');
+    const selGen = document.getElementById('genBaseId');
+    if (selMap) selMap.innerHTML = '<option value="">Destacar picada...</option>' + opts;
+    if (selRes) selRes.innerHTML = '<option value="">Todas as picadas</option>' + opts;
+    if (selGen){
+      const prev = selGen.value;
+      selGen.innerHTML = opts || '<option value="">— nenhuma picada cadastrada —</option>';
+      if (State.picadas.some(p => p.id === prev)) selGen.value = prev;
+    }
+  },
+
+  /* Gera N picadas paralelas a uma picada base já cadastrada, usando o
+     mesmo azimute e comprimento, deslocadas perpendicularmente (mesmo
+     vetor px,py do posicionamento de árvores) por múltiplos crescentes do
+     espaçamento informado — por padrão, a largura da faixa da picada base,
+     o que garante que faixas vizinhas não se sobreponham. IDs numéricos são
+     incrementados a partir do ID base; IDs não-numéricos ganham sufixo. */
+  generateSeries(){
+    const baseId = document.getElementById('genBaseId').value;
+    const qtd = parseInt(document.getElementById('genQtd').value, 10);
+    const espacamentoRaw = document.getElementById('genEspacamento').value;
+    const lado = document.getElementById('genLado').value;
+
+    const base = State.picadas.find(p => p.id === baseId);
+    if (!base){ alert('Selecione uma picada base válida — cadastre ao menos uma picada primeiro.'); return; }
+    if (isNaN(qtd) || qtd < 1){ alert('Quantidade a gerar inválida.'); return; }
+
+    let d;
+    try { d = Picadas.derive(base); } catch(e){ alert('A picada base tem geometria inválida (ponto inicial = ponto final?).'); return; }
+
+    let espacamento = espacamentoRaw !== '' ? Utils.parseNum(espacamentoRaw) : Picadas.effectiveLargura(base);
+    if (isNaN(espacamento) || espacamento <= 0){
+      alert('Espaçamento inválido — informe um valor, ou configure uma largura de faixa (picada base ou padrão em Configuração) para usar automaticamente.');
+      return;
+    }
+
+    let { px, py } = Geo.perpendicular(d.ux, d.uy, State.config.ySide);
+    if (lado === 'oposto'){ px = -px; py = -py; }
+
+    const baseNumMatch = String(baseId).trim().match(/^(\d+)$/);
+    let created = 0, skipped = 0;
+    for (let i = 1; i <= qtd; i++){
+      const offset = espacamento * i;
+      const newId = baseNumMatch ? String(parseInt(baseNumMatch[1], 10) + i) : `${baseId}-${i+1}`;
+      if (State.picadas.some(p => p.id === newId)){ skipped++; continue; }
+      State.picadas.push({
+        id: newId,
+        xi: base.xi + offset*px,
+        yi: base.yi + offset*py,
+        modo: 'azimute',
+        azimute: d.azimute,
+        comprimento: d.comprimento,
+        largura: base.largura,
+        obs: `Gerada automaticamente a partir de ${baseId} — offset ${offset.toFixed(2)} m`
+      });
+      created++;
+    }
+    Picadas.render();
+    App.refreshBadges();
+    MapView.refresh();
+    Persist.save();
+    App.setStatus(`${created} picada(s) gerada(s) em série a partir de ${baseId}${skipped ? ` (${skipped} ID já existiam e foram pulados)` : ''}`);
+    alert(`${created} picada(s) criada(s), paralelas a "${baseId}", com azimute ${d.azimute.toFixed(2)}°, comprimento ${d.comprimento.toFixed(2)} m e espaçamento de ${espacamento} m entre elas.${skipped ? `\n\n${skipped} ID(s) já existiam e foram pulados (sem sobrescrever).` : ''}`);
+  }
+};
+
+/* ---------------------------------------------------------------------
+   ENGINE — Validação + Processamento completo
+--------------------------------------------------------------------- */
+const Engine = {
+  process(){
+    const log = [];
+    let errCount = 0;
+    const err = (msg) => { log.push({type:'err', msg}); errCount++; };
+    const warn = (msg) => { log.push({type:'warn', msg}); };
+
+    Engine.readConfig();
+
+    if (State.trees.length === 0){
+      err('Nenhuma árvore importada. Vá à aba "Importar Dados".');
+    }
+    if (State.picadas.length === 0){
+      err('Nenhuma picada cadastrada. Vá à aba "Picadas".');
+    }
+
+    // Mapa indexado por ID normalizado (tolerante a "01" vs "1", espaços e caixa)
+    const picadaMap = {};
+    State.picadas.forEach(p => picadaMap[Utils.normalizeId(p.id)] = p);
+    const picadaIdsDisponiveis = State.picadas.map(p => p.id).join(', ') || '(nenhuma)';
+
+    const COMPRIMENTO_MAX_ALERTA = 20000; // m — acima disso, sinaliza possível erro de digitação
+
+    const results = [];
+    // Convenção FIXA (sem toggle, sem remapeamento): a coluna Y da árvore é
+    // sempre a distância longitudinal (ao longo do azimute da picada); a
+    // coluna X é sempre o deslocamento lateral (perpendicular, a 90° do
+    // azimute da picada).
+    State.trees.forEach(t => {
+      const rowLabel = t.id || ('linha ' + (t._origIndex+1));
+      if (t.y === undefined || t.y === '' || t.y === null || isNaN(t.y)){
+        err(`A árvore ${rowLabel} possui Y (longitudinal, ao longo da picada) vazio ou inválido.`); return;
+      }
+      if (!t.picada){
+        err(`A árvore ${rowLabel} não possui picada informada.`); return;
+      }
+      const p = picadaMap[Utils.normalizeId(t.picada)];
+      if (!p){
+        err(`ERRO: A árvore ${rowLabel} está vinculada à picada ${t.picada}, porém a picada ${t.picada} não foi cadastrada. Picadas disponíveis: ${picadaIdsDisponiveis}.`);
+        return;
+      }
+
+      let d;
+      try { d = Picadas.derive(p); }
+      catch(e){ err(`Picada ${p.id}: geometria inválida (ponto inicial = ponto final?).`); return; }
+
+      if (!isFinite(d.comprimento) || d.comprimento <= 0){
+        err(`Picada ${p.id} possui comprimento inválido (${d.comprimento}).`); return;
+      }
+      if (d.comprimento > COMPRIMENTO_MAX_ALERTA){
+        warn(`Picada ${p.id} possui comprimento de ${d.comprimento.toFixed(1)} m — valor incomum para uma picada florestal, verifique se não houve erro de digitação nas coordenadas final/inicial.`);
+      }
+      if (p.modo === 'azimute' && (isNaN(p.azimute) || p.azimute < 0 || p.azimute > 360)){
+        err(`Picada ${p.id} possui azimute inválido (${p.azimute}).`); return;
+      }
+
+      const largura = Picadas.effectiveLargura(p);
+      const unitFactor = State.config.unit === 'cm' ? 0.01 : 1;
+      const xLong = t.y * unitFactor; // Y da planilha = longitudinal
+
+      // X (deslocamento lateral, perpendicular): usa o valor informado na planilha
+      // quando existe. Quando a árvore NÃO traz X (sem mais coordenada de faixa
+      // medida em campo), usa o centro da largura da faixa configurada como
+      // posição padrão — em vez de barrar o processamento com erro.
+      const yInformado = !(t.x === undefined || t.x === '' || t.x === null || isNaN(t.x));
+      let yPerp;
+      if (yInformado){
+        yPerp = t.x * unitFactor; // X da planilha = lateral
+      } else if (largura > 0){
+        yPerp = largura / 2;
+        warn(`Árvore ${rowLabel} não tem X (lateral) informado — usando o centro da faixa da picada ${p.id} (${yPerp.toFixed(2)} m, largura configurada = ${largura} m) como posição padrão.`);
+      } else {
+        err(`A árvore ${rowLabel} possui X (lateral) vazio ou inválido, e a picada ${p.id} não tem largura de faixa configurada (aba Picadas ou Configuração) para usar como padrão.`);
+        return;
+      }
+
+      const { px, py } = Geo.perpendicular(d.ux, d.uy, State.config.ySide);
+      const pos = Geo.treePosition(p.xi, p.yi, d.ux, d.uy, px, py, xLong, yPerp);
+
+      // A faixa é inteira do lado positivo do Y (0 a largura) — não dividida meio a meio.
+      if (yInformado && largura > 0 && (yPerp < 0 || yPerp > largura)){
+        warn(`Árvore ${rowLabel} está fora dos limites da faixa da picada ${p.id} (Y = ${yPerp.toFixed(2)} m, largura configurada = ${largura} m → faixa vai de 0 a ${largura} m do lado ${State.config.ySide}).`);
+      }
+
+      let geo;
+      try { geo = CRS.utmToGeo(pos.x, pos.y, State.config); }
+      catch(e){ err(`Falha ao converter coordenadas da árvore ${rowLabel}: ${e.message}`); return; }
+
+      results.push({
+        ...t,
+        picadaId: p.id,
+        xLong: xLong, yPerp: yPerp,
+        utmE: pos.x, utmN: pos.y,
+        lat: geo.lat, lon: geo.lon,
+        latGms: CRS.toGMS(geo.lat, true, State.config.precGms),
+        lonGms: CRS.toGMS(geo.lon, false, State.config.precGms)
+      });
+    });
+
+    State.results = results;
+    Engine.renderLog(log, errCount);
+    Engine.updateKpis(errCount);
+    Results.render();
+    App.refreshBadges();
+    if (results.length > 0){
+      MapView.refresh();
+      App.setStatus(`Processamento concluído — ${results.length} árvore(s) posicionada(s)`);
+    } else {
+      App.setStatus('Processamento com erros — verifique o log');
+    }
+    Persist.save();
+    if (results.length > 0 || errCount > 0){
+      App.showTab('processamento');
+    }
+  },
+
+  readConfig(){
+    const c = State.config;
+    c.datum = document.getElementById('cfgDatum').value;
+    c.zone = parseInt(document.getElementById('cfgZone').value, 10);
+    c.hemis = document.getElementById('cfgHemis').value;
+    c.epsg = parseInt(document.getElementById('cfgEpsg').value, 10) || CRS.computeEpsg(c);
+    c.unit = document.getElementById('cfgUnit').value;
+    c.ySide = document.getElementById('cfgYSide').value;
+    c.precUtm = parseInt(document.getElementById('cfgPrecUtm').value, 10);
+    c.precDeg = parseInt(document.getElementById('cfgPrecDeg').value, 10);
+    c.precGms = parseInt(document.getElementById('cfgPrecGms').value, 10);
+    c.precXy = parseInt(document.getElementById('cfgPrecXy').value, 10);
+    c.larguraFaixaPadrao = Utils.parseNum(document.getElementById('cfgLarguraPadrao').value) || 0;
+    App.updateFooter();
+  },
+
+  renderLog(log, errCount){
+    const card = document.getElementById('validationCard');
+    const box = document.getElementById('validationLog');
+    if (log.length === 0){
+      box.innerHTML = '<div class="msg ok">Nenhuma inconsistência encontrada. Todos os registros foram processados com sucesso.</div>';
+    } else {
+      box.innerHTML = log.slice(0,300).map(l => `<div class="msg ${l.type}">${l.type==='err'?'ERRO':'AVISO'}: ${Utils.esc(l.msg)}</div>`).join('');
+      if (log.length > 300) box.innerHTML += `<div class="msg info">... e mais ${log.length-300} mensagem(ns).</div>`;
+    }
+    card.style.display = 'block';
+  },
+
+  updateKpis(errCount){
+    document.getElementById('kpiTrees').textContent = State.trees.length;
+    document.getElementById('kpiPicadas').textContent = State.picadas.length;
+    document.getElementById('kpiErrors').textContent = errCount;
+    document.getElementById('kpiProcessed').textContent = State.results.length;
+  }
+};
+
+/* ---------------------------------------------------------------------
+   RESULTADOS — tabela interativa (ordenar/filtrar/editar/excluir)
+--------------------------------------------------------------------- */
+const Results = {
+  sortKey: null, sortDir: 1,
+
+  sort(key){
+    if (Results.sortKey === key) Results.sortDir *= -1; else { Results.sortKey = key; Results.sortDir = 1; }
+    Results.render();
+  },
+
+  render(){
+    const table = document.getElementById('resultsTable');
+    const search = (document.getElementById('resultSearch').value || '').toLowerCase();
+    const filterPicada = document.getElementById('resultFilterPicada').value;
+    const c = State.config;
+
+    let rows = State.results.slice();
+    if (filterPicada) rows = rows.filter(r => r.picadaId === filterPicada);
+    if (search){
+      rows = rows.filter(r => Object.values(r).some(v => String(v ?? '').toLowerCase().includes(search)));
+    }
+    if (Results.sortKey){
+      rows.sort((a,b) => {
+        const va = a[Results.sortKey], vb = b[Results.sortKey];
+        if (typeof va === 'number' && typeof vb === 'number') return (va-vb) * Results.sortDir;
+        return String(va ?? '').localeCompare(String(vb ?? '')) * Results.sortDir;
+      });
+    }
+
+    document.getElementById('resultCountPill').textContent = rows.length + ' árvore(s)';
+
+    const cols = [
+      {k:'id', l:'ID'}, {k:'picadaId', l:'Picada'},
+      {k:'xLong', l:'Long. (m)'}, {k:'yPerp', l:'Lateral (m)'},
+      {k:'utmE', l:'UTM E'}, {k:'utmN', l:'UTM N'},
+      {k:'lat', l:'Latitude'}, {k:'lon', l:'Longitude'},
+      {k:'latGms', l:'Lat GMS'}, {k:'lonGms', l:'Lon GMS'},
+      {k:'especie', l:'Espécie'}, {k:'nomePopular', l:'Nome popular'},
+      {k:'dap', l:'DAP'}, {k:'altura', l:'Altura'}, {k:'obs', l:'Obs.'}
+    ];
+
+    let html = '<thead><tr>' + cols.map(col =>
+      `<th onclick="Results.sort('${col.k}')" class="${Results.sortKey===col.k?'sorted':''}">${col.l}${Results.sortKey===col.k?(Results.sortDir>0?' ▲':' ▼'):''}</th>`
+    ).join('') + '<th>Ações</th></tr></thead><tbody>';
+
+    rows.forEach((r, i) => {
+      const realIndex = State.results.indexOf(r);
+      html += '<tr>';
+      html += `<td><input value="${Utils.escAttr(r.id)}" onchange="Results.edit(${realIndex},'id',this.value)"></td>`;
+      html += `<td>${Utils.esc(r.picadaId)}</td>`;
+      html += `<td class="num">${Utils.fmt(r.xLong, c.precXy)}</td>`;
+      html += `<td class="num">${Utils.fmt(r.yPerp, c.precXy)}</td>`;
+      html += `<td class="num">${Utils.fmt(r.utmE, c.precUtm)}</td>`;
+      html += `<td class="num">${Utils.fmt(r.utmN, c.precUtm)}</td>`;
+      html += `<td class="num">${Utils.fmt(r.lat, c.precDeg)}</td>`;
+      html += `<td class="num">${Utils.fmt(r.lon, c.precDeg)}</td>`;
+      html += `<td>${r.latGms}</td>`;
+      html += `<td>${r.lonGms}</td>`;
+      html += `<td><input value="${Utils.escAttr(r.especie||'')}" onchange="Results.edit(${realIndex},'especie',this.value)"></td>`;
+      html += `<td><input value="${Utils.escAttr(r.nomePopular||'')}" onchange="Results.edit(${realIndex},'nomePopular',this.value)"></td>`;
+      html += `<td><input value="${Utils.escAttr(r.dap||'')}" onchange="Results.edit(${realIndex},'dap',this.value)"></td>`;
+      html += `<td><input value="${Utils.escAttr(r.altura||'')}" onchange="Results.edit(${realIndex},'altura',this.value)"></td>`;
+      html += `<td><input value="${Utils.escAttr(r.obs||'')}" onchange="Results.edit(${realIndex},'obs',this.value)"></td>`;
+      html += `<td><button class="btn sm danger" onclick="Results.remove(${realIndex})">EXCLUIR</button></td>`;
+      html += '</tr>';
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+  },
+
+  edit(index, key, value){
+    if (State.results[index]) State.results[index][key] = value;
+  },
+  remove(index){
+    State.results.splice(index, 1);
+    Results.render();
+    App.refreshBadges();
+    MapView.refresh();
+    Persist.save();
+  },
+
+  /* Limpa a tabela de resultados (não apaga árvores nem picadas — apenas o
+     processamento). Útil para forçar um reprocessamento do zero. */
+  clearAll(){
+    if (State.results.length === 0) return;
+    if (!confirm(`Limpar os ${State.results.length} resultado(s) processados? As árvores e picadas cadastradas serão mantidas.`)) return;
+    State.results = [];
+    Results.render();
+    App.refreshBadges();
+    MapView.refresh();
+    Persist.save();
+    App.setStatus('Resultados limpos');
+  }
+};
+
+/* ---------------------------------------------------------------------
+   MAPA (Leaflet)
+--------------------------------------------------------------------- */
+const MapView = {
+  map: null, treeLayer: null, picadaLayer: null, initialized: false, _currentPopupPicada: null,
+  baseLayers: {}, labelLayer: null,
+
+  init(){
+    if (MapView.initialized) return;
+    MapView.map = L.map('mapview').setView([-15.6, -56.1], 6);
+
+    MapView.baseLayers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    });
+    MapView.baseLayers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics', maxZoom: 19
+    });
+    // Camada de rótulos (limites, nomes de lugares) sobreposta ao satélite no modo híbrido
+    MapView.labelLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Esri', maxZoom: 19, pane: 'overlayPane'
+    });
+
+    MapView.baseLayers.osm.addTo(MapView.map);
+    MapView.treeLayer = L.layerGroup().addTo(MapView.map);
+    MapView.picadaLayer = L.layerGroup().addTo(MapView.map);
+    MapView.initialized = true;
+    setTimeout(() => MapView.map.invalidateSize(), 150);
+  },
+
+  /* Troca o mapa-base entre rua (OpenStreetMap), satélite (Esri World
+     Imagery) e satélite+rótulos (híbrido) — útil para conferir árvores e
+     picadas contra a imagem de satélite real (ex.: cruzando com shapefile
+     no ArcGIS). */
+  switchBase(){
+    if (!MapView.initialized) MapView.init();
+    const mode = document.getElementById('mapBaseLayer').value;
+    Object.values(MapView.baseLayers).forEach(l => MapView.map.removeLayer(l));
+    if (MapView.map.hasLayer(MapView.labelLayer)) MapView.map.removeLayer(MapView.labelLayer);
+
+    if (mode === 'osm'){
+      MapView.baseLayers.osm.addTo(MapView.map);
+    } else if (mode === 'sat'){
+      MapView.baseLayers.sat.addTo(MapView.map);
+    } else if (mode === 'hybrid'){
+      MapView.baseLayers.sat.addTo(MapView.map);
+      MapView.labelLayer.addTo(MapView.map);
+    }
+  },
+
+  refresh(){
+    if (!MapView.initialized) MapView.init();
+    MapView.treeLayer.clearLayers();
+    MapView.picadaLayer.clearLayers();
+
+    const showTrees = document.getElementById('layerTrees').checked;
+    const showPicadas = document.getElementById('layerPicadas').checked;
+    const showFaixa = document.getElementById('layerFaixa').checked;
+    const showLabels = document.getElementById('layerLabels').checked;
+    const editMode = document.getElementById('mapEditMode').checked;
+    const bounds = [];
+
+    const treeIcon = (color) => L.divIcon({
+      className:'', iconSize:[12,12], iconAnchor:[6,6],
+      html:`<div style="width:10px;height:10px;border-radius:50%;background:${color};border:1.5px solid #0b0f12;box-shadow:0 0 0 1px ${color};${editMode?'cursor:grab;':''}"></div>`
+    });
+    const pointIcon = (color) => L.divIcon({
+      className:'', iconSize:[10,10], iconAnchor:[5,5],
+      html:`<div style="width:8px;height:8px;background:${color};border:1.5px solid #0b0f12;${editMode?'cursor:grab;':''}"></div>`
+    });
+
+    if (showPicadas){
+      State.picadas.forEach(p => {
+        let d;
+        try { d = Picadas.derive(p); } catch(e){ return; }
+        try {
+          const g1 = CRS.utmToGeo(p.xi, p.yi, State.config);
+          const g2 = CRS.utmToGeo(d.xf, d.yf, State.config);
+          const line = L.polyline([[g1.lat,g1.lon],[g2.lat,g2.lon]], {color:'#e8b04b', weight:2, opacity:.85});
+          line.bindTooltip(`Picada ${p.id} — ${Utils.fmt(d.comprimento,1)} m — Az ${Utils.fmt(d.azimute,1)}°`, {sticky:true});
+          line.addTo(MapView.picadaLayer);
+          bounds.push([g1.lat,g1.lon],[g2.lat,g2.lon]);
+
+          // Retângulo delimitador da faixa (90° em relação à picada), estendido
+          // ao longo da direção para acomodar árvores além do trecho mapeado.
+          if (showFaixa){
+            const largura = Picadas.effectiveLargura(p);
+            if (largura > 0){
+              const xs = State.results.filter(r => r.picadaId === p.id).map(r => r.xLong);
+              const maxX = xs.length ? Math.max(d.comprimento, ...xs) : d.comprimento;
+              const minX = xs.length ? Math.min(0, ...xs) : 0;
+              const perp = Geo.perpendicular(d.ux, d.uy, State.config.ySide);
+              const corners = Geo.stripRectangle(p.xi, p.yi, d.ux, d.uy, perp.px, perp.py, minX, maxX, largura);
+              const cornersGeo = corners.map(c => { const g = CRS.utmToGeo(c.x, c.y, State.config); return [g.lat, g.lon]; });
+              const rect = L.polygon(cornersGeo, {color:'#e8b04b', weight:1, opacity:.5, fillColor:'#e8b04b', fillOpacity:.06, dashArray:'4,4'});
+              rect.bindTooltip(`Faixa ${p.id} — largura ${Utils.fmt(largura,1)} m${maxX > d.comprimento+0.01 ? ' (estendida para acomodar árvores além do trecho mapeado)' : ''} — clique para editar`, {sticky:true});
+              // Popup de edição rápida da largura — funciona mesmo com a faixa já configurada.
+              rect.bindPopup(() => {
+                const atual = Picadas.effectiveLargura(p);
+                return `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;min-width:190px;">
+                  <b>Faixa — Picada ${Utils.esc(p.id)}</b><br>
+                  <span style="color:#8ea0a8;">Largura atual: ${Utils.fmt(atual,1)} m</span><br>
+                  <div style="margin-top:6px;display:flex;gap:6px;align-items:center;">
+                    <input type="number" step="any" min="0" id="larguraPopupInput" value="${atual}" style="width:70px;background:#161e23;border:1px solid #324049;color:#d7e0e4;padding:3px 5px;">
+                    <button onclick="MapView.saveLarguraPopup()" style="background:#0f2620;border:1px solid #2c7a5e;color:#4fd1a5;padding:3px 8px;cursor:pointer;font-family:inherit;">SALVAR</button>
+                  </div></div>`;
+              });
+              rect.on('click', () => { MapView._currentPopupPicada = p.id; });
+              rect.addTo(MapView.picadaLayer);
+              cornersGeo.forEach(ll => bounds.push(ll));
+            }
+          }
+
+          if (showLabels){
+            L.marker([g1.lat,g1.lon], {icon: L.divIcon({className:'', html:`<div style="background:#161e23;color:#e8b04b;border:1px solid #e8b04b;padding:1px 5px;font-size:10px;font-family:monospace;white-space:nowrap;transform:translate(10px,-4px);">${Utils.esc(p.id)}</div>`, iconSize:null})}).addTo(MapView.picadaLayer);
+          }
+          // Pontos inicial/final — arrastáveis quando o modo de edição está ativo
+          const startMarker = L.marker([g1.lat,g1.lon], {icon: pointIcon('#e8b04b'), draggable: editMode, autoPan: editMode});
+          startMarker.bindTooltip(`${p.id} · início`, {direction:'top'});
+          startMarker.on('dragend', () => MapView.onPicadaPointDragEnd(p.id, 'start', startMarker));
+          startMarker.addTo(MapView.picadaLayer);
+          const endMarker = L.marker([g2.lat,g2.lon], {icon: pointIcon('#e8b04b'), draggable: editMode, autoPan: editMode});
+          endMarker.bindTooltip(`${p.id} · fim`, {direction:'top'});
+          endMarker.on('dragend', () => MapView.onPicadaPointDragEnd(p.id, 'end', endMarker));
+          endMarker.addTo(MapView.picadaLayer);
+        } catch(e){ /* ignora picada com erro de geometria no mapa */ }
+      });
+    }
+
+    if (showTrees){
+      State.results.forEach(r => {
+        const realIndex = State.results.indexOf(r);
+        const marker = L.marker([r.lat, r.lon], {icon: treeIcon('#4fd1a5'), draggable: editMode, autoPan: editMode});
+        const popup = `<b>${Utils.esc(r.id)}</b><br>Picada: ${Utils.esc(r.picadaId)}<br>
+          Espécie: ${Utils.esc(r.especie||'—')}<br>DAP: ${Utils.esc(r.dap||'—')}<br>
+          UTM: ${Utils.fmt(r.utmE,2)} / ${Utils.fmt(r.utmN,2)}<br>
+          Lat/Lon: ${Utils.fmt(r.lat,6)}, ${Utils.fmt(r.lon,6)}${editMode?'<br><i>arraste para reposicionar</i>':''}`;
+        marker.bindPopup(popup);
+        if (showLabels) marker.bindTooltip(String(r.id), {permanent:false, direction:'top', className:'', opacity:.9});
+        marker.on('dragend', () => MapView.onTreeDragEnd(realIndex, marker));
+        marker.addTo(MapView.treeLayer);
+        bounds.push([r.lat, r.lon]);
+      });
+    }
+
+    if (bounds.length > 0 && !MapView._userMoved){
+      MapView.map.fitBounds(bounds, {padding:[30,30], maxZoom:17});
+    }
+    setTimeout(() => MapView.map && MapView.map.invalidateSize(), 100);
+  },
+
+  /* Árvore arrastada no mapa: converte a nova posição geográfica de volta
+     para UTM e, por projeção vetorial (produto escalar com os versores da
+     picada), recalcula X longitudinal / Y perpendicular — e grava o
+     resultado tanto na tabela de resultados quanto na árvore de origem,
+     para que sobreviva a um novo PROCESSAR. */
+  onTreeDragEnd(resultIndex, marker){
+    const r = State.results[resultIndex];
+    if (!r) return;
+    const ll = marker.getLatLng();
+    const cfg = State.config;
+    const p = State.picadas.find(x => x.id === r.picadaId);
+    if (!p){ alert('Picada de origem não encontrada — não foi possível recalcular X/Y.'); MapView.refresh(); return; }
+
+    let d;
+    try { d = Picadas.derive(p); } catch(e){ alert('Geometria da picada inválida.'); MapView.refresh(); return; }
+    const { e: E, n: N } = CRS.geoToUtm(ll.lat, ll.lng, cfg);
+    const { px, py } = Geo.perpendicular(d.ux, d.uy, cfg.ySide);
+    const dEx = E - p.xi, dNy = N - p.yi;
+    // Produto escalar com os versores (ortonormais) = coordenadas locais inversas
+    const xLong = dEx * d.ux + dNy * d.uy;
+    const yPerp = dEx * px + dNy * py;
+
+    r.xLong = xLong; r.yPerp = yPerp;
+    r.utmE = E; r.utmN = N;
+    r.lat = ll.lat; r.lon = ll.lng;
+    r.latGms = CRS.toGMS(ll.lat, true, cfg.precGms);
+    r.lonGms = CRS.toGMS(ll.lng, false, cfg.precGms);
+
+    // Sincroniza de volta com a árvore de origem (para sobreviver a um RECALCULAR)
+    const unitFactor = cfg.unit === 'cm' ? 0.01 : 1;
+    const t = State.trees.find(x => x._id === r._id);
+    if (t){ t.x = xLong / unitFactor; t.y = yPerp / unitFactor; }
+
+    App.setStatus(`Árvore ${r.id} reposicionada manualmente no mapa`);
+    Results.render();
+    MapView.refresh();
+  },
+
+  /* Ponto inicial/final de picada arrastado: converte para UTM e atualiza
+     a picada. Se a picada usa azimute/comprimento, esses valores são
+     recalculados a partir do novo ponto final. Árvores vinculadas mantêm
+     seus X/Y locais — reposicionam automaticamente em relação à picada
+     apenas após um novo PROCESSAR. */
+  onPicadaPointDragEnd(picadaId, which, marker){
+    const p = State.picadas.find(x => x.id === picadaId);
+    if (!p) return;
+    const ll = marker.getLatLng();
+    const cfg = State.config;
+    const { e: E, n: N } = CRS.geoToUtm(ll.lat, ll.lng, cfg);
+
+    if (which === 'start'){
+      p.xi = E; p.yi = N;
+    } else {
+      if (p.modo === 'coords'){
+        p.xf = E; p.yf = N;
+      } else {
+        const vec = Geo.unitVectorFromPoints(p.xi, p.yi, E, N);
+        if (!vec){ alert('Ponto final coincide com o ponto inicial.'); MapView.refresh(); return; }
+        p.azimute = Geo.azimuthFromDelta(vec.dx, vec.dy);
+        p.comprimento = vec.L;
+      }
+    }
+    App.setStatus(`Picada ${p.id} editada no mapa — clique em RECALCULAR para atualizar as árvores`);
+    Picadas.render();
+    MapView.refresh();
+  },
+
+  fitAll(){
+    const bounds = [];
+    State.results.forEach(r => bounds.push([r.lat, r.lon]));
+    State.picadas.forEach(p => {
+      try { const d = Picadas.derive(p); const g1 = CRS.utmToGeo(p.xi,p.yi,State.config); const g2 = CRS.utmToGeo(d.xf,d.yf,State.config); bounds.push([g1.lat,g1.lon],[g2.lat,g2.lon]); } catch(e){}
+    });
+    if (bounds.length) MapView.map.fitBounds(bounds, {padding:[30,30], maxZoom:17});
+  },
+
+  /* Salva a largura editada no popup do retângulo da faixa (clique no mapa). */
+  saveLarguraPopup(){
+    const id = MapView._currentPopupPicada;
+    if (!id) return;
+    const input = document.getElementById('larguraPopupInput');
+    if (!input) return;
+    Picadas.editField(id, 'largura', input.value);
+    App.setStatus(`Largura da faixa da picada ${id} atualizada para ${input.value} m`);
+    if (MapView.map) MapView.map.closePopup();
+  },
+
+  focusPicada(){
+    const id = document.getElementById('mapFocusPicada').value;
+    if (!id) return;
+    const p = State.picadas.find(x => x.id === id);
+    if (!p) return;
+    try {
+      const d = Picadas.derive(p);
+      const g1 = CRS.utmToGeo(p.xi,p.yi,State.config);
+      const g2 = CRS.utmToGeo(d.xf,d.yf,State.config);
+      MapView.map.fitBounds([[g1.lat,g1.lon],[g2.lat,g2.lon]], {padding:[60,60], maxZoom:18});
+    } catch(e){ alert('Não foi possível localizar geometria desta picada.'); }
+  }
+};
+
+/* ---------------------------------------------------------------------
+   EXPORTAÇÃO
+--------------------------------------------------------------------- */
+const Exporter = {
+  columns(){
+    return [
+      {k:'id', l:'ID'}, {k:'picadaId', l:'PICADA'}, {k:'xLong', l:'LONGITUDINAL_M'}, {k:'yPerp', l:'LATERAL_M'},
+      {k:'utmE', l:'UTM_E'}, {k:'utmN', l:'UTM_N'}, {k:'lat', l:'LATITUDE'}, {k:'lon', l:'LONGITUDE'},
+      {k:'latGms', l:'LATITUDE_GMS'}, {k:'lonGms', l:'LONGITUDE_GMS'},
+      {k:'especie', l:'ESPECIE'}, {k:'nomePopular', l:'NOME_POPULAR'}, {k:'dap', l:'DAP'},
+      {k:'altura', l:'ALTURA'}, {k:'obs', l:'OBSERVACAO'}
+    ];
+  },
+
+  rowsForExport(){
+    if (State.results.length === 0){ alert('Nenhum resultado processado. Vá à aba "Processamento".'); return null; }
+    const c = State.config;
+    const cols = Exporter.columns();
+    return State.results.map(r => {
+      const o = {};
+      cols.forEach(col => {
+        let v = r[col.k];
+        if (['xLong','yPerp'].includes(col.k)) v = Utils.fmt(v, c.precXy);
+        if (['utmE','utmN'].includes(col.k)) v = Utils.fmt(v, c.precUtm);
+        if (['lat','lon'].includes(col.k)) v = Utils.fmt(v, c.precDeg);
+        o[col.l] = v ?? '';
+      });
+      // inclui também os campos originais extras da planilha importada, sem sobrescrever
+      State.treeFields.forEach(f => { if (!(f in o)) o[f] = r[f]; });
+      return o;
+    });
+  },
+
+  download(content, filename, mime){
+    const blob = new Blob([content], {type: mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  csv(){
+    const rows = Exporter.rowsForExport(); if (!rows) return;
+    const csv = Papa.unparse(rows, {delimiter:';'});
+    Exporter.download('\uFEFF' + csv, `${Utils.slug(App.projName())}_arvores.csv`, 'text/csv;charset=utf-8');
+  },
+
+  xlsx(){
+    const rows = Exporter.rowsForExport(); if (!rows) return;
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Arvores');
+    XLSX.writeFile(wb, `${Utils.slug(App.projName())}_arvores.xlsx`);
+  },
+
+  txt(){
+    const rows = Exporter.rowsForExport(); if (!rows) return;
+    const sepRaw = document.getElementById('txtSep').value;
+    const sep = sepRaw === '\\t' ? '\t' : sepRaw;
+    const txt = Papa.unparse(rows, {delimiter: sep});
+    Exporter.download('\uFEFF' + txt, `${Utils.slug(App.projName())}_arvores.txt`, 'text/plain;charset=utf-8');
+  },
+
+  kml(){
+    if (State.results.length === 0){ alert('Nenhum resultado processado. Vá à aba "Processamento".'); return; }
+    const c = State.config;
+    let placemarks = State.results.map(r => `
+    <Placemark>
+      <name>${Utils.escXml(String(r.id))}</name>
+      <description><![CDATA[
+        Picada: ${Utils.esc(r.picadaId)}<br/>
+        Espécie: ${Utils.esc(r.especie||'')}<br/>
+        Nome popular: ${Utils.esc(r.nomePopular||'')}<br/>
+        DAP: ${Utils.esc(r.dap||'')}<br/>
+        Altura: ${Utils.esc(r.altura||'')}<br/>
+        UTM E: ${Utils.fmt(r.utmE,c.precUtm)}<br/>
+        UTM N: ${Utils.fmt(r.utmN,c.precUtm)}<br/>
+        Observação: ${Utils.esc(r.obs||'')}
+      ]]></description>
+      <Point><coordinates>${r.lon},${r.lat},0</coordinates></Point>
+    </Placemark>`).join('');
+    const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>${Utils.escXml(App.projName())}</name>
+  ${placemarks}
+</Document>
+</kml>`;
+    Exporter.download(kml, `${Utils.slug(App.projName())}_arvores.kml`, 'application/vnd.google-earth.kml+xml');
+  },
+
+  geojson(){
+    if (State.results.length === 0){ alert('Nenhum resultado processado. Vá à aba "Processamento".'); return; }
+    const c = State.config;
+    const features = State.results.map(r => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [r.lon, r.lat] },
+      properties: {
+        id: r.id, picada: r.picadaId, x: Utils.fmt(r.xLong,c.precXy), y: Utils.fmt(r.yPerp,c.precXy),
+        utm_e: Utils.fmt(r.utmE,c.precUtm), utm_n: Utils.fmt(r.utmN,c.precUtm),
+        especie: r.especie||'', nome_popular: r.nomePopular||'', dap: r.dap||'', altura: r.altura||'', observacao: r.obs||''
+      }
+    }));
+    const geojson = { type:'FeatureCollection', name: App.projName(), crs: {type:'name', properties:{name:'urn:ogc:def:crs:OGC:1.3:CRS84'}}, features };
+    Exporter.download(JSON.stringify(geojson, null, 2), `${Utils.slug(App.projName())}_arvores.geojson`, 'application/geo+json');
+  },
+
+  report(){
+    if (State.results.length === 0){ alert('Nenhum resultado processado. Vá à aba "Processamento".'); return; }
+    const c = State.config;
+    const now = new Date().toLocaleString('pt-BR');
+    const rows = State.results.map(r => `<tr>
+      <td>${Utils.esc(r.id)}</td><td>${Utils.esc(r.picadaId)}</td>
+      <td>${Utils.fmt(r.xLong,c.precXy)}</td><td>${Utils.fmt(r.yPerp,c.precXy)}</td>
+      <td>${Utils.fmt(r.utmE,c.precUtm)}</td><td>${Utils.fmt(r.utmN,c.precUtm)}</td>
+      <td>${Utils.fmt(r.lat,c.precDeg)}</td><td>${Utils.fmt(r.lon,c.precDeg)}</td>
+      <td>${Utils.esc(r.especie||'')}</td><td>${Utils.esc(r.dap||'')}</td>
+    </tr>`).join('');
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório — ${Utils.esc(App.projName())}</title>
+    <style>
+      body{font-family:'IBM Plex Mono',Consolas,monospace;color:#111;padding:30px;font-size:12px;}
+      h1{font-size:18px;border-bottom:2px solid #333;padding-bottom:8px;}
+      table{border-collapse:collapse;width:100%;font-size:10.5px;margin-top:14px;}
+      th,td{border:1px solid #999;padding:4px 6px;text-align:left;}
+      th{background:#eee;}
+      .meta{margin:14px 0;line-height:1.8;}
+      .meta b{display:inline-block;width:220px;}
+      @media print{ body{padding:0;} }
+    </style></head><body>
+    <h1>Relatório de Coordenadas de Árvores</h1>
+    <div class="meta">
+      <div><b>Projeto:</b> ${Utils.esc(App.projName())}</div>
+      <div><b>Data de geração:</b> ${now}</div>
+      <div><b>Sistema de referência:</b> ${c.datum === 'SIRGAS2000' ? 'SIRGAS 2000' : 'WGS84'} / UTM</div>
+      <div><b>Fuso UTM:</b> ${c.zone}${c.hemis}</div>
+      <div><b>EPSG:</b> ${c.epsg}</div>
+      <div><b>Quantidade de árvores processadas:</b> ${State.results.length}</div>
+      <div><b>Quantidade de picadas:</b> ${State.picadas.length}</div>
+    </div>
+    <table><thead><tr><th>ID</th><th>Picada</th><th>Long. (m)</th><th>Lateral (m)</th><th>UTM E</th><th>UTM N</th><th>Latitude</th><th>Longitude</th><th>Espécie</th><th>DAP</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    </body></html>`;
+    const w = window.open('', '_blank');
+    w.document.write(html);
+    w.document.close();
+  }
+};
+
+/* ---------------------------------------------------------------------
+   PROJETO — salvar/carregar JSON
+--------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------
+   PERSISTÊNCIA AUTOMÁTICA — mantém tudo (digitado, importado, movido,
+   editado) salvo no navegador entre uma abertura e outra do aplicativo,
+   sem precisar salvar/carregar arquivo manualmente. Usa localStorage,
+   que persiste por navegador+arquivo, mesmo fechando e reabrindo.
+--------------------------------------------------------------------- */
+const Persist = {
+  KEY: 'geoarvore_autosave_v1',
+
+  save(){
+    try {
+      const data = {
+        projectName: App.projName(),
+        trees: State.trees,
+        treeFields: State.treeFields,
+        picadas: State.picadas,
+        results: State.results,
+        config: State.config,
+        fieldMapping: State.fieldMapping,
+        fieldMappingPicadas: State.fieldMappingPicadas,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(Persist.KEY, JSON.stringify(data));
+    } catch(e){ console.warn('Autosave falhou (localStorage indisponível ou cheio):', e); }
+  },
+
+  load(){
+    try {
+      const raw = localStorage.getItem(Persist.KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      State.trees = data.trees || [];
+      State.treeFields = data.treeFields || [];
+      State.picadas = data.picadas || [];
+      State.results = data.results || [];
+      Object.assign(State.config, data.config || {});
+      State.fieldMapping = data.fieldMapping || {};
+      State.fieldMappingPicadas = data.fieldMappingPicadas || {};
+      if (data.projectName) document.getElementById('projName').value = data.projectName;
+      return (State.trees.length + State.picadas.length + State.results.length) > 0;
+    } catch(e){ console.warn('Falha ao carregar dados salvos automaticamente:', e); return false; }
+  },
+
+  clearAll(){
+    try { localStorage.removeItem(Persist.KEY); } catch(e){}
+  }
+};
+
+const Proj = {
+  save(){
+    Engine.readConfig();
+    const data = {
+      projectName: App.projName(),
+      trees: State.trees, treeFields: State.treeFields,
+      picadas: State.picadas, config: State.config,
+      savedAt: new Date().toISOString()
+    };
+    Exporter.download(JSON.stringify(data, null, 2), `${Utils.slug(App.projName())}_projeto.json`, 'application/json');
+  },
+
+  load(file){
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        State.trees = data.trees || [];
+        State.treeFields = data.treeFields || [];
+        State.picadas = data.picadas || [];
+        Object.assign(State.config, data.config || {});
+        document.getElementById('projName').value = data.projectName || 'Projeto sem título';
+        App.applyConfigToForm();
+        Importer.renderTreesPreview();
+        Picadas.render();
+        App.refreshBadges();
+        App.setStatus('Projeto carregado com sucesso');
+        alert('Projeto carregado. Vá à aba "Processamento" para recalcular as coordenadas.');
+      } catch(err){
+        alert('Falha ao carregar projeto: arquivo JSON inválido.');
+      }
+    };
+    reader.readAsText(file);
+    document.getElementById('loadProjInput').value = '';
+  }
+};
+
+/* ---------------------------------------------------------------------
+   UTILITÁRIOS GERAIS
+--------------------------------------------------------------------- */
+const Utils = {
+  parseNum(v){
+    if (v === undefined || v === null || v === '') return NaN;
+    if (typeof v === 'number') return v;
+    let s = String(v).trim();
+    // aceita tanto "1234,56" (BR) quanto "1234.56" (US) e "1.234,56" (milhar BR)
+    if (/,\d{1,6}$/.test(s) && s.includes(',')){
+      s = s.replace(/\./g,'').replace(',', '.');
+    }
+    return parseFloat(s);
+  },
+  fmt(v, dec){
+    if (v === undefined || v === null || v === '' || isNaN(v)) return '—';
+    return Number(v).toFixed(dec);
+  },
+  esc(s){
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  },
+  escAttr(s){ return Utils.esc(s).replace(/"/g,'&quot;'); },
+  escXml(s){ return Utils.esc(s); },
+  slug(s){ return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'projeto'; },
+  /* Normaliza um ID de picada para comparação tolerante:
+     remove espaços nas pontas, ignora maiúsc./minúsc. e remove zeros à
+     esquerda quando o ID é puramente numérico (ex.: "01" casa com "1"). */
+  normalizeId(id){
+    let s = String(id ?? '').trim();
+    if (/^\d+$/.test(s)) s = String(parseInt(s, 10));
+    return s.toLowerCase();
+  }
+};
+
+/* ---------------------------------------------------------------------
+   APP — navegação, inicialização, exemplo, footer
+--------------------------------------------------------------------- */
+const App = {
+  projName(){ return document.getElementById('projName').value || 'Projeto sem título'; },
+
+  showTab(tab){
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('section.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+    if (tab === 'mapa'){ MapView.init(); MapView.refresh(); }
+  },
+
+  refreshBadges(){
+    document.getElementById('badgePicadas').textContent = State.picadas.length;
+    document.getElementById('badgeResultados').textContent = State.results.length;
+    App.updateFooter();
+  },
+
+  updateFooter(){
+    const c = State.config;
+    document.getElementById('stDatum').textContent = c.datum === 'SIRGAS2000' ? 'SIRGAS 2000' : 'WGS84';
+    document.getElementById('stZone').textContent = c.zone + c.hemis;
+    document.getElementById('stEpsg').textContent = c.epsg;
+    document.getElementById('stTrees').textContent = State.trees.length;
+    document.getElementById('stPicadas').textContent = State.picadas.length;
+  },
+
+  setStatus(msg){ document.getElementById('stStatus').textContent = msg; },
+
+  /* Apaga TUDO — árvores, picadas, resultados e limpa também o autosave do
+     navegador. Usado para começar um projeto do zero. */
+  newProject(){
+    if (State.trees.length + State.picadas.length + State.results.length === 0){
+      alert('Não há dados para apagar.');
+      return;
+    }
+    if (!confirm('Apagar TODOS os dados (árvores, picadas, resultados) e começar um projeto novo? Essa ação não pode ser desfeita e também limpa os dados salvos automaticamente no navegador.')) return;
+    State.trees = [];
+    State.treeFields = [];
+    State.picadas = [];
+    State.results = [];
+    State.fieldMapping = {};
+    document.getElementById('projName').value = 'Projeto sem título';
+    Importer.renderTreesPreview();
+    document.getElementById('importedPreviewCard').style.display = 'none';
+    Picadas.render();
+    Results.render();
+    App.refreshBadges();
+    MapView.refresh();
+    Persist.clearAll();
+    App.setStatus('Projeto novo — todos os dados foram apagados');
+    App.showTab('importar');
+  },
+
+  populateZones(){
+    const sel = document.getElementById('cfgZone');
+    sel.innerHTML = '';
+    for (let z = 17; z <= 25; z++){
+      sel.innerHTML += `<option value="${z}" ${z===21?'selected':''}>${z}</option>`;
+    }
+  },
+
+  applyConfigToForm(){
+    const c = State.config;
+    document.getElementById('cfgDatum').value = c.datum;
+    document.getElementById('cfgZone').value = c.zone;
+    document.getElementById('cfgHemis').value = c.hemis;
+    document.getElementById('cfgEpsg').value = c.epsg;
+    document.getElementById('cfgUnit').value = c.unit;
+    document.getElementById('cfgYSide').value = c.ySide;
+    document.getElementById('cfgPrecUtm').value = c.precUtm;
+    document.getElementById('cfgPrecDeg').value = c.precDeg;
+    document.getElementById('cfgPrecGms').value = c.precGms;
+    document.getElementById('cfgPrecXy').value = c.precXy;
+    document.getElementById('cfgLarguraPadrao').value = c.larguraFaixaPadrao;
+    App.updateEpsgPreview();
+    App.renderSignDiagram();
+  },
+
+  updateEpsgPreview(){
+    const cfg = {
+      datum: document.getElementById('cfgDatum').value,
+      zone: parseInt(document.getElementById('cfgZone').value,10),
+      hemis: document.getElementById('cfgHemis').value
+    };
+    const epsg = CRS.computeEpsg(cfg);
+    document.getElementById('cfgEpsg').value = epsg;
+    document.getElementById('epsgPreview').textContent =
+      `PROJ4: ${CRS.proj4String(cfg)}  —  EPSG:${epsg}`;
+    App.updateFooter();
+  },
+
+  renderSignDiagram(){
+    const side = document.getElementById('cfgYSide').value;
+    const esquerda = side === 'esquerda';
+    const box = document.getElementById('signDiagram');
+    box.innerHTML =
+`        Y ${esquerda ? '<b>POSITIVO</b>' : 'negativo'}
+           ↑
+           |
+———————————●—————————————▶  PICADA (sentido inicial → final)
+           |
+           ↓
+        Y ${esquerda ? 'negativo' : '<b>POSITIVO</b>'}`;
+  },
+
+  loadExample(){    State.picadas = [
+      { id:'P01', xi:450000.000, yi:8815000.000, xf:451000.000, yf:8815000.000, modo:'coords', obs:'Picada leste-oeste' },
+      { id:'P02', xi:451000.000, yi:8815000.000, azimute:0, comprimento:1000, modo:'azimute', obs:'Picada norte' }
+    ];
+    const especies = ['Cedrela fissilis','Hymenaea courbaril','Cariniana estrellensis','Tabebuia impetiginosa','Aspidosperma polyneuron'];
+    const populares = ['Cedro','Jatobá','Jequitibá','Ipê-roxo','Peroba'];
+    State.treeFields = ['ID','PICADA','X','Y','ESPECIE','NOME_POPULAR','DAP','ALTURA','OBS'];
+    State.trees = [];
+    const raw = [
+      ['ARV-001','P01',125.40,8.50], ['ARV-002','P01',187.20,-4.30], ['ARV-003','P01',245.80,12.10],
+      ['ARV-004','P01',310.00,-9.00], ['ARV-005','P01',402.50,3.20],
+      ['ARV-006','P02',150.00,10.00], ['ARV-007','P02',260.75,-6.40], ['ARV-008','P02',400.00,15.00],
+      ['ARV-009','P02',530.20,-2.10], ['ARV-010','P02',680.60,7.80]
+    ];
+    raw.forEach((r,i) => {
+      const especieIdx = i % especies.length;
+      State.trees.push({
+        _id:'T'+(i+1), _origIndex:i,
+        ID:r[0], PICADA:r[1], X:r[2], Y:r[3],
+        id:r[0], picada:r[1], x:r[2], y:r[3],
+        especie: especies[especieIdx], nomePopular: populares[especieIdx],
+        dap: (25 + i*3.4).toFixed(1), altura: (14 + i*1.1).toFixed(1), obs:''
+      });
+    });
+    App.applyConfigToForm();
+    Importer.renderTreesPreview();
+    Picadas.render();
+    App.refreshBadges();
+    App.setStatus('Dados de exemplo carregados — vá à aba "Processamento"');
+    App.showTab('importar');
+  },
+
+  init(){
+    document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => App.showTab(b.dataset.tab)));
+    App.populateZones();
+    document.getElementById('cfgDatum').addEventListener('change', App.updateEpsgPreview);
+    document.getElementById('cfgZone').addEventListener('change', App.updateEpsgPreview);
+    document.getElementById('cfgHemis').addEventListener('change', App.updateEpsgPreview);
+    document.getElementById('cfgYSide').addEventListener('change', App.renderSignDiagram);
+    document.getElementById('cfgLarguraPadrao').addEventListener('change', () => { Engine.readConfig(); Picadas.render(); MapView.refresh(); });
+
+    // drag & drop
+    [['dropzoneTrees','fileTrees','trees'], ['dropzonePicadas','filePicadas','picadas']].forEach(([zoneId, inputId, target]) => {
+      const zone = document.getElementById(zoneId);
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+      zone.addEventListener('drop', e => {
+        e.preventDefault(); zone.classList.remove('drag');
+        if (e.dataTransfer.files[0]) Importer.handleFile(e.dataTransfer.files[0], target);
+      });
+    });
+
+    App.applyConfigToForm();
+    Picadas.toggleModo();
+    Picadas.render();
+    App.refreshBadges();
+
+    // Carrega automaticamente os dados da última sessão, se existirem
+    const hadData = Persist.load();
+    if (hadData){
+      App.applyConfigToForm();
+      Importer.renderTreesPreview();
+      Picadas.render();
+      Results.render();
+      App.refreshBadges();
+      App.setStatus(`Dados da última sessão carregados automaticamente (${State.trees.length} árvore(s), ${State.picadas.length} picada(s), ${State.results.length} resultado(s))`);
+    }
+
+    // Autosave contínuo — salva sozinho a cada 4s e também antes de fechar a aba
+    setInterval(Persist.save, 4000);
+    window.addEventListener('beforeunload', Persist.save);
+    document.getElementById('projName').addEventListener('change', Persist.save);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', App.init);
+</script>
+</body>
+</html>

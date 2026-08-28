@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Pendências — SIMCAR/SEMA-MT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0e2a42;
+    --bg-2: #0b2338;
+    --panel: #123a56;
+    --panel-2: #16456490;
+    --line: rgba(210,232,248,0.09);
+    --line-strong: rgba(200,225,240,0.28);
+    --ink: #eaf3f9;
+    --ink-dim: #9fbdd2;
+    --ink-faint: #6f93ab;
+    --cyan: #63d8d6;
+    --cyan-dim: #3d8f92;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --pending: #6f8ea3;
+    --radius: 3px;
+    font-size: 15px;
+  }
+  *{box-sizing:border-box;}
+  .hidden{ display:none !important; }
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(0deg, var(--line) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 28px),
+      radial-gradient(ellipse at top left, #123c5a 0%, var(--bg) 45%, var(--bg-2) 100%);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    padding: 28px 20px 60px;
+  }
+  .sheet{ max-width: 1600px; margin: 0 auto; }
+
+  /* ---------- Title block ---------- */
+  .titleblock{
+    border: 1px solid var(--line-strong);
+    background: linear-gradient(180deg, var(--panel-2), transparent);
+    padding: 18px 22px;
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;
+    position:relative;
+  }
+  .titleblock::before{
+    content:""; position:absolute; top:6px; left:6px; right:6px; bottom:6px;
+    border:1px solid rgba(210,232,248,0.14); pointer-events:none;
+  }
+  .titleblock h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight:700; letter-spacing:0.5px; margin:0;
+    text-transform:uppercase;
+  }
+  .titleblock h1 span{
+    display:block; font-family:'IBM Plex Mono', monospace; font-weight:400;
+    font-size:12px; letter-spacing:2px; color: var(--cyan); margin-top:4px;
+  }
+  .titleblock-grid{ display:flex; gap:26px; font-family:'IBM Plex Mono', monospace; }
+  .titleblock-grid div{ display:flex; flex-direction:column; gap:3px; min-width:90px; }
+  .titleblock-grid label{ font-size:10px; letter-spacing:1.5px; color: var(--ink-faint); text-transform:uppercase; }
+  .titleblock-grid span{ font-size:14px; color: var(--ink); }
+
+  /* ---------- Dashboard cards ---------- */
+  .dashboard{
+    display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-top:16px;
+  }
+  .card{
+    border:1px solid var(--line-strong); background: var(--panel-2);
+    padding:14px 16px; position:relative; overflow:hidden;
+  }
+  .card::after{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background: var(--accent, var(--cyan)); }
+  .card .num{ font-family:'Space Grotesk', sans-serif; font-size:30px; font-weight:700; line-height:1; }
+  .card .lbl{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1.5px; color: var(--ink-dim); text-transform:uppercase; margin-top:6px; }
+  .card.total{ --accent: var(--cyan); }
+  .card.overdue{ --accent: var(--bad); }
+  .card.soon{ --accent: var(--warn); }
+  .card.ok{ --accent: var(--ok); }
+
+  /* ---------- Toolbar ---------- */
+  .view-tabs{ display:flex; gap:4px; margin-top:18px; border-bottom:1px solid var(--line-strong); }
+  .tab-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;
+    padding:10px 16px; background:transparent; border:none; border-bottom:2px solid transparent;
+    color: var(--ink-faint); cursor:pointer;
+  }
+  .tab-btn:hover{ color: var(--ink-dim); }
+  .tab-btn.active{ color: var(--cyan); border-bottom-color: var(--cyan); }
+  .tab-count{ color: var(--ink-faint); font-size:11px; }
+  .tab-btn.active .tab-count{ color: var(--cyan); }
+  .toolbar{
+    display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; align-items:center;
+  }
+  .toolbar input[type=text], .toolbar select{
+    background: var(--panel-2); border:1px solid var(--line-strong); color: var(--ink);
+    padding:9px 12px; font-family:'Inter',sans-serif; font-size:13px; border-radius:var(--radius);
+  }
+  .toolbar input[type=text]{ flex:1; min-width:180px; }
+  .toolbar select{ font-family:'IBM Plex Mono', monospace; }
+  .btn{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    padding:10px 16px; border-radius:var(--radius); border:1px solid var(--cyan-dim);
+    background:transparent; color: var(--cyan); cursor:pointer; white-space:nowrap;
+    transition: background .15s, color .15s;
+  }
+  .btn:hover{ background: var(--cyan); color:#082333; }
+  .btn.primary{ background: var(--cyan); color:#082333; }
+  .btn.primary:hover{ background:#8be8e6; }
+  .btn.danger{ border-color: var(--bad); color: var(--bad); }
+  .btn.danger:hover{ background: var(--bad); color:#3a0d0d; }
+  .btn.ghost{ border-color: var(--line-strong); color: var(--ink-dim); }
+  .btn.ghost:hover{ background: var(--line-strong); color: var(--ink); }
+
+  /* ---------- Table ---------- */
+  .table-wrap{
+    margin-top:16px; border:1px solid var(--line-strong); overflow-x:auto; background: var(--panel-2);
+  }
+  table{ width:100%; border-collapse:collapse; min-width:900px; }
+  thead th{
+    text-align:left; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:1px;
+    text-transform:uppercase; color: var(--ink-faint); padding:10px 12px; border-bottom:1px solid var(--line-strong);
+    position:sticky; top:0; background: var(--bg-2);
+  }
+  tbody tr{ border-bottom:1px solid var(--line); cursor:pointer; }
+  tbody tr:hover{ background: rgba(99,216,214,0.06); }
+  tbody td{ padding:11px 12px; font-size:13px; vertical-align:middle; }
+  td.propriedade{ font-weight:600; }
+  td.car{ font-family:'IBM Plex Mono', monospace; color: var(--ink-dim); font-size:12px; }
+  .deadline-pill{
+    display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:11.5px;
+    padding:4px 9px; border-radius:20px; border:1px solid currentColor;
+  }
+  .deadline-pill.bad{ color: var(--bad); }
+  .deadline-pill.warn{ color: var(--warn); }
+  .deadline-pill.good{ color: var(--ok); }
+  .deadline-pill .date{ color: var(--ink-dim); font-weight:400; }
+  .progress-mini{ display:flex; align-items:center; gap:8px; }
+  .progress-track{ width:70px; height:5px; background: rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; }
+  .progress-fill{ height:100%; background: var(--ok); }
+  .progress-mini span{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-dim); }
+  .row-alert{ color: var(--bad); font-size:14px; }
+  td.processado{ font-size:12.5px; color: var(--ink-dim); }
+  .empty-row td{ text-align:center; padding:38px 10px; color: var(--ink-faint); font-family:'IBM Plex Mono', monospace; font-size:13px; }
+
+  /* ---------- Expanded detail row ---------- */
+  .detail-row td{ background: rgba(4,20,32,0.55); padding:16px 18px; }
+  .status-list{ display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:8px; margin-bottom:12px; }
+  .status-block{ border:1px solid var(--line-strong); border-radius:var(--radius); padding:7px 9px; background: rgba(255,255,255,0.015); }
+  .status-block .top-row{ display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; }
+  .status-block .top-row .right-controls{ display:flex; align-items:center; gap:6px; }
+  .status-block .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600; }
+  .pend-expand-btn{
+    background:none; border:1px solid var(--line-strong); color: var(--ink-faint); border-radius:4px;
+    width:20px; height:20px; line-height:1; font-size:11px; cursor:pointer; display:inline-flex;
+    align-items:center; justify-content:center; flex-shrink:0; padding:0;
+  }
+  .pend-expand-btn:hover{ color: var(--cyan); border-color: var(--cyan-dim); }
+  .status-toggle{
+    font-family:'IBM Plex Mono', monospace; font-size:9.5px; padding:3px 8px; border-radius:20px;
+    border:1px solid currentColor; display:inline-flex; align-items:center; gap:5px; cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  .status-toggle .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .status-toggle.pendente{ color: var(--pending); }
+  .status-toggle.ok{ color: var(--ok); }
+  .status-toggle.atencao{ color: var(--warn); }
+  .status-toggle.objecao{ color: var(--bad); }
+  .status-block textarea.pend-text{
+    width:100%; margin-top:6px; background: var(--panel-2); border:1px solid var(--line); color: var(--ink);
+    font-family:'Inter', sans-serif; font-size:11.5px; padding:6px 8px; border-radius:var(--radius);
+    resize:vertical; min-height:30px;
+  }
+  .status-block .pend-text-readonly{ margin-top:8px; font-size:12px; color: var(--ink-dim); line-height:1.5; }
+  .detail-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+  .archive-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; padding:8px 14px; border-radius:var(--radius);
+    border:1px solid var(--ok); color: var(--ok); background:transparent; cursor:pointer;
+  }
+  .archive-btn:hover{ background: var(--ok); color:#062814; }
+  .reopen-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; padding:8px 14px; border-radius:var(--radius);
+    border:1px solid var(--line-strong); color: var(--ink-dim); background:transparent; cursor:pointer;
+  }
+  .reopen-btn:hover{ color: var(--ink); border-color: var(--ink-dim); }
+  .archived-date{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-faint); }
+  .complete-badge{ margin-right:4px; }
+
+  /* ---------- Text popup (expanded view/edit for a pendency description) ---------- */
+  .text-popup-modal{ max-width:640px; }
+  .text-popup-subtitle{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--cyan); margin:-10px 0 14px; letter-spacing:0.5px; }
+  textarea.text-popup-textarea{
+    width:100%; min-height:300px; background: var(--panel-2); border:1px solid var(--line-strong); color: var(--ink);
+    font-family:'Inter', sans-serif; font-size:14px; line-height:1.6; padding:12px 14px; border-radius:var(--radius);
+    resize:vertical;
+  }
+  .detail-obs{ font-size:12.5px; color: var(--ink-dim); margin: 4px 0 12px; font-style:italic; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(4,15,26,0.72); display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:50;
+  }
+  .modal-overlay.hidden{ display:none; }
+  .modal{
+    background: var(--bg-2); border:1px solid var(--line-strong); max-width:820px; width:100%;
+    max-height:88vh; overflow-y:auto; padding:24px; position:relative;
+  }
+  .modal h2{ font-family:'Space Grotesk',sans-serif; font-size:17px; margin:0 0 16px; text-transform:uppercase; letter-spacing:0.5px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:1px; color: var(--ink-faint); text-transform:uppercase; margin-bottom:5px; }
+  .field input, .field textarea{
+    width:100%; background: var(--panel-2); border:1px solid var(--line-strong); color: var(--ink);
+    padding:9px 11px; font-family:'Inter',sans-serif; font-size:13.5px; border-radius:var(--radius);
+  }
+  .field textarea{ resize:vertical; min-height:50px; font-family:'Inter',sans-serif; }
+  .field-row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .deadline-helper{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin: -4px 0 12px; }
+  .deadline-helper label{ display:flex; align-items:center; gap:6px; font-family:'Inter',sans-serif; font-size:12px; color: var(--ink-dim); cursor:pointer; }
+  .deadline-helper input[type=checkbox]{ accent-color: var(--cyan); width:14px; height:14px; }
+  .btn.small{ padding:7px 12px; font-size:11px; }
+  .auto-backup-status{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-faint); margin-top:6px; }
+  .pdf-attach-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .pdf-file-label{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--ink-dim); }
+  .pdf-file-label.attached{ color: var(--cyan); }
+  .pdf-link-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--cyan); background:none; border:none;
+    text-decoration:underline; cursor:pointer; padding:0; display:inline-flex; align-items:center; gap:5px;
+  }
+  .prorrogacao-badge{
+    font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.5px; color: var(--cyan);
+    border:1px solid var(--cyan-dim); border-radius:20px; padding:2px 6px; margin-left:6px;
+  }
+  .modal-section-title{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1.5px; color: var(--cyan);
+    text-transform:uppercase; margin: 18px 0 8px; border-top:1px solid var(--line); padding-top:14px;
+  }
+  .modal-actions{ display:flex; justify-content:space-between; margin-top:20px; gap:10px; }
+  .modal-actions .right{ display:flex; gap:8px; }
+  .close-x{ position:absolute; top:16px; right:16px; background:none; border:none; color: var(--ink-faint); font-size:20px; cursor:pointer; line-height:1; }
+  .close-x:hover{ color: var(--ink); }
+
+  @media (max-width: 720px){
+    .dashboard{ grid-template-columns: repeat(2,1fr); }
+    .status-block .top-row{ flex-direction:column; align-items:flex-start; }
+    .field-row{ grid-template-columns: 1fr; }
+    .titleblock{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="titleblock">
+    <div>
+      <h1>Painel de Pendências<span>SIMCAR &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; INCRA-SIGEF</span></h1>
+    </div>
+    <div class="titleblock-grid">
+      <div><label>Projeto</label><span>Map GEO</span></div>
+      <div><label>Registros</label><span id="tbTotal">0</span></div>
+      <div><label>Atualizado</label><span id="tbUpdated">—</span></div>
+    </div>
+  </header>
+
+  <section class="dashboard">
+    <div class="card total"><div class="num" id="cardTotal">0</div><div class="lbl">Processos ativos</div></div>
+    <div class="card overdue"><div class="num" id="cardOverdue">0</div><div class="lbl">Prazo vencido</div></div>
+    <div class="card soon"><div class="num" id="cardSoon">0</div><div class="lbl">Vence em 7 dias</div></div>
+    <div class="card ok"><div class="num" id="cardOk">0</div><div class="lbl">100% sem objeção</div></div>
+  </section>
+
+  <div class="view-tabs">
+    <button class="tab-btn active" id="tabAtivos" data-mode="ativos">Processos Ativos</button>
+    <button class="tab-btn" id="tabHistorico" data-mode="historico">Histórico <span id="historicoCount" class="tab-count"></span></button>
+  </div>
+
+  <section class="toolbar">
+    <input type="text" id="searchInput" placeholder="Buscar por propriedade ou CAR estadual…">
+    <select id="filterStatus">
+      <option value="todos">Todos os prazos</option>
+      <option value="vencido">Vencidos</option>
+      <option value="proximo">Próximos 7 dias</option>
+      <option value="ok">Dentro do prazo</option>
+    </select>
+    <select id="sortBy">
+      <option value="prazo">Ordenar: prazo mais próximo</option>
+      <option value="propriedade">Ordenar: propriedade (A–Z)</option>
+      <option value="pendencias">Ordenar: mais objeções primeiro</option>
+    </select>
+    <button class="btn ghost" id="exportBtn">Exportar CSV</button>
+    <button class="btn ghost" id="backupExportBtn" title="Gera um arquivo .json com todos os processos e PDFs anexados — leve-o junto ao mover este HTML">Backup completo (.json)</button>
+    <input type="file" id="backupImportInput" accept="application/json" style="display:none">
+    <button class="btn ghost" id="backupImportBtn">Importar backup</button>
+    <button class="btn ghost" id="autoBackupBtn" title="Escolha um arquivo local uma vez — o app salva nele sozinho a cada alteração">Ativar backup automático</button>
+    <button class="btn primary" id="addBtn">+ Novo processo</button>
+  </section>
+  <div id="autoBackupStatus" class="auto-backup-status"></div>
+
+  <section class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th title="Marca processos com pelo menos um bloco 'Não Aprovado'">Alerta</th>
+          <th>Propriedade</th>
+          <th>CAR Estadual</th>
+          <th>Prazo para envio</th>
+          <th>Progresso da análise</th>
+          <th>Processado por</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </section>
+
+</div>
+
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <button class="close-x" id="closeModal">✕</button>
+    <h2 id="modalTitle">Novo processo</h2>
+    <input type="hidden" id="editId">
+
+    <div class="field">
+      <label>Propriedade</label>
+      <input type="text" id="fPropriedade" placeholder="Ex: Fazenda Santa Catarina">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>CAR Estadual</label>
+        <input type="text" id="fCar" placeholder="Ex: MT24603/2018">
+      </div>
+      <div class="field">
+        <label>Processado no SIMCAR (quem)</label>
+        <input type="text" id="fProcessado" placeholder="Ex: Brunno">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Data da análise</label>
+        <input type="date" id="fDataAnalise">
+      </div>
+      <div class="field">
+        <label>Data final para envio</label>
+        <input type="date" id="fDataFinal">
+      </div>
+    </div>
+    <div class="deadline-helper">
+      <button type="button" class="btn ghost small" id="calcDeadlineBtn">Calcular prazo (análise + 90 dias)</button>
+      <label><input type="checkbox" id="fProrrogacao"> Prorrogação de 30 dias solicitada junto à SEMA-MT</label>
+    </div>
+    <div class="field">
+      <label>Observações</label>
+      <textarea id="fObs" placeholder="Notas sobre o processo…"></textarea>
+    </div>
+    <div class="field">
+      <label>PDF da análise (parecer técnico)</label>
+      <div class="pdf-attach-row">
+        <input type="file" id="fPdfInput" accept="application/pdf" style="display:none">
+        <button type="button" class="btn ghost small" id="pdfChooseBtn">Escolher arquivo…</button>
+        <span id="pdfFileLabel" class="pdf-file-label">Nenhum PDF anexado</span>
+        <button type="button" class="btn danger small hidden" id="pdfRemoveBtn">Remover</button>
+      </div>
+    </div>
+
+    <div class="modal-section-title">Resultado da análise — clique para alternar</div>
+    <div class="status-list" id="statusGrid"></div>
+
+    <div class="modal-actions">
+      <button class="btn danger hidden" id="deleteBtn">Excluir processo</button>
+      <div class="right">
+        <button class="btn ghost" id="cancelBtn">Cancelar</button>
+        <button class="btn primary" id="saveBtn">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="textPopupOverlay">
+  <div class="modal text-popup-modal">
+    <button class="close-x" id="closeTextPopup">✕</button>
+    <h2 id="textPopupTitle">Descrição da pendência</h2>
+    <div class="text-popup-subtitle" id="textPopupSubtitle"></div>
+    <textarea id="textPopupArea" class="text-popup-textarea" placeholder="Descrição da pendência…"></textarea>
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="btn primary" id="textPopupCloseBtn">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'simcar_pendencias_v1'; // legacy localStorage key — read once for migration, then unused
+
+/* ---------- IndexedDB (records + PDFs + settings — much larger quota than localStorage, works reliably on file:// pages) ---------- */
+const PDF_DB_NAME = 'simcar_pdfs_db';
+const PDF_STORE = 'pdfs';
+const META_STORE = 'meta';
+const APP_STORE = 'app_data';
+function openPdfDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PDF_DB_NAME, 3);
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if(!settled){ settled = true; reject(new Error('Tempo esgotado ao abrir o armazenamento local — feche outras abas deste arquivo e tente novamente.')); }
+    }, 3000);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(PDF_STORE)) db.createObjectStore(PDF_STORE);
+      if(!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE);
+      if(!db.objectStoreNames.contains(APP_STORE)) db.createObjectStore(APP_STORE);
+    };
+    req.onblocked = () => {
+      if(!settled){ settled = true; clearTimeout(timeout); reject(new Error('Armazenamento local bloqueado por outra aba aberta deste arquivo. Feche as outras abas e tente novamente.')); }
+    };
+    req.onsuccess = () => { if(!settled){ settled = true; clearTimeout(timeout); resolve(req.result); } };
+    req.onerror = () => { if(!settled){ settled = true; clearTimeout(timeout); reject(req.error); } };
+  });
+}
+async function saveRecordsToDB(recs){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(APP_STORE, 'readwrite');
+    tx.objectStore(APP_STORE).put(recs, 'records');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function loadRecordsFromDB(){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(APP_STORE, 'readonly');
+    const req = tx.objectStore(APP_STORE).get('records');
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function savePdfBlob(id, file){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE, 'readwrite');
+    tx.objectStore(PDF_STORE).put(file, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getPdfBlob(id){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE, 'readonly');
+    const req = tx.objectStore(PDF_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deletePdfBlob(id){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE, 'readwrite');
+    tx.objectStore(PDF_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function saveMeta(key, value){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getMeta(key){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readonly');
+    const req = tx.objectStore(META_STORE).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deleteMeta(key){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function openAttachedPdf(rec){
+  if(!rec.pdfName){ return; }
+  try{
+    const blob = await getPdfBlob(rec.id);
+    if(!blob){ alert('PDF não encontrado no armazenamento local (pode ter sido limpo pelo navegador).'); return; }
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }catch(e){
+    alert('Não foi possível abrir o PDF anexado.');
+  }
+}
+
+/* ---------- Full backup (records + attached PDFs embedded as base64) ---------- */
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result); // data:...;base64,....
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+async function buildBackupObject(){
+  const backup = { app: 'simcar-pendencias', version: 1, exportedAt: new Date().toISOString(), records: [] };
+  for(const r of records){
+    const entry = JSON.parse(JSON.stringify(r));
+    if(r.pdfName){
+      try{
+        const blob = await getPdfBlob(r.id);
+        if(blob){ entry.pdfBase64 = await blobToBase64(blob); }
+      }catch(e){ /* skip PDF, keep record data */ }
+    }
+    backup.records.push(entry);
+  }
+  return backup;
+}
+async function exportFullBackup(){
+  const backup = await buildBackupObject();
+  const json = JSON.stringify(backup);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `simcar_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function importFullBackup(file){
+  let data;
+  try{ data = JSON.parse(await file.text()); }
+  catch(e){ alert('Arquivo de backup inválido — não é um JSON válido.'); return; }
+  if(!data || !Array.isArray(data.records)){ alert('Arquivo de backup inválido — formato não reconhecido.'); return; }
+  if(!confirm(`Importar ${data.records.length} processo(s) deste backup?\n\nProcessos com o mesmo ID de um já existente serão substituídos; os demais serão adicionados à lista atual.`)) return;
+
+  for(const entry of data.records){
+    const { pdfBase64, ...rec } = entry;
+    if(pdfBase64){
+      try{
+        const resp = await fetch(pdfBase64);
+        const blob = await resp.blob();
+        await savePdfBlob(rec.id, blob);
+      }catch(e){ /* keep going even if a PDF fails */ }
+    }
+    const idx = records.findIndex(r => r.id === rec.id);
+    if(idx >= 0){ records[idx] = rec; } else { records.push(rec); }
+  }
+  save();
+  render();
+  alert('Backup importado com sucesso.');
+}
+
+/* ---------- Automatic backup to a chosen local file (File System Access API — Chrome/Edge) ---------- */
+let autoBackupHandle = null;
+let autoBackupTimer = null;
+
+async function initAutoBackup(){
+  const btn = document.getElementById('autoBackupBtn');
+  if(!window.showSaveFilePicker){
+    btn.textContent = 'Backup automático (requer Chrome/Edge)';
+    btn.disabled = true;
+    return;
+  }
+  try{
+    const handle = await getMeta('backupHandle');
+    if(handle){ autoBackupHandle = handle; }
+  }catch(e){ /* ignore */ }
+  await updateAutoBackupUI();
+}
+
+async function updateAutoBackupUI(){
+  const btn = document.getElementById('autoBackupBtn');
+  const status = document.getElementById('autoBackupStatus');
+  if(!window.showSaveFilePicker) return;
+  if(!autoBackupHandle){
+    btn.textContent = 'Ativar backup automático';
+    status.textContent = '';
+    return;
+  }
+  let perm = 'unknown';
+  try{ perm = await autoBackupHandle.queryPermission({mode:'readwrite'}); }catch(e){}
+  if(perm === 'granted'){
+    btn.textContent = '✓ Backup automático ativo — desativar';
+    status.textContent = `Arquivo: ${autoBackupHandle.name}`;
+  } else {
+    btn.textContent = '⚠ Reautorizar backup automático';
+    status.textContent = 'Permissão de escrita não confirmada — clique no botão';
+  }
+}
+
+async function writeAutoBackup(){
+  if(!autoBackupHandle) return;
+  try{
+    let perm = await autoBackupHandle.queryPermission({mode:'readwrite'});
+    if(perm !== 'granted') return; // don't prompt silently in the background
+    const backup = await buildBackupObject();
+    const writable = await autoBackupHandle.createWritable();
+    await writable.write(JSON.stringify(backup));
+    await writable.close();
+    const status = document.getElementById('autoBackupStatus');
+    if(status) status.textContent = `Arquivo: ${autoBackupHandle.name} · salvo às ${new Date().toLocaleTimeString('pt-BR')}`;
+  }catch(e){ console.error('Falha no backup automático', e); }
+}
+function scheduleAutoBackup(){
+  if(!autoBackupHandle) return;
+  clearTimeout(autoBackupTimer);
+  autoBackupTimer = setTimeout(writeAutoBackup, 2000);
+}
+
+const RESULT_FIELDS = [
+  {key:'objetivo', label:'Objetivo'},
+  {key:'propriedade', label:'Propriedade'},
+  {key:'interessado', label:'Interessado'},
+  {key:'respTecnico', label:'Resp. Técnico'},
+  {key:'dominialidade', label:'Dominialidade'},
+  {key:'justificativas', label:'Justificativas'},
+  {key:'limites', label:'Limites'},
+  {key:'servidao', label:'Servidão Adm.'},
+  {key:'cobertura', label:'Cobertura Solo'},
+  {key:'app', label:'APP/Uso Restrito'},
+  {key:'reservaLegal', label:'Reserva Legal'},
+];
+const STATUS_CYCLE = ['pendente','ok','atencao','objecao'];
+const STATUS_LABEL = {pendente:'Não Iniciado', ok:'Finalizado Aprovado', atencao:'Finalizada com Pendência', objecao:'Não Aprovado'};
+
+function emptyResults(){
+  const r = {};
+  RESULT_FIELDS.forEach(f => r[f.key] = {status:'pendente', texto:''});
+  return r;
+}
+function migrateResults(results){
+  // Older records stored a plain status string per block; upgrade to {status, texto}
+  const out = {};
+  RESULT_FIELDS.forEach(f => {
+    const v = results ? results[f.key] : undefined;
+    if(v && typeof v === 'object'){ out[f.key] = {status: v.status || 'pendente', texto: v.texto || ''}; }
+    else { out[f.key] = {status: v || 'pendente', texto:''}; }
+  });
+  return out;
+}
+
+function seedData(){
+  const mk = (propriedade, car, dataFinal, results, processado) => ({
+    id: crypto.randomUUID(),
+    propriedade, car,
+    dataAnalise: '',
+    dataFinal,
+    processado: processado || '',
+    obs: '',
+    results: {...emptyResults(), ...results}
+  });
+  return [
+    mk('Estância Eco da Mata e Fazenda Sol Amarelo','MT17040/2017','2025-01-19',
+      {objetivo:'objecao', propriedade:'ok', interessado:'objecao', respTecnico:'ok', dominialidade:'ok', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'ok', app:'ok', reservaLegal:'ok'}, 'Brunno'),
+    mk('Fazenda São Pedro I, II e III','MT271793/2025','2026-08-26',
+      {objetivo:'ok', propriedade:'ok', interessado:'objecao', respTecnico:'ok', dominialidade:'ok', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'atencao', app:'ok', reservaLegal:'ok'}, 'Brunno'),
+    mk('Fazenda Borges - Área 02','MT17040/2017','2026-10-20',
+      {objetivo:'ok', propriedade:'ok', interessado:'ok', respTecnico:'ok', dominialidade:'objecao', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'ok', app:'ok', reservaLegal:'ok'}, ''),
+    mk('Fazenda Dona Lidia II','MT271793/2025','2026-10-25',
+      {objetivo:'ok', propriedade:'ok', interessado:'ok', respTecnico:'ok', dominialidade:'ok', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'atencao', app:'ok', reservaLegal:'ok'}, 'Brunno'),
+    mk('Fazenda Santa Catarina','MT24603/2018','2026-11-04',
+      {objetivo:'ok', propriedade:'ok', interessado:'objecao', respTecnico:'ok', dominialidade:'objecao', justificativas:'ok', limites:'objecao', servidao:'ok', cobertura:'objecao', app:'ok', reservaLegal:'pendente'}, ''),
+    (() => {
+      const r = mk('Fazenda Chão de Estrelas I','MT2821/2021', calcDeadline('2026-08-24', false),
+        {objetivo:'ok', propriedade:'ok', interessado:'ok', respTecnico:'ok', dominialidade:'atencao', justificativas:'ok', limites:'atencao', servidao:'ok', cobertura:'atencao', app:'atencao', reservaLegal:'atencao'}, '');
+      r.dataAnalise = '2026-08-24';
+      r.obs = 'Parecer SEMA 24/08/2026 (analista Suellen D. W. Cavalcante). Embargo SEMA nº 1095002325 / TAC nº 6903 incidente sobre o imóvel fracionado.';
+      r._pendTextos = {
+        dominialidade: 'Divergência de área acima de 5% entre a AIR vetorizada e a documentação das matrículas 1157, 1937 e 496. Corrigir vetorização ou apresentar certidão de georreferenciamento averbada (Art. 1.083, Provimento 42/2020-CGJ/MT).',
+        limites: 'Deslocamento acima de 25m em linha reta nos limites (coords. 11°15\'36.24"S/56°53\'42.76"W a 11°15\'35.65"S/56°53\'42.04"W e 11°15\'47.7"S/56°53\'33.34"W a 11°15\'47.2"S/56°53\'32.64"W). Mesma divergência de área >5% das matrículas reiterada aqui. Risco de suspensão por indeferimento se não houver manifestação (Art. 50, §2º, Decreto 1031/2017).',
+        cobertura: 'Áreas vetorizadas como Área Consolidada (AC) apresentam supressão de vegetação nativa após 22/07/2008 e devem ser reclassificadas como Área de Uso Antropizado do Solo (AUAS) — Art. 50, IN nº 05/2025. Constatado desmate/exploração seletiva com autuação/embargo SEMA-IBAMA (TAC nº 6903, processo 81072/2011; embargo SEMA nº 1095002325; SIMLAM nº 000182/2025).',
+        app: 'Hidrografias com deslocamento em relação à realidade do imóvel em múltiplos pontos; lagoas naturais vetorizadas incorretamente como reservatório artificial (Art. 34-A, Decreto 1.031/2017). Corrigir vetorização ou apresentar contestação conforme TR nº 002/CCRA/SRMA/GSAGA/SEMA-MT (Art. 24, IN nº 05/2025).',
+        reservaLegal: 'Análise prejudicada pelas pendências de hidrografia/limites (percentual mínimo e composição da ARL dependem da correção anterior). Sem RL averbada; imóvel enquadrado no Art. 67 da Lei 12.651/2012 (área < 4 módulos fiscais em 22/07/2008).',
+      };
+      return r;
+    })(),
+    mk('Fazenda Chão de Estrelas I PE','MT2821/2021','2026-11-22',
+      {objetivo:'ok', propriedade:'ok', interessado:'ok', respTecnico:'ok', dominialidade:'ok', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'ok', app:'ok', reservaLegal:'ok'}, ''),
+  ];
+}
+
+let records = [];
+async function load(){
+  let fromDB = null;
+  try{ fromDB = await loadRecordsFromDB(); }catch(e){ console.error('Falha ao ler IndexedDB', e); }
+
+  if(fromDB && Array.isArray(fromDB)){
+    records = fromDB;
+  } else {
+    // Migration path: pull any pre-existing data from the old localStorage key (v1 of this app)
+    let raw = null;
+    try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){ /* localStorage may be unavailable/full */ }
+    if(raw){
+      try{ records = JSON.parse(raw); }catch(e){ records = seedData(); }
+    } else {
+      records = seedData();
+    }
+  }
+
+  records.forEach(r => {
+    r.results = migrateResults(r.results);
+    if(typeof r.arquivado !== 'boolean') r.arquivado = false;
+    if(r.arquivadoEm === undefined) r.arquivadoEm = null;
+    if(r._pendTextos){
+      Object.keys(r._pendTextos).forEach(key => {
+        if(r.results[key]) r.results[key].texto = r._pendTextos[key];
+      });
+      delete r._pendTextos;
+    }
+  });
+
+  await save();
+  // Free up the old localStorage key now that data lives in IndexedDB (avoids the file:// quota ceiling)
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+}
+async function save(){
+  document.getElementById('tbUpdated').textContent = new Date().toLocaleDateString('pt-BR');
+  scheduleAutoBackup();
+  try{
+    await saveRecordsToDB(records);
+  }catch(e){
+    console.error('Falha ao salvar no IndexedDB', e);
+    alert('Não foi possível salvar os dados: ' + e.message + '\n\nSe o problema persistir, fecha outras abas deste arquivo abertas no navegador.');
+  }
+}
+
+function calcDeadline(dataAnaliseStr, prorrogado){
+  if(!dataAnaliseStr) return '';
+  const d = new Date(dataAnaliseStr + 'T00:00:00');
+  d.setDate(d.getDate() + 90 + (prorrogado ? 30 : 0));
+  return d.toISOString().slice(0,10);
+}
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr + 'T00:00:00');
+  return Math.round((target - today) / 86400000);
+}
+function deadlineState(dateStr){
+  const d = daysUntil(dateStr);
+  if(d === null) return {cls:'', text:'sem prazo'};
+  if(d < 0) return {cls:'bad', text: `vencido há ${Math.abs(d)}d`};
+  if(d <= 7) return {cls:'warn', text: `${d}d restantes`};
+  return {cls:'good', text: `${d}d restantes`};
+}
+function fmtDate(dateStr){
+  if(!dateStr) return '—';
+  const [y,m,d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+function progressOf(rec){
+  const vals = Object.values(rec.results).map(v => v.status);
+  const okCount = vals.filter(v => v === 'ok').length;
+  const objCount = vals.filter(v => v === 'objecao').length;
+  return { pct: Math.round((okCount/vals.length)*100), okCount, objCount, total: vals.length };
+}
+
+let expandedId = null;
+let editingChipsFor = null; // used inside modal
+let viewMode = 'ativos'; // 'ativos' | 'historico'
+
+function applyFiltersSort(list){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filt = document.getElementById('filterStatus').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  let out = list.filter(r => viewMode === 'historico' ? !!r.arquivado : !r.arquivado);
+
+  out = out.filter(r => {
+    if(q && !(r.propriedade.toLowerCase().includes(q) || r.car.toLowerCase().includes(q))) return false;
+    if(filt !== 'todos'){
+      const d = daysUntil(r.dataFinal);
+      if(filt === 'vencido' && !(d !== null && d < 0)) return false;
+      if(filt === 'proximo' && !(d !== null && d >= 0 && d <= 7)) return false;
+      if(filt === 'ok' && !(d !== null && d > 7)) return false;
+    }
+    return true;
+  });
+
+  out.sort((a,b) => {
+    if(sortBy === 'propriedade') return a.propriedade.localeCompare(b.propriedade);
+    if(sortBy === 'pendencias') return progressOf(b).objCount - progressOf(a).objCount;
+    const da = daysUntil(a.dataFinal); const db = daysUntil(b.dataFinal);
+    if(da === null) return 1;
+    if(db === null) return -1;
+    return da - db;
+  });
+  return out;
+}
+
+function render(){
+  const list = applyFiltersSort(records);
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  if(list.length === 0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Nenhum processo encontrado.</td></tr>`;
+  }
+
+  list.forEach(rec => {
+    const dl = deadlineState(rec.dataFinal);
+    const prog = progressOf(rec);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${prog.objCount > 0 ? `<span class="row-alert" title="${prog.objCount} bloco(s) marcado(s) como Não Aprovado — requer atenção prioritária">⚑</span>` : ''}</td>
+      <td class="propriedade">${(viewMode === 'ativos' && !rec.arquivado && prog.pct === 100) ? '<span class="complete-badge" title="100% concluído — pronto para arquivar no histórico">✅</span>' : ''}${escapeHtml(rec.propriedade)}${rec.pdfName ? ' <span title="PDF anexado: '+escapeHtml(rec.pdfName)+'">📄</span>' : ''}</td>
+      <td class="car">${escapeHtml(rec.car)}</td>
+      <td><span class="deadline-pill ${dl.cls}">${dl.text}<span class="date">· ${fmtDate(rec.dataFinal)}</span></span>${rec.prorrogacao ? '<span class="prorrogacao-badge">+30 PRORROGADO</span>' : ''}</td>
+      <td>
+        <div class="progress-mini">
+          <div class="progress-track"><div class="progress-fill" style="width:${prog.pct}%; background:${prog.objCount>0?'var(--bad)':(prog.pct===100?'var(--ok)':'var(--warn)')}"></div></div>
+          <span>${prog.okCount}/${prog.total}</span>
+        </div>
+      </td>
+      <td class="processado">${escapeHtml(rec.processado) || '—'}</td>
+    `;
+    tr.addEventListener('click', () => {
+      expandedId = expandedId === rec.id ? null : rec.id;
+      render();
+    });
+    tbody.appendChild(tr);
+
+    if(expandedId === rec.id){
+      const dtr = document.createElement('tr');
+      dtr.className = 'detail-row';
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      const chips = RESULT_FIELDS.map(f => {
+        const entry = rec.results[f.key];
+        const st = entry.status;
+        return `<div class="status-block">
+          <div class="top-row">
+            <span class="label">${f.label}</span>
+            <div class="right-controls">
+              <button type="button" class="pend-expand-btn" data-key="${f.key}" title="Ver/editar em janela maior">⤢</button>
+              <span class="status-toggle ${st}" data-key="${f.key}"><span class="dot"></span>${STATUS_LABEL[st]}</span>
+            </div>
+          </div>
+          <textarea class="pend-text" data-key="${f.key}" placeholder="Descrição da pendência (opcional)…">${escapeHtml(entry.texto)}</textarea>
+        </div>`;
+      }).join('');
+      td.innerHTML = `
+        <div class="status-list">${chips}</div>
+        ${rec.obs ? `<div class="detail-obs">${escapeHtml(rec.obs)}</div>` : ''}
+        <div class="detail-actions">
+          <button class="btn ghost edit-row">Editar processo</button>
+          ${rec.pdfName ? `<button class="pdf-link-btn view-pdf">📄 Ver PDF anexado — ${escapeHtml(rec.pdfName)}</button>` : ''}
+          ${!rec.arquivado && prog.pct === 100 ? `<button class="archive-btn archive-action">✓ Arquivar no histórico (100% concluído)</button>` : ''}
+          ${rec.arquivado ? `<button class="reopen-btn reopen-action">↩ Reabrir processo</button><span class="archived-date">Arquivado em ${rec.arquivadoEm ? fmtDate(rec.arquivadoEm.slice(0,10)) : '—'}</span>` : ''}
+        </div>
+      `;
+      td.querySelectorAll('.status-toggle').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const key = toggle.dataset.key;
+          const cur = rec.results[key].status;
+          rec.results[key].status = STATUS_CYCLE[(STATUS_CYCLE.indexOf(cur)+1) % STATUS_CYCLE.length];
+          save();
+          render();
+        });
+      });
+      td.querySelectorAll('.pend-text').forEach(ta => {
+        ta.addEventListener('click', (e) => e.stopPropagation());
+        ta.addEventListener('change', () => {
+          rec.results[ta.dataset.key].texto = ta.value;
+          save();
+        });
+      });
+      td.querySelectorAll('.pend-expand-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const key = btn.dataset.key;
+          const fieldLabel = RESULT_FIELDS.find(f => f.key === key).label;
+          openTextPopup(fieldLabel, rec.propriedade, rec.results[key].texto, (val) => {
+            rec.results[key].texto = val;
+            const ta = td.querySelector(`.pend-text[data-key="${key}"]`);
+            if(ta) ta.value = val;
+          }, () => { save(); });
+        });
+      });
+      td.querySelector('.edit-row').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openModal(rec);
+      });
+      const viewPdfBtn = td.querySelector('.view-pdf');
+      if(viewPdfBtn){
+        viewPdfBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openAttachedPdf(rec);
+        });
+      }
+      const archiveBtn = td.querySelector('.archive-action');
+      if(archiveBtn){
+        archiveBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          rec.arquivado = true;
+          rec.arquivadoEm = new Date().toISOString();
+          expandedId = null;
+          save();
+          render();
+        });
+      }
+      const reopenBtn = td.querySelector('.reopen-action');
+      if(reopenBtn){
+        reopenBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          rec.arquivado = false;
+          rec.arquivadoEm = null;
+          expandedId = null;
+          save();
+          render();
+        });
+      }
+      dtr.appendChild(td);
+      tbody.appendChild(dtr);
+    }
+  });
+
+  const activeRecords = records.filter(r => !r.arquivado);
+  const archivedRecords = records.filter(r => r.arquivado);
+  document.getElementById('tbTotal').textContent = activeRecords.length;
+  document.getElementById('cardTotal').textContent = activeRecords.length;
+  document.getElementById('cardOverdue').textContent = activeRecords.filter(r => { const d = daysUntil(r.dataFinal); return d !== null && d < 0; }).length;
+  document.getElementById('cardSoon').textContent = activeRecords.filter(r => { const d = daysUntil(r.dataFinal); return d !== null && d >= 0 && d <= 7; }).length;
+  document.getElementById('cardOk').textContent = activeRecords.filter(r => progressOf(r).pct === 100).length;
+  document.getElementById('historicoCount').textContent = archivedRecords.length ? `(${archivedRecords.length})` : '';
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ---------- Modal ---------- */
+let modalResults = null;
+let pendingPdfFile = null;   // newly chosen File not yet saved
+let pendingPdfRemove = false; // user asked to remove the currently attached PDF
+
+function refreshPdfLabel(existingName){
+  const label = document.getElementById('pdfFileLabel');
+  const removeBtn = document.getElementById('pdfRemoveBtn');
+  if(pendingPdfFile){
+    label.textContent = `📄 ${pendingPdfFile.name} (novo)`;
+    label.classList.add('attached');
+    removeBtn.classList.remove('hidden');
+  } else if(existingName && !pendingPdfRemove){
+    label.textContent = `📄 ${existingName}`;
+    label.classList.add('attached');
+    removeBtn.classList.remove('hidden');
+  } else {
+    label.textContent = 'Nenhum PDF anexado';
+    label.classList.remove('attached');
+    removeBtn.classList.add('hidden');
+  }
+}
+
+function openModal(rec){
+  document.getElementById('modalTitle').textContent = rec ? 'Editar processo' : 'Novo processo';
+  document.getElementById('editId').value = rec ? rec.id : crypto.randomUUID();
+  document.getElementById('fPropriedade').value = rec ? rec.propriedade : '';
+  document.getElementById('fCar').value = rec ? rec.car : '';
+  document.getElementById('fProcessado').value = rec ? rec.processado : '';
+  document.getElementById('fDataAnalise').value = rec ? rec.dataAnalise : '';
+  document.getElementById('fDataFinal').value = rec ? rec.dataFinal : '';
+  document.getElementById('fObs').value = rec ? rec.obs : '';
+  document.getElementById('fProrrogacao').checked = rec ? !!rec.prorrogacao : false;
+  document.getElementById('deleteBtn').classList.toggle('hidden', !rec);
+  pendingPdfFile = null;
+  pendingPdfRemove = false;
+  document.getElementById('fPdfInput').value = '';
+  refreshPdfLabel(rec ? rec.pdfName : '');
+  modalResults = rec ? JSON.parse(JSON.stringify(rec.results)) : emptyResults();
+  renderStatusGrid();
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.add('hidden');
+}
+
+/* ---------- Text popup: expanded view/edit for a single pendency description ---------- */
+let textPopupOnChange = null;
+let textPopupOnClose = null;
+function openTextPopup(label, subtitle, initialText, onChange, onClose){
+  document.getElementById('textPopupTitle').textContent = label;
+  document.getElementById('textPopupSubtitle').textContent = subtitle || '';
+  const area = document.getElementById('textPopupArea');
+  area.value = initialText || '';
+  textPopupOnChange = onChange || null;
+  textPopupOnClose = onClose || null;
+  document.getElementById('textPopupOverlay').classList.remove('hidden');
+  area.focus();
+}
+function closeTextPopup(){
+  document.getElementById('textPopupOverlay').classList.add('hidden');
+  if(textPopupOnClose) textPopupOnClose();
+  textPopupOnChange = null;
+  textPopupOnClose = null;
+}
+document.getElementById('textPopupArea').addEventListener('input', (e) => {
+  if(textPopupOnChange) textPopupOnChange(e.target.value);
+});
+document.getElementById('closeTextPopup').addEventListener('click', closeTextPopup);
+document.getElementById('textPopupCloseBtn').addEventListener('click', closeTextPopup);
+document.getElementById('textPopupOverlay').addEventListener('click', (e) => { if(e.target.id === 'textPopupOverlay') closeTextPopup(); });
+
+function renderStatusGrid(){
+  const grid = document.getElementById('statusGrid');
+  grid.innerHTML = RESULT_FIELDS.map(f => {
+    const entry = modalResults[f.key];
+    return `<div class="status-block">
+      <div class="top-row">
+        <span class="label">${f.label}</span>
+        <div class="right-controls">
+          <button type="button" class="pend-expand-btn" data-key="${f.key}" title="Ver/editar em janela maior">⤢</button>
+          <span class="status-toggle ${entry.status}" data-key="${f.key}"><span class="dot"></span>${STATUS_LABEL[entry.status]}</span>
+        </div>
+      </div>
+      <textarea class="pend-text" data-key="${f.key}" placeholder="Descrição da pendência (opcional)…">${escapeHtml(entry.texto)}</textarea>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.status-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const key = toggle.dataset.key;
+      const cur = modalResults[key].status;
+      modalResults[key].status = STATUS_CYCLE[(STATUS_CYCLE.indexOf(cur)+1) % STATUS_CYCLE.length];
+      renderStatusGrid();
+    });
+  });
+  grid.querySelectorAll('.pend-text').forEach(ta => {
+    ta.addEventListener('input', () => {
+      modalResults[ta.dataset.key].texto = ta.value;
+    });
+  });
+  grid.querySelectorAll('.pend-expand-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.key;
+      const fieldLabel = RESULT_FIELDS.find(f => f.key === key).label;
+      const propName = document.getElementById('fPropriedade').value.trim();
+      openTextPopup(fieldLabel, propName, modalResults[key].texto, (val) => {
+        modalResults[key].texto = val;
+        const ta = grid.querySelector(`.pend-text[data-key="${key}"]`);
+        if(ta) ta.value = val;
+      });
+    });
+  });
+}
+
+document.getElementById('calcDeadlineBtn').addEventListener('click', () => {
+  const da = document.getElementById('fDataAnalise').value;
+  if(!da){ alert('Informe a Data da Análise primeiro.'); return; }
+  const prorrogado = document.getElementById('fProrrogacao').checked;
+  document.getElementById('fDataFinal').value = calcDeadline(da, prorrogado);
+});
+document.getElementById('fDataAnalise').addEventListener('change', () => {
+  if(!document.getElementById('fDataFinal').value){
+    const prorrogado = document.getElementById('fProrrogacao').checked;
+    document.getElementById('fDataFinal').value = calcDeadline(document.getElementById('fDataAnalise').value, prorrogado);
+  }
+});
+document.getElementById('fProrrogacao').addEventListener('change', () => {
+  const da = document.getElementById('fDataAnalise').value;
+  if(da) document.getElementById('fDataFinal').value = calcDeadline(da, document.getElementById('fProrrogacao').checked);
+});
+
+document.getElementById('pdfChooseBtn').addEventListener('click', () => document.getElementById('fPdfInput').click());
+document.getElementById('fPdfInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.type !== 'application/pdf'){ alert('Selecione um arquivo PDF.'); return; }
+  pendingPdfFile = file;
+  pendingPdfRemove = false;
+  refreshPdfLabel(null);
+});
+document.getElementById('pdfRemoveBtn').addEventListener('click', () => {
+  pendingPdfFile = null;
+  pendingPdfRemove = true;
+  document.getElementById('fPdfInput').value = '';
+  refreshPdfLabel(null);
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    viewMode = btn.dataset.mode;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    expandedId = null;
+    render();
+  });
+});
+
+document.getElementById('addBtn').addEventListener('click', () => openModal(null));
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', (e) => { if(e.target.id === 'modalOverlay') closeModal(); });
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const saveBtn = document.getElementById('saveBtn');
+  const id = document.getElementById('editId').value;
+  const propriedade = document.getElementById('fPropriedade').value.trim();
+  if(!propriedade){ alert('Informe o nome da propriedade.'); return; }
+
+  saveBtn.disabled = true;
+  const originalLabel = saveBtn.textContent;
+  saveBtn.textContent = 'Salvando…';
+
+  try{
+    const existing = records.find(r => r.id === id);
+    const data = {
+      propriedade,
+      car: document.getElementById('fCar').value.trim(),
+      processado: document.getElementById('fProcessado').value.trim(),
+      dataAnalise: document.getElementById('fDataAnalise').value,
+      dataFinal: document.getElementById('fDataFinal').value,
+      obs: document.getElementById('fObs').value.trim(),
+      prorrogacao: document.getElementById('fProrrogacao').checked,
+      results: modalResults,
+      pdfName: existing ? existing.pdfName : '',
+      arquivado: existing ? existing.arquivado : false,
+      arquivadoEm: existing ? existing.arquivadoEm : null,
+    };
+
+    if(pendingPdfFile){
+      try{ await savePdfBlob(id, pendingPdfFile); data.pdfName = pendingPdfFile.name; }
+      catch(e){ alert('Aviso: o PDF não foi salvo (' + e.message + '). O restante do processo será salvo normalmente — tente anexar o PDF novamente depois.'); }
+    } else if(pendingPdfRemove){
+      try{ await deletePdfBlob(id); }catch(e){ /* non-fatal */ }
+      data.pdfName = '';
+    }
+
+    const idx = records.findIndex(r => r.id === id);
+    if(idx >= 0){
+      records[idx] = {...records[idx], ...data};
+    } else {
+      records.push({ id, ...data });
+    }
+    save();
+    closeModal();
+    render();
+  }catch(e){
+    alert('Não foi possível salvar o processo: ' + e.message + '\n\nSe o problema persistir, feche outras abas deste arquivo abertas no navegador e tente novamente.');
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalLabel;
+  }
+});
+
+document.getElementById('deleteBtn').addEventListener('click', async () => {
+  const id = document.getElementById('editId').value;
+  if(!id) return;
+  if(!confirm('Excluir este processo da lista? O PDF anexado também será removido.')) return;
+  try{ await deletePdfBlob(id); }catch(e){}
+  records = records.filter(r => r.id !== id);
+  expandedId = null;
+  save();
+  closeModal();
+  render();
+});
+
+
+document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('filterStatus').addEventListener('change', render);
+document.getElementById('sortBy').addEventListener('change', render);
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const headers = ['Propriedade','CAR Estadual','Data da Análise','Data Final para Envio', ...RESULT_FIELDS.map(f=>f.label), 'Processado no SIMCAR','Observações','Detalhamento das Pendências'];
+  const rows = records.map(r => {
+    const detalhamento = RESULT_FIELDS
+      .filter(f => r.results[f.key].texto.trim())
+      .map(f => `${f.label}: ${r.results[f.key].texto.trim()}`)
+      .join(' | ');
+    return [
+      r.propriedade, r.car, fmtDate(r.dataAnalise), fmtDate(r.dataFinal),
+      ...RESULT_FIELDS.map(f => STATUS_LABEL[r.results[f.key].status]),
+      r.processado, r.obs, detalhamento
+    ];
+  });
+  const csv = [headers, ...rows].map(row => row.map(cell => `"${String(cell||'').replace(/"/g,'""')}"`).join(';')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `pendencias_simcar_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('backupExportBtn').addEventListener('click', () => {
+  exportFullBackup();
+});
+document.getElementById('backupImportBtn').addEventListener('click', () => {
+  document.getElementById('backupImportInput').click();
+});
+document.getElementById('backupImportInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(file) importFullBackup(file);
+  e.target.value = '';
+});
+
+document.getElementById('autoBackupBtn').addEventListener('click', async () => {
+  if(!window.showSaveFilePicker) return;
+  if(!autoBackupHandle){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'simcar_backup.json',
+        types: [{ description: 'JSON', accept: {'application/json': ['.json']} }]
+      });
+      await saveMeta('backupHandle', handle);
+      autoBackupHandle = handle;
+      await writeAutoBackup();
+    }catch(e){ /* user cancelled the picker */ }
+  } else {
+    let perm = await autoBackupHandle.queryPermission({mode:'readwrite'});
+    if(perm !== 'granted'){
+      try{
+        perm = await autoBackupHandle.requestPermission({mode:'readwrite'});
+        if(perm === 'granted') await writeAutoBackup();
+      }catch(e){ /* ignore */ }
+    } else {
+      if(confirm('Desativar backup automático? O arquivo já salvo permanece no disco, mas deixará de ser atualizado sozinho.')){
+        await deleteMeta('backupHandle');
+        autoBackupHandle = null;
+      }
+    }
+  }
+  await updateAutoBackupUI();
+});
+
+(async () => {
+  await load();
+  render();
+  initAutoBackup();
+})();
+</script>
+</body>
+</html>

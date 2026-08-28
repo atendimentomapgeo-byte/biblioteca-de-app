@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoStamp Drone — Carimbo de Coordenadas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/piexifjs/1.0.6/piexif.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0f1a;
+    --panel:#101827;
+    --panel2:#0d1420;
+    --line:#1c2740;
+    --cyan:#22d3ee;
+    --cyan-dim:#0e7490;
+    --text:#e6edf5;
+    --muted:#8093ac;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, #10233a 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+  }
+  header{
+    padding:22px 28px 14px;
+    border-bottom:1px solid var(--line);
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  }
+  header h1{
+    font-size:19px; margin:0; letter-spacing:0.02em;
+    display:flex; align-items:center; gap:10px;
+  }
+  header h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
+  header .sub{color:var(--muted); font-size:13px;}
+
+  .layout{
+    display:grid;
+    grid-template-columns: 340px 1fr;
+    gap:0;
+    min-height:calc(100vh - 64px);
+  }
+  @media (max-width: 880px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  .col-left{
+    border-right:1px solid var(--line);
+    padding:20px;
+    display:flex; flex-direction:column; gap:18px;
+  }
+  .col-right{
+    padding:20px 28px;
+    display:flex; flex-direction:column; gap:16px;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px;
+  }
+  .card h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--muted); margin:0 0 12px;
+    font-weight:600;
+  }
+
+  .drop{
+    border:1.5px dashed var(--line);
+    border-radius:8px;
+    padding:18px 12px;
+    text-align:center;
+    color:var(--muted);
+    font-size:13px;
+    cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .drop:hover, .drop.drag{border-color:var(--cyan); color:var(--cyan);}
+  input[type=file]{display:none;}
+
+  .field{margin-bottom:10px;}
+  .field label{
+    display:block; font-size:11.5px; color:var(--muted); margin-bottom:4px;
+  }
+  .field input[type=text], .field input[type=number], .field input[type=datetime-local]{
+    width:100%; background:var(--panel2); border:1px solid var(--line);
+    color:var(--text); border-radius:6px; padding:7px 9px; font-size:13px;
+    font-family:var(--mono);
+  }
+  .field input[type=range]{width:100%; accent-color:var(--cyan);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:6px 0; font-size:13px; color:var(--text);
+  }
+  .toggle-row input{accent-color:var(--cyan); width:16px; height:16px;}
+
+  button{
+    font-family:var(--sans); cursor:pointer; border-radius:7px; font-size:13px;
+    border:1px solid var(--line); background:var(--panel2); color:var(--text);
+    padding:9px 12px; transition:border-color .15s, background .15s;
+  }
+  button:hover{border-color:var(--cyan);}
+  button.primary{
+    background:var(--cyan); color:#03222b; border-color:var(--cyan); font-weight:600;
+  }
+  button.primary:hover{background:#4fe0f5;}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  button.block{width:100%;}
+
+  .photo-list{display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto;}
+  .photo-item{
+    display:flex; align-items:center; gap:10px;
+    padding:6px; border-radius:7px; cursor:pointer;
+    border:1px solid transparent;
+  }
+  .photo-item:hover{background:var(--panel2);}
+  .photo-item.active{border-color:var(--cyan); background:#0e2029;}
+  .photo-item img{width:46px; height:46px; object-fit:cover; border-radius:5px; flex-shrink:0;}
+  .photo-item .meta{overflow:hidden;}
+  .photo-item .name{font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .photo-item .status{font-size:10.5px; color:var(--muted);}
+  .photo-item .status.ok{color:var(--cyan);}
+
+  .preview-wrap{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px;
+    display:flex; align-items:center; justify-content:center;
+    min-height:340px;
+    flex:1;
+  }
+  .preview-wrap canvas{max-width:100%; max-height:70vh; border-radius:4px; box-shadow:0 8px 30px rgba(0,0,0,.4);}
+  .empty{color:var(--muted); font-size:13px; text-align:center;}
+
+  .actions{display:flex; gap:10px; flex-wrap:wrap;}
+  .actions button{flex:1;}
+
+  .coord-readout{
+    font-family:var(--mono); font-size:12.5px; color:var(--cyan);
+    background:var(--panel2); border:1px solid var(--line); border-radius:6px;
+    padding:8px 10px; margin-top:4px; letter-spacing:0.01em;
+  }
+  .grid-fields{display:grid; grid-template-columns:1fr 1fr; gap:10px 12px;}
+  .grid-fields .field.full{grid-column:1/-1;}
+
+  .badge{
+    display:inline-block; font-size:10px; padding:2px 7px; border-radius:20px;
+    background:var(--cyan-dim); color:#d5f8ff; margin-left:6px; vertical-align:1px;
+  }
+  .seg-group{display:flex; gap:6px; flex-wrap:wrap;}
+  .seg-btn{
+    flex:1; min-width:64px; text-align:center; padding:8px 6px; font-size:12px;
+    border:1px solid var(--line); background:var(--panel2); color:var(--muted);
+    border-radius:6px; cursor:pointer;
+  }
+  .seg-btn:hover{border-color:var(--cyan);}
+  .seg-btn.active{border-color:var(--cyan); background:#0e2029; color:var(--cyan);}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+
+  .import-overlay{
+    position:fixed; inset:0; z-index:999;
+    background:rgba(6,10,18,0.82);
+    backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .import-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:26px 30px; width:min(360px, 86vw); text-align:center;
+  }
+  .import-card h3{margin:0 0 6px; font-size:15px; font-weight:600;}
+  .import-card .sub{font-size:12.5px; color:var(--muted); margin-bottom:16px;}
+  .import-bar-track{
+    height:8px; border-radius:5px; background:var(--panel2); overflow:hidden; border:1px solid var(--line);
+  }
+  .import-bar-fill{
+    height:100%; width:0%; background:var(--cyan); box-shadow:0 0 10px rgba(34,211,238,.6);
+    transition:width .18s ease;
+  }
+  .import-count{margin-top:10px; font-family:var(--mono); font-size:12px; color:var(--cyan);}
+</style>
+</head>
+<body>
+
+<div class="import-overlay" id="importOverlay" style="display:none;">
+  <div class="import-card">
+    <h3 id="importTitle">Importando fotos…</h3>
+    <div class="sub" id="importSub">Lendo EXIF e preparando as imagens. Aguarde antes de usar o app.</div>
+    <div class="import-bar-track"><div class="import-bar-fill" id="importBarFill"></div></div>
+    <div class="import-count" id="importCount">0 / 0</div>
+  </div>
+</div>
+
+<header>
+  <h1><span class="dot"></span>GeoStamp Drone</h1>
+  <span class="sub">Carimbo de coordenadas, bússola e logo em fotos de drone — leitura automática de EXIF</span>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: global settings + photo list -->
+  <div class="col-left">
+
+    <div class="card">
+      <h2>Fotos</h2>
+      <div class="drop" id="dropZone">
+        Arraste fotos aqui ou clique para selecionar<br>
+        <span style="font-size:11px;">JPEG de drone com ou sem GPS no EXIF</span>
+      </div>
+      <input type="file" id="fileInput" accept="image/jpeg,image/jpg" multiple>
+      <div class="photo-list" id="photoList" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Marca / Logo</h2>
+      <div class="drop" id="logoDrop" style="padding:10px;">
+        <span id="logoLabel">Clique para enviar logo (PNG)</span>
+      </div>
+      <input type="file" id="logoInput" accept="image/png,image/jpeg">
+      <div class="field" style="margin-top:10px;">
+        <label>Texto / hashtag (linha final do carimbo)</label>
+        <input type="text" id="tagInput" value="" placeholder="Empresa">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Exibição</h2>
+      <div class="toggle-row"><span>Mostrar bússola</span><input type="checkbox" id="toggleCompass" checked></div>
+      <div class="toggle-row"><span>Mostrar altitude</span><input type="checkbox" id="toggleAlt" checked></div>
+      <div class="toggle-row"><span>Mostrar rumo (azimute)</span><input type="checkbox" id="toggleAzimuth" checked></div>
+      <div class="toggle-row"><span>Mostrar logo</span><input type="checkbox" id="toggleLogo" checked></div>
+      <div class="toggle-row"><span>Manter metadados originais sem alterações</span><input type="checkbox" id="toggleKeepExif"></div>
+      <div style="font-size:11px; color:var(--muted); margin-top:2px;">
+        Se marcado, o EXIF do arquivo baixado fica exatamente como veio da câmera/drone (mesmo que você edite os campos ao lado — a edição afeta só o carimbo visual). Se desmarcado, o GPS/data do EXIF é atualizado para bater com os valores exibidos no carimbo.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Posição do carimbo (inferior)</h2>
+      <div class="seg-group" id="positionGroup">
+        <button type="button" class="seg-btn" data-value="left">Esquerda</button>
+        <button type="button" class="seg-btn active" data-value="center">Centro</button>
+        <button type="button" class="seg-btn" data-value="right">Direita</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Formatação do texto</h2>
+      <div class="field">
+        <label>Fonte</label>
+        <select id="fontSelect">
+          <option value="Arial, Helvetica, sans-serif" selected>Arial</option>
+          <option value="'Segoe UI', Roboto, sans-serif">Roboto / Segoe UI</option>
+          <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+          <option value="'Times New Roman', Times, serif">Times New Roman</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+          <option value="'Courier New', Courier, monospace">Courier New</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Alinhamento</label>
+        <div class="seg-group" id="alignGroup">
+          <button type="button" class="seg-btn" data-value="left">Esquerda</button>
+          <button type="button" class="seg-btn active" data-value="center">Centro</button>
+          <button type="button" class="seg-btn" data-value="right">Direita</button>
+          <button type="button" class="seg-btn" data-value="justify">Justificar</button>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Estilo</label>
+        <div class="seg-group" id="styleGroup">
+          <button type="button" class="seg-btn" data-style="bold"><b>Negrito</b></button>
+          <button type="button" class="seg-btn" data-style="italic"><i>Itálico</i></button>
+          <button type="button" class="seg-btn" data-style="underline"><u>Sublinhado</u></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: editor + preview -->
+  <div class="col-right">
+
+    <div class="card" id="editorCard" style="display:none;">
+      <h2>Dados da foto selecionada <span class="badge" id="exifBadge"></span></h2>
+      <div class="grid-fields">
+        <div class="field full">
+          <label>Data / hora</label>
+          <input type="datetime-local" id="dtInput" step="1">
+        </div>
+        <div class="field">
+          <label>Latitude (graus decimais)</label>
+          <input type="number" id="latInput" step="0.000001">
+        </div>
+        <div class="field">
+          <label>Longitude (graus decimais)</label>
+          <input type="number" id="lonInput" step="0.000001">
+        </div>
+        <div class="field">
+          <label>Altitude (m)</label>
+          <input type="number" id="altInput" step="0.1">
+        </div>
+        <div class="field">
+          <label>Azimute (°)</label>
+          <input type="number" id="azInput" min="0" max="359" step="1">
+        </div>
+        <div class="field full">
+          <input type="range" id="azSlider" min="0" max="359" step="1">
+        </div>
+      </div>
+      <div class="coord-readout" id="coordReadout">—</div>
+    </div>
+
+    <div class="preview-wrap" id="previewWrap">
+      <div class="empty">Envie uma ou mais fotos para começar.<br>Coordenadas e horário do EXIF são preenchidos automaticamente e podem ser editados.</div>
+    </div>
+
+    <div class="actions">
+      <button id="btnDownloadOne" disabled>Baixar esta foto</button>
+      <button id="btnDownloadAll" class="primary" disabled>Baixar todas (.zip)</button>
+    </div>
+    <div style="font-size:11.5px; color:var(--muted);">
+      O arquivo baixado mantém o geotag (GPS) no EXIF, com as coordenadas, altitude, data/hora e rumo atuais — além do carimbo visual na foto.
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  const state = {
+    photos: [],          // {id, file, img, name, date, lat, lon, alt, azimuth, hasExif, canvas}
+    activeId: null,
+    logoImg: null,
+  };
+
+  const settings = () => ({
+    showCompass: document.getElementById('toggleCompass').checked,
+    showAltitude: document.getElementById('toggleAlt').checked,
+    showAzimuth: document.getElementById('toggleAzimuth').checked,
+    showLogo: document.getElementById('toggleLogo').checked,
+    tag: document.getElementById('tagInput').value.trim(),
+    logoImg: state.logoImg,
+    position: getSegValue('positionGroup','center'),
+    textAlign: getSegValue('alignGroup','center'),
+    fontFamily: document.getElementById('fontSelect').value,
+    bold: isStyleActive('bold'),
+    italic: isStyleActive('italic'),
+    underline: isStyleActive('underline'),
+    keepOriginalExif: document.getElementById('toggleKeepExif').checked,
+  });
+
+  function getSegValue(groupId, fallback){
+    const active = document.querySelector(`#${groupId} .seg-btn.active`);
+    return active ? active.dataset.value : fallback;
+  }
+  function isStyleActive(kind){
+    const btn = document.querySelector(`#styleGroup .seg-btn[data-style="${kind}"]`);
+    return !!(btn && btn.classList.contains('active'));
+  }
+  function setupSegGroup(groupId, exclusive){
+    const group = document.getElementById(groupId);
+    group.querySelectorAll('.seg-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(exclusive){
+          group.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+        } else {
+          btn.classList.toggle('active');
+        }
+        redrawActive();
+      });
+    });
+  }
+
+  // ---------- helpers ----------
+  const monthsAbbr = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  function formatDate(d){
+    const day = d.getDate();
+    const month = monthsAbbr[d.getMonth()];
+    const year = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    const ss = String(d.getSeconds()).padStart(2,'0');
+    return `${day} de ${month}. de ${year}, ${hh}:${mm}:${ss}`;
+  }
+  function toDMS(decimal){
+    const abs = Math.abs(decimal);
+    const deg = Math.floor(abs);
+    const minFloat = (abs-deg)*60;
+    const min = Math.floor(minFloat);
+    const sec = (minFloat-min)*60;
+    return `${deg}° ${min}' ${sec.toFixed(3)}"`;
+  }
+  function decimalToDMSParts(decimal){
+    const abs = Math.abs(decimal);
+    const deg = Math.floor(abs);
+    const minFloat = (abs-deg)*60;
+    const min = Math.floor(minFloat);
+    const sec = (minFloat-min)*60;
+    return {deg, min, sec};
+  }
+  function cardinal(az){
+    const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+    return dirs[Math.round(((az%360)+360)%360/45)%8];
+  }
+  function dateToLocalInputValue(d){
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+
+  // ---------- EXIF ----------
+  function exifToDecimal(dms, ref){
+    if(!dms) return null;
+    const dec = dms[0] + dms[1]/60 + dms[2]/3600;
+    return (ref === 'S' || ref === 'W') ? -dec : dec;
+  }
+  function parseExifDate(str){
+    if(!str) return null;
+    // format: "YYYY:MM:DD HH:MM:SS"
+    const m = str.match(/(\d{4}):(\d{2}):(\d{2})\s(\d{2}):(\d{2}):(\d{2})/);
+    if(!m) return null;
+    return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+  }
+
+  function readExif(file){
+    return new Promise((resolve) => {
+      try{
+        EXIF.getData(file, function(){
+          const lat = exifToDecimal(EXIF.getTag(this,'GPSLatitude'), EXIF.getTag(this,'GPSLatitudeRef'));
+          const lon = exifToDecimal(EXIF.getTag(this,'GPSLongitude'), EXIF.getTag(this,'GPSLongitudeRef'));
+          const altRaw = EXIF.getTag(this,'GPSAltitude');
+          const alt = (altRaw !== undefined && altRaw !== null) ? Number(altRaw) : null;
+          const dir = EXIF.getTag(this,'GPSImgDirection');
+          const dt = parseExifDate(EXIF.getTag(this,'DateTimeOriginal')) || parseExifDate(EXIF.getTag(this,'DateTime'));
+          resolve({
+            lat: (lat !== null && !isNaN(lat)) ? lat : null,
+            lon: (lon !== null && !isNaN(lon)) ? lon : null,
+            alt: (alt !== null && !isNaN(alt)) ? alt : null,
+            azimuth: (dir !== undefined && !isNaN(dir)) ? Number(dir) : null,
+            date: dt || null,
+          });
+        });
+      }catch(e){
+        resolve({lat:null,lon:null,alt:null,azimuth:null,date:null});
+      }
+    });
+  }
+
+  // ---------- file intake ----------
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('click', () => fileInput.click());
+  ['dragover','dragleave','drop'].forEach(evt=>{
+    dropZone.addEventListener(evt, e=>{
+      e.preventDefault();
+      if(evt==='dragover') dropZone.classList.add('drag');
+      else dropZone.classList.remove('drag');
+    });
+  });
+  dropZone.addEventListener('drop', e=> handleFiles(e.dataTransfer.files));
+  fileInput.addEventListener('change', e=> handleFiles(e.target.files));
+
+  function showImportOverlay(total, title, sub){
+    document.getElementById('importTitle').textContent = title || 'Importando fotos…';
+    document.getElementById('importSub').textContent = sub || 'Lendo EXIF e preparando as imagens. Aguarde antes de usar o app.';
+    document.getElementById('importOverlay').style.display = 'flex';
+    updateImportProgress(0, total);
+  }
+  function updateImportProgress(done, total){
+    const pct = total>0 ? Math.round((done/total)*100) : 0;
+    document.getElementById('importBarFill').style.width = pct + '%';
+    document.getElementById('importCount').textContent = `${done} / ${total}`;
+  }
+  function hideImportOverlay(){
+    document.getElementById('importOverlay').style.display = 'none';
+  }
+
+  async function handleFiles(fileList){
+    const files = Array.from(fileList).filter(f=>/image\/jpe?g/.test(f.type));
+    if(files.length===0) return;
+    showImportOverlay(files.length);
+    let done = 0;
+    for(const file of files){
+      const id = uid();
+      const dataUrl = await new Promise(res=>{
+        const r = new FileReader();
+        r.onload = ()=>res(r.result);
+        r.readAsDataURL(file);
+      });
+      const img = new Image();
+      await new Promise(res=>{ img.onload = res; img.src = dataUrl; });
+
+      const exif = await readExif(file);
+      let exifObj = null;
+      try{ exifObj = piexif.load(dataUrl); }catch(err){ exifObj = null; }
+      const photo = {
+        id, file, img, name: file.name,
+        date: exif.date || new Date(),
+        lat: exif.lat, lon: exif.lon,
+        alt: exif.alt !== null ? exif.alt : 0,
+        azimuth: exif.azimuth !== null ? exif.azimuth : 0,
+        hasExif: exif.lat !== null && exif.lon !== null,
+        canvas: document.createElement('canvas'),
+        exifObj: exifObj,
+      };
+      state.photos.push(photo);
+      renderPhotoList();
+      if(!state.activeId) selectPhoto(id);
+      done++;
+      updateImportProgress(done, files.length);
+    }
+    hideImportOverlay();
+    updateGlobalButtons();
+  }
+
+  // ---------- logo intake ----------
+  const logoInput = document.getElementById('logoInput');
+  document.getElementById('logoDrop').addEventListener('click', ()=> logoInput.click());
+  logoInput.addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        state.logoImg = img;
+        document.getElementById('logoLabel').textContent = file.name + ' ✓';
+        redrawActive();
+      };
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+
+  // ---------- photo list UI ----------
+  function renderPhotoList(){
+    const list = document.getElementById('photoList');
+    list.innerHTML = '';
+    state.photos.forEach(p=>{
+      const item = document.createElement('div');
+      item.className = 'photo-item' + (p.id===state.activeId ? ' active' : '');
+      item.innerHTML = `
+        <img src="${p.img.src}">
+        <div class="meta">
+          <div class="name">${p.name}</div>
+          <div class="status ${p.hasExif?'ok':''}">${p.hasExif ? 'GPS no EXIF' : 'sem GPS — editar manualmente'}</div>
+        </div>`;
+      item.addEventListener('click', ()=> selectPhoto(p.id));
+      list.appendChild(item);
+    });
+  }
+
+  function selectPhoto(id){
+    state.activeId = id;
+    renderPhotoList();
+    loadEditor();
+    redrawActive();
+    document.getElementById('editorCard').style.display = 'block';
+  }
+
+  function getActive(){ return state.photos.find(p=>p.id===state.activeId); }
+
+  // ---------- editor ----------
+  const dtInput = document.getElementById('dtInput');
+  const latInput = document.getElementById('latInput');
+  const lonInput = document.getElementById('lonInput');
+  const altInput = document.getElementById('altInput');
+  const azInput = document.getElementById('azInput');
+  const azSlider = document.getElementById('azSlider');
+  const exifBadge = document.getElementById('exifBadge');
+
+  function loadEditor(){
+    const p = getActive();
+    if(!p) return;
+    dtInput.value = dateToLocalInputValue(p.date);
+    latInput.value = p.lat !== null ? p.lat.toFixed(6) : '';
+    lonInput.value = p.lon !== null ? p.lon.toFixed(6) : '';
+    altInput.value = p.alt !== null ? p.alt.toFixed(1) : 0;
+    azInput.value = Math.round(p.azimuth);
+    azSlider.value = Math.round(p.azimuth);
+    exifBadge.textContent = p.hasExif ? 'EXIF ✓' : 'sem EXIF';
+    exifBadge.style.background = p.hasExif ? 'var(--cyan-dim)' : '#4a2a2a';
+    updateReadout(p);
+  }
+
+  function updateReadout(p){
+    if(p.lat===null || p.lon===null){
+      document.getElementById('coordReadout').textContent = 'Sem coordenadas — preencha latitude e longitude.';
+      return;
+    }
+    const latRef = p.lat<0?'S':'N', lonRef = p.lon<0?'W':'E';
+    document.getElementById('coordReadout').textContent =
+      `${latRef} ${toDMS(p.lat)}   ${lonRef} ${toDMS(p.lon)}   ·   ${Math.round(p.azimuth)}° ${cardinal(p.azimuth)}`;
+  }
+
+  [dtInput, latInput, lonInput, altInput].forEach(el=>{
+    el.addEventListener('input', ()=>{
+      const p = getActive(); if(!p) return;
+      if(el===dtInput && dtInput.value) p.date = new Date(dtInput.value);
+      if(el===latInput && latInput.value!=='') p.lat = parseFloat(latInput.value);
+      if(el===lonInput && lonInput.value!=='') p.lon = parseFloat(lonInput.value);
+      if(el===altInput) p.alt = parseFloat(altInput.value)||0;
+      updateReadout(p);
+      redrawActive();
+    });
+  });
+  function syncAzimuth(val){
+    const p = getActive(); if(!p) return;
+    p.azimuth = ((+val)%360+360)%360;
+    azInput.value = Math.round(p.azimuth);
+    azSlider.value = Math.round(p.azimuth);
+    updateReadout(p);
+    redrawActive();
+  }
+  azInput.addEventListener('input', ()=> syncAzimuth(azInput.value));
+  azSlider.addEventListener('input', ()=> syncAzimuth(azSlider.value));
+
+  // global settings redraw triggers
+  ['toggleCompass','toggleAlt','toggleAzimuth','toggleLogo','toggleKeepExif','tagInput'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', redrawActive);
+  });
+  document.getElementById('fontSelect').addEventListener('change', redrawActive);
+  setupSegGroup('positionGroup', true);
+  setupSegGroup('alignGroup', true);
+  setupSegGroup('styleGroup', false);
+
+  // ---------- drawing ----------
+  function drawCompass(ctx, p, W, H, scale){
+    const cx = W*0.11, cy = H*0.13, r = Math.max(40, W*0.055);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(6,14,24,0.28)'; ctx.fill();
+    ctx.lineWidth = Math.max(1.5, 2*scale);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.stroke();
+
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font = `${Math.round(r*0.24)}px ${'-apple-system,Segoe UI,Roboto,sans-serif'}`;
+    ctx.lineWidth = Math.max(1, r*0.05); ctx.strokeStyle='rgba(0,0,0,0.8)';
+    const cardinals = [['N',0,-1],['E',1,0],['S',0,1],['W',-1,0]];
+    cardinals.forEach(([label,dx,dy])=>{
+      const x = cx+dx*(r+r*0.28), y = cy+dy*(r+r*0.28);
+      ctx.strokeText(label,x,y); ctx.fillStyle='#fff'; ctx.fillText(label,x,y);
+    });
+    ctx.font = `${Math.round(r*0.15)}px ${'-apple-system,Segoe UI,Roboto,sans-serif'}`;
+    ctx.lineWidth = Math.max(1, r*0.035);
+    const inter = [['NE',0.707,-0.707],['SE',0.707,0.707],['SW',-0.707,0.707],['NW',-0.707,-0.707]];
+    inter.forEach(([label,dx,dy])=>{
+      const x = cx+dx*r*0.95, y = cy+dy*r*0.95;
+      ctx.strokeText(label,x,y);
+      ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fillText(label,x,y);
+    });
+
+    // needle
+    const angleRad = (p.azimuth-90) * Math.PI/180;
+    const tipX = cx + r*0.88*Math.cos(angleRad), tipY = cy + r*0.88*Math.sin(angleRad);
+    const tailX = cx - r*0.28*Math.cos(angleRad), tailY = cy - r*0.28*Math.sin(angleRad);
+    const perp = angleRad + Math.PI/2;
+    const bw = r*0.10;
+    const lx = cx + bw*Math.cos(perp), ly = cy + bw*Math.sin(perp);
+    const rx = cx - bw*Math.cos(perp), ry = cy - bw*Math.sin(perp);
+    ctx.beginPath();
+    ctx.moveTo(tipX,tipY); ctx.lineTo(lx,ly); ctx.lineTo(tailX,tailY); ctx.lineTo(rx,ry); ctx.closePath();
+    ctx.fillStyle = '#22d3ee'; ctx.shadowColor='rgba(34,211,238,0.7)'; ctx.shadowBlur = r*0.15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(cx,cy,r*0.07,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+    ctx.restore();
+  }
+
+  function drawLogo(ctx, img, W, H, scale){
+    const maxW = W*0.16;
+    const ratio = img.naturalHeight/img.naturalWidth;
+    const w = maxW, h = maxW*ratio;
+    const pad = 8*scale;
+    const x = W - w - 22*scale, y = 18*scale;
+    ctx.save();
+    ctx.fillStyle='rgba(255,255,255,0.88)';
+    roundRect(ctx, x-pad, y-pad, w+2*pad, h+2*pad, 8*scale);
+    ctx.fill();
+    ctx.drawImage(img, x, y, w, h);
+    ctx.restore();
+  }
+
+  function drawTextBlock(ctx, p, W, H, scale, s){
+    const lines = [];
+    lines.push(formatDate(p.date));
+    if(p.lat!==null && p.lon!==null){
+      const latRef = p.lat<0?'S':'N', lonRef = p.lon<0?'W':'E';
+      lines.push(`${latRef} ${toDMS(p.lat)}, ${lonRef} ${toDMS(p.lon)}`);
+    } else {
+      lines.push('Coordenadas não definidas');
+    }
+    if(s.showAltitude) lines.push(`Alt: ${(p.alt||0).toFixed(1)} m`);
+    if(s.showAzimuth) lines.push(`${Math.round(p.azimuth)}° ${cardinal(p.azimuth)}`);
+    if(s.tag) lines.push(s.tag);
+
+    const fontSize = Math.max(14, Math.round(W/34));
+    const fontStyle = `${s.italic?'italic ':''}${s.bold?'bold ':''}${fontSize}px ${s.fontFamily}`;
+    ctx.font = fontStyle;
+    ctx.textBaseline = 'alphabetic';
+    ctx.lineWidth = Math.max(2, fontSize*0.11);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.fillStyle = '#fff';
+
+    // block width = widest line, used to place the whole block and to justify/align within it
+    let blockWidth = 0;
+    lines.forEach(line=>{ blockWidth = Math.max(blockWidth, ctx.measureText(line).width); });
+
+    const margin = Math.max(18, W*0.035);
+    let blockX0;
+    if(s.position==='left') blockX0 = margin;
+    else if(s.position==='right') blockX0 = W - blockWidth - margin;
+    else blockX0 = (W - blockWidth)/2;
+
+    const lineHeight = fontSize*1.28;
+    let y = H - 22*scale - (lines.length-1)*lineHeight;
+
+    lines.forEach((line, idx)=>{
+      drawStampLine(ctx, line, blockX0, blockWidth, y, s, idx===lines.length-1, fontSize);
+      y += lineHeight;
+    });
+  }
+
+  function drawStampLine(ctx, line, blockX0, blockWidth, y, s, isLastLine, fontSize){
+    if(s.textAlign==='justify' && !isLastLine){
+      const words = line.split(' ').filter(Boolean);
+      if(words.length>1){
+        const widths = words.map(w=>ctx.measureText(w).width);
+        const wordsWidth = widths.reduce((a,b)=>a+b,0);
+        const spaceWidth = Math.max(0,(blockWidth - wordsWidth)/(words.length-1));
+        let x = blockX0;
+        ctx.textAlign = 'left';
+        words.forEach((w,i)=>{
+          ctx.strokeText(w,x,y); ctx.fillText(w,x,y);
+          if(s.underline) drawUnderline(ctx, x, y, widths[i], fontSize);
+          x += widths[i]+spaceWidth;
+        });
+        return;
+      }
+    }
+    let x, align;
+    if(s.textAlign==='right'){ x = blockX0+blockWidth; align='right'; }
+    else if(s.textAlign==='left' || s.textAlign==='justify'){ x = blockX0; align='left'; }
+    else { x = blockX0+blockWidth/2; align='center'; }
+    ctx.textAlign = align;
+    ctx.strokeText(line,x,y);
+    ctx.fillText(line,x,y);
+    if(s.underline){
+      const w = ctx.measureText(line).width;
+      const ux = align==='left' ? x : align==='right' ? x-w : x-w/2;
+      drawUnderline(ctx, ux, y, w, fontSize);
+    }
+  }
+
+  function drawUnderline(ctx, x, y, width, fontSize){
+    const uy = y + fontSize*0.14;
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(x,uy); ctx.lineTo(x+width,uy);
+    ctx.lineWidth = Math.max(3, fontSize*0.14); ctx.strokeStyle='rgba(0,0,0,0.85)'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,uy); ctx.lineTo(x+width,uy);
+    ctx.lineWidth = Math.max(1.5, fontSize*0.06); ctx.strokeStyle='#fff'; ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawStamp(p){
+    const canvas = p.canvas;
+    const W = p.img.naturalWidth, H = p.img.naturalHeight;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(p.img, 0, 0, W, H);
+    const scale = W/1600;
+    const s = settings();
+    if(s.showCompass) drawCompass(ctx, p, W, H, scale);
+    if(s.showLogo && s.logoImg) drawLogo(ctx, s.logoImg, W, H, scale);
+    drawTextBlock(ctx, p, W, H, scale, s);
+    return canvas;
+  }
+
+  function redrawActive(){
+    const p = getActive();
+    const wrap = document.getElementById('previewWrap');
+    if(!p){
+      wrap.innerHTML = '<div class="empty">Envie uma ou mais fotos para começar.<br>Coordenadas e horário do EXIF são preenchidos automaticamente e podem ser editados.</div>';
+      return;
+    }
+    const canvas = drawStamp(p);
+    wrap.innerHTML = '';
+    wrap.appendChild(canvas);
+    updateGlobalButtons();
+  }
+
+  function updateGlobalButtons(){
+    const hasPhotos = state.photos.length>0;
+    document.getElementById('btnDownloadOne').disabled = !getActive();
+    document.getElementById('btnDownloadAll').disabled = !hasPhotos;
+  }
+
+  // ---------- EXIF-preserving export ----------
+  function formatExifDateTime(d){
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}:${pad(d.getMonth()+1)}:${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  function buildGPSDict(lat, lon, alt, azimuth){
+    const gps = {};
+    if(lat!==null && lon!==null && !isNaN(lat) && !isNaN(lon)){
+      const latP = decimalToDMSParts(lat), lonP = decimalToDMSParts(lon);
+      gps[piexif.GPSIFD.GPSLatitudeRef] = lat<0 ? 'S' : 'N';
+      gps[piexif.GPSIFD.GPSLatitude] = [[latP.deg,1],[latP.min,1],[Math.round(latP.sec*1000),1000]];
+      gps[piexif.GPSIFD.GPSLongitudeRef] = lon<0 ? 'W' : 'E';
+      gps[piexif.GPSIFD.GPSLongitude] = [[lonP.deg,1],[lonP.min,1],[Math.round(lonP.sec*1000),1000]];
+    }
+    if(alt!==null && alt!==undefined && !isNaN(alt)){
+      gps[piexif.GPSIFD.GPSAltitudeRef] = alt<0 ? 1 : 0;
+      gps[piexif.GPSIFD.GPSAltitude] = [Math.round(Math.abs(alt)*100),100];
+    }
+    if(azimuth!==null && azimuth!==undefined && !isNaN(azimuth)){
+      gps[piexif.GPSIFD.GPSImgDirectionRef] = 'T';
+      gps[piexif.GPSIFD.GPSImgDirection] = [Math.round(((azimuth%360)+360)%360*100),100];
+    }
+    return gps;
+  }
+
+  async function stampToBlob(p){
+    const canvas = drawStamp(p);
+    let dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const s = settings();
+    try{
+      if(s.keepOriginalExif){
+        if(p.exifObj){
+          const exifBytes = piexif.dump(p.exifObj);
+          dataUrl = piexif.insert(exifBytes, dataUrl);
+        }
+        // sem EXIF original: nada é adicionado, mantendo o comportamento "sem alterar metadados"
+      } else {
+        const base = p.exifObj ? JSON.parse(JSON.stringify(p.exifObj)) : {"0th":{}, "Exif":{}, "GPS":{}, "1st":{}, "thumbnail":null};
+        base["0th"] = base["0th"] || {};
+        base["Exif"] = base["Exif"] || {};
+        base["1st"] = base["1st"] || {};
+        if(base.thumbnail === undefined) base.thumbnail = null;
+        base.GPS = buildGPSDict(p.lat, p.lon, p.alt, p.azimuth);
+        const dtStr = formatExifDateTime(p.date);
+        base["0th"][piexif.ImageIFD.DateTime] = dtStr;
+        base["Exif"][piexif.ExifIFD.DateTimeOriginal] = dtStr;
+        const exifBytes = piexif.dump(base);
+        dataUrl = piexif.insert(exifBytes, dataUrl);
+      }
+    }catch(err){
+      console.warn('Não foi possível gravar o EXIF/geotag na foto exportada:', err);
+    }
+    const res = await fetch(dataUrl);
+    return await res.blob();
+  }
+
+  document.getElementById('btnDownloadOne').addEventListener('click', async ()=>{
+    const p = getActive(); if(!p) return;
+    const blob = await stampToBlob(p);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = p.name.replace(/\.[^.]+$/, '') + '.jpg';
+    a.click();
+  });
+
+  document.getElementById('btnDownloadAll').addEventListener('click', async ()=>{
+    const btn = document.getElementById('btnDownloadAll');
+    btn.disabled = true;
+    const total = state.photos.length;
+    showImportOverlay(total, 'Gerando arquivos…', 'Carimbando as fotos e montando o .zip. Aguarde antes de usar o app.');
+    const zip = new JSZip();
+    let done = 0;
+    for(const p of state.photos){
+      const blob = await stampToBlob(p);
+      zip.file(p.name.replace(/\.[^.]+$/, '') + '.jpg', blob);
+      done++;
+      updateImportProgress(done, total);
+    }
+    document.getElementById('importTitle').textContent = 'Compactando .zip…';
+    const content = await zip.generateAsync({type:'blob'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'fotos_carimbadas.zip';
+    a.click();
+    hideImportOverlay();
+    btn.disabled = false;
+  });
+
+})();
+</script>
+</body>
+</html>
