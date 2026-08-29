@@ -152,6 +152,14 @@ label {
 #map {
   position: absolute;
   inset: 0;
+  /* z-index explícito (em vez de "auto") é essencial aqui: isola os elementos
+     internos do Leaflet (zoom, atribuição, marcadores, popups — que usam
+     z-index de até 1000 nas próprias folhas de estilo do Leaflet) dentro de
+     um contexto de empilhamento próprio, evitando que "vazem" para cima da
+     interface do app (barra inferior = 500, telas/modais = 900). Sem isso, o
+     controle de zoom nativo do Leaflet e outros elementos do mapa podem
+     aparecer sobre os botões do app e bloquear o toque neles. */
+  z-index: 1;
   background: #0c1015;
   background-image:
     linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
