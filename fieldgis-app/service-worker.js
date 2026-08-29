@@ -12,7 +12,28 @@
  * de rede. O Service Worker cuida apenas dos arquivos do próprio aplicativo.
  */
 
-const CACHE_NAME = 'fieldgis-cache-v1';
+const CACHE_NAME = 'fieldgis-cache-v2';
+const TILES_CACHE_NAME = 'fieldgis-tiles-v1';
+const TILES_CACHE_MAX_ENTRADAS = 6000; // limite aproximado para não estourar o armazenamento do navegador
+
+// Reconhece requisições de tiles de mapa (qualquer servidor, padrão .../{z}/{x}/{y}
+// ou .../{z}/{y}/{x}), independentemente do domínio — cobre OpenStreetMap, Esri
+// World Imagery e qualquer outro provedor XYZ que venha a ser adicionado depois.
+function ehRequisicaoDeTile(url) {
+  return /\/\d{1,2}\/\d{1,7}\/\d{1,7}(\.[a-z]{3,4})?(\?.*)?$/i.test(url);
+}
+
+/** Remove as entradas mais antigas do cache de tiles quando ele cresce demais. */
+async function limitarCacheDeTiles() {
+  const cache = await caches.open(TILES_CACHE_NAME);
+  const keys = await cache.keys();
+  if (keys.length > TILES_CACHE_MAX_ENTRADAS) {
+    const excedente = keys.length - TILES_CACHE_MAX_ENTRADAS;
+    for (let i = 0; i < excedente; i++) {
+      await cache.delete(keys[i]);
+    }
+  }
+}
 
 const APP_SHELL = [
   './',
@@ -65,13 +86,46 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys.filter((k) => k !== CACHE_NAME && k !== TILES_CACHE_NAME).map((k) => caches.delete(k))
+      )
+    )
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  const url = event.request.url;
+
+  // Tiles de mapa (OSM, Esri, etc.): cache-first, salvando em cache dedicado.
+  // Funciona mesmo entre domínios diferentes — usamos { mode: 'no-cors' } para
+  // não sermos bloqueados por CORS (a resposta fica "opaca", mas o Cache API
+  // aceita e reexibe normalmente como imagem).
+  if (ehRequisicaoDeTile(url)) {
+    event.respondWith(
+      caches.open(TILES_CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        try {
+          const response = await fetch(event.request.url, { mode: 'no-cors' });
+          // Respostas opacas (cross-origin) têm status 0, mas ainda são válidas para exibir.
+          if (response && (response.status === 200 || response.type === 'opaque')) {
+            cache.put(event.request, response.clone());
+            limitarCacheDeTiles();
+          }
+          return response;
+        } catch (e) {
+          // Offline e este tile específico nunca foi visitado antes: devolve
+          // vazio (o Leaflet simplesmente deixa o quadradinho em branco).
+          return new Response('', { status: 504, statusText: 'Tile indisponível offline.' });
+        }
+      })
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
