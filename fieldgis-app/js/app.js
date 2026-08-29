@@ -1194,6 +1194,7 @@
             width: canvas.width,
             height: canvas.height,
           });
+          closeSheet('overlay-import');
           toast('GeoPDF detectado — coordenadas lidas automaticamente do arquivo.');
           return;
         }
@@ -1222,27 +1223,47 @@
   function openGeoreferenceWizard(canvas, filename) {
     const wizard = $('import-wizard');
     const dataUrl = canvas.toDataURL('image/png');
+
+    // Sugestão automática de posicionamento: usa a área atualmente visível no
+    // mapa (canto superior-esquerdo = pixel 0,0 / canto inferior-direito =
+    // largura,altura da imagem) para já deixar os campos preenchidos com uma
+    // estimativa editável, em vez de exigir que o usuário digite tudo do zero.
+    let sugestao = null;
+    try {
+      const b = MapModule.getMap().getBounds();
+      sugestao = {
+        p1lat: b.getNorth().toFixed(6),
+        p1lon: b.getWest().toFixed(6),
+        p2lat: b.getSouth().toFixed(6),
+        p2lon: b.getEast().toFixed(6),
+      };
+    } catch (e) {
+      sugestao = null;
+    }
+
     wizard.innerHTML = `
-      <p style="font-size:13px;color:var(--fg-text-dim)">Informe 2 pontos de controle (posição na imagem + coordenada real conhecida) para posicionar este mapa. O app assume a imagem alinhada ao Norte, sem rotação.</p>
+      <p style="font-size:13px;color:var(--fg-text-dim)">Informe 2 pontos de controle (posição na imagem + coordenada real conhecida) para posicionar este mapa. O app assume a imagem alinhada ao Norte, sem rotação.${
+        sugestao ? ' Os campos abaixo já vêm preenchidos com uma sugestão baseada na área visível do mapa — ajuste os valores para a posição real antes de confirmar.' : ''
+      }</p>
       <img src="${dataUrl}" style="width:100%;border-radius:8px;margin-bottom:10px" id="georef-preview"/>
       <div class="fg-field-map-row">
-        <div><label>Ponto 1 — pixel X</label><input type="number" id="gr-p1x" placeholder="ex: 120"/></div>
-        <div><label>Ponto 1 — pixel Y</label><input type="number" id="gr-p1y" placeholder="ex: 80"/></div>
+        <div><label>Ponto 1 — pixel X</label><input type="number" id="gr-p1x" placeholder="ex: 120" value="0"/></div>
+        <div><label>Ponto 1 — pixel Y</label><input type="number" id="gr-p1y" placeholder="ex: 80" value="0"/></div>
       </div>
       <div class="fg-field-map-row">
-        <div><label>Ponto 1 — Latitude</label><input type="text" id="gr-p1lat" placeholder="-10.7256"/></div>
-        <div><label>Ponto 1 — Longitude</label><input type="text" id="gr-p1lon" placeholder="-56.0214"/></div>
+        <div><label>Ponto 1 — Latitude</label><input type="text" id="gr-p1lat" placeholder="-10.7256" value="${sugestao ? sugestao.p1lat : ''}"/></div>
+        <div><label>Ponto 1 — Longitude</label><input type="text" id="gr-p1lon" placeholder="-56.0214" value="${sugestao ? sugestao.p1lon : ''}"/></div>
       </div>
       <hr style="border-color:var(--fg-border);margin:10px 0"/>
       <div class="fg-field-map-row">
-        <div><label>Ponto 2 — pixel X</label><input type="number" id="gr-p2x" placeholder="ex: 900"/></div>
-        <div><label>Ponto 2 — pixel Y</label><input type="number" id="gr-p2y" placeholder="ex: 700"/></div>
+        <div><label>Ponto 2 — pixel X</label><input type="number" id="gr-p2x" placeholder="ex: 900" value="${canvas.width}"/></div>
+        <div><label>Ponto 2 — pixel Y</label><input type="number" id="gr-p2y" placeholder="ex: 700" value="${canvas.height}"/></div>
       </div>
       <div class="fg-field-map-row">
-        <div><label>Ponto 2 — Latitude</label><input type="text" id="gr-p2lat" placeholder="-10.7401"/></div>
-        <div><label>Ponto 2 — Longitude</label><input type="text" id="gr-p2lon" placeholder="-56.0011"/></div>
+        <div><label>Ponto 2 — Latitude</label><input type="text" id="gr-p2lat" placeholder="-10.7401" value="${sugestao ? sugestao.p2lat : ''}"/></div>
+        <div><label>Ponto 2 — Longitude</label><input type="text" id="gr-p2lon" placeholder="-56.0011" value="${sugestao ? sugestao.p2lon : ''}"/></div>
       </div>
-      <p style="font-size:12px;color:var(--fg-text-dim)">Dica: toque na imagem acima para preencher automaticamente as coordenadas de pixel.</p>
+      <p style="font-size:12px;color:var(--fg-text-dim)">Dica: toque na imagem acima para preencher automaticamente as coordenadas de pixel dos cantos.</p>
       <button class="fg-btn primary" id="gr-confirm">📍 Posicionar mapa</button>`;
 
     let clickTarget = 1;
@@ -1316,6 +1337,7 @@
       meta: { width: result.width, height: result.height, epsgCode: result.epsgCode || null },
     });
     await renderLayer(layer);
+    MapModule.invalidateSize();
     MapModule.fitBounds(result.bounds);
   }
 
@@ -1444,11 +1466,27 @@
       <label>Área</label>
       <select id="st-unit-area"><option value="ha" ${settings.units.area === 'ha' ? 'selected' : ''}>Hectares</option><option value="m2" ${settings.units.area === 'm2' ? 'selected' : ''}>m²</option><option value="km2" ${settings.units.area === 'km2' ? 'selected' : ''}>km²</option></select>
 
-      <button class="fg-btn primary" id="st-save">💾 Salvar Configurações</button>`;
+      <button class="fg-btn primary" id="st-save">💾 Salvar Configurações</button>
+
+      <h3>Mapas offline (cache)</h3>
+      <p style="font-size:13px;color:var(--fg-text-dim)">Cada área de mapa (OSM/satélite) vista em tela fica salva automaticamente no aparelho para uso sem internet. Com o tempo esse cache cresce e pode deixar o app lento — se isso acontecer, limpe-o abaixo. <b>Isso não apaga projetos, pontos, trilhas, polígonos ou fotos</b> — apenas as imagens de fundo, que são baixadas de novo quando houver internet.</p>
+      <p id="st-tile-cache-info" style="font-size:13px;color:var(--fg-text-dim)">Calculando uso do cache de mapas...</p>
+      <button class="fg-btn danger" id="st-clear-tiles">🗑️ Limpar cache de mapas offline</button>`;
 
     $('st-grid').onclick = (e) => e.target.classList.toggle('on');
     $('st-rotation').onclick = (e) => e.target.classList.toggle('on');
     $('st-watermark').onclick = (e) => e.target.classList.toggle('on');
+
+    refreshTileCacheInfo();
+    $('st-clear-tiles').onclick = async () => {
+      if (!confirmDialog('Limpar o cache de mapas offline? As imagens de fundo (OSM/satélite) precisarão ser baixadas novamente quando houver internet. Seus projetos, pontos, trilhas, polígonos e fotos NÃO serão afetados.')) return;
+      $('st-clear-tiles').disabled = true;
+      $('st-tile-cache-info').textContent = 'Limpando cache de mapas...';
+      await Offline.clearTileCache();
+      await refreshTileCacheInfo();
+      $('st-clear-tiles').disabled = false;
+      toast('Cache de mapas offline limpo.');
+    };
 
     $('st-save').onclick = async () => {
       const newSettings = {
@@ -1467,6 +1505,26 @@
   }
 
   function wireSettingsUI() {}
+
+  async function refreshTileCacheInfo() {
+    const el = $('st-tile-cache-info');
+    if (!el) return;
+    try {
+      const info = await Offline.getTileCacheInfo();
+      if (!info.supported) {
+        el.textContent = 'Este navegador não suporta consultar o cache de mapas.';
+        return;
+      }
+      if (!info.count) {
+        el.textContent = 'Nenhum mapa de fundo salvo em cache ainda.';
+        return;
+      }
+      const tamanho = info.bytes != null ? ` (≈ ${(info.bytes / 1024 / 1024).toFixed(1)} MB)` : '';
+      el.textContent = `${info.count} imagens de mapa salvas em cache${tamanho}.`;
+    } catch (e) {
+      el.textContent = 'Não foi possível calcular o uso do cache de mapas.';
+    }
+  }
 
   // =======================================================================
   // Busca

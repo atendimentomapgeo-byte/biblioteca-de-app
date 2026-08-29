@@ -7,6 +7,11 @@
  */
 
 (function () {
+  // Precisa bater com TILES_CACHE_NAME em service-worker.js. Usamos um prefixo
+  // (em vez do nome exato) para continuar funcionando mesmo se a versão do
+  // cache mudar no futuro (ex.: 'fieldgis-tiles-v1' -> 'fieldgis-tiles-v2').
+  const TILES_CACHE_PREFIX = 'fieldgis-tiles';
+
   const Offline = {
     status: navigator.onLine ? 'online' : 'offline',
     listeners: new Set(),
@@ -47,7 +52,7 @@
       if (estimate && estimate.quota) {
         const usedPct = (estimate.usage / estimate.quota) * 100;
         if (usedPct > 90) {
-          return `Atenção: o armazenamento local está ${usedPct.toFixed(0)}% ocupado. Considere exportar e limpar projetos antigos.`;
+          return `Atenção: o armazenamento local está ${usedPct.toFixed(0)}% ocupado. Vá em Configurações > "Limpar cache de mapas offline" ou exporte/exclua projetos antigos.`;
         }
       }
       return null;
@@ -59,6 +64,55 @@
         return navigator.storage.persist();
       }
       return false;
+    },
+
+    /**
+     * Retorna informações sobre o cache de tiles de mapa (imagens de fundo
+     * OSM/satélite) baixadas para uso offline: quantidade de tiles e uma
+     * estimativa de espaço ocupado (quando o navegador suporta medir o
+     * tamanho de cada resposta em cache).
+     */
+    async getTileCacheInfo() {
+      if (!('caches' in window)) return { supported: false, count: 0, bytes: null };
+      const names = await caches.keys();
+      const tileCacheNames = names.filter((n) => n.startsWith(TILES_CACHE_PREFIX));
+      if (!tileCacheNames.length) return { supported: true, count: 0, bytes: 0 };
+
+      let count = 0;
+      let bytes = 0;
+      let bytesKnown = true;
+      for (const name of tileCacheNames) {
+        const cache = await caches.open(name);
+        const requests = await cache.keys();
+        count += requests.length;
+        for (const req of requests) {
+          try {
+            const res = await cache.match(req);
+            const blob = res && (await res.clone().blob());
+            // Respostas "opacas" (cross-origin, sem CORS) reportam tamanho 0
+            // mesmo tendo conteúdo real — nesse caso não dá pra confiar no total.
+            if (blob && res.type !== 'opaque' && blob.size > 0) {
+              bytes += blob.size;
+            } else {
+              bytesKnown = false;
+            }
+          } catch (e) {
+            bytesKnown = false;
+          }
+        }
+      }
+      return { supported: true, count, bytes: bytesKnown ? bytes : null };
+    },
+
+    /** Apaga apenas o cache de tiles de mapa. NÃO afeta o cache do próprio app (HTML/JS/CSS) nem os dados salvos (IndexedDB: projetos, pontos, trilhas, polígonos, fotos). */
+    async clearTileCache() {
+      if (!('caches' in window)) return false;
+      const names = await caches.keys();
+      const tileCacheNames = names.filter((n) => n.startsWith(TILES_CACHE_PREFIX));
+      for (const name of tileCacheNames) {
+        await caches.delete(name);
+      }
+      return true;
     },
   };
 
