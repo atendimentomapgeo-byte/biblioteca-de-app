@@ -135,12 +135,19 @@
 const GITHUB_USER = 'atendimentomapgeo-byte';
 const GITHUB_REPO = 'biblioteca-de-app';
 const GITHUB_BRANCH = 'main';
-const REFRESH_MS = 600000; // reconsulta a cada 10 minutos
+const REFRESH_MS = 120000; // reconsulta a cada 2 minutos
 const CACHE_KEY = 'biblioteca-apps-cache';
 const CACHE_MAX_IDADE_MS = 30 * 60 * 1000; // usa cache de até 30min como plano B
 
+// Apps que moram em subpastas (ex: PWAs com vários arquivos) não são
+// detectados pela varredura automática — adicione-os aqui manualmente.
+// "path" é o caminho a partir da raiz do repositório até o index.html do app.
+const APPS_EXTRAS = [
+  { titulo: 'FieldGIS — Mapas e Navegação de Campo', path: 'fieldgis-app/index.html' },
+];
+
 const PAGES_BASE = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
-const API_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
+const JSDELIVR_URL = `https://data.jsdelivr.com/v1/package/gh/${GITHUB_USER}/${GITHUB_REPO}@${GITHUB_BRANCH}/flat`;
 
 const CORES = ['#4b8bf5','#4bc0d9','#7fd88f','#f2b84b','#e0678a','#8f7ff2'];
 
@@ -204,25 +211,29 @@ function usarCacheComoFallback(motivoErro) {
 
 async function buscarApps() {
   try {
-    const resp = await fetch(API_URL);
+    const resp = await fetch(JSDELIVR_URL);
     if (!resp.ok) {
       let motivo;
       if (resp.status === 404) {
         motivo = 'Repositório ou branch não encontrado';
-      } else if (resp.status === 403) {
-        motivo = 'Limite da API do GitHub atingido';
       } else {
-        motivo = 'Erro ao consultar o GitHub (' + resp.status + ')';
+        motivo = 'Erro ao consultar o jsDelivr (' + resp.status + ')';
       }
       if (!usarCacheComoFallback(motivo)) {
         setStatus(motivo, 'erro');
         carregandoEl.style.display = 'none';
+        renderizar();
       }
       return;
     }
     const dados = await resp.json();
-    todosOsApps = dados
-      .filter(item => item.type === 'file' && /\.html?$/i.test(item.name) && !/^index\.html?$/i.test(item.name))
+    const arquivos = Array.isArray(dados.files) ? dados.files : [];
+
+    todosOsApps = arquivos
+      // jsDelivr retorna caminhos com "/" na frente; nome de exibição sem a barra
+      .map(f => ({ name: f.name.replace(/^\//, '') }))
+      // só arquivos .html na raiz (sem subpasta) e sem ser o index.html
+      .filter(f => /^[^/]+\.html?$/i.test(f.name) && !/^index\.html?$/i.test(f.name))
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
     salvarCache(todosOsApps);
@@ -231,9 +242,10 @@ async function buscarApps() {
     renderizar();
   } catch (e) {
     console.error(e);
-    if (!usarCacheComoFallback('Falha ao conectar com o GitHub')) {
-      setStatus('Falha ao conectar com o GitHub', 'erro');
+    if (!usarCacheComoFallback('Falha ao conectar com o jsDelivr')) {
+      setStatus('Falha ao conectar com o jsDelivr', 'erro');
       carregandoEl.style.display = 'none';
+      renderizar();
     }
   }
 }
@@ -250,10 +262,25 @@ if (cacheInicial && cacheInicial.apps.length > 0 && (Date.now() - cacheInicial.t
 
 function renderizar() {
   const termo = inputBusca.value.trim().toLowerCase();
-  const filtrados = todosOsApps.filter(app =>
+
+  const autoApps = todosOsApps.map(app => ({
+    titulo: tituloBonito(app.name),
+    subtitulo: app.name,
+    url: PAGES_BASE + encodeURIComponent(app.name)
+  }));
+  const extraApps = APPS_EXTRAS.map(app => ({
+    titulo: app.titulo,
+    subtitulo: app.path,
+    url: PAGES_BASE + app.path.split('/').map(encodeURIComponent).join('/')
+  }));
+
+  const todosCombinados = [...autoApps, ...extraApps]
+    .sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'));
+
+  const filtrados = todosCombinados.filter(app =>
     !termo ||
-    tituloBonito(app.name).toLowerCase().includes(termo) ||
-    app.name.toLowerCase().includes(termo)
+    app.titulo.toLowerCase().includes(termo) ||
+    app.subtitulo.toLowerCase().includes(termo)
   );
 
   gridEl.innerHTML = '';
@@ -262,20 +289,20 @@ function renderizar() {
   for (const app of filtrados) {
     const card = document.createElement('div');
     card.className = 'card';
-    card.onclick = () => window.open(PAGES_BASE + encodeURIComponent(app.name), '_blank');
+    card.onclick = () => window.open(app.url, '_blank');
 
     const icone = document.createElement('div');
     icone.className = 'icone';
-    icone.style.background = corParaNome(app.name);
-    icone.textContent = (tituloBonito(app.name).charAt(0) || '?').toUpperCase();
+    icone.style.background = corParaNome(app.titulo);
+    icone.textContent = (app.titulo.charAt(0) || '?').toUpperCase();
 
     const titulo = document.createElement('div');
     titulo.className = 'titulo';
-    titulo.textContent = tituloBonito(app.name);
+    titulo.textContent = app.titulo;
 
     const nomearq = document.createElement('div');
     nomearq.className = 'nomearq';
-    nomearq.textContent = app.name;
+    nomearq.textContent = app.subtitulo;
 
     card.appendChild(icone);
     card.appendChild(titulo);
