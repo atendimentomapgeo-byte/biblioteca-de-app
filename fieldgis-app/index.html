@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>FieldGIS — Mapas e Navegação de Campo</title>
+<meta name="description" content="Aplicativo profissional offline de mapas, GPS e coleta de dados de campo." />
+<meta name="theme-color" content="#10161d" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FieldGIS" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="assets/icons/icon-192.png" />
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+<link rel="stylesheet" href="vendor/leaflet.css" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/mobile.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================= MAPA ============================= -->
+  <div id="map"></div>
+
+  <!-- ============================= TOPO ============================= -->
+  <div class="fg-topbar">
+    <div class="fg-brand"><span class="fg-logo-dot"></span>
+      <div>
+        <div id="fg-project-name">FieldGIS</div>
+        <small id="fg-project-sub">Nenhum projeto aberto</small>
+      </div>
+    </div>
+    <button class="fg-icon-btn" id="btn-search" title="Buscar">🔍</button>
+    <button class="fg-icon-btn" id="btn-menu" title="Menu">☰</button>
+  </div>
+
+  <!-- ============================= GPS BADGE ============================= -->
+  <button class="fg-gps-badge" id="gps-badge" title="Detalhes do GPS">
+    <div class="fg-gps-row"><span class="fg-dot unknown" id="gps-dot"></span><b id="gps-status-text">GPS indisponível</b></div>
+    <div class="fg-coord" id="gps-coord-text">—</div>
+  </button>
+
+  <!-- ============================= BOTÃO LOCALIZAR ============================= -->
+  <button class="fg-fab-locate" id="btn-locate" title="Minha localização">📍</button>
+
+  <!-- ============================= BARRA DE DESENHO/GRAVAÇÃO ATIVA ============================= -->
+  <div class="fg-drawbar" id="drawbar" hidden>
+    <div class="fg-drawbar-stats" id="drawbar-stats"></div>
+    <div class="fg-drawbar-actions" id="drawbar-actions"></div>
+  </div>
+
+  <!-- ============================= NAVEGAÇÃO ============================= -->
+  <div class="fg-nav-overlay" id="nav-overlay" hidden>
+    <div class="fg-nav-arrow-wrap"><div class="fg-nav-arrow" id="nav-arrow">⬆️</div></div>
+    <div class="fg-nav-info">
+      <div class="fg-nav-dest" id="nav-dest">—</div>
+      <div class="fg-nav-dist" id="nav-dist">—</div>
+      <div class="fg-nav-az" id="nav-az">—</div>
+    </div>
+    <button class="fg-nav-close" id="nav-close">✕</button>
+  </div>
+
+  <!-- ============================= MENU INFERIOR ============================= -->
+  <nav class="fg-bottomnav">
+    <button class="fg-navbtn" id="nav-point"><span class="fg-navicon">📍</span>Ponto</button>
+    <button class="fg-navbtn" id="nav-compass"><span class="fg-navicon">🧭</span>Navegar</button>
+    <button class="fg-navbtn" id="nav-add"><span class="fg-navicon">➕</span>Novo</button>
+    <button class="fg-navbtn" id="nav-measure"><span class="fg-navicon">📏</span>Medir</button>
+    <button class="fg-navbtn" id="nav-track"><span class="fg-navicon">▶️</span>Trilha</button>
+    <button class="fg-navbtn" id="nav-menu"><span class="fg-navicon">☰</span>Menu</button>
+  </nav>
+
+  <!-- ============================= TOAST ============================= -->
+  <div class="fg-toast fg-hidden" id="toast"></div>
+
+  <!-- ============================= BUSCA ============================= -->
+  <div class="fg-search-overlay" id="search-overlay" hidden>
+    <div class="fg-search-bar">
+      <button class="fg-icon-btn" id="search-back">←</button>
+      <input type="text" id="search-input" placeholder="Buscar por nome, código ou coordenada..." autocomplete="off" />
+    </div>
+    <div class="fg-search-results" id="search-results"></div>
+  </div>
+
+  <!-- ============================= MODO CAMPO ============================= -->
+  <div class="fg-field-panel" id="field-panel" hidden>
+    <div class="fg-field-header"><h2>Modo Campo</h2><button class="fg-icon-btn" id="field-exit">✕</button></div>
+    <div class="fg-field-grid">
+      <div class="fg-field-tile"><div class="fg-ft-icon" id="field-gps-dot">🔴</div><div class="fg-ft-label">GPS</div><div class="fg-ft-value" id="field-gps-quality">—</div></div>
+      <div class="fg-field-tile"><div class="fg-ft-icon">🌐</div><div class="fg-ft-label">Coordenadas</div><div class="fg-ft-value" id="field-coords" style="font-size:12px">—</div></div>
+      <div class="fg-field-tile"><div class="fg-ft-icon">⛰️</div><div class="fg-ft-label">Altitude</div><div class="fg-ft-value" id="field-alt">—</div></div>
+      <div class="fg-field-tile"><div class="fg-ft-icon">🎯</div><div class="fg-ft-label">Precisão</div><div class="fg-ft-value" id="field-acc">—</div></div>
+      <div class="fg-field-tile action" id="field-btn-point"><div class="fg-ft-icon">📍</div><div class="fg-ft-label">Novo Ponto</div></div>
+      <div class="fg-field-tile action record" id="field-btn-track"><div class="fg-ft-icon">▶️</div><div class="fg-ft-label">Trilha</div></div>
+      <div class="fg-field-tile action" id="field-btn-measure"><div class="fg-ft-icon">📏</div><div class="fg-ft-label">Medir</div></div>
+      <div class="fg-field-tile action" id="field-btn-navigate"><div class="fg-ft-icon">🧭</div><div class="fg-ft-label">Navegar</div></div>
+    </div>
+  </div>
+
+  <!-- ============================= AÇÃO (+) ============================= -->
+  <div class="fg-overlay" id="overlay-add" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Novo</h2><button class="fg-close-btn" data-close="overlay-add">✕</button></div>
+      <div class="fg-sheet-body">
+        <div class="fg-actionsheet-list">
+          <button class="fg-action-item" id="action-new-point"><span class="fg-action-icon">📍</span>Novo Ponto</button>
+          <button class="fg-action-item" id="action-new-polygon-manual"><span class="fg-action-icon">⬠</span>Novo Polígono (desenho manual)</button>
+          <button class="fg-action-item" id="action-new-polygon-gps"><span class="fg-action-icon">🚶</span>Novo Polígono (percorrer com GPS)</button>
+          <button class="fg-action-item" id="action-import"><span class="fg-action-icon">📥</span>Importar dados/mapa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= MENU LATERAL (☰) ============================= -->
+  <div class="fg-overlay" id="overlay-menu" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Menu</h2><button class="fg-close-btn" data-close="overlay-menu">✕</button></div>
+      <div class="fg-sheet-body">
+        <div class="fg-actionsheet-list">
+          <button class="fg-action-item" id="menu-projects"><span class="fg-action-icon">📁</span>Meus Projetos</button>
+          <button class="fg-action-item" id="menu-layers"><span class="fg-action-icon">🗂️</span>Camadas</button>
+          <button class="fg-action-item" id="menu-import"><span class="fg-action-icon">📥</span>Importar</button>
+          <button class="fg-action-item" id="menu-export"><span class="fg-action-icon">📤</span>Exportar</button>
+          <button class="fg-action-item" id="menu-backup"><span class="fg-action-icon">💾</span>Backup / Restaurar</button>
+          <button class="fg-action-item" id="menu-forms"><span class="fg-action-icon">📝</span>Formulários de atributos</button>
+          <button class="fg-action-item" id="menu-field-mode"><span class="fg-action-icon">🎯</span>Modo Campo</button>
+          <button class="fg-action-item" id="menu-settings"><span class="fg-action-icon">⚙️</span>Configurações</button>
+          <button class="fg-action-item" id="menu-about"><span class="fg-action-icon">ℹ️</span>Sobre o FieldGIS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= PROJETOS ============================= -->
+  <div class="fg-overlay" id="overlay-projects" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Meus Projetos</h2><button class="fg-close-btn" data-close="overlay-projects">✕</button></div>
+      <div class="fg-sheet-body">
+        <button class="fg-btn primary" id="btn-new-project">➕ Novo Projeto</button>
+        <div id="projects-list" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fg-overlay center" id="overlay-new-project" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-header"><h2>Novo Projeto</h2><button class="fg-close-btn" data-close="overlay-new-project">✕</button></div>
+      <div class="fg-sheet-body">
+        <label>Nome do projeto</label>
+        <input type="text" id="new-project-name" placeholder="Ex: Fazenda Santa Maria" />
+        <label>Descrição (opcional)</label>
+        <textarea id="new-project-desc" rows="2" placeholder="Observações sobre o projeto"></textarea>
+        <button class="fg-btn primary" id="btn-create-project">Criar Projeto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= CAMADAS ============================= -->
+  <div class="fg-overlay" id="overlay-layers" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Camadas</h2><button class="fg-close-btn" data-close="overlay-layers">✕</button></div>
+      <div class="fg-sheet-body" id="layers-list"></div>
+    </div>
+  </div>
+
+  <!-- ============================= FORMULÁRIO DE PONTO (novo/editar) ============================= -->
+  <div class="fg-overlay" id="overlay-point-form" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2 id="point-form-title">Novo Ponto</h2><button class="fg-close-btn" data-close="overlay-point-form">✕</button></div>
+      <div class="fg-sheet-body" id="point-form-body">
+        <div class="fg-coord-grid" id="point-form-coords"></div>
+        <label>Nome do ponto</label>
+        <input type="text" id="point-name" />
+        <label>Código</label>
+        <input type="text" id="point-code" />
+        <label>Descrição / Observações</label>
+        <textarea id="point-description" rows="2"></textarea>
+        <div id="point-attributes-container"></div>
+        <div class="fg-photo-grid" id="point-photos"></div>
+        <div class="fg-btn-row">
+          <button class="fg-btn" id="btn-point-photo">📷 Foto</button>
+          <button class="fg-btn primary" id="btn-point-save">💾 Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= INFO DO PONTO ============================= -->
+  <div class="fg-overlay" id="overlay-point-info" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2 id="point-info-title">Ponto</h2><button class="fg-close-btn" data-close="overlay-point-info">✕</button></div>
+      <div class="fg-sheet-body" id="point-info-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================= SALVAR TRILHA / POLÍGONO ============================= -->
+  <div class="fg-overlay center" id="overlay-save-geom" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-header"><h2 id="save-geom-title">Salvar</h2><button class="fg-close-btn" data-close="overlay-save-geom">✕</button></div>
+      <div class="fg-sheet-body">
+        <div id="save-geom-stats" class="fg-coord-grid"></div>
+        <label>Nome</label>
+        <input type="text" id="save-geom-name" />
+        <button class="fg-btn primary" id="btn-save-geom-confirm">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= IMPORTAR ============================= -->
+  <div class="fg-overlay" id="overlay-import" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Importar</h2><button class="fg-close-btn" data-close="overlay-import">✕</button></div>
+      <div class="fg-sheet-body" id="import-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================= EXPORTAR ============================= -->
+  <div class="fg-overlay" id="overlay-export" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Exportar</h2><button class="fg-close-btn" data-close="overlay-export">✕</button></div>
+      <div class="fg-sheet-body" id="export-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================= BACKUP ============================= -->
+  <div class="fg-overlay" id="overlay-backup" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Backup / Restaurar</h2><button class="fg-close-btn" data-close="overlay-backup">✕</button></div>
+      <div class="fg-sheet-body" id="backup-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================= FORMULÁRIOS CUSTOMIZADOS ============================= -->
+  <div class="fg-overlay" id="overlay-forms" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Formulários de Atributos</h2><button class="fg-close-btn" data-close="overlay-forms">✕</button></div>
+      <div class="fg-sheet-body" id="forms-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================= CONFIGURAÇÕES ============================= -->
+  <div class="fg-overlay" id="overlay-settings" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Configurações</h2><button class="fg-close-btn" data-close="overlay-settings">✕</button></div>
+      <div class="fg-sheet-body" id="settings-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================= DETALHE GPS ============================= -->
+  <div class="fg-overlay" id="overlay-gps-detail" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Minha Localização</h2><button class="fg-close-btn" data-close="overlay-gps-detail">✕</button></div>
+      <div class="fg-sheet-body" id="gps-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================= SOBRE ============================= -->
+  <div class="fg-overlay center" id="overlay-about" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-header"><h2>Sobre o FieldGIS</h2><button class="fg-close-btn" data-close="overlay-about">✕</button></div>
+      <div class="fg-sheet-body">
+        <p>FieldGIS é um aplicativo profissional e independente de mapas, GPS e coleta de dados de campo, desenvolvido como PWA (Progressive Web App) para funcionar 100% offline no seu aparelho.</p>
+        <p style="color:var(--fg-text-dim);font-size:13px">Versão 1.0 — Identidade visual e código próprios.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================= BIBLIOTECAS (vendorizadas — funcionam offline) ============================= -->
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/proj4.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/togeojson.js"></script>
+<script src="vendor/geotiff.js"></script>
+<script src="vendor/pdf.min.js"></script>
+
+<!-- ============================= MÓDULOS DO APLICATIVO ============================= -->
+<script src="js/database.js"></script>
+<script src="js/coordinates.js"></script>
+<script src="js/gps.js"></script>
+<script src="js/map.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/points.js"></script>
+<script src="js/tracks.js"></script>
+<script src="js/polygons.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/layers.js"></script>
+<script src="js/projects.js"></script>
+<script src="js/import.js"></script>
+<script src="js/export.js"></script>
+<script src="js/offline.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
