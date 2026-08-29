@@ -1180,12 +1180,19 @@
       let canvas;
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         const arrayBuffer = await file.arrayBuffer();
+
+        // IMPORTANTE: extrai o georreferenciamento embutido (GeoPDF real) ANTES
+        // de repassar o buffer para o pdf.js. O pdf.js roda a renderização num
+        // Web Worker e transfere (neutraliza) o ArrayBuffer original ao mandá-lo
+        // via postMessage — se a extração fosse feita depois de renderPDFPage,
+        // o buffer já estaria vazio e o app nunca encontraria as coordenadas
+        // (mesmo em PDFs corretamente georreferenciados), caindo sem necessidade
+        // no modo manual. Usamos slice(0) para trabalhar sobre uma cópia própria.
+        const bounds = Importer.extractGeoPdfBounds(arrayBuffer.slice(0));
+
         const res = await Importer.renderPDFPage(arrayBuffer, 1, 2.5);
         canvas = res.canvas;
 
-        // Tenta ler georreferenciamento embutido (GeoPDF real) antes de pedir
-        // os pontos de controle manuais.
-        const bounds = Importer.extractGeoPdfBounds(arrayBuffer);
         if (bounds) {
           const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
           await saveRasterLayer(file.name, {
@@ -1224,35 +1231,17 @@
     const wizard = $('import-wizard');
     const dataUrl = canvas.toDataURL('image/png');
 
-    // Sugestão automática de posicionamento: usa a área atualmente visível no
-    // mapa (canto superior-esquerdo = pixel 0,0 / canto inferior-direito =
-    // largura,altura da imagem) para já deixar os campos preenchidos com uma
-    // estimativa editável, em vez de exigir que o usuário digite tudo do zero.
-    let sugestao = null;
-    try {
-      const b = MapModule.getMap().getBounds();
-      sugestao = {
-        p1lat: b.getNorth().toFixed(6),
-        p1lon: b.getWest().toFixed(6),
-        p2lat: b.getSouth().toFixed(6),
-        p2lon: b.getEast().toFixed(6),
-      };
-    } catch (e) {
-      sugestao = null;
-    }
-
     wizard.innerHTML = `
-      <p style="font-size:13px;color:var(--fg-text-dim)">Informe 2 pontos de controle (posição na imagem + coordenada real conhecida) para posicionar este mapa. O app assume a imagem alinhada ao Norte, sem rotação.${
-        sugestao ? ' Os campos abaixo já vêm preenchidos com uma sugestão baseada na área visível do mapa — ajuste os valores para a posição real antes de confirmar.' : ''
-      }</p>
+      <p style="font-size:13px;color:var(--fg-text-dim)">Este arquivo não possui georreferenciamento embutido reconhecido. Informe 2 pontos de controle (posição na imagem + coordenada real conhecida) para posicionar este mapa manualmente. O app assume a imagem alinhada ao Norte, sem rotação.</p>
+      <p style="font-size:12px;color:var(--fg-warn,#b45309)">⚠️ Use coordenadas reais e conferidas (ex.: a própria grade/rótulos impressos na imagem, quando existirem). Não use uma posição "aproximada" — o mapa será posicionado exatamente onde você informar.</p>
       <img src="${dataUrl}" style="width:100%;border-radius:8px;margin-bottom:10px" id="georef-preview"/>
       <div class="fg-field-map-row">
         <div><label>Ponto 1 — pixel X</label><input type="number" id="gr-p1x" placeholder="ex: 120" value="0"/></div>
         <div><label>Ponto 1 — pixel Y</label><input type="number" id="gr-p1y" placeholder="ex: 80" value="0"/></div>
       </div>
       <div class="fg-field-map-row">
-        <div><label>Ponto 1 — Latitude</label><input type="text" id="gr-p1lat" placeholder="-10.7256" value="${sugestao ? sugestao.p1lat : ''}"/></div>
-        <div><label>Ponto 1 — Longitude</label><input type="text" id="gr-p1lon" placeholder="-56.0214" value="${sugestao ? sugestao.p1lon : ''}"/></div>
+        <div><label>Ponto 1 — Latitude</label><input type="text" id="gr-p1lat" placeholder="-10.7256"/></div>
+        <div><label>Ponto 1 — Longitude</label><input type="text" id="gr-p1lon" placeholder="-56.0214"/></div>
       </div>
       <hr style="border-color:var(--fg-border);margin:10px 0"/>
       <div class="fg-field-map-row">
@@ -1260,8 +1249,8 @@
         <div><label>Ponto 2 — pixel Y</label><input type="number" id="gr-p2y" placeholder="ex: 700" value="${canvas.height}"/></div>
       </div>
       <div class="fg-field-map-row">
-        <div><label>Ponto 2 — Latitude</label><input type="text" id="gr-p2lat" placeholder="-10.7401" value="${sugestao ? sugestao.p2lat : ''}"/></div>
-        <div><label>Ponto 2 — Longitude</label><input type="text" id="gr-p2lon" placeholder="-56.0011" value="${sugestao ? sugestao.p2lon : ''}"/></div>
+        <div><label>Ponto 2 — Latitude</label><input type="text" id="gr-p2lat" placeholder="-10.7401"/></div>
+        <div><label>Ponto 2 — Longitude</label><input type="text" id="gr-p2lon" placeholder="-56.0011"/></div>
       </div>
       <p style="font-size:12px;color:var(--fg-text-dim)">Dica: toque na imagem acima para preencher automaticamente as coordenadas de pixel dos cantos.</p>
       <button class="fg-btn primary" id="gr-confirm">📍 Posicionar mapa</button>`;
