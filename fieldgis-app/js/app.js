@@ -203,6 +203,54 @@
     $('btn-search').onclick = () => openSheet('search-overlay') || ($('search-overlay').hidden = false, $('search-input').focus());
   }
 
+  function isStandaloneApp() {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true // Safari/iOS
+    );
+  }
+
+  function isIOSDevice() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  async function handleFullscreenRequest() {
+    if (isStandaloneApp()) {
+      toast('Você já está usando o app instalado em tela cheia. ✅');
+      return;
+    }
+
+    // Fullscreen API funciona em Android/Chrome/Desktop, mas o Safari no
+    // iPhone NÃO oferece essa API para páginas comuns — só é possível remover
+    // a barra de endereço instalando o app na Tela de Início.
+    if (document.documentElement.requestFullscreen && !isIOSDevice()) {
+      try {
+        await document.documentElement.requestFullscreen();
+        return;
+      } catch (e) {
+        // segue para as instruções manuais abaixo
+      }
+    }
+
+    if (isIOSDevice()) {
+      alert(
+        'Para usar o FieldGIS em tela cheia no iPhone (sem a barra do Safari):\n\n' +
+        '1. Toque no ícone de compartilhar (o quadrado com uma seta ↑) na barra do navegador.\n' +
+        '2. Escolha "Adicionar à Tela de Início".\n' +
+        '3. Toque em "Adicionar".\n\n' +
+        'Depois disso, abra o FieldGIS sempre pelo ícone criado na tela do seu iPhone — ele abrirá sem a barra de endereço, ocupando a tela inteira.'
+      );
+    } else {
+      alert(
+        'Para usar o FieldGIS em tela cheia:\n\n' +
+        '1. Abra o menu do navegador (⋮ ou ≡).\n' +
+        '2. Escolha "Adicionar à tela inicial" ou "Instalar aplicativo".\n\n' +
+        'Depois disso, abra o FieldGIS sempre pelo ícone criado — ele abrirá sem a barra de endereço, ocupando a tela inteira.'
+      );
+    }
+  }
+
+
   function wireOverlaysGeneric() {
     qsa('[data-close]').forEach((btn) => {
       btn.onclick = () => closeSheet(btn.getAttribute('data-close'));
@@ -253,6 +301,10 @@
       $('field-panel').hidden = false;
       document.body.classList.add('fg-field-mode');
     };
+    $('menu-fullscreen').onclick = () => {
+      closeSheet('overlay-menu');
+      handleFullscreenRequest();
+    };
     $('menu-about').onclick = () => {
       closeSheet('overlay-menu');
       openSheet('overlay-about');
@@ -298,7 +350,13 @@
       if (event === 'position') {
         updateGpsBadge(data);
         updateFieldModeTiles(data);
-        MapModule.updatePosition(data.lat, data.lon, data.accuracy, data.heading ?? undefined);
+        // Quando a bússola do aparelho está ativa, ela já cuida da rotação
+        // da seta (compass.js chama MapModule.updateHeading diretamente,
+        // com muito mais frequência e funcionando mesmo parado). O heading
+        // do GPS só existe enquanto o usuário está em movimento, então só o
+        // usamos aqui como respaldo quando a bússola está desligada.
+        const heading = Compass.isActive() ? undefined : data.heading ?? undefined;
+        MapModule.updatePosition(data.lat, data.lon, data.accuracy, heading);
       } else if (event === 'error') {
         $('gps-status-text').textContent = 'GPS indisponível';
         $('gps-dot').className = 'fg-dot unknown';
@@ -310,6 +368,56 @@
       openSheet('overlay-gps-detail');
       renderGpsDetail();
     };
+
+    wireCompass();
+  }
+
+  function wireCompass() {
+    const btn = $('btn-compass');
+    if (!btn) return;
+
+    if (!Compass.isSupported()) {
+      btn.hidden = true;
+      return;
+    }
+
+    Compass.on((event, data) => {
+      if (event === 'heading') {
+        MapModule.updateHeading(data.heading);
+      }
+    });
+
+    btn.onclick = async () => {
+      if (Compass.isActive()) {
+        Compass.stop();
+        btn.classList.remove('active');
+        await DB.saveSettings({ gps: Object.assign({}, settings.gps, { useCompass: false }) });
+        settings.gps.useCompass = false;
+        toast('Bússola desativada — a seta volta a usar a direção do GPS (só em movimento).');
+        return;
+      }
+
+      const permitido = await Compass.requestPermission();
+      if (!permitido) {
+        toast('Permissão da bússola negada. Em iPhone: Ajustes > Safari > Localização e Movimento e Orientação.', 4500);
+        return;
+      }
+      Compass.start();
+      btn.classList.add('active');
+      await DB.saveSettings({ gps: Object.assign({}, settings.gps, { useCompass: true }) });
+      settings.gps.useCompass = true;
+      toast('Bússola ativada — a seta agora aponta para onde o celular está virado. Se ela oscilar, gire o aparelho em forma de "8" para calibrar o sensor.', 4500);
+    };
+
+    // Em Android (e navegadores que não exigem toque para autorizar o
+    // sensor), retoma automaticamente se o usuário já tinha deixado
+    // ativado da última vez. No iOS isso não é possível — a permissão
+    // exige um toque a cada nova sessão, então o botão fica pronto pra
+    // ativar com um toque só.
+    if (settings.gps.useCompass && !Compass.needsExplicitPermission()) {
+      Compass.start();
+      btn.classList.add('active');
+    }
   }
 
   function updateGpsBadge(data) {
@@ -339,6 +447,7 @@
         <div class="fg-coord-box"><div class="k">Precisão</div><div class="v">± ${c.accuracy != null ? c.accuracy.toFixed(1) : '—'} m</div></div>
         <div class="fg-coord-box"><div class="k">Velocidade</div><div class="v">${c.speed != null ? (c.speed * 3.6).toFixed(1) + ' km/h' : '—'}</div></div>
         <div class="fg-coord-box"><div class="k">Direção</div><div class="v">${c.heading != null && !Number.isNaN(c.heading) ? Math.round(c.heading) + '° ' + Coordinates.azimuthToCardinal(c.heading) : '—'}</div></div>
+        <div class="fg-coord-box"><div class="k">Bússola do aparelho</div><div class="v">${Compass.isActive() ? '🧭 Ativa' : 'Desativada'}</div></div>
         <div class="fg-coord-box"><div class="k">Última leitura</div><div class="v">${new Date(pos.timestamp).toLocaleTimeString('pt-BR')}</div></div>
         <div class="fg-coord-box"><div class="k">Distância percorrida</div><div class="v">${(GPS.getTotalDistance() / 1000).toFixed(3)} km</div></div>
       </div>`;

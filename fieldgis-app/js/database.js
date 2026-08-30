@@ -187,7 +187,7 @@ const DB = {
   defaultSettings() {
     return {
       id: 'app',
-      gps: { minAccuracy: 30, minInterval: 2000, minDistance: 3, autoUpdate: true },
+      gps: { minAccuracy: 30, minInterval: 2000, minDistance: 3, autoUpdate: true, useCompass: false },
       coords: { datum: 'SIRGAS2000', format: 'dms', showUTM: true, epsg: null },
       map: { rotationEnabled: true, showGrid: false, showScale: true, showNorth: true },
       units: { distance: 'm', area: 'ha' },

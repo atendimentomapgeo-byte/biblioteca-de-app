@@ -16,6 +16,21 @@
 <link rel="stylesheet" href="vendor/leaflet.css" />
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/mobile.css" />
+<script>
+  // Corrige um bug conhecido do WebKit/iOS: ao abrir como app instalado na
+  // Tela de Início (modo standalone), "100%"/"100vh" às vezes são calculados
+  // com base num viewport que não existe mais nesse modo, deixando uma faixa
+  // vazia no rodapé. Aqui calculamos a altura real da tela e guardamos numa
+  // variável CSS usada como reforço/fallback do 100dvh (ver css/style.css).
+  (function () {
+    function ajustarAlturaReal() {
+      document.documentElement.style.setProperty('--fg-vh', window.innerHeight + 'px');
+    }
+    ajustarAlturaReal();
+    window.addEventListener('resize', ajustarAlturaReal);
+    window.addEventListener('orientationchange', ajustarAlturaReal);
+  })();
+</script>
 </head>
 <body>
 <div id="app">
@@ -43,6 +58,7 @@
 
   <!-- ============================= BOTÃO LOCALIZAR ============================= -->
   <button class="fg-fab-locate" id="btn-locate" title="Minha localização">📍</button>
+  <button class="fg-fab-compass" id="btn-compass" title="Seguir bússola do aparelho">🧭</button>
 
   <!-- ============================= BARRA DE DESENHO/GRAVAÇÃO ATIVA ============================= -->
   <div class="fg-drawbar" id="drawbar" hidden>
@@ -128,6 +144,7 @@
           <button class="fg-action-item" id="menu-backup"><span class="fg-action-icon">💾</span>Backup / Restaurar</button>
           <button class="fg-action-item" id="menu-forms"><span class="fg-action-icon">📝</span>Formulários de atributos</button>
           <button class="fg-action-item" id="menu-field-mode"><span class="fg-action-icon">🎯</span>Modo Campo</button>
+          <button class="fg-action-item" id="menu-fullscreen"><span class="fg-action-icon">🖥️</span>Tela cheia</button>
           <button class="fg-action-item" id="menu-settings"><span class="fg-action-icon">⚙️</span>Configurações</button>
           <button class="fg-action-item" id="menu-about"><span class="fg-action-icon">ℹ️</span>Sobre o FieldGIS</button>
         </div>
@@ -302,6 +319,7 @@
 <script src="js/database.js"></script>
 <script src="js/coordinates.js"></script>
 <script src="js/gps.js"></script>
+<script src="js/compass.js"></script>
 <script src="js/map.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/points.js"></script>

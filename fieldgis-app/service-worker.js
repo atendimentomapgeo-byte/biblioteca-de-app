@@ -12,7 +12,7 @@
  * de rede. O Service Worker cuida apenas dos arquivos do próprio aplicativo.
  */
 
-const CACHE_NAME = 'fieldgis-cache-v2';
+const CACHE_NAME = 'fieldgis-cache-v4';
 const TILES_CACHE_NAME = 'fieldgis-tiles-v1';
 const TILES_CACHE_MAX_ENTRADAS = 6000; // limite aproximado para não estourar o armazenamento do navegador
 
@@ -44,6 +44,7 @@ const APP_SHELL = [
   './js/database.js',
   './js/coordinates.js',
   './js/gps.js',
+  './js/compass.js',
   './js/map.js',
   './js/camera.js',
   './js/points.js',

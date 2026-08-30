@@ -35,7 +35,6 @@
   let currentBaseLayerName = null;
   let activeOverlayLayers = {}; // layerId -> L.LayerGroup (pontos/trilhas/polígonos)
   let gridLayer = null;
-  let scaleControl = null;
   let positionMarker = null;
   let accuracyCircle = null;
   let headingMarkerRotation = 0;
@@ -68,12 +67,14 @@
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
         zoomControl: false,
-        attributionControl: true,
+        attributionControl: false,
         maxZoom: 22,
       });
 
-      L.control.zoom({ position: 'bottomright' }).addTo(map);
-      scaleControl = L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map);
+      // Controles nativos do Leaflet (zoom +/-, escala, atribuição) removidos
+      // de propósito: o app tem zoom por gesto de pinça/duplo toque e sua
+      // própria barra de ferramentas, então esses widgets ficavam soltos por
+      // cima da interface do app sem necessidade.
 
       // Mapa base "em branco" (papel quadriculado) — não depende de internet.
       baseLayers['blank'] = L.layerGroup(); // vazio, apenas fundo CSS
@@ -165,10 +166,19 @@
       if (!map.hasLayer(accuracyCircle)) accuracyCircle.addTo(map);
 
       if (heading != null && !Number.isNaN(heading)) {
-        headingMarkerRotation = heading;
-        const arrow = document.getElementById('fg-position-arrow');
-        if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
+        MapModule.updateHeading(heading);
       }
+    },
+
+    /**
+     * Gira apenas a seta do marcador de posição, sem tocar em lat/lon/precisão.
+     * Usada pela bússola do aparelho (compass.js), que emite leituras com
+     * frequência bem maior do que as atualizações de posição do GPS.
+     */
+    updateHeading(heading) {
+      headingMarkerRotation = heading;
+      const arrow = document.getElementById('fg-position-arrow');
+      if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
     },
 
     centerOnPosition(lat, lon, zoom) {
