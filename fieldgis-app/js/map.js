@@ -40,9 +40,49 @@
   let accuracyCircle = null;
   let settingsCache = null;
   let cursorCoordCallback = null;
+  let viewportEl = null; // #map — a "janela" fixa que recorta a visão
+  let innerEl = null; // #map-inner — onde o Leaflet roda de fato
+  let currentHeading = 0; // último ângulo aplicado, usado ao redimensionar
+  let rotacaoAtiva = false; // se true, #map-inner fica inflado (cobre a diagonal); se false, do tamanho exato da tela
 
   const DEFAULT_CENTER = [-15.7801, -47.9292]; // Brasília, apenas ponto de partida caso não haja GPS/projeto
   const DEFAULT_ZOOM = 5;
+
+  /**
+   * Dimensiona #map-inner. Quando a rotação por bússola está ativa, cobre a
+   * DIAGONAL da janela visível (#map), garantindo que, em qualquer ângulo,
+   * os quatro cantos da tela sempre estejam cobertos por conteúdo de
+   * mapa/PDF — sem isso, apareceriam faixas/triângulos pretos nos cantos
+   * (a área originalmente carregada pelo Leaflet é retangular, do tamanho
+   * da tela). Quando a rotação está desligada (a maior parte do tempo),
+   * fica do tamanho exato da tela — sem isso, o app carregaria tiles extras
+   * à toa o tempo todo, mesmo sem nunca girar. Chamada no início, ao
+   * ligar/desligar a rotação, e sempre que a janela for redimensionada.
+   */
+  function redimensionarMapaInterno() {
+    if (!viewportEl || !innerEl) return;
+    const w = viewportEl.clientWidth;
+    const h = viewportEl.clientHeight;
+    let novaW = w;
+    let novaH = h;
+    if (rotacaoAtiva) {
+      // +12% de folga sobre a diagonal exata, evitando qualquer costura
+      // visível nas bordas por arredondamento/antialiasing.
+      const diagonal = Math.ceil(Math.sqrt(w * w + h * h) * 1.12);
+      novaW = diagonal;
+      novaH = diagonal;
+    }
+    innerEl.style.width = `${novaW}px`;
+    innerEl.style.height = `${novaH}px`;
+    aplicarTransformInner();
+    if (map) map.invalidateSize();
+  }
+
+  /** Aplica a centralização (sempre) + rotação atual (quando houver) em #map-inner. */
+  function aplicarTransformInner() {
+    if (!innerEl) return;
+    innerEl.style.transform = `translate(-50%, -50%) rotate(${-currentHeading}deg)`;
+  }
 
   function createPositionIcon() {
     return L.divIcon({
@@ -61,7 +101,14 @@
   const MapModule = {
     init(containerId, settings) {
       settingsCache = settings || DB.defaultSettings();
-      map = L.map(containerId, {
+      viewportEl = document.getElementById(containerId);
+      innerEl = document.getElementById('map-inner');
+
+      redimensionarMapaInterno();
+      window.addEventListener('resize', redimensionarMapaInterno);
+      window.addEventListener('orientationchange', redimensionarMapaInterno);
+
+      map = L.map('map-inner', {
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
         zoomControl: false,
@@ -172,17 +219,20 @@
      * seta do marcador de posição fica travada apontando pra cima da tela
      * (Norte de grade/tela) e é o MUNDO que gira ao redor dela — o mesmo
      * modo "bússola"/"direção de deslocamento" usado por apps de navegação.
+     *
+     * Quem gira é #map-inner (maior que a tela, ver redimensionarMapaInterno),
+     * não a janela visível #map — assim os cantos revelados pela rotação
+     * sempre mostram mapa/PDF de verdade, nunca uma faixa preta vazia.
      */
     setMapRotation(heading) {
       if (heading == null || Number.isNaN(heading)) return;
-      const container = map.getContainer();
-      container.style.transform = `rotate(${-heading}deg)`;
-      container.style.transformOrigin = 'center center';
+      currentHeading = heading;
+      aplicarTransformInner();
 
       // A seta do marcador de posição é um marcador Leaflet — portanto um
-      // FILHO do próprio #map — então ao girar o container inteiro ela gira
-      // junto sem querer. Aqui aplicamos a rotação OPOSTA só nela: as duas
-      // rotações se cancelam, e ela fica visualmente travada apontando
+      // FILHO do próprio #map-inner — então ao girar o container inteiro ela
+      // gira junto sem querer. Aqui aplicamos a rotação OPOSTA só nela: as
+      // duas rotações se cancelam, e ela fica visualmente travada apontando
       // sempre pra cima da tela, como pedido.
       const arrow = document.getElementById('fg-position-arrow');
       if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
@@ -196,8 +246,12 @@
      */
     setRotationEnabled(enabled) {
       map.dragging[enabled ? 'disable' : 'enable']();
+      rotacaoAtiva = enabled;
       if (!enabled) {
-        map.getContainer().style.transform = '';
+        currentHeading = 0;
+      }
+      redimensionarMapaInterno();
+      if (!enabled) {
         const arrow = document.getElementById('fg-position-arrow');
         if (arrow) arrow.style.transform = '';
       }
@@ -245,7 +299,24 @@
     },
 
     fitBounds(bounds) {
-      map.fitBounds(bounds, { padding: [30, 30] });
+      // O Leaflet calcula o zoom ideal com base no tamanho do CONTÊINER
+      // (#map-inner), que é propositalmente maior que a tela (cobre a
+      // diagonal, para a rotação não deixar cantos pretos — ver
+      // redimensionarMapaInterno). Sem compensar isso, fitBounds ficaria
+      // sempre mais "zoomado" do que deveria. Encolhemos temporariamente
+      // para o tamanho real da janela visível, ajustamos, e voltamos.
+      if (innerEl && viewportEl) {
+        const tamanhoOriginal = { w: innerEl.style.width, h: innerEl.style.height };
+        innerEl.style.width = `${viewportEl.clientWidth}px`;
+        innerEl.style.height = `${viewportEl.clientHeight}px`;
+        map.invalidateSize();
+        map.fitBounds(bounds, { padding: [30, 30] });
+        innerEl.style.width = tamanhoOriginal.w;
+        innerEl.style.height = tamanhoOriginal.h;
+        map.invalidateSize();
+      } else {
+        map.fitBounds(bounds, { padding: [30, 30] });
+      }
     },
 
     invalidateSize() {

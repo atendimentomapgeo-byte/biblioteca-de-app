@@ -170,7 +170,27 @@ label {
      controle de zoom nativo do Leaflet e outros elementos do mapa podem
      aparecer sobre os botões do app e bloquear o toque neles. */
   z-index: 1;
+  overflow: hidden;
   background: #0c1015;
+}
+
+/*
+  #map-inner é o contêiner ONDE o Leaflet de fato roda (ver MapModule.init).
+  Ele é dimensionado em JS para ser maior que a tela — do tamanho da
+  diagonal do viewport — e fica centralizado dentro de #map. #map (a "janela"
+  externa) tem overflow:hidden e NUNCA gira; #map-inner é quem gira de
+  verdade quando a bússola está ativa (ver MapModule.setMapRotation).
+
+  Por que isso importa: girar só a "janela" visível deixava cantos pretos
+  aparecendo nos cantos da tela sempre que o mapa girava, porque o Leaflet só
+  carrega tiles para cobrir a área originalmente visível (retangular). Com
+  #map-inner maior que a diagonal do viewport, sempre existe conteúdo de
+  mapa/PDF cobrindo qualquer canto revelado pela rotação, em qualquer ângulo.
+*/
+#map-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   background-image:
     linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
