@@ -20,16 +20,23 @@
   // Corrige um bug conhecido do WebKit/iOS: ao abrir como app instalado na
   // Tela de Início (modo standalone), "100%"/"100vh" às vezes são calculados
   // com base num viewport que não existe mais nesse modo, deixando uma faixa
-  // vazia no rodapé. Aqui calculamos a altura real da tela e guardamos numa
-  // variável CSS usada como reforço/fallback do 100dvh (ver css/style.css).
+  // vazia no rodapé. O CSS já usa 100dvh (altura dinâmica nativa do
+  // navegador) como solução principal — isso sozinho já resolve em iOS
+  // moderno (15.4+), que é a esmagadora maioria dos aparelhos reais, porque
+  // o próprio Safari mantém o dvh sincronizado automaticamente com teclado,
+  // barra de endereço, áreas seguras etc.
   //
-  // Usamos window.visualViewport (quando disponível) em vez de só
-  // window.innerHeight: no Safari do iOS, quando a barra de endereço
-  // aparece/some durante o uso (rolagem, etc.), a altura visível muda mas o
-  // evento 'resize' comum nem sempre dispara de forma confiável nesse caso
-  // — o visualViewport.resize sim, evitando que a faixa vazia volte a
-  // aparecer depois que a barra de endereço some.
+  // O script abaixo SÓ entra em ação como fallback para navegadores
+  // ANTIGOS, sem suporte a dvh — nesses casos (raros) calculamos a altura
+  // manualmente via JS. Em navegadores modernos, deixamos o dvh nativo
+  // cuidar de tudo sozinho, sem interferir: tentar reimplementar isso em
+  // JS por conta própria é frágil (depende de capturar corretamente todo
+  // evento de mudança de viewport) e foi a causa de esse mesmo tipo de bug
+  // voltar repetidas vezes, de formas diferentes, mesmo depois de "corrigido".
   (function () {
+    if (window.CSS && CSS.supports && CSS.supports('height', '100dvh')) {
+      return; // navegador moderno: confia no dvh nativo, não mexe em nada
+    }
     function ajustarAlturaReal() {
       const altura = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
       document.documentElement.style.setProperty('--fg-vh', altura + 'px');
