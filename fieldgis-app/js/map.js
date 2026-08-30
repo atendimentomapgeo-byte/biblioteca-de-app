@@ -132,7 +132,6 @@
 
       // Mapa base "em branco" (papel quadriculado) — não depende de internet.
       baseLayers['blank'] = L.layerGroup(); // vazio, apenas fundo CSS
-      MapModule.setBaseLayer('blank');
 
       // Mapas base online (só carregam de fato quando há internet; depois de
       // vistos uma vez, os tiles ficam salvos pelo Service Worker e continuam
@@ -149,11 +148,10 @@
         }
       );
 
-      // Restaura o último mapa de fundo usado (ou mantém "blank" se nunca escolheu nenhum).
-      const ultimoBase = localStorage.getItem('fieldgis-basemap');
-      if (ultimoBase && baseLayers[ultimoBase]) {
-        MapModule.setBaseLayer(ultimoBase);
-      }
+      // Satélite sempre ativado ao abrir o app, independente do que foi
+      // usado da última vez (o usuário ainda pode trocar manualmente durante
+      // o uso — só não fica "lembrado" para a próxima abertura).
+      MapModule.setBaseLayer('satellite');
 
       map.on('mousemove', (e) => {
         if (cursorCoordCallback) cursorCoordCallback(e.latlng);
