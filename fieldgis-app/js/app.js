@@ -7,6 +7,12 @@
  */
 
 (function () {
+  // Mantenha este número igual ao sufixo de CACHE_NAME em service-worker.js.
+  // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
+  // o app instalado na Tela de Início já está na versão mais recente depois
+  // de uma atualização, sem precisar adivinhar.
+  const APP_BUILD_VERSION = 'v9';
+
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
   const qsa = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -308,6 +314,8 @@
     $('menu-about').onclick = () => {
       closeSheet('overlay-menu');
       openSheet('overlay-about');
+      const el = $('about-version');
+      if (el) el.textContent = `Versão de build: ${APP_BUILD_VERSION} — Identidade visual e código próprios.`;
     };
   }
 
@@ -1559,6 +1567,7 @@
   // =======================================================================
   function renderSettingsBody() {
     $('settings-body').innerHTML = `
+      <p style="text-align:right;font-size:11px;color:var(--fg-text-faint);margin:-4px 0 8px">build ${APP_BUILD_VERSION}</p>
       <h3 style="margin-top:0">GPS</h3>
       <label>Precisão mínima aceitável (m)</label>
       <input type="number" id="st-gps-acc" value="${settings.gps.minAccuracy}"/>
