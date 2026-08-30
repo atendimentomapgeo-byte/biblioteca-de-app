@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v20';
+  const APP_BUILD_VERSION = 'v21';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -200,6 +200,21 @@
       });
       if (boundsRaster.length) {
         MapModule.fitBounds(boundsRaster);
+
+        // DIAGNÓSTICO TEMPORÁRIO: mostra a área (km) que foi enquadrada, pra
+        // identificar se o problema é nos dados salvos (bounds grandes
+        // demais) ou no cálculo do zoom. Remover depois de confirmado.
+        try {
+          const sw = boundsRaster[0];
+          const ne = boundsRaster[1];
+          const larguraKm = Coordinates.haversineDistance(sw[0], sw[1], sw[0], ne[1]) / 1000;
+          const alturaKm = Coordinates.haversineDistance(sw[0], sw[1], ne[0], sw[1]) / 1000;
+          console.log('[diagnóstico PDF] SW:', sw, 'NE:', ne, 'largura(km):', larguraKm.toFixed(2), 'altura(km):', alturaKm.toFixed(2), 'zoom aplicado:', MapModule.getMap().getZoom());
+          setTimeout(() => {
+            toast(`Diagnóstico: área ${larguraKm.toFixed(2)}km × ${alturaKm.toFixed(2)}km · zoom ${MapModule.getMap().getZoom()}`, 6000);
+          }, 600);
+        } catch (e) { /* diagnóstico não deve quebrar o carregamento normal */ }
+
         return;
       }
     }
