@@ -22,10 +22,36 @@
 
       if ('serviceWorker' in navigator) {
         // Necessário servir via http(s):// (não funciona em file://). Documentado no README.
+        //
+        // updateViaCache:'none' é essencial ao hospedar no GitHub Pages: o
+        // GitHub Pages manda cabeçalhos de cache HTTP normais nos arquivos
+        // estáticos (alguns minutos de validade). Sem essa opção, o
+        // navegador podia checar se o service-worker.js mudou usando uma
+        // cópia em cache do PRÓPRIO ARQUIVO DE VERIFICAÇÃO, concluindo
+        // erroneamente "nada mudou" mesmo depois de publicarmos uma versão
+        // nova — exatamente o sintoma de "atualizei mas continua mostrando
+        // a versão antiga". Com 'none', essa checagem específica sempre
+        // busca a rede de verdade, ignorando qualquer cache HTTP.
         navigator.serviceWorker
-          .register('service-worker.js')
+          .register('service-worker.js', { updateViaCache: 'none' })
           .then((reg) => {
             console.log('[offline] Service worker registrado com sucesso.', reg.scope);
+
+            // Força uma checagem de atualização agora (em vez de depender só
+            // do timing automático do navegador, que às vezes só verifica
+            // uma vez a cada 24h).
+            reg.update().catch(() => {});
+
+            // Se um novo service worker assumir o controle da página (após
+            // uma atualização), recarrega automaticamente uma única vez —
+            // assim o usuário não precisa lembrar de forçar fechar/reabrir
+            // o app manualmente para ver a versão nova.
+            let jaRecarregou = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (jaRecarregou) return;
+              jaRecarregou = true;
+              location.reload();
+            });
           })
           .catch((err) => {
             console.warn('[offline] Não foi possível registrar o service worker (normal se aberto via file://).', err);
