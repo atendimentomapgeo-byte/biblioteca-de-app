@@ -270,6 +270,17 @@
       map.setView([lat, lon], zoom || Math.max(map.getZoom(), 17));
     },
 
+    /**
+     * Recentraliza suavemente na posição, mantendo o zoom ATUAL (sem forçar
+     * um mínimo, diferente de centerOnPosition). Usada continuamente pelo
+     * modo "seguir GPS" (ver wireLocate/wireGPS em app.js) — assim o cursor
+     * nunca sai da tela durante uma gravação de trilha, mas sem brigar com
+     * o nível de zoom que o usuário escolheu manualmente.
+     */
+    followPosition(lat, lon) {
+      map.panTo([lat, lon], { animate: true, duration: 0.25 });
+    },
+
     getCenter() {
       return map.getCenter();
     },

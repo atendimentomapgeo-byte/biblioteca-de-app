@@ -61,7 +61,11 @@
       map.on('click', clickHandler);
     },
 
-    startGPSWalk(minDistanceMeters = 3) {
+    /**
+     * @param {number} minDistanceMeters Distância mínima do último vértice para registrar um novo.
+     * @param {number} minAccuracy Precisão mínima aceitável em metros — fixes piores que isso são ignorados.
+     */
+    startGPSWalk(minDistanceMeters = 3, minAccuracy = 30) {
       map = MapModule.getMap();
       drawing = true;
       mode = 'gps';
@@ -71,6 +75,7 @@
       GPS.start();
       unsubscribeGPS = GPS.on((event, data) => {
         if (event !== 'position' || !drawing || mode !== 'gps') return;
+        if (data.accuracy != null && data.accuracy > minAccuracy) return;
         if (lastGpsVertex) {
           const d = Coordinates.haversineDistance(lastGpsVertex.lat, lastGpsVertex.lon, data.lat, data.lon);
           if (d < minDistanceMeters) return;

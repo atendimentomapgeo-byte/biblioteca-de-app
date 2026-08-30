@@ -58,7 +58,15 @@
       return state;
     },
 
-    start(layerId) {
+    /**
+     * @param {string} layerId
+     * @param {number} minAccuracy Precisão mínima aceitável em metros — fixes
+     *   do GPS piores que isso são ignorados (não entram na trilha). Evita
+     *   que interferência de multipath (telhados metálicos, prédios/galpões
+     *   grandes, vegetação densa) grave "rabiscos"/zigue-zagues na linha
+     *   quando o sinal degrada momentaneamente.
+     */
+    start(layerId, minAccuracy = 30) {
       if (state !== 'idle') return;
       currentTrack = { points: [], startedAt: Date.now(), layerId };
       totalPausedMs = 0;
@@ -68,6 +76,9 @@
 
       unsubscribeGPS = GPS.on((event, data) => {
         if (event !== 'position' || state !== 'recording') return;
+        // Ignora fixes com precisão pior que o limite — não interrompe a
+        // gravação, só pula esse ponto específico e espera o próximo.
+        if (data.accuracy != null && data.accuracy > minAccuracy) return;
         currentTrack.points.push({ lat: data.lat, lon: data.lon, alt: data.altitude, acc: data.accuracy, speed: data.speed, time: data.timestamp || Date.now() });
         polyline.addLatLng([data.lat, data.lon]);
         Tracks._notify();

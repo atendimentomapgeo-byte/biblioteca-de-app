@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v24';
+  const APP_BUILD_VERSION = 'v27';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -394,6 +394,8 @@
   // =======================================================================
   // GPS / badge / localizar
   // =======================================================================
+  let seguindoGPS = false; // modo "seguir": recentraliza a cada atualização de posição (ver wireLocate)
+
   function wireGPS() {
     GPS.on((event, data) => {
       if (event === 'position') {
@@ -403,6 +405,14 @@
         // pra cima da tela. Quando a bússola está ativa, é o MAPA (ver
         // wireCompass) que gira para acompanhar o rumo, não a seta.
         MapModule.updatePosition(data.lat, data.lon, data.accuracy);
+
+        // Modo "seguir" ativo (mira verde): recentraliza a cada atualização,
+        // mantendo o cursor sempre visível — sem isso, o mapa fica parado
+        // no lugar onde foi centralizado da última vez, e o cursor vai se
+        // deslocando conforme você anda até sair da tela.
+        if (seguindoGPS) {
+          MapModule.followPosition(data.lat, data.lon);
+        }
       } else if (event === 'error') {
         $('gps-status-text').textContent = 'GPS indisponível';
         $('gps-dot').className = 'fg-dot unknown';
@@ -563,16 +573,17 @@
         return;
       }
       MapModule.centerOnPosition(pos.coords.latitude, pos.coords.longitude);
-      $('btn-locate').classList.remove('drifted');
+      seguindoGPS = true;
       $('btn-locate').classList.add('centered');
     };
 
     // 'dragstart' só dispara em arraste manual de verdade (dedo/mouse do
-    // usuário) — recentralizações programáticas via setView (ex.: o próprio
-    // botão de localizar) não disparam esse evento, então não há conflito.
+    // usuário) — recentralizações programáticas via setView/panTo (ex.: o
+    // próprio botão de localizar, ou o modo "seguir" a cada atualização de
+    // posição) não disparam esse evento, então não há conflito nem loop.
     map.on('dragstart', () => {
+      seguindoGPS = false;
       $('btn-locate').classList.remove('centered');
-      $('btn-locate').classList.add('drifted');
     });
   }
 
@@ -772,12 +783,21 @@
     if (!requireProject()) return;
     const state = Tracks.getState();
     if (state === 'idle') {
-      Tracks.start(null);
+      Tracks.start(null, settings.gps.minAccuracy);
       Tracks.on(updateTrackDrawbar);
       drawMode = 'track';
       renderTrackDrawbar();
       $('drawbar').hidden = false;
       $('nav-track').classList.add('record');
+
+      // Ativa o modo "seguir" automaticamente ao começar a gravar — assim o
+      // cursor não sai da tela conforme você se desloca durante a trilha.
+      const pos = GPS.getLastPosition();
+      if (pos) {
+        MapModule.centerOnPosition(pos.coords.latitude, pos.coords.longitude);
+        seguindoGPS = true;
+        $('btn-locate').classList.add('centered');
+      }
     }
   }
 
@@ -872,7 +892,7 @@
     if (!requireProject()) return;
     drawMode = 'polygon';
     if (kind === 'manual') Polygons.startManual();
-    else Polygons.startGPSWalk(settings.gps.minDistance || 3);
+    else Polygons.startGPSWalk(settings.gps.minDistance || 3, settings.gps.minAccuracy);
 
     Polygons.onChange(renderPolygonDrawbar);
     renderPolygonDrawbar({ area: 0, perimeter: 0, vertexCount: 0 });
