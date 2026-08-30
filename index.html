@@ -149,10 +149,9 @@ const CACHE_MAX_IDADE_MS = 30 * 60 * 1000; // usa cache de até 30min como plano
 //      qualquer URL própria) — usa a URL absoluta diretamente, sem
 //      combinar com o repositório da biblioteca.
 const APPS_EXTRAS = [
-  // FieldGIS vive na raiz do repositório atendimentomapgeo-byte.github.io
-  // (um repositório PRÓPRIO, separado do repositório da biblioteca) — por
-  // isso usa "url" absoluta, não "path".
-  { titulo: 'FieldGIS — Mapas e Navegação de Campo', url: 'https://atendimentomapgeo-byte.github.io/' },
+  // FieldGIS vive na subpasta "fieldgis-app" deste mesmo repositório
+  // (biblioteca-de-app/fieldgis-app/index.html).
+  { titulo: 'FieldGIS — Mapas e Navegação de Campo', path: 'fieldgis-app/index.html' },
 ];
 
 const PAGES_BASE = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
