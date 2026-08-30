@@ -114,6 +114,15 @@
         zoomControl: false,
         attributionControl: false,
         maxZoom: 22,
+        // Permite zoom fracionário (ex.: 11.98 em vez de forçar 11 ou 12).
+        // Essencial para o enquadramento automático (fitBounds) conseguir
+        // preencher a tela com precisão ao abrir um projeto/PDF — com
+        // apenas zooms inteiros, o zoom ideal quase nunca cai exatamente
+        // num número redondo, e arredondar pra baixo (por segurança, pra
+        // nada ficar cortado fora da tela) podia deixar a imagem com quase
+        // metade do tamanho que deveria (cada nível de zoom dobra a escala).
+        zoomSnap: 0,
+        zoomDelta: 0.5, // cada toque no zoom (pinça/duplo toque) varia em passos menores, mais suaves
       });
 
       // Controles nativos do Leaflet (zoom +/-, escala, atribuição) removidos
@@ -300,12 +309,15 @@
 
     /**
      * Ajusta o mapa para enquadrar as coordenadas informadas, ocupando a
-     * tela toda (menos uma margem de 30px). Calcula o zoom ideal manualmente
-     * com map.project() em cada nível de zoom candidato, comparando contra o
-     * tamanho REAL da janela visível (#map) — não depende em nenhum momento
-     * do tamanho atual de #map-inner (que fica inflado para cobrir a
-     * diagonal quando a rotação por bússola está ativa), evitando qualquer
-     * cálculo de zoom incorreto por causa disso.
+     * tela toda (menos uma margem de 30px). Calcula o zoom IDEAL de forma
+     * matemática e direta (via log2), em vez de testar zooms inteiros um a
+     * um — com zoomSnap:0 habilitado (ver init), o mapa aceita esse zoom
+     * fracionário exato, preenchendo a tela com precisão em vez de ficar
+     * limitado a saltos inteiros (que podiam deixar a imagem com quase
+     * metade do tamanho ideal, dependendo de quão perto do próximo nível
+     * inteiro o zoom "certo" caísse). Usa o tamanho REAL da janela visível
+     * (#map), nunca o de #map-inner (que fica inflado durante a rotação por
+     * bússola).
      */
     fitBounds(bounds) {
       const b = L.latLngBounds(bounds);
@@ -318,20 +330,21 @@
 
       const noroeste = L.latLng(b.getNorth(), b.getWest());
       const sudeste = L.latLng(b.getSouth(), b.getEast());
-      const zoomMax = map.getMaxZoom();
-      const zoomMin = map.getMinZoom();
 
-      let zoomIdeal = zoomMin;
-      for (let z = zoomMax; z >= zoomMin; z--) {
-        const p1 = map.project(noroeste, z);
-        const p2 = map.project(sudeste, z);
-        const largura = Math.abs(p2.x - p1.x);
-        const altura = Math.abs(p2.y - p1.y);
-        if (largura <= larguraAlvo && altura <= alturaAlvo) {
-          zoomIdeal = z;
-          break;
-        }
-      }
+      // Mede a largura/altura das bounds em pixels num zoom de referência
+      // qualquer, e a partir disso calcula matematicamente o zoom exato que
+      // faz caber perfeitamente na janela (dobrar o zoom dobra os pixels,
+      // então a diferença de zoom necessária é log2 da razão de escala).
+      const zRef = 10;
+      const p1 = map.project(noroeste, zRef);
+      const p2 = map.project(sudeste, zRef);
+      const larguraRef = Math.abs(p2.x - p1.x);
+      const alturaRef = Math.abs(p2.y - p1.y);
+
+      let zoomIdeal = map.getMaxZoom();
+      if (larguraRef > 0) zoomIdeal = Math.min(zoomIdeal, zRef + Math.log2(larguraAlvo / larguraRef));
+      if (alturaRef > 0) zoomIdeal = Math.min(zoomIdeal, zRef + Math.log2(alturaAlvo / alturaRef));
+      zoomIdeal = Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), zoomIdeal));
 
       map.setView(b.getCenter(), zoomIdeal);
     },
