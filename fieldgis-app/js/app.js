@@ -350,13 +350,10 @@
       if (event === 'position') {
         updateGpsBadge(data);
         updateFieldModeTiles(data);
-        // Quando a bússola do aparelho está ativa, ela já cuida da rotação
-        // da seta (compass.js chama MapModule.updateHeading diretamente,
-        // com muito mais frequência e funcionando mesmo parado). O heading
-        // do GPS só existe enquanto o usuário está em movimento, então só o
-        // usamos aqui como respaldo quando a bússola está desligada.
-        const heading = Compass.isActive() ? undefined : data.heading ?? undefined;
-        MapModule.updatePosition(data.lat, data.lon, data.accuracy, heading);
+        // A seta do marcador nunca gira — ela fica sempre travada apontando
+        // pra cima da tela. Quando a bússola está ativa, é o MAPA (ver
+        // wireCompass) que gira para acompanhar o rumo, não a seta.
+        MapModule.updatePosition(data.lat, data.lon, data.accuracy);
       } else if (event === 'error') {
         $('gps-status-text').textContent = 'GPS indisponível';
         $('gps-dot').className = 'fg-dot unknown';
@@ -383,11 +380,11 @@
 
     Compass.on((event, data) => {
       if (event === 'heading') {
-        // Apenas a seta de posição gira, mostrando para onde o celular está
-        // fisicamente apontando. O mapa (satélite/OSM) e qualquer PDF
-        // importado NUNCA giram — ficam sempre parados com o Norte para
-        // cima, como um mapa impresso.
-        MapModule.updateHeading(data.heading);
+        // O MAPA inteiro (tiles + PDFs importados + pontos/trilhas/polígonos)
+        // gira para acompanhar o rumo da bússola, mantendo o Norte do mapa e
+        // do PDF sempre alinhados com o Norte real. A seta fica travada
+        // apontando pra cima da tela — é o mundo que gira ao redor dela.
+        MapModule.setMapRotation(data.heading);
         const label = $('compass-heading-label');
         if (label) label.textContent = Math.round(data.heading) + '°';
       } else if (event === 'timeout') {
@@ -410,12 +407,13 @@
     btn.onclick = async () => {
       if (Compass.isActive()) {
         Compass.stop();
+        MapModule.setRotationEnabled(false);
         btn.classList.remove('active');
         const label = $('compass-heading-label');
         if (label) label.textContent = '';
         await DB.saveSettings({ gps: Object.assign({}, settings.gps, { useCompass: false }) });
         settings.gps.useCompass = false;
-        toast('Bússola desativada — a seta volta a usar a direção do GPS (só em movimento).');
+        toast('Bússola desativada — mapa e PDFs voltam ao Norte fixo pra cima.');
         return;
       }
 
@@ -424,11 +422,12 @@
         toast('Permissão da bússola negada. Em iPhone: Ajustes > Safari > Localização e Movimento e Orientação.', 4500);
         return;
       }
+      MapModule.setRotationEnabled(true);
       Compass.start();
       btn.classList.add('active');
       await DB.saveSettings({ gps: Object.assign({}, settings.gps, { useCompass: true }) });
       settings.gps.useCompass = true;
-      toast('Bússola ativada — a seta agora aponta para onde o celular está virado. Se ela oscilar, gire o aparelho em forma de "8" para calibrar o sensor.', 4500);
+      toast('Bússola ativada — o mapa e os PDFs agora giram acompanhando o Norte real. A seta fica travada apontando pra cima da tela. Se oscilar, gire o aparelho em forma de "8" para calibrar o sensor.', 4500);
     };
 
     // Em Android (e navegadores que não exigem toque para autorizar o
@@ -437,6 +436,7 @@
     // exige um toque a cada nova sessão, então o botão fica pronto pra
     // ativar com um toque só.
     if (settings.gps.useCompass && !Compass.needsExplicitPermission()) {
+      MapModule.setRotationEnabled(true);
       Compass.start();
       btn.classList.add('active');
     }

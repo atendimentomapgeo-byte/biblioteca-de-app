@@ -16,16 +16,18 @@
  *   - Gerenciar camadas vetoriais (pontos, trilhas, polígonos) através do
  *     LayerManager (ver layers.js), mantendo referência aos objetos Leaflet.
  *
- * ORIENTAÇÃO — Norte sempre para cima:
- *   O mapa (tiles OSM/satélite) e qualquer mapa/PDF importado (georreferenciado)
- *   NUNCA giram — ficam sempre com o Norte real apontando para cima na tela,
- *   como um mapa impresso, garantindo a leitura correta de documentos
- *   cartográficos técnicos/legais independentemente de como o usuário estiver
- *   segurando o aparelho. Apenas a seta do marcador de posição atual gira
- *   livremente (ver updateHeading), indicando para onde o CELULAR está
- *   fisicamente apontando — alimentada pela bússola/magnetômetro do aparelho
- *   (compass.js) quando ativa, ou pelo heading do GPS (só existe em
- *   movimento) como respaldo.
+ * ORIENTAÇÃO — Modo bússola (Norte do mapa alinhado com o Norte real):
+ *   Quando a bússola do aparelho está ativa (compass.js), o mapa inteiro
+ *   (tiles OSM/satélite, pontos/trilhas/polígonos e qualquer PDF/mapa
+ *   importado) gira junto para acompanhar o rumo lido pela bússola — assim
+ *   o Norte do mapa e do PDF ficam sempre alinhados com o Norte real. A
+ *   seta do marcador de posição, por sua vez, fica travada apontando pra
+ *   cima da tela (Norte de grade/tela): é o mapa que gira ao redor dela, não
+ *   o contrário — o mesmo comportamento do modo "bússola"/"direção de
+ *   deslocamento" usado por apps de navegação. Essa rotação é puramente
+ *   visual (CSS transform no container do mapa), já que o Leaflet não
+ *   suporta rotação nativa do "mundo"; por isso o arraste manual do mapa
+ *   fica desativado enquanto esse modo está ativo (ver setRotationEnabled).
  */
 
 (function () {
@@ -36,7 +38,6 @@
   let gridLayer = null;
   let positionMarker = null;
   let accuracyCircle = null;
-  let headingMarkerRotation = 0;
   let settingsCache = null;
   let cursorCoordCallback = null;
 
@@ -153,29 +154,43 @@
       return Object.keys(baseLayers);
     },
 
-    /** Atualiza a posição/precisão do marcador "Minha localização". */
-    updatePosition(lat, lon, accuracy, heading) {
+    /** Atualiza a posição/precisão do marcador "Minha localização". A seta NUNCA gira — fica sempre travada apontando para cima da tela (ver setMapRotation). */
+    updatePosition(lat, lon, accuracy) {
       const latlng = [lat, lon];
       positionMarker.setLatLng(latlng);
       if (!map.hasLayer(positionMarker)) positionMarker.addTo(map);
       accuracyCircle.setLatLng(latlng);
       accuracyCircle.setRadius(accuracy || 0);
       if (!map.hasLayer(accuracyCircle)) accuracyCircle.addTo(map);
-
-      if (heading != null && !Number.isNaN(heading)) {
-        MapModule.updateHeading(heading);
-      }
     },
 
     /**
-     * Gira apenas a seta do marcador de posição, sem tocar em lat/lon/precisão.
-     * Usada pela bússola do aparelho (compass.js), que emite leituras com
-     * frequência bem maior do que as atualizações de posição do GPS.
+     * Gira o mapa inteiro (tiles OSM/satélite + qualquer PDF/mapa importado
+     * + pontos/trilhas/polígonos — tudo dentro do mesmo container) para
+     * acompanhar o rumo da bússola do aparelho. É assim que o Norte do mapa
+     * e do PDF ficam sempre alinhados com o Norte real lido pela bússola: a
+     * seta do marcador de posição fica travada apontando pra cima da tela
+     * (Norte de grade/tela) e é o MUNDO que gira ao redor dela — o mesmo
+     * modo "bússola"/"direção de deslocamento" usado por apps de navegação.
      */
-    updateHeading(heading) {
-      headingMarkerRotation = heading;
-      const arrow = document.getElementById('fg-position-arrow');
-      if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
+    setMapRotation(heading) {
+      if (heading == null || Number.isNaN(heading)) return;
+      const container = map.getContainer();
+      container.style.transform = `rotate(${-heading}deg)`;
+      container.style.transformOrigin = 'center center';
+    },
+
+    /**
+     * Liga/desliga o modo de rotação do mapa pela bússola. O Leaflet não
+     * compensa os eventos de ponteiro pela rotação CSS, então o arraste
+     * manual do mapa é desativado enquanto esse modo está ativo (o mapa se
+     * recentraliza automaticamente na posição do GPS).
+     */
+    setRotationEnabled(enabled) {
+      map.dragging[enabled ? 'disable' : 'enable']();
+      if (!enabled) {
+        map.getContainer().style.transform = '';
+      }
     },
 
     centerOnPosition(lat, lon, zoom) {
