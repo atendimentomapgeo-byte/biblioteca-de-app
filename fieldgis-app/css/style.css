@@ -258,7 +258,8 @@ label {
   font-size: 22px;
   display: flex; align-items: center; justify-content: center;
 }
-.fg-fab-locate.active { background: var(--fg-primary); }
+.fg-fab-locate.centered { background: var(--fg-accent); }
+.fg-fab-locate.drifted { background: var(--fg-danger); }
 
 .fg-fab-compass {
   position: absolute;

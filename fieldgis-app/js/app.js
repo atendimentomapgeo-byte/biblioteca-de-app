@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v18';
+  const APP_BUILD_VERSION = 'v19';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -180,17 +180,26 @@
   }
 
   async function fitProjectBounds(projectId) {
-    const maps = await DB.byProject('maps', projectId);
-
-    // Quando o projeto tem mapa(s)/PDF importado(s), o mais RECENTE é o
-    // documento de referência atual — ele sempre carrega ocupando a tela
-    // toda. (Usar a UNIÃO de vários mapas/PDFs salvos no mesmo projeto faria
-    // o zoom afastar demais para caber todos juntos, deixando cada um
-    // pequeno no meio da tela — não é isso que se espera aqui.)
-    if (maps.length) {
-      const maisRecente = maps.slice().sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))[0];
-      if (maisRecente.bounds) {
-        MapModule.fitBounds(maisRecente.bounds);
+    // Quando o projeto tem mapa(s)/PDF importado(s) MARCADOS COMO VISÍVEIS
+    // (controlado em Menu > Camadas), eles são o documento de referência
+    // atual — sempre carregam ocupando a tela toda. Usar só os visíveis (em
+    // vez de todos os já salvos, ou tentar adivinhar "o mais recente") dá
+    // controle direto ao usuário: PDFs antigos de teste que ele ocultar não
+    // entram mais no cálculo do zoom.
+    const layers = await Layers.list(projectId);
+    const rasterVisiveis = layers.filter((l) => l.kind === 'raster' && l.visible);
+    if (rasterVisiveis.length) {
+      const maps = await DB.byProject('maps', projectId);
+      const boundsRaster = [];
+      rasterVisiveis.forEach((rl) => {
+        const m = maps.find((mm) => mm.layerId === rl.id);
+        if (m && m.bounds) {
+          boundsRaster.push(m.bounds[0]);
+          boundsRaster.push(m.bounds[1]);
+        }
+      });
+      if (boundsRaster.length) {
+        MapModule.fitBounds(boundsRaster);
         return;
       }
     }
@@ -555,8 +564,17 @@
         return;
       }
       MapModule.centerOnPosition(pos.coords.latitude, pos.coords.longitude);
-      $('btn-locate').classList.add('active');
+      $('btn-locate').classList.remove('drifted');
+      $('btn-locate').classList.add('centered');
     };
+
+    // 'dragstart' só dispara em arraste manual de verdade (dedo/mouse do
+    // usuário) — recentralizações programáticas via setView (ex.: o próprio
+    // botão de localizar) não disparam esse evento, então não há conflito.
+    map.on('dragstart', () => {
+      $('btn-locate').classList.remove('centered');
+      $('btn-locate').classList.add('drifted');
+    });
   }
 
   // =======================================================================
