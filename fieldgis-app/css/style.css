@@ -156,7 +156,7 @@ label {
 .fg-dot.excellent, .fg-dot.good { background: #2ecc71; }
 .fg-dot.moderate { background: #ffb300; }
 .fg-dot.weak, .fg-dot.unknown { background: #e53935; }
-.fg-gps-badge .fg-coord { color: var(--fg-text-dim); font-variant-numeric: tabular-nums; }
+.fg-gps-badge .fg-coord { color: var(--fg-text-dim); font-variant-numeric: tabular-nums; display: inline-block; border-bottom: 1px dashed var(--fg-text-faint); }
 
 /* ---------------------------- Map ---------------------------- */
 #map {
@@ -198,7 +198,12 @@ label {
 }
 .leaflet-container { background: #0c1015; font-family: inherit; }
 
-.fg-position-arrow { transition: transform 0.2s linear; }
+/* Sem transição de propósito: a rotação da seta precisa ficar perfeitamente
+   sincronizada, instante a instante, com a contra-rotação aplicada pela
+   bússola (ver MapModule.setMapRotation) — uma transição própria aqui faria
+   a seta "atrasar" em relação ao mapa e só alinhar depois de alguns
+   instantes, em vez de ficar sempre travada apontando pra cima. */
+.fg-position-arrow { }
 .fg-point-pin {
   width: 26px; height: 34px;
   background: var(--fg-primary);

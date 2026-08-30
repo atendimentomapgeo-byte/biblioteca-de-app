@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v12';
+  const APP_BUILD_VERSION = 'v14';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -120,6 +120,11 @@
     $('fg-project-name').textContent = project.name;
     await refreshProjectHeader();
 
+    // Fecha a tela de projetos JÁ (antes de renderizar as camadas), para o
+    // usuário ver o mapa do projeto carregando na hora, em vez de esperar
+    // atrás de uma tela fechada até tudo terminar.
+    closeSheet('overlay-projects');
+
     // Limpa camadas anteriores do mapa
     Object.values(layerGroups).forEach((lg) => map.hasLayer(lg) && map.removeLayer(lg));
     Object.values(rasterOverlays).forEach((ov) => map.hasLayer(ov) && map.removeLayer(ov));
@@ -133,7 +138,6 @@
     }
 
     await fitProjectBounds(projectId);
-    closeSheet('overlay-projects');
     toast(`Projeto "${project.name}" carregado.`);
   }
 
@@ -174,9 +178,25 @@
   }
 
   async function fitProjectBounds(projectId) {
-    const points = await DB.byProject('points', projectId);
     const bounds = [];
+
+    const points = await DB.byProject('points', projectId);
     points.forEach((p) => bounds.push([p.lat, p.lon]));
+
+    const tracks = await DB.byProject('tracks', projectId);
+    tracks.forEach((t) => (t.points || []).forEach((p) => bounds.push([p.lat, p.lon])));
+
+    const polygons = await DB.byProject('polygons', projectId);
+    polygons.forEach((pol) => (pol.vertices || []).forEach((v) => bounds.push([v.lat, v.lon])));
+
+    const maps = await DB.byProject('maps', projectId);
+    maps.forEach((m) => {
+      if (m.bounds) {
+        bounds.push(m.bounds[0]);
+        bounds.push(m.bounds[1]);
+      }
+    });
+
     if (bounds.length) {
       MapModule.fitBounds(bounds);
     }
@@ -374,6 +394,7 @@
       renderGpsDetail();
     };
 
+    wireGpsCoordFormatToggle();
     wireCompass();
   }
 
@@ -454,7 +475,36 @@
     $('gps-dot').className = 'fg-dot ' + data.quality;
     const labels = { excellent: 'GPS Excelente', good: 'GPS Bom', moderate: 'GPS Moderado', weak: 'GPS Fraco', unknown: 'GPS indisponível' };
     $('gps-status-text').textContent = labels[data.quality] || 'GPS';
-    $('gps-coord-text').textContent = `${Coordinates.formatLat(data.lat, settings.coords.format)}  ${Coordinates.formatLon(data.lon, settings.coords.format)}`;
+    if (settings.coords.format === 'utm') {
+      const utm = Coordinates.toUTM(data.lat, data.lon, settings.coords.datum);
+      $('gps-coord-text').textContent = `${utm.easting.toFixed(2)}E  ${utm.northing.toFixed(2)}N  ${utm.label}`;
+    } else {
+      $('gps-coord-text').textContent = `${Coordinates.formatLat(data.lat, settings.coords.format)}  ${Coordinates.formatLon(data.lon, settings.coords.format)}`;
+    }
+  }
+
+  const ORDEM_FORMATOS_COORD = ['dms', 'utm', 'dd'];
+  const NOMES_FORMATOS_COORD = { dms: 'Graus, minutos e segundos (GMS)', utm: 'UTM', dd: 'Graus decimais' };
+
+  function wireGpsCoordFormatToggle() {
+    const el = $('gps-coord-text');
+    if (!el) return;
+    el.title = 'Toque para trocar o formato de coordenadas';
+    el.onclick = async (e) => {
+      e.stopPropagation(); // não abre o painel de detalhes do GPS, só troca o formato
+      const atual = ORDEM_FORMATOS_COORD.indexOf(settings.coords.format);
+      const proximo = ORDEM_FORMATOS_COORD[(atual === -1 ? 0 : atual + 1) % ORDEM_FORMATOS_COORD.length];
+      settings = await DB.saveSettings({ coords: Object.assign({}, settings.coords, { format: proximo }) });
+      const pos = GPS.getLastPosition();
+      if (pos) {
+        updateGpsBadge({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          quality: GPS.classifyQuality(pos.coords.accuracy),
+        });
+      }
+      toast(`Formato de coordenadas: ${NOMES_FORMATOS_COORD[proximo]}`);
+    };
   }
 
   function renderGpsDetail() {
@@ -1581,8 +1631,10 @@
       <select id="st-format">
         <option value="dms" ${settings.coords.format === 'dms' ? 'selected' : ''}>Graus, minutos e segundos (GMS)</option>
         <option value="dmm" ${settings.coords.format === 'dmm' ? 'selected' : ''}>Graus e minutos decimais</option>
-        <option value="dd" ${settings.coords.format === 'dd' ? 'selected' : ''}>Decimal</option>
+        <option value="dd" ${settings.coords.format === 'dd' ? 'selected' : ''}>Graus decimais</option>
+        <option value="utm" ${settings.coords.format === 'utm' ? 'selected' : ''}>UTM</option>
       </select>
+      <p style="font-size:12px;color:var(--fg-text-dim);margin-top:-8px">Dica: toque direto nas coordenadas exibidas no mapa (embaixo de "GPS Bom/Excelente") para alternar rapidamente entre GMS, UTM e decimal, sem precisar abrir esta tela.</p>
 
       <h3>Mapa</h3>
       <div class="fg-switch-row"><span>Exibir grade UTM</span><div class="fg-switch ${settings.map.showGrid ? 'on' : ''}" id="st-grid"></div></div>

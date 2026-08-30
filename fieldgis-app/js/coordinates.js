@@ -86,7 +86,8 @@
   /** Formata graus decimais como string GMS: 10°43'32.278"S */
   function formatDMS(value, isLat, decimals = 3) {
     const { deg, min, sec, hemi } = decToDMS(value, isLat);
-    return `${deg}°${String(min).padStart(2, '0')}'${sec.toFixed(decimals).padStart(decimals + 3, '0')}"${hemi}`;
+    const secStr = sec.toFixed(decimals).padStart(decimals + 3, '0').replace('.', ',');
+    return `${deg}°${String(min).padStart(2, '0')}'${secStr}"${hemi}`;
   }
 
   /** Formata graus e minutos decimais: 10°43.538'S */
@@ -115,26 +116,26 @@
     return formatDMS(value, false);
   }
 
-  /** Faz o parse de uma string de coordenada em vários formatos possíveis (DD, DMS, DMM). */
+  /** Faz o parse de uma string de coordenada em vários formatos possíveis (DD, DMS, DMM). Aceita vírgula ou ponto como separador decimal. */
   function parseCoordString(str) {
     str = str.trim();
-    // Decimal simples, ex: -10.725632 ou 10.725632
-    const decMatch = str.match(/^-?\d+(\.\d+)?°?$/);
-    if (decMatch) return parseFloat(str);
+    // Decimal simples, ex: -10.725632, -10,725632 ou 10.725632
+    const decMatch = str.match(/^-?\d+([.,]\d+)?°?$/);
+    if (decMatch) return parseFloat(str.replace(',', '.'));
 
-    // DMS, ex: 10°43'32.278"S  ou 10 43 32.278 S
-    const dmsMatch = str.match(/(\d+)[°\s]+(\d+)['\s]+([\d.]+)["\s]*([NSEWnsew])?/);
+    // DMS, ex: 10°43'32.278"S, 10°43'32,278"S ou 10 43 32.278 S
+    const dmsMatch = str.match(/(\d+)[°\s]+(\d+)['\s]+([\d.,]+)["\s]*([NSEWnsew])?/);
     if (dmsMatch) {
       const [, d, m, s, hemi] = dmsMatch;
-      let val = parseFloat(d) + parseFloat(m) / 60 + parseFloat(s) / 3600;
+      let val = parseFloat(d) + parseFloat(m) / 60 + parseFloat(s.replace(',', '.')) / 3600;
       if (hemi && /[SWsw]/.test(hemi)) val = -val;
       return val;
     }
-    // DMM, ex: 10°43.538'S
-    const dmmMatch = str.match(/(\d+)[°\s]+([\d.]+)['\s]*([NSEWnsew])?/);
+    // DMM, ex: 10°43.538'S ou 10°43,538'S
+    const dmmMatch = str.match(/(\d+)[°\s]+([\d.,]+)['\s]*([NSEWnsew])?/);
     if (dmmMatch) {
       const [, d, m, hemi] = dmmMatch;
-      let val = parseFloat(d) + parseFloat(m) / 60;
+      let val = parseFloat(d) + parseFloat(m.replace(',', '.')) / 60;
       if (hemi && /[SWsw]/.test(hemi)) val = -val;
       return val;
     }
