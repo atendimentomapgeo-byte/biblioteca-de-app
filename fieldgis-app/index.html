@@ -22,13 +22,25 @@
   // com base num viewport que não existe mais nesse modo, deixando uma faixa
   // vazia no rodapé. Aqui calculamos a altura real da tela e guardamos numa
   // variável CSS usada como reforço/fallback do 100dvh (ver css/style.css).
+  //
+  // Usamos window.visualViewport (quando disponível) em vez de só
+  // window.innerHeight: no Safari do iOS, quando a barra de endereço
+  // aparece/some durante o uso (rolagem, etc.), a altura visível muda mas o
+  // evento 'resize' comum nem sempre dispara de forma confiável nesse caso
+  // — o visualViewport.resize sim, evitando que a faixa vazia volte a
+  // aparecer depois que a barra de endereço some.
   (function () {
     function ajustarAlturaReal() {
-      document.documentElement.style.setProperty('--fg-vh', window.innerHeight + 'px');
+      const altura = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      document.documentElement.style.setProperty('--fg-vh', altura + 'px');
     }
     ajustarAlturaReal();
     window.addEventListener('resize', ajustarAlturaReal);
     window.addEventListener('orientationchange', ajustarAlturaReal);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', ajustarAlturaReal);
+      window.visualViewport.addEventListener('scroll', ajustarAlturaReal);
+    }
   })();
 </script>
 </head>
@@ -92,7 +104,6 @@
     <button class="fg-navbtn" id="nav-add"><span class="fg-navicon">➕</span>Novo</button>
     <button class="fg-navbtn" id="nav-measure"><span class="fg-navicon">📏</span>Medir</button>
     <button class="fg-navbtn" id="nav-track"><span class="fg-navicon">▶️</span>Trilha</button>
-    <button class="fg-navbtn" id="nav-menu"><span class="fg-navicon">☰</span>Menu</button>
   </nav>
 
   <!-- ============================= TOAST ============================= -->

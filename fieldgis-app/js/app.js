@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v23';
+  const APP_BUILD_VERSION = 'v24';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -362,7 +362,6 @@
   // =======================================================================
   function wireBottomNav() {
     $('nav-point').onclick = () => handleNewPoint();
-    $('nav-menu').onclick = () => openSheet('overlay-menu');
     $('nav-add').onclick = () => openSheet('overlay-add');
     $('nav-compass').onclick = () => handleNavigateRequest();
     $('nav-measure').onclick = () => handleMeasureRequest();
