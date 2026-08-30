@@ -16,17 +16,16 @@
  *   - Gerenciar camadas vetoriais (pontos, trilhas, polígonos) através do
  *     LayerManager (ver layers.js), mantendo referência aos objetos Leaflet.
  *
- * LIMITAÇÃO TÉCNICA DOCUMENTADA — Rotação do mapa:
- *   O Leaflet não suporta nativamente a rotação do "mundo" (tiles/overlays)
- *   sem um plugin pesado que reescreve o motor de eventos do mapa. Para
- *   manter o aplicativo robusto e sem dependências externas via CDN,
- *   implementamos rotação visual do container do mapa via CSS transform
- *   (bom para conferência visual rápida de orientação), mas desativamos o
- *   arraste manual do mapa enquanto a rotação está ativa (o recentraliza-se
- *   automaticamente no GPS), pois os eventos de ponteiro do Leaflet não são
- *   compensados pela rotação CSS. A seta de posição atual (heading) sempre
- *   gira corretamente, independentemente desse modo, o que atende a maior
- *   parte da necessidade de orientação em campo.
+ * ORIENTAÇÃO — Norte sempre para cima:
+ *   O mapa (tiles OSM/satélite) e qualquer mapa/PDF importado (georreferenciado)
+ *   NUNCA giram — ficam sempre com o Norte real apontando para cima na tela,
+ *   como um mapa impresso, garantindo a leitura correta de documentos
+ *   cartográficos técnicos/legais independentemente de como o usuário estiver
+ *   segurando o aparelho. Apenas a seta do marcador de posição atual gira
+ *   livremente (ver updateHeading), indicando para onde o CELULAR está
+ *   fisicamente apontando — alimentada pela bússola/magnetômetro do aparelho
+ *   (compass.js) quando ativa, ou pelo heading do GPS (só existe em
+ *   movimento) como respaldo.
  */
 
 (function () {
@@ -38,8 +37,6 @@
   let positionMarker = null;
   let accuracyCircle = null;
   let headingMarkerRotation = 0;
-  let rotationEnabled = false;
-  let mapRotationDeg = 0;
   let settingsCache = null;
   let cursorCoordCallback = null;
 
@@ -187,28 +184,6 @@
 
     getCenter() {
       return map.getCenter();
-    },
-
-    /** Ativa/desativa a rotação visual do mapa (ver limitação documentada no topo do arquivo). */
-    setMapRotation(deg) {
-      mapRotationDeg = deg;
-      const pane = map.getContainer();
-      if (rotationEnabled) {
-        pane.style.transform = `rotate(${-deg}deg)`;
-        pane.style.transformOrigin = 'center center';
-      }
-    },
-
-    setRotationEnabled(enabled) {
-      rotationEnabled = enabled;
-      map.dragging[enabled ? 'disable' : 'enable']();
-      if (!enabled) {
-        map.getContainer().style.transform = '';
-      }
-    },
-
-    isRotationEnabled() {
-      return rotationEnabled;
     },
 
     /** Desenha/atualiza a grade UTM sobre a área visível do mapa. */

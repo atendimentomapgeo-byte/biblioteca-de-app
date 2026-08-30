@@ -383,7 +383,27 @@
 
     Compass.on((event, data) => {
       if (event === 'heading') {
+        // Apenas a seta de posição gira, mostrando para onde o celular está
+        // fisicamente apontando. O mapa (satélite/OSM) e qualquer PDF
+        // importado NUNCA giram — ficam sempre parados com o Norte para
+        // cima, como um mapa impresso.
         MapModule.updateHeading(data.heading);
+        const label = $('compass-heading-label');
+        if (label) label.textContent = Math.round(data.heading) + '°';
+      } else if (event === 'timeout') {
+        const label = $('compass-heading-label');
+        if (label) label.textContent = '⚠️';
+        if (data.rawEventCount === 0) {
+          toast(
+            'A bússola não está enviando nenhum dado. No iPhone, confira: Ajustes > Safari > "Acesso a Movimento e Orientação" (deve estar ativado) — e reabra o app depois de mudar.',
+            6000
+          );
+        } else {
+          toast(
+            'O sensor de orientação respondeu, mas sem rumo de bússola utilizável. Tente girar o celular em forma de "8" para calibrar o magnetômetro, longe de metais/ímãs.',
+            6000
+          );
+        }
       }
     });
 
@@ -391,6 +411,8 @@
       if (Compass.isActive()) {
         Compass.stop();
         btn.classList.remove('active');
+        const label = $('compass-heading-label');
+        if (label) label.textContent = '';
         await DB.saveSettings({ gps: Object.assign({}, settings.gps, { useCompass: false }) });
         settings.gps.useCompass = false;
         toast('Bússola desativada — a seta volta a usar a direção do GPS (só em movimento).');
@@ -1555,7 +1577,7 @@
 
       <h3>Mapa</h3>
       <div class="fg-switch-row"><span>Exibir grade UTM</span><div class="fg-switch ${settings.map.showGrid ? 'on' : ''}" id="st-grid"></div></div>
-      <div class="fg-switch-row"><span>Rotação do mapa (bússola)</span><div class="fg-switch ${settings.map.rotationEnabled ? 'on' : ''}" id="st-rotation"></div></div>
+
       <div class="fg-switch-row"><span>Marca d'água nas fotos</span><div class="fg-switch ${settings.watermark ? 'on' : ''}" id="st-watermark"></div></div>
 
       <h3>Unidades</h3>
@@ -1572,7 +1594,6 @@
       <button class="fg-btn danger" id="st-clear-tiles">🗑️ Limpar cache de mapas offline</button>`;
 
     $('st-grid').onclick = (e) => e.target.classList.toggle('on');
-    $('st-rotation').onclick = (e) => e.target.classList.toggle('on');
     $('st-watermark').onclick = (e) => e.target.classList.toggle('on');
 
     refreshTileCacheInfo();
@@ -1588,15 +1609,14 @@
 
     $('st-save').onclick = async () => {
       const newSettings = {
-        gps: { minAccuracy: +$('st-gps-acc').value, minDistance: +$('st-gps-dist').value, minInterval: settings.gps.minInterval, autoUpdate: true },
+        gps: { minAccuracy: +$('st-gps-acc').value, minDistance: +$('st-gps-dist').value, minInterval: settings.gps.minInterval, autoUpdate: true, useCompass: settings.gps.useCompass },
         coords: { datum: $('st-datum').value, format: $('st-format').value, showUTM: true },
-        map: { rotationEnabled: $('st-rotation').classList.contains('on'), showGrid: $('st-grid').classList.contains('on'), showScale: true, showNorth: true },
+        map: { showGrid: $('st-grid').classList.contains('on'), showScale: true, showNorth: true },
         units: { distance: $('st-unit-dist').value, area: $('st-unit-area').value },
         watermark: $('st-watermark').classList.contains('on'),
       };
       settings = await DB.saveSettings(newSettings);
       MapModule.toggleGrid(settings.map.showGrid, settings.coords.datum);
-      MapModule.setRotationEnabled(settings.map.rotationEnabled);
       closeSheet('overlay-settings');
       toast('Configurações salvas.');
     };

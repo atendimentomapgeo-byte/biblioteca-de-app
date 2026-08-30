@@ -32,8 +32,11 @@
   const listeners = new Set();
   let active = false;
   let activeHandler = null;
-  let activeEventName = null;
+  let attachedEventNames = [];
   let smoothedHeading = null;
+  let watchdogTimer = null;
+  let rawEventCount = 0; // quantos eventos de orientação chegaram, utilizáveis ou não
+  let usableEventCount = 0; // quantos tinham um rumo de bússola aproveitável
 
   function emit(event, data) {
     listeners.forEach((cb) => cb(event, data));
@@ -100,8 +103,11 @@
     start() {
       if (active || !Compass.isSupported()) return;
       smoothedHeading = null;
+      rawEventCount = 0;
+      usableEventCount = 0;
 
       const handler = (event) => {
+        rawEventCount++;
         let rumo = null;
         let precisao = null;
 
@@ -109,37 +115,57 @@
           // iOS: valor já pronto, é o rumo magnético verdadeiro.
           rumo = event.webkitCompassHeading;
           precisao = event.webkitCompassAccuracy;
-        } else if (event.alpha != null && (event.absolute === true || activeEventName === 'deviceorientationabsolute')) {
+        } else if (event.alpha != null && (event.absolute === true || event.type === 'deviceorientationabsolute')) {
           rumo = alphaParaRumo(event.alpha);
         } else {
-          return; // sem dado utilizável nesta leitura
+          return; // este evento chegou, mas sem dado de rumo aproveitável
         }
 
+        usableEventCount++;
         emit('heading', { heading: smooth(rumo), rawHeading: rumo, accuracy: precisao });
       };
 
-      // Prefere o evento "absoluto" (Chrome/Android), que já é relativo ao
-      // Norte verdadeiro/magnético em vez de a uma orientação inicial
-      // arbitrária do aparelho.
-      activeEventName = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
-      window.addEventListener(activeEventName, handler);
+      // Registra os dois nomes de evento ao mesmo tempo (em vez de "adivinhar"
+      // qual o navegador suporta via feature-detection): o handler ignora
+      // sozinho o que não trouxer dado utilizável, então não há problema em
+      // escutar ambos — isso evita depender de detecção de propriedades que
+      // podem existir sem o evento realmente disparar, ou vice-versa.
+      attachedEventNames = ['deviceorientationabsolute', 'deviceorientation'];
+      attachedEventNames.forEach((name) => window.addEventListener(name, handler));
       activeHandler = handler;
       active = true;
       emit('started', {});
+
+      // Watchdog: se em alguns segundos nenhum dado utilizável chegou, avisa
+      // quem estiver ouvindo (a UI usa isso pra dar uma dica ao usuário em
+      // vez de deixar a seta simplesmente parada sem explicação).
+      clearTimeout(watchdogTimer);
+      watchdogTimer = setTimeout(() => {
+        if (active && usableEventCount === 0) {
+          emit('timeout', { rawEventCount, usableEventCount });
+        }
+      }, 3000);
     },
 
     stop() {
+      clearTimeout(watchdogTimer);
       if (active && activeHandler) {
-        window.removeEventListener(activeEventName, activeHandler);
+        attachedEventNames.forEach((name) => window.removeEventListener(name, activeHandler));
       }
       active = false;
       activeHandler = null;
+      attachedEventNames = [];
       smoothedHeading = null;
       emit('stopped', {});
     },
 
     isActive() {
       return active;
+    },
+
+    /** Contadores de diagnóstico: úteis para identificar se o sensor está enviando dados. */
+    getDiagnostics() {
+      return { rawEventCount, usableEventCount };
     },
   };
 
