@@ -306,7 +306,12 @@ label {
   background: var(--fg-bg-elevated);
   width: 100%;
   max-width: 560px;
-  max-height: 88vh;
+  /* % em vez de vh: o Safari calcula "vh" com base no viewport de layout, que
+     nem sempre encolhe quando o teclado abre — deixando esse limite maior
+     que a área realmente visível e empurrando o topo da tela pra trás da
+     barra de status. % resolve relativo ao próprio .fg-overlay, que herda a
+     altura correta (via --fg-vh) do #app. */
+  max-height: 88%;
   border-radius: 18px 18px 0 0;
   box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
   display: flex;
@@ -315,7 +320,7 @@ label {
 }
 .fg-overlay.center .fg-sheet {
   border-radius: 18px;
-  max-height: 90vh;
+  max-height: 90%;
 }
 .fg-sheet-handle {
   width: 40px; height: 4px;

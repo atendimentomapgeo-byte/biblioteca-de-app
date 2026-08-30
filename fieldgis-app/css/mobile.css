@@ -135,7 +135,7 @@ body.fg-field-mode .fg-topbar .fg-brand small { display: none; }
   .fg-overlay { align-items: center; }
   .fg-sheet {
     border-radius: 18px;
-    max-height: 84vh;
+    max-height: 84%;
     width: 460px;
   }
   .fg-drawbar, .fg-nav-overlay { max-width: 420px; margin: 0 auto; left: 0; right: 0; }
