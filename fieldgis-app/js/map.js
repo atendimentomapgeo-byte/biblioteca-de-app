@@ -178,6 +178,14 @@
       const container = map.getContainer();
       container.style.transform = `rotate(${-heading}deg)`;
       container.style.transformOrigin = 'center center';
+
+      // A seta do marcador de posição é um marcador Leaflet — portanto um
+      // FILHO do próprio #map — então ao girar o container inteiro ela gira
+      // junto sem querer. Aqui aplicamos a rotação OPOSTA só nela: as duas
+      // rotações se cancelam, e ela fica visualmente travada apontando
+      // sempre pra cima da tela, como pedido.
+      const arrow = document.getElementById('fg-position-arrow');
+      if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
     },
 
     /**
@@ -190,6 +198,8 @@
       map.dragging[enabled ? 'disable' : 'enable']();
       if (!enabled) {
         map.getContainer().style.transform = '';
+        const arrow = document.getElementById('fg-position-arrow');
+        if (arrow) arrow.style.transform = '';
       }
     },
 
