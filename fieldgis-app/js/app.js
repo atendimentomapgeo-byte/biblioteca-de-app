@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v15';
+  const APP_BUILD_VERSION = 'v18';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -182,19 +182,15 @@
   async function fitProjectBounds(projectId) {
     const maps = await DB.byProject('maps', projectId);
 
-    // Quando o projeto tem mapa(s)/PDF importado(s), eles são o documento de
-    // referência principal — sempre carregam ocupando a tela toda, em vez de
-    // dividir o zoom com pontos/trilhas espalhados por fora da área do PDF.
+    // Quando o projeto tem mapa(s)/PDF importado(s), o mais RECENTE é o
+    // documento de referência atual — ele sempre carrega ocupando a tela
+    // toda. (Usar a UNIÃO de vários mapas/PDFs salvos no mesmo projeto faria
+    // o zoom afastar demais para caber todos juntos, deixando cada um
+    // pequeno no meio da tela — não é isso que se espera aqui.)
     if (maps.length) {
-      const bounds = [];
-      maps.forEach((m) => {
-        if (m.bounds) {
-          bounds.push(m.bounds[0]);
-          bounds.push(m.bounds[1]);
-        }
-      });
-      if (bounds.length) {
-        MapModule.fitBounds(bounds);
+      const maisRecente = maps.slice().sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))[0];
+      if (maisRecente.bounds) {
+        MapModule.fitBounds(maisRecente.bounds);
         return;
       }
     }
