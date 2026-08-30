@@ -122,6 +122,7 @@
       <div class="fg-sheet-body">
         <div class="fg-actionsheet-list">
           <button class="fg-action-item" id="action-new-point"><span class="fg-action-icon">📍</span>Novo Ponto</button>
+          <button class="fg-action-item" id="action-identify"><span class="fg-action-icon">🎯</span>Identificar coordenada (toque no mapa)</button>
           <button class="fg-action-item" id="action-new-polygon-manual"><span class="fg-action-icon">⬠</span>Novo Polígono (desenho manual)</button>
           <button class="fg-action-item" id="action-new-polygon-gps"><span class="fg-action-icon">🚶</span>Novo Polígono (percorrer com GPS)</button>
           <button class="fg-action-item" id="action-import"><span class="fg-action-icon">📥</span>Importar dados/mapa</button>
@@ -291,6 +292,15 @@
       <div class="fg-sheet-handle"></div>
       <div class="fg-sheet-header"><h2>Minha Localização</h2><button class="fg-close-btn" data-close="overlay-gps-detail">✕</button></div>
       <div class="fg-sheet-body" id="gps-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================= IDENTIFICAR COORDENADA ============================= -->
+  <div class="fg-overlay" id="overlay-identify" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-handle"></div>
+      <div class="fg-sheet-header"><h2>Coordenada identificada</h2><button class="fg-close-btn" data-close="overlay-identify">✕</button></div>
+      <div class="fg-sheet-body" id="identify-body"></div>
     </div>
   </div>
 

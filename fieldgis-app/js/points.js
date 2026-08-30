@@ -62,6 +62,24 @@
       };
     },
 
+    /** Cria um rascunho de ponto numa coordenada arbitrária (ex.: tocada no mapa via a ferramenta "Identificar coordenada"), sem depender do GPS. */
+    async draftAt(projectId, lat, lon) {
+      const code = await nextCode(projectId);
+      return {
+        projectId,
+        name: code,
+        code,
+        lat,
+        lon,
+        alt: null,
+        accuracy: null,
+        capturedAt: new Date().toISOString(),
+        description: '',
+        attributes: {},
+        photos: [],
+      };
+    },
+
     /** Aguarda a próxima leitura do monitoramento contínuo de GPS (ou usa getCurrentPosition como reforço). */
     _waitForFix(timeoutMs) {
       return new Promise((resolve, reject) => {

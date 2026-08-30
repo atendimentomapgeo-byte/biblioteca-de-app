@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v14';
+  const APP_BUILD_VERSION = 'v15';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -125,6 +125,8 @@
     // atrás de uma tela fechada até tudo terminar.
     closeSheet('overlay-projects');
 
+    if (drawMode === 'identify') stopIdentifyMode();
+
     // Limpa camadas anteriores do mapa
     Object.values(layerGroups).forEach((lg) => map.hasLayer(lg) && map.removeLayer(lg));
     Object.values(rasterOverlays).forEach((ov) => map.hasLayer(ov) && map.removeLayer(ov));
@@ -178,6 +180,25 @@
   }
 
   async function fitProjectBounds(projectId) {
+    const maps = await DB.byProject('maps', projectId);
+
+    // Quando o projeto tem mapa(s)/PDF importado(s), eles são o documento de
+    // referência principal — sempre carregam ocupando a tela toda, em vez de
+    // dividir o zoom com pontos/trilhas espalhados por fora da área do PDF.
+    if (maps.length) {
+      const bounds = [];
+      maps.forEach((m) => {
+        if (m.bounds) {
+          bounds.push(m.bounds[0]);
+          bounds.push(m.bounds[1]);
+        }
+      });
+      if (bounds.length) {
+        MapModule.fitBounds(bounds);
+        return;
+      }
+    }
+
     const bounds = [];
 
     const points = await DB.byProject('points', projectId);
@@ -188,14 +209,6 @@
 
     const polygons = await DB.byProject('polygons', projectId);
     polygons.forEach((pol) => (pol.vertices || []).forEach((v) => bounds.push([v.lat, v.lon])));
-
-    const maps = await DB.byProject('maps', projectId);
-    maps.forEach((m) => {
-      if (m.bounds) {
-        bounds.push(m.bounds[0]);
-        bounds.push(m.bounds[1]);
-      }
-    });
 
     if (bounds.length) {
       MapModule.fitBounds(bounds);
@@ -355,6 +368,10 @@
     $('action-new-point').onclick = () => {
       closeSheet('overlay-add');
       handleNewPoint();
+    };
+    $('action-identify').onclick = () => {
+      closeSheet('overlay-add');
+      handleIdentifyRequest();
     };
     $('action-new-polygon-manual').onclick = () => {
       closeSheet('overlay-add');
@@ -911,6 +928,118 @@
       resetDrawUI();
     }, 'danger'));
   }
+
+  // =======================================================================
+  // Identificar coordenada (toque no mapa)
+  // =======================================================================
+  let identifyMarker = null;
+
+  function handleIdentifyRequest() {
+    if (drawMode === 'identify') {
+      stopIdentifyMode();
+      return;
+    }
+    if (drawMode) {
+      toast('Termine a ação atual antes de identificar uma coordenada.');
+      return;
+    }
+    drawMode = 'identify';
+    map.on('click', handleIdentifyClick);
+    $('drawbar-stats').innerHTML = `<div class="stat"><span class="k">Identificar coordenada</span><span class="v">Toque em qualquer ponto do mapa</span></div>`;
+    const actions = $('drawbar-actions');
+    actions.innerHTML = '';
+    actions.appendChild(makeDrawBtn('✕ Encerrar', () => stopIdentifyMode(), 'danger'));
+    $('drawbar').hidden = false;
+
+    if (Compass.isActive()) {
+      toast('Atenção: com a bússola (rotação do mapa) ativa, o toque pode não corresponder exatamente ao ponto certo. Para identificar com precisão, desligue o 🧭 antes.', 5500);
+    }
+  }
+
+  function stopIdentifyMode() {
+    map.off('click', handleIdentifyClick);
+    if (identifyMarker) {
+      map.removeLayer(identifyMarker);
+      identifyMarker = null;
+    }
+    resetDrawUI();
+  }
+
+  function handleIdentifyClick(e) {
+    const { lat, lng } = e.latlng;
+    if (identifyMarker) map.removeLayer(identifyMarker);
+    identifyMarker = L.circleMarker([lat, lng], {
+      radius: 9,
+      color: '#ffb300',
+      weight: 2,
+      fillColor: '#ffb300',
+      fillOpacity: 0.35,
+      interactive: false,
+    }).addTo(map);
+    showIdentifyResult(lat, lng);
+  }
+
+  function showIdentifyResult(lat, lng) {
+    const dms = `${Coordinates.formatLat(lat, 'dms')}  ${Coordinates.formatLon(lng, 'dms')}`;
+    const dd = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    const utm = Coordinates.toUTM(lat, lng, settings.coords.datum);
+    const utmStr = `${utm.easting.toFixed(2)} E   ${utm.northing.toFixed(2)} N   Zona ${utm.label}`;
+
+    $('identify-body').innerHTML = `
+      <div class="fg-coord-box" style="margin-bottom:10px">
+        <div class="k">GMS (toque para copiar)</div><div class="v" id="id-copy-dms">${dms}</div>
+      </div>
+      <div class="fg-coord-box" style="margin-bottom:10px">
+        <div class="k">Decimal (toque para copiar)</div><div class="v" id="id-copy-dd">${dd}</div>
+      </div>
+      <div class="fg-coord-box" style="margin-bottom:16px">
+        <div class="k">UTM · ${settings.coords.datum} (toque para copiar)</div><div class="v" id="id-copy-utm">${utmStr}</div>
+      </div>
+      <button class="fg-btn" id="id-copy-all">📋 Copiar tudo (GMS + Decimal + UTM)</button>
+      <button class="fg-btn primary" id="id-save-point" style="margin-top:8px">📍 Salvar como ponto</button>`;
+
+    $('id-copy-dms').onclick = () => copiarTextoParaAreaDeTransferencia(dms);
+    $('id-copy-dd').onclick = () => copiarTextoParaAreaDeTransferencia(dd);
+    $('id-copy-utm').onclick = () => copiarTextoParaAreaDeTransferencia(utmStr);
+    $('id-copy-all').onclick = () =>
+      copiarTextoParaAreaDeTransferencia(`GMS: ${dms}\nDecimal: ${dd}\nUTM (${settings.coords.datum}): ${utmStr}`);
+    $('id-save-point').onclick = async () => {
+      if (!requireProject()) return;
+      closeSheet('overlay-identify');
+      try {
+        const draft = await Points.draftAt(currentProjectId, lat, lng);
+        draft.id = DB.uuid();
+        pointDraft = draft;
+        await openPointForm(draft, true);
+      } catch (err) {
+        toast(err.message);
+      }
+    };
+
+    openSheet('overlay-identify');
+  }
+
+  /** Copia texto para a área de transferência, com fallback para navegadores sem Clipboard API. */
+  async function copiarTextoParaAreaDeTransferencia(texto) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(texto);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = texto;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      toast('Copiado.');
+    } catch (e) {
+      toast('Não foi possível copiar automaticamente — selecione o texto manualmente.');
+    }
+  }
+
 
   // =======================================================================
   // Navegação / bússola
