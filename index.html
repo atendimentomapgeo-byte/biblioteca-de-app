@@ -141,9 +141,18 @@ const CACHE_MAX_IDADE_MS = 30 * 60 * 1000; // usa cache de até 30min como plano
 
 // Apps que moram em subpastas (ex: PWAs com vários arquivos) não são
 // detectados pela varredura automática — adicione-os aqui manualmente.
-// "path" é o caminho a partir da raiz do repositório até o index.html do app.
+//
+// Duas formas de declarar cada app extra:
+//   1) "path": app dentro do MESMO repositório da biblioteca (biblioteca-de-app),
+//      caminho relativo à raiz do repositório até o index.html do app.
+//   2) "url": app hospedado em OUTRO repositório/site GitHub Pages (ou
+//      qualquer URL própria) — usa a URL absoluta diretamente, sem
+//      combinar com o repositório da biblioteca.
 const APPS_EXTRAS = [
-  { titulo: 'FieldGIS — Mapas e Navegação de Campo', path: 'aplicativo fieldgis/index.html' },
+  // FieldGIS vive na raiz do repositório atendimentomapgeo-byte.github.io
+  // (um repositório PRÓPRIO, separado do repositório da biblioteca) — por
+  // isso usa "url" absoluta, não "path".
+  { titulo: 'FieldGIS — Mapas e Navegação de Campo', url: 'https://atendimentomapgeo-byte.github.io/' },
 ];
 
 const PAGES_BASE = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
@@ -270,8 +279,8 @@ function renderizar() {
   }));
   const extraApps = APPS_EXTRAS.map(app => ({
     titulo: app.titulo,
-    subtitulo: app.path,
-    url: PAGES_BASE + app.path.split('/').map(encodeURIComponent).join('/')
+    subtitulo: app.url ? app.url.replace(/^https?:\/\//, '') : app.path,
+    url: app.url || (PAGES_BASE + app.path.split('/').map(encodeURIComponent).join('/'))
   }));
 
   const todosCombinados = [...autoApps, ...extraApps]
