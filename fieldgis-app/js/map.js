@@ -298,25 +298,42 @@
       }
     },
 
+    /**
+     * Ajusta o mapa para enquadrar as coordenadas informadas, ocupando a
+     * tela toda (menos uma margem de 30px). Calcula o zoom ideal manualmente
+     * com map.project() em cada nível de zoom candidato, comparando contra o
+     * tamanho REAL da janela visível (#map) — não depende em nenhum momento
+     * do tamanho atual de #map-inner (que fica inflado para cobrir a
+     * diagonal quando a rotação por bússola está ativa), evitando qualquer
+     * cálculo de zoom incorreto por causa disso.
+     */
     fitBounds(bounds) {
-      // O Leaflet calcula o zoom ideal com base no tamanho do CONTÊINER
-      // (#map-inner), que é propositalmente maior que a tela (cobre a
-      // diagonal, para a rotação não deixar cantos pretos — ver
-      // redimensionarMapaInterno). Sem compensar isso, fitBounds ficaria
-      // sempre mais "zoomado" do que deveria. Encolhemos temporariamente
-      // para o tamanho real da janela visível, ajustamos, e voltamos.
-      if (innerEl && viewportEl) {
-        const tamanhoOriginal = { w: innerEl.style.width, h: innerEl.style.height };
-        innerEl.style.width = `${viewportEl.clientWidth}px`;
-        innerEl.style.height = `${viewportEl.clientHeight}px`;
-        map.invalidateSize();
-        map.fitBounds(bounds, { padding: [30, 30] });
-        innerEl.style.width = tamanhoOriginal.w;
-        innerEl.style.height = tamanhoOriginal.h;
-        map.invalidateSize();
-      } else {
-        map.fitBounds(bounds, { padding: [30, 30] });
+      const b = L.latLngBounds(bounds);
+      const padding = [30, 30];
+      const tamanhoJanela = viewportEl
+        ? { x: viewportEl.clientWidth, y: viewportEl.clientHeight }
+        : map.getSize();
+      const larguraAlvo = Math.max(1, tamanhoJanela.x - padding[0] * 2);
+      const alturaAlvo = Math.max(1, tamanhoJanela.y - padding[1] * 2);
+
+      const noroeste = L.latLng(b.getNorth(), b.getWest());
+      const sudeste = L.latLng(b.getSouth(), b.getEast());
+      const zoomMax = map.getMaxZoom();
+      const zoomMin = map.getMinZoom();
+
+      let zoomIdeal = zoomMin;
+      for (let z = zoomMax; z >= zoomMin; z--) {
+        const p1 = map.project(noroeste, z);
+        const p2 = map.project(sudeste, z);
+        const largura = Math.abs(p2.x - p1.x);
+        const altura = Math.abs(p2.y - p1.y);
+        if (largura <= larguraAlvo && altura <= alturaAlvo) {
+          zoomIdeal = z;
+          break;
+        }
       }
+
+      map.setView(b.getCenter(), zoomIdeal);
     },
 
     invalidateSize() {
