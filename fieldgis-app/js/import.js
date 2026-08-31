@@ -161,9 +161,10 @@
         }
         case 'Polygon': {
           const ring = f.geometry.coordinates[0];
-          const vertices = ring.map(([lon, lat]) => ({ lat, lon }));
-          const area = Coordinates.polygonArea(vertices.map((v) => ({ lat: v.lat, lng: v.lon })));
-          const perimeter = Coordinates.polygonPerimeter(vertices.map((v) => ({ lat: v.lat, lng: v.lon })), true);
+          const vertices = ring.map(([lon, lat]) => ({ lat, lon })).filter((v, i, arr) => i === 0 || v.lat !== arr[i - 1].lat || v.lon !== arr[i - 1].lon);
+          const metrics = Coordinates.polygonMetrics(vertices.map((v) => ({ lat: v.lat, lng: v.lon })));
+          const area = metrics.area;
+          const perimeter = metrics.perimeter;
           await DB.put('polygons', {
             projectId,
             layerId: layerIds.polygons,
@@ -188,8 +189,9 @@
         case 'MultiPolygon': {
           for (const poly of f.geometry.coordinates) {
             const vertices = poly[0].map(([lon, lat]) => ({ lat, lon }));
-            const area = Coordinates.polygonArea(vertices.map((v) => ({ lat: v.lat, lng: v.lon })));
-            const perimeter = Coordinates.polygonPerimeter(vertices.map((v) => ({ lat: v.lat, lng: v.lon })), true);
+            const metrics = Coordinates.polygonMetrics(vertices.map((v) => ({ lat: v.lat, lng: v.lon })));
+            const area = metrics.area;
+            const perimeter = metrics.perimeter;
             await DB.put('polygons', { projectId, layerId: layerIds.polygons, name: props.name || `Polígono importado ${result.polygons + 1}`, vertices, area, perimeter, attributes: props, imported: true });
             result.polygons++;
           }
@@ -280,48 +282,59 @@
       corners.unrecognizedCRS = true;
     }
 
-    // Renderiza os pixels em um canvas (RGB direto se houver 3+ bandas, escala de cinza c/ contraste automático caso contrário)
-    const rasters = await image.readRasters();
+    // Rasterização limitada para evitar que ortomosaicos muito grandes
+    // estourem a memória do navegador/celular. O arquivo original continua
+    // sendo usado apenas como entrada; a visualização é uma versão reduzida.
+    const MAX_PIXELS = 16_000_000;
+    const scale = Math.min(1, Math.sqrt(MAX_PIXELS / Math.max(1, width * height)));
+    const outWidth = Math.max(1, Math.round(width * scale));
+    const outHeight = Math.max(1, Math.round(height * scale));
+    const rasters = await image.readRasters({ width: outWidth, height: outHeight, resampleMethod: 'bilinear' });
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    const imgData = ctx.createImageData(width, height);
+    canvas.width = outWidth;
+    canvas.height = outHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: false });
+    const imgData = ctx.createImageData(outWidth, outHeight);
 
     const bandCount = rasters.length;
+    const pixelCount = outWidth * outHeight;
     if (bandCount >= 3) {
-      for (let i = 0; i < width * height; i++) {
-        imgData.data[i * 4] = rasters[0][i];
-        imgData.data[i * 4 + 1] = rasters[1][i];
-        imgData.data[i * 4 + 2] = rasters[2][i];
-        imgData.data[i * 4 + 3] = bandCount >= 4 ? rasters[3][i] : 255;
+      for (let i = 0; i < pixelCount; i++) {
+        imgData.data[i * 4] = Math.max(0, Math.min(255, rasters[0][i]));
+        imgData.data[i * 4 + 1] = Math.max(0, Math.min(255, rasters[1][i]));
+        imgData.data[i * 4 + 2] = Math.max(0, Math.min(255, rasters[2][i]));
+        imgData.data[i * 4 + 3] = bandCount >= 4 ? Math.max(0, Math.min(255, rasters[3][i])) : 255;
       }
-    } else {
-      // Banda única: aplica alongamento de contraste (stretch) linear min-max
+    } else if (bandCount >= 1) {
       const band = rasters[0];
-      let min = Infinity;
-      let max = -Infinity;
+      let min = Infinity, max = -Infinity;
       for (let i = 0; i < band.length; i++) {
-        if (band[i] < min) min = band[i];
-        if (band[i] > max) max = band[i];
+        const v = Number(band[i]);
+        if (Number.isFinite(v)) { min = Math.min(min, v); max = Math.max(max, v); }
       }
-      const range = max - min || 1;
-      for (let i = 0; i < width * height; i++) {
-        const v = Math.round(((band[i] - min) / range) * 255);
+      const range = max > min ? max - min : 1;
+      for (let i = 0; i < pixelCount; i++) {
+        const raw = Number(band[i]);
+        const v = Number.isFinite(raw) ? Math.round(((raw - min) / range) * 255) : 0;
         imgData.data[i * 4] = v;
         imgData.data[i * 4 + 1] = v;
         imgData.data[i * 4 + 2] = v;
         imgData.data[i * 4 + 3] = 255;
       }
+    } else {
+      throw new Error('GeoTIFF não contém bandas rasterizáveis.');
     }
     ctx.putImageData(imgData, 0, 0);
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    const blob = await new Promise((resolve, reject) => canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Não foi possível gerar a imagem do GeoTIFF.')), 'image/png'));
     return {
       blob,
       bounds: [[corners.sw.lat, corners.sw.lon], [corners.ne.lat, corners.ne.lon]],
-      width,
-      height,
+      width: outWidth,
+      height: outHeight,
+      sourceWidth: width,
+      sourceHeight: height,
+      downsampled: scale < 1,
       unrecognizedCRS: !!corners.unrecognizedCRS,
       epsgCode,
     };

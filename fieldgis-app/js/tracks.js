@@ -45,6 +45,10 @@
     };
   }
 
+  function escapeHTML(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function formatDuration(ms) {
     const totalSec = Math.floor(ms / 1000);
     const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
@@ -104,6 +108,10 @@
     async finish(name, projectId) {
       if (state === 'idle' || !currentTrack) return null;
       if (unsubscribeGPS) unsubscribeGPS();
+      if (state === 'paused' && pauseStartedAt) {
+        totalPausedMs += Date.now() - pauseStartedAt;
+        pauseStartedAt = null;
+      }
       state = 'idle';
       const stats = computeStats(currentTrack.points);
       const track = {
@@ -116,6 +124,12 @@
       const saved = await DB.put('tracks', track);
       currentTrack = null;
       totalPausedMs = 0;
+      pauseStartedAt = null;
+      if (polyline) {
+        const map = MapModule.getMap();
+        if (map && map.hasLayer(polyline)) map.removeLayer(polyline);
+      }
+      polyline = null;
       return saved;
     },
 
@@ -144,7 +158,7 @@
     renderToLayerGroup(track, layerGroup, style = {}) {
       const latlngs = track.points.map((p) => [p.lat, p.lon]);
       const line = L.polyline(latlngs, Object.assign({ color: '#e53935', weight: 3 }, style));
-      line.bindPopup(`<b>${track.name}</b><br>Distância: ${(track.stats.distance / 1000).toFixed(2)} km<br>Duração: ${formatDuration(track.stats.duration)}`);
+      line.bindPopup(`<b>${escapeHTML(track.name)}</b><br>Distância: ${(track.stats.distance / 1000).toFixed(2)} km<br>Duração: ${formatDuration(track.stats.duration)}`);
       line.addTo(layerGroup);
       return line;
     },

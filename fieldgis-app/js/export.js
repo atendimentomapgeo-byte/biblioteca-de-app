@@ -207,9 +207,10 @@ ${inner}
       const zip = new JSZip();
       const manifest = {
         format: 'FIELDGIS',
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
         project,
+        maps,
         layers,
         points,
         tracks,
@@ -236,33 +237,47 @@ ${inner}
       const manifest = JSON.parse(manifestText);
       if (manifest.format !== 'FIELDGIS') throw new Error('Arquivo de backup inválido ou incompatível.');
 
-      const newProject = await DB.put('projects', { name: manifest.project.name + ' (restaurado)', description: manifest.project.description });
+      const newProject = await DB.put('projects', { name: (manifest.project?.name || 'Projeto') + ' (restaurado)', description: manifest.project?.description || '' });
       const layerIdMap = {};
-      for (const l of manifest.layers) {
+      for (const l of manifest.layers || []) {
         const nl = await DB.put('layers', Object.assign({}, l, { id: undefined, projectId: newProject.id }));
         layerIdMap[l.id] = nl.id;
       }
       const pointIdMap = {};
-      for (const p of manifest.points) {
-        const np = await DB.put('points', Object.assign({}, p, { id: undefined, projectId: newProject.id, layerId: layerIdMap[p.layerId] }));
+      for (const p of manifest.points || []) {
+        const np = await DB.put('points', Object.assign({}, p, { id: undefined, projectId: newProject.id, layerId: layerIdMap[p.layerId] || null }));
         pointIdMap[p.id] = np.id;
       }
-      for (const t of manifest.tracks) {
-        await DB.put('tracks', Object.assign({}, t, { id: undefined, projectId: newProject.id, layerId: layerIdMap[t.layerId] }));
+      for (const t of manifest.tracks || []) {
+        await DB.put('tracks', Object.assign({}, t, { id: undefined, projectId: newProject.id, layerId: layerIdMap[t.layerId] || null }));
       }
-      for (const pg of manifest.polygons) {
-        await DB.put('polygons', Object.assign({}, pg, { id: undefined, projectId: newProject.id, layerId: layerIdMap[pg.layerId] }));
+      for (const pg of manifest.polygons || []) {
+        await DB.put('polygons', Object.assign({}, pg, { id: undefined, projectId: newProject.id, layerId: layerIdMap[pg.layerId] || null }));
       }
       for (const f of manifest.forms || []) {
         await DB.put('forms', Object.assign({}, f, { id: undefined, projectId: newProject.id }));
       }
       for (const ph of manifest.photoIndex || []) {
-        const blob = await zip.file(ph.file).async('blob');
-        await DB.put('photos', { projectId: newProject.id, pointId: pointIdMap[ph.pointId], blob, lat: ph.lat, lon: ph.lon, alt: ph.alt, takenAt: ph.takenAt });
+        const entry = zip.file(ph.file);
+        if (!entry) continue;
+        const blob = await entry.async('blob');
+        await DB.put('photos', { projectId: newProject.id, pointId: pointIdMap[ph.pointId] || null, blob, lat: ph.lat, lon: ph.lon, alt: ph.alt, takenAt: ph.takenAt });
       }
+      const blobIdMap = {};
       for (const b of manifest.blobIndex || []) {
-        const blob = await zip.file(b.file).async('blob');
-        await DB.put('blobs', { projectId: newProject.id, kind: b.kind, meta: b.meta, blob });
+        const entry = zip.file(b.file);
+        if (!entry) continue;
+        const blob = await entry.async('blob');
+        const nb = await DB.put('blobs', { projectId: newProject.id, kind: b.kind, meta: b.meta, blob });
+        blobIdMap[b.id] = nb.id;
+      }
+      for (const m of manifest.maps || []) {
+        await DB.put('maps', Object.assign({}, m, {
+          id: undefined,
+          projectId: newProject.id,
+          layerId: layerIdMap[m.layerId] || null,
+          blobKey: blobIdMap[m.blobKey] || null,
+        }));
       }
       return newProject;
     },
@@ -288,7 +303,8 @@ ${inner}
 
     async _fillProjectZip(zip, projectId) {
       const project = await Projects.get(projectId);
-      const [layers, points, tracks, polygons, photos, forms, blobs] = await Promise.all([
+      const [maps, layers, points, tracks, polygons, photos, forms, blobs] = await Promise.all([
+        DB.byProject('maps', projectId),
         DB.byProject('layers', projectId),
         DB.byProject('points', projectId),
         DB.byProject('tracks', projectId),
@@ -297,7 +313,7 @@ ${inner}
         DB.byProject('forms', projectId),
         DB.byProject('blobs', projectId),
       ]);
-      const manifest = { format: 'FIELDGIS', version: 1, exportedAt: new Date().toISOString(), project, layers, points, tracks, polygons, forms, photoIndex: photos.map((p) => ({ id: p.id, pointId: p.pointId, lat: p.lat, lon: p.lon, alt: p.alt, takenAt: p.takenAt, file: `photos/${p.id}.jpg` })), blobIndex: blobs.map((b) => ({ id: b.id, kind: b.kind, meta: b.meta, file: `blobs/${b.id}.bin` })) };
+      const manifest = { format: 'FIELDGIS', version: 2, exportedAt: new Date().toISOString(), project, maps, layers, points, tracks, polygons, forms, photoIndex: photos.map((p) => ({ id: p.id, pointId: p.pointId, lat: p.lat, lon: p.lon, alt: p.alt, takenAt: p.takenAt, file: `photos/${p.id}.jpg` })), blobIndex: blobs.map((b) => ({ id: b.id, kind: b.kind, meta: b.meta, file: `blobs/${b.id}.bin` })) };
       zip.file('manifest.json', JSON.stringify(manifest, null, 2));
       const pf = zip.folder('photos');
       photos.forEach((p) => pf.file(`${p.id}.jpg`, p.blob));

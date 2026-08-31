@@ -106,7 +106,7 @@ Cada mapa importado vira uma **camada** (ativar/desativar, opacidade, exclusão)
 
 Menu (☰) → **Backup / Restaurar**.
 
-- **Backup deste projeto**: gera um arquivo `.fieldgis` (na prática, um `.zip`) com todos os pontos, trilhas, polígonos, atributos, formulários e fotografias do projeto atual.
+- **Backup deste projeto**: gera um arquivo `.fieldgis` (na prática, um `.zip`) com todos os pontos, trilhas, polígonos, mapas raster, atributos, formulários, fotografias e os vínculos entre camadas e arquivos binários.
 - **Backup de todos os projetos**: gera um `.zip` contendo um `.fieldgis` de cada projeto.
 - **Restaurar backup**: escolha um arquivo `.fieldgis` gerado anteriormente (deste aparelho ou de outro) para recriar o projeto por completo, incluindo as fotos.
 
@@ -124,7 +124,7 @@ Também é possível exportar separadamente **pontos** (CSV, GeoJSON, KML, GPX),
 - Coordenadas: Decimal / GMS / Graus-minutos decimais; UTM com zona/hemisfério automáticos; datum SIRGAS2000 e WGS84.
 - Pontos de campo com atributos customizáveis (texto, número, decimal, data, hora, seleção, checkbox), fotografias com marca d'água opcional (coordenada/data/hora/altitude/nome do ponto) e descrição.
 - Trilhas GPS: iniciar/pausar/continuar/finalizar, com distância, tempo, velocidade média/máxima e variação de altitude.
-- Polígonos: desenho manual (toque no mapa) ou percorrendo a área com GPS; cálculo de área (m²/ha/km²) e perímetro.
+- Polígonos: desenho manual (toque no mapa) ou percorrendo a área com GPS; cálculo de área e perímetro em UTM SIRGAS 2000 (m²/ha/km²), mantendo a medição geodésica como referência.
 - Ferramentas de medição de distância e área (sem precisar salvar).
 - Navegação "Ir para" um ponto: distância, azimute, seta indicativa em tempo real; bússola por magnetômetro (`deviceorientation`) combinada com o rumo do GPS.
 - Busca por nome, código ou coordenada.
@@ -165,6 +165,17 @@ Testado de ponta a ponta em ambiente automatizado (Chromium/Playwright) cobrindo
 
 ---
 
-## 12. Aviso legal/identidade
+## 12. Correções da versão 35
+
+- Backup/restauração passou a incluir a store `maps` e remapear corretamente `layerId`/`blobKey` ao restaurar em outro projeto.
+- Exclusão de camada raster agora remove também o registro do mapa e o blob associado, evitando arquivos órfãos no IndexedDB.
+- Cálculo persistido de polígonos passou para projeção UTM SIRGAS 2000; medições de área também usam UTM.
+- GeoTIFF grande é reduzido para uma versão de visualização com limite de aproximadamente 16 milhões de pixels, reduzindo risco de estouro de memória em celulares.
+- Busca de pontos aceita par `latitude, longitude` e retorna os pontos em até 50 m, ordenados pela distância.
+- Finalização de trilha pausada corrige o tempo de pausa e remove a linha temporária do mapa.
+- Service Worker atualizado para v35 com instalação atômica da shell: uma atualização incompleta não substitui o cache anterior.
+- Nomes exibidos em popups/ícones são escapados para reduzir risco de HTML injetado por dados importados.
+
+## 13. Aviso legal/identidade
 
 O FieldGIS foi desenvolvido do zero, com interface, paleta de cores, ícones e código próprios. O Avenza Maps foi usado apenas como referência de **conceito** e conjunto de funcionalidades — nenhuma marca, layout, ícone ou linha de código de aplicativos de terceiros foi copiada.

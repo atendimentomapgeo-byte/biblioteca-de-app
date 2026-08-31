@@ -12,7 +12,7 @@
  * de rede. O Service Worker cuida apenas dos arquivos do próprio aplicativo.
  */
 
-const CACHE_NAME = 'fieldgis-cache-v34';
+const CACHE_NAME = 'fieldgis-cache-v35';
 const TILES_CACHE_NAME = 'fieldgis-tiles-v1';
 const TILES_CACHE_MAX_ENTRADAS = 6000; // limite aproximado para não estourar o armazenamento do navegador
 
@@ -75,29 +75,18 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      // Usamos fetch manual com {cache:'reload'} em vez de cache.addAll()
-      // de propósito: cache.addAll() por padrão respeita o cache HTTP normal
-      // do navegador, então mesmo detectando corretamente que existe uma
-      // versão nova do app, ele podia acabar recachando arquivos ANTIGOS que
-      // ainda estivessem no cache HTTP (comum no GitHub Pages, que manda
-      // Cache-Control com alguns minutos de validade). {cache:'reload'}
-      // força uma busca genuinamente nova na rede para cada arquivo.
-      const resultados = await Promise.allSettled(
-        APP_SHELL.map(async (url) => {
-          const resp = await fetch(url, { cache: 'reload' });
-          if (!resp.ok) throw new Error(`${url}: HTTP ${resp.status}`);
-          return cache.put(url, resp);
-        })
-      );
-      const falhas = resultados.filter((r) => r.status === 'rejected');
-      if (falhas.length) {
-        console.warn('[service-worker] Falha ao cachear alguns arquivos (não fatal):', falhas.map((f) => f.reason));
-      }
-    })
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    // Instalação atômica: se qualquer recurso essencial falhar, a nova versão
+    // não é considerada instalada. Assim evitamos apagar o cache anterior e
+    // ficar com uma shell parcialmente atualizada em conexões instáveis.
+    const cache = await caches.open(CACHE_NAME);
+    for (const url of APP_SHELL) {
+      const resp = await fetch(url, { cache: 'reload' });
+      if (!resp.ok) throw new Error(`${url}: HTTP ${resp.status}`);
+      await cache.put(url, resp);
+    }
+    self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {

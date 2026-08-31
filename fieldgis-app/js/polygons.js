@@ -28,6 +28,10 @@
   let clickHandler = null;
   let onChangeCb = null;
 
+  function escapeHTML(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function refreshPreview() {
     if (!tempLayerGroup) return;
     tempLayerGroup.clearLayers();
@@ -101,8 +105,10 @@
 
     getStats() {
       if (vertices.length < 2) return { area: 0, perimeter: 0, vertexCount: vertices.length };
-      const area = vertices.length >= 3 ? Coordinates.polygonArea(vertices.map((v) => ({ lat: v.lat, lng: v.lon }))) : 0;
-      const perimeter = Coordinates.polygonPerimeter(vertices.map((v) => ({ lat: v.lat, lng: v.lon })), vertices.length >= 3);
+      const pts = vertices.map((v) => ({ lat: v.lat, lng: v.lon }));
+      const metrics = vertices.length >= 3 ? Coordinates.polygonMetrics(pts) : { area: 0, perimeter: Coordinates.polygonPerimeterUTM(pts, false) };
+      const area = metrics.area;
+      const perimeter = metrics.perimeter;
       return { area, perimeter, vertexCount: vertices.length };
     },
 
@@ -147,7 +153,7 @@
       const latlngs = polygon.vertices.map((v) => [v.lat, v.lon]);
       const poly = L.polygon(latlngs, Object.assign({ color: '#2e7d32', weight: 2, fillOpacity: 0.2 }, style));
       const areaHa = Coordinates.convertArea(polygon.area, 'ha');
-      poly.bindPopup(`<b>${polygon.name}</b><br>Área: ${areaHa.toFixed(4)} ha<br>Perímetro: ${polygon.perimeter.toFixed(2)} m`);
+      poly.bindPopup(`<b>${escapeHTML(polygon.name)}</b><br>Área: ${areaHa.toFixed(4)} ha<br>Perímetro: ${polygon.perimeter.toFixed(2)} m`);
       poly.addTo(layerGroup);
       return poly;
     },
@@ -202,7 +208,7 @@
     getResult() {
       const pts = Measure.points.map((p) => ({ lat: p.lat, lng: p.lon }));
       if (Measure.mode === 'area') {
-        return { area: pts.length >= 3 ? Coordinates.polygonArea(pts) : 0, perimeter: Coordinates.polygonPerimeter(pts, true), points: Measure.points.length };
+        return { area: pts.length >= 3 ? Coordinates.polygonAreaUTM(pts) : 0, perimeter: Coordinates.polygonPerimeterUTM(pts, true), points: Measure.points.length };
       }
       const segments = [];
       let total = 0;
