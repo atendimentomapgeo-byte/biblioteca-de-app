@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v31';
+  const APP_BUILD_VERSION = 'v34';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -505,13 +505,19 @@
   function updateGpsBadge(data) {
     $('gps-dot').className = 'fg-dot ' + data.quality;
     const labels = { excellent: 'GPS Excelente', good: 'GPS Bom', moderate: 'GPS Moderado', weak: 'GPS Fraco', unknown: 'GPS indisponível' };
+    const precisao = data.accuracy != null && !Number.isNaN(data.accuracy) ? `±${Math.round(data.accuracy)}m` : '';
     $('gps-status-text').textContent = labels[data.quality] || 'GPS';
+    $('gps-acc-text').textContent = precisao;
+    let linhaCoord;
     if (settings.coords.format === 'utm') {
       const utm = Coordinates.toUTM(data.lat, data.lon, settings.coords.datum);
-      $('gps-coord-text').textContent = `${utm.easting.toFixed(2)}E  ${utm.northing.toFixed(2)}N  ${utm.label}`;
+      linhaCoord = `${utm.easting.toFixed(2)}E  ${utm.northing.toFixed(2)}N  ${utm.label}`;
     } else {
-      $('gps-coord-text').textContent = `${Coordinates.formatLat(data.lat, settings.coords.format)}  ${Coordinates.formatLon(data.lon, settings.coords.format)}`;
+      linhaCoord = `${Coordinates.formatLat(data.lat, settings.coords.format)}  ${Coordinates.formatLon(data.lon, settings.coords.format)}`;
     }
+    // Precisão em números, além do selinho colorido ao lado do status.
+    if (precisao) linhaCoord += `  ·  precisão ${precisao}`;
+    $('gps-coord-text').textContent = linhaCoord;
   }
 
   const ORDEM_FORMATOS_COORD = ['dms', 'utm', 'dd'];
@@ -585,6 +591,15 @@
       seguindoGPS = false;
       $('btn-locate').classList.remove('centered');
     });
+
+    // Mira ligada por padrão ao abrir o app — mas SEM saltar imediatamente
+    // pra posição do GPS (só liga o estado/indicador). Se o projeto tiver
+    // PDF/pontos/trilhas/polígonos, o enquadramento deles (feito em
+    // fitProjectBounds ao carregar o projeto) tem prioridade na tela
+    // inicial; a partir daí, o mapa passa a acompanhar o GPS suavemente
+    // (panTo, não um salto brusco) conforme novas leituras chegam.
+    seguindoGPS = true;
+    $('btn-locate').classList.add('centered');
   }
 
   // =======================================================================
