@@ -24,7 +24,7 @@
  */
 
 const DB_NAME = 'fieldgis-db';
-const DB_VERSION = 2;
+const DB_VERSION = 1;
 
 const STORES = ['projects', 'maps', 'layers', 'points', 'tracks', 'polygons', 'photos', 'forms', 'settings', 'blobs'];
 
@@ -163,41 +163,14 @@ const DB = {
 
   /** Remove em cascata todos os dados de um projeto (mapas, camadas, pontos, trilhas, polígonos, fotos, formulários). */
   async deleteProjectCascade(projectId) {
-    // Uma única transação evita deixar um projeto parcialmente apagado se o
-    // navegador for interrompido no meio da operação.
-    const db = await openDB();
-    const stores = ['maps', 'layers', 'points', 'tracks', 'polygons', 'photos', 'forms', 'blobs', 'projects'];
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(stores, 'readwrite');
-      transaction.onerror = () => reject(transaction.error || new Error('Falha ao excluir o projeto.'));
-      transaction.onabort = () => reject(transaction.error || new Error('Exclusão do projeto cancelada.'));
-      transaction.oncomplete = () => resolve(true);
-      const byStore = {};
-      for (const storeName of stores) byStore[storeName] = transaction.objectStore(storeName);
-
-      // Como as stores têm índices projectId, apagamos pelos registros
-      // encontrados antes de excluir o projeto. Também removemos blobs e mapas.
-      for (const storeName of stores.slice(0, -1)) {
-        const os = byStore[storeName];
-        if (os.indexNames.contains('projectId')) {
-          const req = os.index('projectId').openCursor(IDBKeyRange.only(projectId));
-          req.onsuccess = (ev) => {
-            const cursor = ev.target.result;
-            if (cursor) { cursor.delete(); cursor.continue(); }
-          };
-        } else {
-          const req = os.openCursor();
-          req.onsuccess = (ev) => {
-            const cursor = ev.target.result;
-            if (cursor) {
-              if (cursor.value && cursor.value.projectId === projectId) cursor.delete();
-              cursor.continue();
-            }
-          };
-        }
-      }
-      byStore.projects.delete(projectId);
-    });
+    const stores = ['maps', 'layers', 'points', 'tracks', 'polygons', 'photos', 'forms', 'blobs'];
+    for (const s of stores) {
+      const items = await DB.byProject(s, projectId);
+      const os = await tx(s, 'readwrite');
+      for (const it of items) os.delete(it.id);
+    }
+    const os = await tx('projects', 'readwrite');
+    await reqToPromise(os.delete(projectId));
   },
 
   async getSettings() {

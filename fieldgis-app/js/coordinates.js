@@ -201,55 +201,6 @@
     return Math.abs((total * R * R) / 2);
   }
 
-  /**
-   * Calcula área de polígono projetando os vértices para UTM.
-   * Usa a zona do primeiro vértice por padrão; isso é adequado para imóveis
-   * e levantamentos que permanecem dentro de uma única zona UTM.
-   */
-  function polygonAreaUTM(latlngs, datum = 'SIRGAS2000', forcedZone = null) {
-    if (!Array.isArray(latlngs) || latlngs.length < 3) return 0;
-    const first = latlngs[0];
-    const zone = forcedZone || utmZoneFromLon(first.lng);
-    const pts = latlngs.map((p) => toUTM(p.lat, p.lng, datum, zone));
-    let sum = 0;
-    for (let i = 0; i < pts.length; i++) {
-      const a = pts[i];
-      const b = pts[(i + 1) % pts.length];
-      sum += a.easting * b.northing - b.easting * a.northing;
-    }
-    return Math.abs(sum) / 2;
-  }
-
-  /** Perímetro no plano UTM (metros). */
-  function polygonPerimeterUTM(latlngs, closed = true, datum = 'SIRGAS2000', forcedZone = null) {
-    if (!Array.isArray(latlngs) || latlngs.length < 2) return 0;
-    const first = latlngs[0];
-    const zone = forcedZone || utmZoneFromLon(first.lng);
-    const pts = latlngs.map((p) => toUTM(p.lat, p.lng, datum, zone));
-    let total = 0;
-    const limit = closed ? pts.length : pts.length - 1;
-    for (let i = 0; i < limit; i++) {
-      const a = pts[i];
-      const b = pts[(i + 1) % pts.length];
-      total += Math.hypot(b.easting - a.easting, b.northing - a.northing);
-    }
-    return total;
-  }
-
-  /**
-   * Retorna métricas recomendadas para levantamentos: área UTM e perímetro
-   * UTM, além de distância geodésica do perímetro como referência.
-   */
-  function polygonMetrics(latlngs, datum = 'SIRGAS2000', forcedZone = null) {
-    return {
-      area: polygonAreaUTM(latlngs, datum, forcedZone),
-      perimeter: polygonPerimeterUTM(latlngs, true, datum, forcedZone),
-      geodesicPerimeter: polygonPerimeter(latlngs, true),
-      zone: forcedZone || (latlngs.length ? utmZoneFromLon(latlngs[0].lng) : null),
-      datum,
-    };
-  }
-
   /** Perímetro (m) de um polígono/linha lat/lon. */
   function polygonPerimeter(latlngs, closed = true) {
     let total = 0;
@@ -292,9 +243,6 @@
     azimuthToCardinal,
     azimuthDMS,
     polygonArea,
-    polygonAreaUTM,
-    polygonPerimeterUTM,
-    polygonMetrics,
     polygonPerimeter,
     convertArea,
     convertDistance,

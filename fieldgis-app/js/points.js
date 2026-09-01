@@ -10,9 +10,6 @@
 
 (function () {
   let sequenceCache = {};
-  function escapeHTML(value) {
-    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
 
   async function nextCode(projectId) {
     if (!sequenceCache[projectId]) {
@@ -143,37 +140,22 @@
       const q = query.trim().toLowerCase();
       if (!q) return points;
 
-      // Tenta interpretar como par de coordenadas: "lat, lon" ou "lat lon".
-      const parts = q.split(/[;,\s]+/).filter(Boolean);
-      let coordPair = null;
-      if (parts.length === 2) {
-        const lat = Coordinates.parseCoordString(parts[0]);
-        const lon = Coordinates.parseCoordString(parts[1]);
-        if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
-          coordPair = { lat, lon };
-        }
-      }
-      if (coordPair) {
-        // Retorna os pontos dentro de 50 m, ordenados pela distância.
-        return points
-          .map((p) => ({ p, d: Coordinates.haversineDistance(coordPair.lat, coordPair.lon, p.lat, p.lon) }))
-          .filter(({ d }) => d <= 50)
-          .sort((a, b) => a.d - b.d)
-          .map(({ p }) => p);
-      }
-      return points.filter((p) => {
+      // Tenta interpretar como coordenada
+      const coordVal = Coordinates.parseCoordString(q);
+      const results = points.filter((p) => {
         if ((p.name || '').toLowerCase().includes(q)) return true;
         if ((p.code || '').toLowerCase().includes(q)) return true;
         if ((p.description || '').toLowerCase().includes(q)) return true;
         return false;
       });
+      return results;
     },
 
     renderToLayerGroup(point, layerGroup, onClick) {
       const marker = L.marker([point.lat, point.lon], {
         icon: L.divIcon({
           className: 'fg-point-icon',
-          html: `<div class="fg-point-pin"><span>${escapeHTML((point.code || point.name || '').replace('P-', ''))}</span></div>`,
+          html: `<div class="fg-point-pin"><span>${(point.code || point.name || '').replace('P-', '')}</span></div>`,
           iconSize: [28, 36],
           iconAnchor: [14, 36],
         }),

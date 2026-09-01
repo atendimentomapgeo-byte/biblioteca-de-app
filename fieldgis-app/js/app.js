@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v34';
+  const APP_BUILD_VERSION = 'v35';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -798,7 +798,7 @@
     if (!requireProject()) return;
     const state = Tracks.getState();
     if (state === 'idle') {
-      Tracks.start(null, settings.gps.minAccuracy);
+      Tracks.start(null);
       Tracks.on(updateTrackDrawbar);
       drawMode = 'track';
       renderTrackDrawbar();
@@ -907,7 +907,7 @@
     if (!requireProject()) return;
     drawMode = 'polygon';
     if (kind === 'manual') Polygons.startManual();
-    else Polygons.startGPSWalk(settings.gps.minDistance || 3, settings.gps.minAccuracy);
+    else Polygons.startGPSWalk(settings.gps.minDistance || 3);
 
     Polygons.onChange(renderPolygonDrawbar);
     renderPolygonDrawbar({ area: 0, perimeter: 0, vertexCount: 0 });

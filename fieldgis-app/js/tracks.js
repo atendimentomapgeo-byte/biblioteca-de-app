@@ -45,10 +45,6 @@
     };
   }
 
-  function escapeHTML(value) {
-    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
   function formatDuration(ms) {
     const totalSec = Math.floor(ms / 1000);
     const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
@@ -64,26 +60,46 @@
 
     /**
      * @param {string} layerId
-     * @param {number} minAccuracy Precisão mínima aceitável em metros — fixes
-     *   do GPS piores que isso são ignorados (não entram na trilha). Evita
-     *   que interferência de multipath (telhados metálicos, prédios/galpões
-     *   grandes, vegetação densa) grave "rabiscos"/zigue-zagues na linha
-     *   quando o sinal degrada momentaneamente.
+     * @param {number} minAccuracy Precisão mínima aceitável em metros — só
+     *   descarta leituras CLARAMENTE ruins (padrão bem tolerante: 50m). Não
+     *   usamos um limite rígido e apertado aqui: isso descartava leituras
+     *   normais demais, deixando a trilha com poucos pontos e trechos retos
+     *   artificiais em vez de acompanhar o caminho real percorrido.
      */
-    start(layerId, minAccuracy = 30) {
+    start(layerId, minAccuracy = 50) {
       if (state !== 'idle') return;
       currentTrack = { points: [], startedAt: Date.now(), layerId };
       totalPausedMs = 0;
       state = 'recording';
       const map = MapModule.getMap();
       polyline = L.polyline([], { color: '#e53935', weight: 4 }).addTo(map);
+      let ultimoPontoAceito = null;
 
       unsubscribeGPS = GPS.on((event, data) => {
         if (event !== 'position' || state !== 'recording') return;
-        // Ignora fixes com precisão pior que o limite — não interrompe a
-        // gravação, só pula esse ponto específico e espera o próximo.
+
+        // Só descarta leituras claramente ruins — não filtra tudo que não
+        // for perfeito.
         if (data.accuracy != null && data.accuracy > minAccuracy) return;
-        currentTrack.points.push({ lat: data.lat, lon: data.lon, alt: data.altitude, acc: data.accuracy, speed: data.speed, time: data.timestamp || Date.now() });
+
+        // Detecta "saltos" implausíveis: o sintoma real de interferência de
+        // multipath (telhados metálicos, prédios grandes) é um ponto isolado
+        // aparecendo longe demais pro tempo decorrido — velocidade implícita
+        // acima de ~200km/h não é plausível em nenhum modo de coleta de
+        // campo. Ignora só ESSE ponto específico (a trilha continua sendo
+        // gravada normalmente a partir do próximo).
+        const agora = data.timestamp || Date.now();
+        if (ultimoPontoAceito) {
+          const dtSeg = (agora - ultimoPontoAceito.time) / 1000;
+          if (dtSeg > 0) {
+            const dist = Coordinates.haversineDistance(ultimoPontoAceito.lat, ultimoPontoAceito.lon, data.lat, data.lon);
+            if (dist / dtSeg > 55) return; // ~200 km/h
+          }
+        }
+
+        const ponto = { lat: data.lat, lon: data.lon, alt: data.altitude, acc: data.accuracy, speed: data.speed, time: agora };
+        currentTrack.points.push(ponto);
+        ultimoPontoAceito = ponto;
         polyline.addLatLng([data.lat, data.lon]);
         Tracks._notify();
       });
@@ -108,10 +124,6 @@
     async finish(name, projectId) {
       if (state === 'idle' || !currentTrack) return null;
       if (unsubscribeGPS) unsubscribeGPS();
-      if (state === 'paused' && pauseStartedAt) {
-        totalPausedMs += Date.now() - pauseStartedAt;
-        pauseStartedAt = null;
-      }
       state = 'idle';
       const stats = computeStats(currentTrack.points);
       const track = {
@@ -124,12 +136,6 @@
       const saved = await DB.put('tracks', track);
       currentTrack = null;
       totalPausedMs = 0;
-      pauseStartedAt = null;
-      if (polyline) {
-        const map = MapModule.getMap();
-        if (map && map.hasLayer(polyline)) map.removeLayer(polyline);
-      }
-      polyline = null;
       return saved;
     },
 
@@ -158,7 +164,7 @@
     renderToLayerGroup(track, layerGroup, style = {}) {
       const latlngs = track.points.map((p) => [p.lat, p.lon]);
       const line = L.polyline(latlngs, Object.assign({ color: '#e53935', weight: 3 }, style));
-      line.bindPopup(`<b>${escapeHTML(track.name)}</b><br>Distância: ${(track.stats.distance / 1000).toFixed(2)} km<br>Duração: ${formatDuration(track.stats.duration)}`);
+      line.bindPopup(`<b>${track.name}</b><br>Distância: ${(track.stats.distance / 1000).toFixed(2)} km<br>Duração: ${formatDuration(track.stats.duration)}`);
       line.addTo(layerGroup);
       return line;
     },

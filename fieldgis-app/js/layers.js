@@ -75,16 +75,6 @@
         const items = await DB.byIndex(store, 'layerId', layerId).catch(() => []);
         for (const it of items) await DB.delete(store, it.id);
       }
-      // Raster possui um registro em maps que aponta para o blob binário.
-      // Ao excluir a camada, removemos também mapa e blob para não deixar
-      // arquivos órfãos ocupando espaço no IndexedDB.
-      if (layer.kind === 'raster') {
-        const maps = await DB.byProject('maps', layer.projectId);
-        for (const m of maps.filter((m) => m.layerId === layerId)) {
-          if (m.blobKey) await DB.delete('blobs', m.blobKey);
-          await DB.delete('maps', m.id);
-        }
-      }
       return DB.delete('layers', layerId);
     },
 
