@@ -207,9 +207,10 @@ ${inner}
       const zip = new JSZip();
       const manifest = {
         format: 'FIELDGIS',
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
         project,
+        maps,
         layers,
         points,
         tracks,
@@ -232,39 +233,105 @@ ${inner}
     /** Restaura um projeto a partir de um arquivo .fieldgis exportado anteriormente. */
     async importProjectBackup(file) {
       const zip = await JSZip.loadAsync(file);
-      const manifestText = await zip.file('manifest.json').async('text');
-      const manifest = JSON.parse(manifestText);
-      if (manifest.format !== 'FIELDGIS') throw new Error('Arquivo de backup inválido ou incompatível.');
+      const manifestFile = zip.file('manifest.json');
+      if (!manifestFile) throw new Error('Backup inválido: manifest.json não encontrado.');
 
-      const newProject = await DB.put('projects', { name: manifest.project.name + ' (restaurado)', description: manifest.project.description });
-      const layerIdMap = {};
-      for (const l of manifest.layers) {
-        const nl = await DB.put('layers', Object.assign({}, l, { id: undefined, projectId: newProject.id }));
-        layerIdMap[l.id] = nl.id;
+      let manifest;
+      try {
+        manifest = JSON.parse(await manifestFile.async('text'));
+      } catch (e) {
+        throw new Error('Backup inválido: o manifesto não é um JSON válido.');
       }
-      const pointIdMap = {};
-      for (const p of manifest.points) {
-        const np = await DB.put('points', Object.assign({}, p, { id: undefined, projectId: newProject.id, layerId: layerIdMap[p.layerId] }));
-        pointIdMap[p.id] = np.id;
+
+      const requiredArrays = ['layers', 'points', 'tracks', 'polygons', 'forms', 'photoIndex', 'blobIndex'];
+      if (!manifest || manifest.format !== 'FIELDGIS' || ![1, 2].includes(manifest.version || 1) || !manifest.project || !manifest.project.name) {
+        throw new Error('Arquivo de backup inválido ou incompatível.');
       }
-      for (const t of manifest.tracks) {
-        await DB.put('tracks', Object.assign({}, t, { id: undefined, projectId: newProject.id, layerId: layerIdMap[t.layerId] }));
+      for (const key of requiredArrays) {
+        if (!Array.isArray(manifest[key])) throw new Error(`Backup inválido: campo "${key}" ausente ou malformado.`);
       }
-      for (const pg of manifest.polygons) {
-        await DB.put('polygons', Object.assign({}, pg, { id: undefined, projectId: newProject.id, layerId: layerIdMap[pg.layerId] }));
+      if (manifest.maps != null && !Array.isArray(manifest.maps)) throw new Error('Backup inválido: campo "maps" malformado.');
+
+      const fileExists = (path) => !!(path && zip.file(path));
+      for (const ph of manifest.photoIndex) {
+        if (!fileExists(ph.file)) throw new Error(`Backup incompleto: fotografia ${ph.id || ''} não encontrada.`);
       }
-      for (const f of manifest.forms || []) {
-        await DB.put('forms', Object.assign({}, f, { id: undefined, projectId: newProject.id }));
+      for (const b of manifest.blobIndex) {
+        if (!fileExists(b.file)) throw new Error(`Backup incompleto: arquivo binário ${b.id || ''} não encontrado.`);
       }
-      for (const ph of manifest.photoIndex || []) {
-        const blob = await zip.file(ph.file).async('blob');
-        await DB.put('photos', { projectId: newProject.id, pointId: pointIdMap[ph.pointId], blob, lat: ph.lat, lon: ph.lon, alt: ph.alt, takenAt: ph.takenAt });
+
+      const layerIds = new Set(manifest.layers.map((l) => l.id));
+      for (const item of [...manifest.points, ...manifest.tracks, ...manifest.polygons]) {
+        if (item.layerId && !layerIds.has(item.layerId)) throw new Error('Backup inválido: referência de camada inexistente.');
       }
-      for (const b of manifest.blobIndex || []) {
-        const blob = await zip.file(b.file).async('blob');
-        await DB.put('blobs', { projectId: newProject.id, kind: b.kind, meta: b.meta, blob });
+      const pointIds = new Set(manifest.points.map((p) => p.id));
+      for (const ph of manifest.photoIndex) {
+        if (!pointIds.has(ph.pointId)) throw new Error('Backup inválido: fotografia vinculada a ponto inexistente.');
       }
-      return newProject;
+      const blobIds = new Set(manifest.blobIndex.map((b) => b.id));
+      for (const m of manifest.maps || []) {
+        if (!layerIds.has(m.layerId)) throw new Error('Backup inválido: mapa vinculado a camada inexistente.');
+        if (m.blobKey && !blobIds.has(m.blobKey)) throw new Error('Backup inválido: mapa referencia arquivo binário inexistente.');
+      }
+
+      let newProject = null;
+      try {
+        newProject = await DB.put('projects', { name: `${String(manifest.project.name)} (restaurado)`, description: manifest.project.description || '' });
+        const layerIdMap = {};
+        for (const l of manifest.layers) {
+          const nl = await DB.put('layers', Object.assign({}, l, { id: undefined, projectId: newProject.id }));
+          layerIdMap[l.id] = nl.id;
+        }
+
+        const pointIdMap = {};
+        const restoredPoints = [];
+        for (const p of manifest.points) {
+          const np = await DB.put('points', Object.assign({}, p, { id: undefined, projectId: newProject.id, layerId: p.layerId ? layerIdMap[p.layerId] : undefined, photos: [] }));
+          pointIdMap[p.id] = np.id;
+          restoredPoints.push({ source: p, restored: np });
+        }
+
+        for (const t of manifest.tracks) {
+          await DB.put('tracks', Object.assign({}, t, { id: undefined, projectId: newProject.id, layerId: t.layerId ? layerIdMap[t.layerId] : undefined }));
+        }
+        for (const pg of manifest.polygons) {
+          await DB.put('polygons', Object.assign({}, pg, { id: undefined, projectId: newProject.id, layerId: pg.layerId ? layerIdMap[pg.layerId] : undefined }));
+        }
+        for (const f of manifest.forms) {
+          await DB.put('forms', Object.assign({}, f, { id: undefined, projectId: newProject.id }));
+        }
+
+        const photoIdMap = {};
+        for (const ph of manifest.photoIndex) {
+          const blob = await zip.file(ph.file).async('blob');
+          const restored = await DB.put('photos', { projectId: newProject.id, pointId: pointIdMap[ph.pointId], blob, lat: ph.lat, lon: ph.lon, alt: ph.alt, takenAt: ph.takenAt });
+          photoIdMap[ph.id] = restored.id;
+        }
+        for (const { source, restored } of restoredPoints) {
+          const photos = Array.isArray(source.photos) ? source.photos.map((id) => photoIdMap[id]).filter(Boolean) : [];
+          if (photos.length) {
+            restored.photos = photos;
+            await DB.put('points', restored);
+          }
+        }
+
+        const blobIdMap = {};
+        for (const b of manifest.blobIndex) {
+          const blob = await zip.file(b.file).async('blob');
+          const restored = await DB.put('blobs', { projectId: newProject.id, kind: b.kind, meta: b.meta, blob });
+          blobIdMap[b.id] = restored.id;
+        }
+        for (const m of manifest.maps || []) {
+          await DB.put('maps', Object.assign({}, m, { id: undefined, projectId: newProject.id, layerId: layerIdMap[m.layerId], blobKey: m.blobKey ? blobIdMap[m.blobKey] : null }));
+        }
+
+        return newProject;
+      } catch (e) {
+        if (newProject) {
+          try { await DB.deleteProjectCascade(newProject.id); } catch (rollbackError) { console.error('[export] Falha ao desfazer restauração parcial:', rollbackError); }
+        }
+        throw new Error(`Não foi possível restaurar o backup: ${e.message}`);
+      }
     },
 
     /** Backup rápido de TODOS os projetos do aplicativo em um único arquivo. */
@@ -297,7 +364,8 @@ ${inner}
         DB.byProject('forms', projectId),
         DB.byProject('blobs', projectId),
       ]);
-      const manifest = { format: 'FIELDGIS', version: 1, exportedAt: new Date().toISOString(), project, layers, points, tracks, polygons, forms, photoIndex: photos.map((p) => ({ id: p.id, pointId: p.pointId, lat: p.lat, lon: p.lon, alt: p.alt, takenAt: p.takenAt, file: `photos/${p.id}.jpg` })), blobIndex: blobs.map((b) => ({ id: b.id, kind: b.kind, meta: b.meta, file: `blobs/${b.id}.bin` })) };
+      const maps = await DB.byProject('maps', projectId);
+      const manifest = { format: 'FIELDGIS', version: 2, exportedAt: new Date().toISOString(), project, maps, layers, points, tracks, polygons, forms, photoIndex: photos.map((p) => ({ id: p.id, pointId: p.pointId, lat: p.lat, lon: p.lon, alt: p.alt, takenAt: p.takenAt, file: `photos/${p.id}.jpg` })), blobIndex: blobs.map((b) => ({ id: b.id, kind: b.kind, meta: b.meta, file: `blobs/${b.id}.bin` })) };
       zip.file('manifest.json', JSON.stringify(manifest, null, 2));
       const pf = zip.folder('photos');
       photos.forEach((p) => pf.file(`${p.id}.jpg`, p.blob));

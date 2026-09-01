@@ -1,3 +1,16 @@
+
+## Atualização v36 — robustez e integridade
+
+- Corrigida a inclusão/restauração de registros `maps` nos backups `.fieldgis`.
+- Restauração agora valida manifesto, referências e arquivos antes de gravar e tenta desfazer uma restauração parcial em caso de erro.
+- Exclusão de camadas agora remove dados vinculados, incluindo fotos, mapas raster e blobs não compartilhados.
+- Corrigido o cálculo de duração quando uma trilha é finalizada enquanto está pausada.
+- Importações CSV/GeoJSON passaram a validar coordenadas e impor limites de segurança.
+- Adicionado limite de pixels para processamento de GeoTIFF no navegador.
+- Reduzidos riscos de XSS na renderização de dados externos na interface.
+- O filtro de precisão das trilhas/polígonos passa a respeitar a configuração de precisão GPS.
+- IndexedDB ganhou operação `bulkPut()` para futuras importações de alto volume.
+
 # FieldGIS — Mapas e Navegação de Campo
 
 Aplicativo web (PWA) profissional e independente de mapas, navegação GPS e coleta de dados de campo, para uso em geoprocessamento, topografia, manejo florestal e levantamento ambiental. Funciona **inteiramente offline** depois da primeira instalação, com identidade visual e código próprios (inspirado apenas no conceito funcional de apps como o Avenza Maps, sem reaproveitar marca, layout ou código de terceiros).

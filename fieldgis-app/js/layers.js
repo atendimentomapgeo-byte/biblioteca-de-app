@@ -65,17 +65,9 @@
       }
     },
 
-    /** Exclui a camada e todos os elementos vinculados a ela (pontos/trilhas/polígonos). */
+    /** Exclui a camada e todos os elementos vinculados, incluindo raster e fotos. */
     async delete(layerId) {
-      const layer = await DB.get('layers', layerId);
-      if (!layer) return;
-      const stores = { points: 'points', tracks: 'tracks', polygons: 'polygons' };
-      const store = stores[layer.kind];
-      if (store) {
-        const items = await DB.byIndex(store, 'layerId', layerId).catch(() => []);
-        for (const it of items) await DB.delete(store, it.id);
-      }
-      return DB.delete('layers', layerId);
+      return DB.deleteLayerCascade(layerId);
     },
 
     iconFor(kind) {

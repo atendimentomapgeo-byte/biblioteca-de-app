@@ -129,6 +129,21 @@ const DB = {
     return obj;
   },
 
+  /** Insere/atualiza vários registros em uma única transação. */
+  async bulkPut(store, items) {
+    if (!Array.isArray(items) || !items.length) return [];
+    const now = new Date().toISOString();
+    const prepared = items.map((obj) => {
+      if (!obj.id) obj.id = uuid();
+      if (!obj.createdAt) obj.createdAt = now;
+      obj.updatedAt = now;
+      return obj;
+    });
+    const os = await tx(store, 'readwrite');
+    await Promise.all(prepared.map((obj) => reqToPromise(os.put(obj))));
+    return prepared;
+  },
+
   async get(store, id) {
     const os = await tx(store);
     return reqToPromise(os.get(id));
@@ -161,16 +176,74 @@ const DB = {
     return reqToPromise(idx.getAll(value));
   },
 
-  /** Remove em cascata todos os dados de um projeto (mapas, camadas, pontos, trilhas, polígonos, fotos, formulários). */
+  /** Remove em cascata todos os dados de um projeto em uma única transação. */
   async deleteProjectCascade(projectId) {
-    const stores = ['maps', 'layers', 'points', 'tracks', 'polygons', 'photos', 'forms', 'blobs'];
-    for (const s of stores) {
-      const items = await DB.byProject(s, projectId);
-      const os = await tx(s, 'readwrite');
-      for (const it of items) os.delete(it.id);
+    const stores = ['maps', 'layers', 'points', 'tracks', 'polygons', 'photos', 'forms', 'blobs', 'projects'];
+    const [maps, layers, points, tracks, polygons, photos, forms, blobs] = await Promise.all([
+      DB.byProject('maps', projectId),
+      DB.byProject('layers', projectId),
+      DB.byProject('points', projectId),
+      DB.byProject('tracks', projectId),
+      DB.byProject('polygons', projectId),
+      DB.byProject('photos', projectId),
+      DB.byProject('forms', projectId),
+      DB.byProject('blobs', projectId),
+    ]);
+    const db = await openDB();
+    const transaction = db.transaction(stores, 'readwrite');
+    const idsByStore = {
+      maps, layers, points, tracks, polygons, photos, forms, blobs,
+    };
+    for (const store of Object.keys(idsByStore)) {
+      const os = transaction.objectStore(store);
+      for (const item of idsByStore[store]) os.delete(item.id);
     }
-    const os = await tx('projects', 'readwrite');
-    await reqToPromise(os.delete(projectId));
+    transaction.objectStore('projects').delete(projectId);
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error || new Error('Transação de exclusão abortada.'));
+    });
+  },
+
+  /** Exclui uma camada e seus dados relacionados em uma única transação. */
+  async deleteLayerCascade(layerId) {
+    const layer = await DB.get('layers', layerId);
+    if (!layer) return false;
+
+    const [points, tracks, polygons, maps] = await Promise.all([
+      DB.byIndex('points', 'layerId', layerId).catch(() => []),
+      DB.byIndex('tracks', 'layerId', layerId).catch(() => []),
+      DB.byIndex('polygons', 'layerId', layerId).catch(() => []),
+      DB.byProject('maps', layer.projectId),
+    ]);
+    const layerMaps = maps.filter((m) => m.layerId === layerId);
+    const pointIds = new Set(points.map((p) => p.id));
+    const photos = pointIds.size ? (await DB.byProject('photos', layer.projectId)).filter((p) => pointIds.has(p.pointId)) : [];
+    const allBlobs = await DB.byProject('blobs', layer.projectId);
+    const referencedBlobKeys = new Set(maps.filter((m) => !layerMaps.includes(m)).map((m) => m.blobKey).filter(Boolean));
+    const blobs = allBlobs.filter((b) => layerMaps.some((m) => m.blobKey === b.id) && !referencedBlobKeys.has(b.id));
+
+    const stores = ['points', 'tracks', 'polygons', 'photos', 'maps', 'blobs', 'layers'];
+    const db = await openDB();
+    const transaction = db.transaction(stores, 'readwrite');
+    const deleteMany = (store, items) => {
+      const os = transaction.objectStore(store);
+      for (const item of items) os.delete(item.id);
+    };
+    deleteMany('points', points);
+    deleteMany('tracks', tracks);
+    deleteMany('polygons', polygons);
+    deleteMany('photos', photos);
+    deleteMany('maps', layerMaps);
+    deleteMany('blobs', blobs);
+    transaction.objectStore('layers').delete(layerId);
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error || new Error('Transação de exclusão abortada.'));
+    });
+    return true;
   },
 
   async getSettings() {

@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v35';
+  const APP_BUILD_VERSION = 'v36';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -52,6 +52,10 @@
   }
   function promptDialog(message, defaultValue) {
     return window.prompt(message, defaultValue || '');
+  }
+
+  function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
   }
 
   function revokeObjectUrls() {
@@ -645,13 +649,13 @@
         const val = values[f.key] ?? '';
         if (f.type === 'selecao') {
           const opts = (f.options || '').split(',').map((o) => o.trim());
-          return `<label>${f.label}</label><select data-attr-key="${f.key}">${opts.map((o) => `<option ${o === val ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+          return `<label>${escapeHTML(f.label)}</label><select data-attr-key="${escapeHTML(f.key)}">${opts.map((o) => `<option ${o === val ? 'selected' : ''}>${escapeHTML(o)}</option>`).join('')}</select>`;
         }
         if (f.type === 'checkbox') {
-          return `<label style="display:flex;align-items:center;gap:8px;margin-top:14px"><input type="checkbox" data-attr-key="${f.key}" style="width:auto" ${val ? 'checked' : ''}/> ${f.label}</label>`;
+          return `<label style="display:flex;align-items:center;gap:8px;margin-top:14px"><input type="checkbox" data-attr-key="${escapeHTML(f.key)}" style="width:auto" ${val ? 'checked' : ''}/> ${escapeHTML(f.label)}</label>`;
         }
         const typeMap = { texto: 'text', numero: 'number', decimal: 'number', data: 'date', hora: 'time' };
-        return `<label>${f.label}</label><input type="${typeMap[f.type] || 'text'}" ${f.type === 'decimal' ? 'step="any"' : ''} data-attr-key="${f.key}" value="${val}"/>`;
+        return `<label>${escapeHTML(f.label)}</label><input type="${typeMap[f.type] || 'text'}" ${f.type === 'decimal' ? 'step="any"' : ''} data-attr-key="${escapeHTML(f.key)}" value="${escapeHTML(val)}"/>`;
       })
       .join('');
   }
@@ -659,7 +663,7 @@
   function collectAttributeValues(fields) {
     const values = {};
     fields.forEach((f) => {
-      const el = qs(`[data-attr-key="${f.key}"]`, $('point-attributes-container'));
+      const el = qsa('[data-attr-key]', $('point-attributes-container')).find((node) => node.dataset.attrKey === f.key);
       if (!el) return;
       values[f.key] = f.type === 'checkbox' ? el.checked : el.value;
     });
@@ -742,8 +746,8 @@
         <div class="fg-coord-box"><div class="k">Altitude</div><div class="v">${point.alt != null ? point.alt.toFixed(1) + ' m' : '—'}</div></div>
         <div class="fg-coord-box"><div class="k">Precisão</div><div class="v">± ${point.accuracy != null ? point.accuracy.toFixed(1) : '—'} m</div></div>
       </div>
-      <p><b>Descrição:</b> ${point.description || '<i>Sem descrição</i>'}</p>
-      ${Object.keys(point.attributes || {}).length ? '<p><b>Atributos:</b><br>' + Object.entries(point.attributes).map(([k, v]) => `${k}: ${v}`).join('<br>') + '</p>' : ''}
+      <p><b>Descrição:</b> ${point.description ? escapeHTML(point.description) : '<i>Sem descrição</i>'}</p>
+      ${Object.keys(point.attributes || {}).length ? '<p><b>Atributos:</b><br>' + Object.entries(point.attributes).map(([k, v]) => `${escapeHTML(k)}: ${escapeHTML(v)}`).join('<br>') + '</p>' : ''}
       <div class="fg-photo-grid">${photosHtml}</div>
       <div class="fg-btn-row">
         <button class="fg-btn" id="pi-btn-photo">📷 Foto</button>
@@ -798,7 +802,7 @@
     if (!requireProject()) return;
     const state = Tracks.getState();
     if (state === 'idle') {
-      Tracks.start(null);
+      Tracks.start(null, settings.gps.minAccuracy || 30);
       Tracks.on(updateTrackDrawbar);
       drawMode = 'track';
       renderTrackDrawbar();
@@ -907,7 +911,7 @@
     if (!requireProject()) return;
     drawMode = 'polygon';
     if (kind === 'manual') Polygons.startManual();
-    else Polygons.startGPSWalk(settings.gps.minDistance || 3);
+    else Polygons.startGPSWalk(settings.gps.minDistance || 3, settings.gps.minAccuracy || 30);
 
     Polygons.onChange(renderPolygonDrawbar);
     renderPolygonDrawbar({ area: 0, perimeter: 0, vertexCount: 0 });
@@ -1178,9 +1182,9 @@
       .map(
         (l) => `
       <div class="fg-layer-item" data-layer-id="${l.id}">
-        <span class="fg-layer-color" style="background:${l.color}"></span>
+        <span class="fg-layer-color" style="background:${escapeHTML(l.color)}"></span>
         <div class="fg-switch ${l.visible ? 'on' : ''}" data-action="toggle"></div>
-        <span class="fg-layer-name">${Layers.iconFor(l.kind)} ${l.name}</span>
+        <span class="fg-layer-name">${Layers.iconFor(l.kind)} ${escapeHTML(l.name)}</span>
         <input type="range" min="0" max="1" step="0.1" value="${l.opacity}" data-action="opacity"/>
         <button class="fg-icon-btn" style="width:32px;height:32px;font-size:14px" data-action="rename">✏️</button>
         <button class="fg-icon-btn" style="width:32px;height:32px;font-size:14px" data-action="delete">🗑️</button>
@@ -1281,7 +1285,7 @@
         return `<div class="fg-list-item" data-project-id="${p.id}">
           <span class="fg-list-icon">📁</span>
           <div class="fg-list-main">
-            <div class="fg-list-title">${p.name}</div>
+            <div class="fg-list-title">${escapeHTML(p.name)}</div>
             <div class="fg-list-sub">${s.points} pontos · ${s.tracks} trilhas · ${s.polygons} polígonos · ${s.maps} mapas</div>
           </div>
           <button class="fg-icon-btn" style="width:32px;height:32px;font-size:14px" data-action="rename">✏️</button>
@@ -1342,7 +1346,7 @@
         .map(
           (f, i) => `<div class="fg-list-item" data-idx="${i}">
           <span class="fg-list-icon">🏷️</span>
-          <div class="fg-list-main"><div class="fg-list-title">${f.label}</div><div class="fg-list-sub">${f.type}${f.options ? ' · ' + f.options : ''}</div></div>
+          <div class="fg-list-main"><div class="fg-list-title">${escapeHTML(f.label)}</div><div class="fg-list-sub">${escapeHTML(f.type)}${f.options ? ' · ' + escapeHTML(f.options) : ''}</div></div>
           <button class="fg-icon-btn" style="width:32px;height:32px;font-size:14px" data-action="del">🗑️</button>
         </div>`
         )
@@ -1474,7 +1478,7 @@
       return;
     }
     const wizard = $('import-wizard');
-    const opt = (h) => `<option value="${h}">${h}</option>`;
+    const opt = (h) => `<option value="${escapeHTML(h)}">${escapeHTML(h)}</option>`;
     wizard.innerHTML = `
       <div class="fg-step-indicator"><span class="done"></span></div>
       <p style="font-size:13px;color:var(--fg-text-dim)">${rows.length} linhas encontradas. Selecione as colunas correspondentes:</p>
@@ -1497,7 +1501,7 @@
         <div><label>Código</label><select id="csv-code"><option value="">(nenhum)</option>${headers.map(opt)}</select></div>
       </div>
       <label>Campos adicionais a importar como atributos</label>
-      <div id="csv-attrs">${headers.map((h) => `<label style="display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" value="${h}" style="width:auto"/> ${h}</label>`).join('')}</div>
+      <div id="csv-attrs">${headers.map((h) => `<label style="display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" value="${escapeHTML(h)}" style="width:auto"/> ${escapeHTML(h)}</label>`).join('')}</div>
       <button class="fg-btn primary" id="csv-do-import">📥 Importar ${rows.length} pontos</button>`;
 
     $('csv-coord-type').onchange = (e) => {
@@ -1903,7 +1907,7 @@
       return;
     }
     container.innerHTML = results
-      .map((p) => `<div class="fg-list-item" data-id="${p.id}"><span class="fg-list-icon">📍</span><div class="fg-list-main"><div class="fg-list-title">${p.name}</div><div class="fg-list-sub">${p.code || ''}</div></div></div>`)
+      .map((p) => `<div class="fg-list-item" data-id="${p.id}"><span class="fg-list-icon">📍</span><div class="fg-list-main"><div class="fg-list-title">${escapeHTML(p.name)}</div><div class="fg-list-sub">${escapeHTML(p.code || '')}</div></div></div>`)
       .join('');
     qsa('.fg-list-item', container).forEach((item) => {
       item.onclick = async () => {

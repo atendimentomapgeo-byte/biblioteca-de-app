@@ -9,6 +9,24 @@
  */
 
 (function () {
+  const LIMITS = { maxFeatures: 100000, maxVerticesPerGeometry: 500000 };
+
+  function validLatLon(lat, lon) {
+    return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+  }
+
+  function validateGeometryCoordinates(type, coordinates) {
+    if (!coordinates) return false;
+    const walk = (value, depth = 0) => {
+      if (depth > 4) return false;
+      if (Array.isArray(value) && value.length >= 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
+        return validLatLon(value[1], value[0]);
+      }
+      return Array.isArray(value) && value.length > 0 && value.every((v) => walk(v, depth + 1));
+    };
+    return walk(coordinates);
+  }
+
   // ------------------------------------------------------------------
   // CSV
   // ------------------------------------------------------------------
@@ -80,6 +98,8 @@
 
       let lat, lon;
       if (mapping.coordType === 'utm') {
+        if (!Number.isInteger(mapping.zone) || mapping.zone < 1 || mapping.zone > 60) continue;
+        if (!['S', 'N'].includes(mapping.hemisphere)) continue;
         const res = Coordinates.fromUTM(xVal, yVal, mapping.zone, mapping.hemisphere === 'S', mapping.datum);
         lat = res.lat;
         lon = res.lon;
@@ -87,6 +107,7 @@
         lon = xVal;
         lat = yVal;
       }
+      if (!validLatLon(lat, lon)) continue;
 
       const attributes = {};
       attrIdx.forEach(({ field, i }) => {
@@ -108,9 +129,9 @@
         photos: [],
         imported: true,
       };
-      created.push(await DB.put('points', point));
+      created.push(point);
     }
-    return created;
+    return DB.bulkPut('points', created);
   }
 
   // ------------------------------------------------------------------
@@ -119,10 +140,14 @@
 
   async function importGeoJSON(geojson, projectId, layerIds) {
     const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+    if (!Array.isArray(features) || features.length > LIMITS.maxFeatures) {
+      throw new Error(`O arquivo contém elementos demais. Limite: ${LIMITS.maxFeatures.toLocaleString('pt-BR')}.`);
+    }
     const result = { points: 0, tracks: 0, polygons: 0 };
 
     for (const f of features) {
-      if (!f.geometry) continue;
+      if (!f || !f.geometry || !f.geometry.type) continue;
+      if (!validateGeometryCoordinates(f.geometry.type, f.geometry.coordinates)) continue;
       const props = f.properties || {};
       switch (f.geometry.type) {
         case 'Point': {
@@ -146,6 +171,7 @@
           break;
         }
         case 'LineString': {
+          if (f.geometry.coordinates.length > LIMITS.maxVerticesPerGeometry) continue;
           const points = f.geometry.coordinates.map(([lon, lat, alt], i) => ({ lat, lon, alt: alt ?? null, time: Date.now() + i }));
           const stats = Tracks.computeStats(points);
           await DB.put('tracks', {
@@ -161,7 +187,9 @@
         }
         case 'Polygon': {
           const ring = f.geometry.coordinates[0];
-          const vertices = ring.map(([lon, lat]) => ({ lat, lon }));
+          if (!Array.isArray(ring) || ring.length < 4 || ring.length > LIMITS.maxVerticesPerGeometry) continue;
+          const verticesRing = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1] ? ring : ring.concat([ring[0]]);
+          const vertices = verticesRing.map(([lon, lat]) => ({ lat, lon })).slice(0, -1);
           const area = Coordinates.polygonArea(vertices.map((v) => ({ lat: v.lat, lng: v.lon })));
           const perimeter = Coordinates.polygonPerimeter(vertices.map((v) => ({ lat: v.lat, lng: v.lon })), true);
           await DB.put('polygons', {
@@ -179,6 +207,7 @@
         }
         case 'MultiLineString': {
           for (const line of f.geometry.coordinates) {
+            if (!Array.isArray(line) || line.length > LIMITS.maxVerticesPerGeometry) continue;
             const points = line.map(([lon, lat, alt], i) => ({ lat, lon, alt: alt ?? null, time: Date.now() + i }));
             await DB.put('tracks', { projectId, layerId: layerIds.tracks, name: props.name || `Trilha importada ${result.tracks + 1}`, points, stats: Tracks.computeStats(points), imported: true });
             result.tracks++;
@@ -187,7 +216,10 @@
         }
         case 'MultiPolygon': {
           for (const poly of f.geometry.coordinates) {
-            const vertices = poly[0].map(([lon, lat]) => ({ lat, lon }));
+            if (!poly || !Array.isArray(poly[0]) || poly[0].length < 4 || poly[0].length > LIMITS.maxVerticesPerGeometry) continue;
+            const ring = poly[0];
+            const closedRing = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1] ? ring : ring.concat([ring[0]]);
+            const vertices = closedRing.map(([lon, lat]) => ({ lat, lon })).slice(0, -1);
             const area = Coordinates.polygonArea(vertices.map((v) => ({ lat: v.lat, lng: v.lon })));
             const perimeter = Coordinates.polygonPerimeter(vertices.map((v) => ({ lat: v.lat, lng: v.lon })), true);
             await DB.put('polygons', { projectId, layerId: layerIds.polygons, name: props.name || `Polígono importado ${result.polygons + 1}`, vertices, area, perimeter, attributes: props, imported: true });
@@ -254,6 +286,12 @@
     const image = await tiff.getImage();
     const width = image.getWidth();
     const height = image.getHeight();
+    const pixelCount = width * height;
+    const MAX_RASTER_PIXELS = 25000000;
+    if (!Number.isFinite(pixelCount) || pixelCount <= 0) throw new Error('GeoTIFF inválido: dimensões da imagem não são válidas.');
+    if (pixelCount > MAX_RASTER_PIXELS) {
+      throw new Error(`GeoTIFF muito grande para processamento seguro no navegador (${pixelCount.toLocaleString('pt-BR')} pixels). Limite: ${MAX_RASTER_PIXELS.toLocaleString('pt-BR')}.`);
+    }
     const bbox = image.getBoundingBox(); // [minX, minY, maxX, maxY] no CRS nativo da imagem
 
     let geoKeys = {};
