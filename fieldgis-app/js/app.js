@@ -54,10 +54,6 @@
     return window.prompt(message, defaultValue || '');
   }
 
-  function escapeHTML(value) {
-    return String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
-  }
-
   function revokeObjectUrls() {
     objectUrls.forEach((u) => URL.revokeObjectURL(u));
     objectUrls.length = 0;
@@ -183,6 +179,13 @@
     $('fg-project-sub').textContent = `${summary.points} pontos · ${summary.tracks} trilhas · ${summary.polygons} polígonos`;
   }
 
+  /** Desliga o modo "seguir GPS" (mira volta ao normal) — chamado sempre que o app posiciona algo deliberadamente na tela (projeto, PDF importado), pra a próxima leitura do GPS não puxar a visão de volta pra posição do usuário. */
+  function pararSeguirGPS() {
+    seguindoGPS = false;
+    const btn = $('btn-locate');
+    if (btn) btn.classList.remove('centered');
+  }
+
   async function fitProjectBounds(projectId) {
     // Quando o projeto tem mapa(s)/PDF importado(s) MARCADOS COMO VISÍVEIS
     // (controlado em Menu > Camadas), eles são o documento de referência
@@ -204,6 +207,7 @@
       });
       if (boundsRaster.length) {
         MapModule.fitBounds(boundsRaster);
+        pararSeguirGPS();
         return;
       }
     }
@@ -221,6 +225,7 @@
 
     if (bounds.length) {
       MapModule.fitBounds(bounds);
+      pararSeguirGPS();
     }
   }
 
@@ -649,13 +654,13 @@
         const val = values[f.key] ?? '';
         if (f.type === 'selecao') {
           const opts = (f.options || '').split(',').map((o) => o.trim());
-          return `<label>${escapeHTML(f.label)}</label><select data-attr-key="${escapeHTML(f.key)}">${opts.map((o) => `<option ${o === val ? 'selected' : ''}>${escapeHTML(o)}</option>`).join('')}</select>`;
+          return `<label>${f.label}</label><select data-attr-key="${f.key}">${opts.map((o) => `<option ${o === val ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
         }
         if (f.type === 'checkbox') {
-          return `<label style="display:flex;align-items:center;gap:8px;margin-top:14px"><input type="checkbox" data-attr-key="${escapeHTML(f.key)}" style="width:auto" ${val ? 'checked' : ''}/> ${escapeHTML(f.label)}</label>`;
+          return `<label style="display:flex;align-items:center;gap:8px;margin-top:14px"><input type="checkbox" data-attr-key="${f.key}" style="width:auto" ${val ? 'checked' : ''}/> ${f.label}</label>`;
         }
         const typeMap = { texto: 'text', numero: 'number', decimal: 'number', data: 'date', hora: 'time' };
-        return `<label>${escapeHTML(f.label)}</label><input type="${typeMap[f.type] || 'text'}" ${f.type === 'decimal' ? 'step="any"' : ''} data-attr-key="${escapeHTML(f.key)}" value="${escapeHTML(val)}"/>`;
+        return `<label>${f.label}</label><input type="${typeMap[f.type] || 'text'}" ${f.type === 'decimal' ? 'step="any"' : ''} data-attr-key="${f.key}" value="${val}"/>`;
       })
       .join('');
   }
@@ -663,7 +668,7 @@
   function collectAttributeValues(fields) {
     const values = {};
     fields.forEach((f) => {
-      const el = qsa('[data-attr-key]', $('point-attributes-container')).find((node) => node.dataset.attrKey === f.key);
+      const el = qs(`[data-attr-key="${f.key}"]`, $('point-attributes-container'));
       if (!el) return;
       values[f.key] = f.type === 'checkbox' ? el.checked : el.value;
     });
@@ -746,8 +751,8 @@
         <div class="fg-coord-box"><div class="k">Altitude</div><div class="v">${point.alt != null ? point.alt.toFixed(1) + ' m' : '—'}</div></div>
         <div class="fg-coord-box"><div class="k">Precisão</div><div class="v">± ${point.accuracy != null ? point.accuracy.toFixed(1) : '—'} m</div></div>
       </div>
-      <p><b>Descrição:</b> ${point.description ? escapeHTML(point.description) : '<i>Sem descrição</i>'}</p>
-      ${Object.keys(point.attributes || {}).length ? '<p><b>Atributos:</b><br>' + Object.entries(point.attributes).map(([k, v]) => `${escapeHTML(k)}: ${escapeHTML(v)}`).join('<br>') + '</p>' : ''}
+      <p><b>Descrição:</b> ${point.description || '<i>Sem descrição</i>'}</p>
+      ${Object.keys(point.attributes || {}).length ? '<p><b>Atributos:</b><br>' + Object.entries(point.attributes).map(([k, v]) => `${k}: ${v}`).join('<br>') + '</p>' : ''}
       <div class="fg-photo-grid">${photosHtml}</div>
       <div class="fg-btn-row">
         <button class="fg-btn" id="pi-btn-photo">📷 Foto</button>
@@ -796,18 +801,58 @@
   }
 
   // =======================================================================
+  // Wake Lock — mantém a tela acesa (sem travar sozinha) durante a gravação
+  // de uma trilha. Isso NÃO resolve o rastreamento em segundo plano (o iOS
+  // não permite isso pra apps baseados em navegador/PWA, só pra apps nativos
+  // com permissão especial de localização) — mas evita a causa mais comum
+  // de interrupção sem querer: a tela travando sozinha por inatividade.
+  // =======================================================================
+  let wakeLockAtivo = null;
+
+  async function ativarWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockAtivo = await navigator.wakeLock.request('screen');
+        wakeLockAtivo.addEventListener('release', () => {
+          wakeLockAtivo = null;
+        });
+      }
+    } catch (e) {
+      // Sem suporte, ou permissão negada — a gravação continua normalmente,
+      // só sem essa proteção extra.
+    }
+  }
+
+  async function liberarWakeLock() {
+    if (wakeLockAtivo) {
+      try { await wakeLockAtivo.release(); } catch (e) { /* já pode ter sido liberado pelo sistema */ }
+      wakeLockAtivo = null;
+    }
+  }
+
+  // O Wake Lock é automaticamente liberado pelo navegador quando a aba
+  // fica em segundo plano/tela bloqueia — precisa ser pedido de novo ao
+  // voltar, se ainda estiver gravando uma trilha.
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && Tracks.getState() === 'recording') {
+      ativarWakeLock();
+    }
+  });
+
+  // =======================================================================
   // Trilhas
   // =======================================================================
   function handleTrackToggle() {
     if (!requireProject()) return;
     const state = Tracks.getState();
     if (state === 'idle') {
-      Tracks.start(null, settings.gps.minAccuracy || 30);
+      Tracks.start(null);
       Tracks.on(updateTrackDrawbar);
       drawMode = 'track';
       renderTrackDrawbar();
       $('drawbar').hidden = false;
       $('nav-track').classList.add('record');
+      ativarWakeLock();
 
       // Ativa o modo "seguir" automaticamente ao começar a gravar — assim o
       // cursor não sai da tela conforme você se desloca durante a trilha.
@@ -835,10 +880,10 @@
     const actions = $('drawbar-actions');
     actions.innerHTML = '';
     if (state === 'recording') {
-      actions.appendChild(makeDrawBtn('⏸ Pausar', () => Tracks.pause()));
+      actions.appendChild(makeDrawBtn('⏸ Pausar', () => { Tracks.pause(); liberarWakeLock(); }));
       actions.appendChild(makeDrawBtn('⏹ Finalizar', () => finishTrack(), 'danger'));
     } else if (state === 'paused') {
-      actions.appendChild(makeDrawBtn('▶ Continuar', () => Tracks.resume()));
+      actions.appendChild(makeDrawBtn('▶ Continuar', () => { Tracks.resume(); ativarWakeLock(); }));
       actions.appendChild(makeDrawBtn('⏹ Finalizar', () => finishTrack(), 'danger'));
     }
   }
@@ -852,6 +897,7 @@
   }
 
   function finishTrack() {
+    liberarWakeLock();
     const stats = Tracks.getCurrentStats();
     if (!stats || stats.distance < 1) {
       Tracks.discard();
@@ -911,7 +957,7 @@
     if (!requireProject()) return;
     drawMode = 'polygon';
     if (kind === 'manual') Polygons.startManual();
-    else Polygons.startGPSWalk(settings.gps.minDistance || 3, settings.gps.minAccuracy || 30);
+    else Polygons.startGPSWalk(settings.gps.minDistance || 3);
 
     Polygons.onChange(renderPolygonDrawbar);
     renderPolygonDrawbar({ area: 0, perimeter: 0, vertexCount: 0 });
@@ -1182,9 +1228,9 @@
       .map(
         (l) => `
       <div class="fg-layer-item" data-layer-id="${l.id}">
-        <span class="fg-layer-color" style="background:${escapeHTML(l.color)}"></span>
+        <span class="fg-layer-color" style="background:${l.color}"></span>
         <div class="fg-switch ${l.visible ? 'on' : ''}" data-action="toggle"></div>
-        <span class="fg-layer-name">${Layers.iconFor(l.kind)} ${escapeHTML(l.name)}</span>
+        <span class="fg-layer-name">${Layers.iconFor(l.kind)} ${l.name}</span>
         <input type="range" min="0" max="1" step="0.1" value="${l.opacity}" data-action="opacity"/>
         <button class="fg-icon-btn" style="width:32px;height:32px;font-size:14px" data-action="rename">✏️</button>
         <button class="fg-icon-btn" style="width:32px;height:32px;font-size:14px" data-action="delete">🗑️</button>
@@ -1285,7 +1331,7 @@
         return `<div class="fg-list-item" data-project-id="${p.id}">
           <span class="fg-list-icon">📁</span>
           <div class="fg-list-main">
-            <div class="fg-list-title">${escapeHTML(p.name)}</div>
+            <div class="fg-list-title">${p.name}</div>
             <div class="fg-list-sub">${s.points} pontos · ${s.tracks} trilhas · ${s.polygons} polígonos · ${s.maps} mapas</div>
           </div>
           <button class="fg-icon-btn" style="width:32px;height:32px;font-size:14px" data-action="rename">✏️</button>
@@ -1346,7 +1392,7 @@
         .map(
           (f, i) => `<div class="fg-list-item" data-idx="${i}">
           <span class="fg-list-icon">🏷️</span>
-          <div class="fg-list-main"><div class="fg-list-title">${escapeHTML(f.label)}</div><div class="fg-list-sub">${escapeHTML(f.type)}${f.options ? ' · ' + escapeHTML(f.options) : ''}</div></div>
+          <div class="fg-list-main"><div class="fg-list-title">${f.label}</div><div class="fg-list-sub">${f.type}${f.options ? ' · ' + f.options : ''}</div></div>
           <button class="fg-icon-btn" style="width:32px;height:32px;font-size:14px" data-action="del">🗑️</button>
         </div>`
         )
@@ -1478,7 +1524,7 @@
       return;
     }
     const wizard = $('import-wizard');
-    const opt = (h) => `<option value="${escapeHTML(h)}">${escapeHTML(h)}</option>`;
+    const opt = (h) => `<option value="${h}">${h}</option>`;
     wizard.innerHTML = `
       <div class="fg-step-indicator"><span class="done"></span></div>
       <p style="font-size:13px;color:var(--fg-text-dim)">${rows.length} linhas encontradas. Selecione as colunas correspondentes:</p>
@@ -1501,7 +1547,7 @@
         <div><label>Código</label><select id="csv-code"><option value="">(nenhum)</option>${headers.map(opt)}</select></div>
       </div>
       <label>Campos adicionais a importar como atributos</label>
-      <div id="csv-attrs">${headers.map((h) => `<label style="display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" value="${escapeHTML(h)}" style="width:auto"/> ${escapeHTML(h)}</label>`).join('')}</div>
+      <div id="csv-attrs">${headers.map((h) => `<label style="display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" value="${h}" style="width:auto"/> ${h}</label>`).join('')}</div>
       <button class="fg-btn primary" id="csv-do-import">📥 Importar ${rows.length} pontos</button>`;
 
     $('csv-coord-type').onchange = (e) => {
@@ -1698,6 +1744,7 @@
     await renderLayer(layer);
     MapModule.invalidateSize();
     MapModule.fitBounds(result.bounds);
+    pararSeguirGPS();
   }
 
   // =======================================================================
@@ -1907,7 +1954,7 @@
       return;
     }
     container.innerHTML = results
-      .map((p) => `<div class="fg-list-item" data-id="${p.id}"><span class="fg-list-icon">📍</span><div class="fg-list-main"><div class="fg-list-title">${escapeHTML(p.name)}</div><div class="fg-list-sub">${escapeHTML(p.code || '')}</div></div></div>`)
+      .map((p) => `<div class="fg-list-item" data-id="${p.id}"><span class="fg-list-icon">📍</span><div class="fg-list-main"><div class="fg-list-title">${p.name}</div><div class="fg-list-sub">${p.code || ''}</div></div></div>`)
       .join('');
     qsa('.fg-list-item', container).forEach((item) => {
       item.onclick = async () => {

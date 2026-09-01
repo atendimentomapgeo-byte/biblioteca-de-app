@@ -14,7 +14,7 @@
   let pauseStartedAt = null;
   let totalPausedMs = 0;
 
-  function computeStats(points, pausedMs = totalPausedMs) {
+  function computeStats(points) {
     if (points.length < 2) {
       return { distance: 0, avgSpeed: 0, maxSpeed: 0, minAlt: null, maxAlt: null, duration: 0 };
     }
@@ -33,7 +33,7 @@
         distance += Coordinates.haversineDistance(points[i - 1].lat, points[i - 1].lon, p.lat, p.lon);
       }
     }
-    const durationMs = points[points.length - 1].time - points[0].time - pausedMs;
+    const durationMs = points[points.length - 1].time - points[0].time - totalPausedMs;
     const avgSpeed = durationMs > 0 ? distance / (durationMs / 1000) : 0;
     return {
       distance,
@@ -66,7 +66,7 @@
      *   normais demais, deixando a trilha com poucos pontos e trechos retos
      *   artificiais em vez de acompanhar o caminho real percorrido.
      */
-    start(layerId, minAccuracy = 30) {
+    start(layerId, minAccuracy = 50) {
       if (state !== 'idle') return;
       currentTrack = { points: [], startedAt: Date.now(), layerId };
       totalPausedMs = 0;
@@ -123,13 +123,9 @@
 
     async finish(name, projectId) {
       if (state === 'idle' || !currentTrack) return null;
-      if (state === 'paused' && pauseStartedAt) {
-        totalPausedMs += Date.now() - pauseStartedAt;
-        pauseStartedAt = 0;
-      }
       if (unsubscribeGPS) unsubscribeGPS();
       state = 'idle';
-      const stats = computeStats(currentTrack.points, totalPausedMs);
+      const stats = computeStats(currentTrack.points);
       const track = {
         projectId,
         layerId: currentTrack.layerId,
