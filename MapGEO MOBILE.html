@@ -786,6 +786,18 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
   </div>
 </div>
 
+<div id="new-property-modal" class="modal hidden">
+  <div class="modal-card">
+    <h3>Novo imóvel</h3>
+    <p class="modal-desc">O imóvel anterior foi limpo da tela. Como deseja carregar o próximo?</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+      <button class="primary" id="btn-newprop-import">📂 Importar arquivo</button>
+      <button id="btn-newprop-car">🔍 Buscar por número de CAR</button>
+    </div>
+    <button id="btn-close-newprop" style="width:100%;margin-top:8px;">Fechar</button>
+  </div>
+</div>
+
 <div id="settings-modal" class="modal hidden">
   <div class="modal-card">
     <h3>Configurações de conexão (WFS INCRA / SEMA‑MT)</h3>
@@ -2291,13 +2303,14 @@ function appendPropertySearchResultRow(resultsEl, feat, opts){
   resultsEl.appendChild(row);
 }
 
-document.getElementById('btn-search-car').addEventListener('click', ()=>{
+function openCarSearchModal(){
   document.getElementById('input-car-search').value = '';
   document.getElementById('car-search-status').textContent = '';
   document.getElementById('car-search-results').innerHTML = '';
   document.getElementById('car-search-modal').classList.remove('hidden');
   document.getElementById('input-car-search').focus();
-});
+}
+document.getElementById('btn-search-car').addEventListener('click', openCarSearchModal);
 document.getElementById('btn-close-car-search').addEventListener('click', ()=>{
   document.getElementById('car-search-modal').classList.add('hidden');
 });
@@ -3547,6 +3560,19 @@ document.getElementById('btn-reset').addEventListener('click', ()=>{
   document.getElementById('btn-generate-report-fab').classList.add('hidden');
   document.getElementById('btn-atualizar').disabled = true;
   setStatus('Nenhum imóvel carregado', false);
+  document.getElementById('new-property-modal').classList.remove('hidden');
+});
+
+document.getElementById('btn-newprop-import').addEventListener('click', ()=>{
+  document.getElementById('new-property-modal').classList.add('hidden');
+  openFilePicker();
+});
+document.getElementById('btn-newprop-car').addEventListener('click', ()=>{
+  document.getElementById('new-property-modal').classList.add('hidden');
+  openCarSearchModal();
+});
+document.getElementById('btn-close-newprop').addEventListener('click', ()=>{
+  document.getElementById('new-property-modal').classList.add('hidden');
 });
 
 /* ============================================================
