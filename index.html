@@ -78,6 +78,26 @@
   #status.ok { color: #7fd88f; }
   #status.erro { color: #e0678a; }
 
+  #btnAtualizar {
+    background: #1b2734;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 7px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: border-color .15s;
+  }
+  #btnAtualizar:hover { border-color: var(--accent); }
+  #btnAtualizar:disabled { opacity: .5; cursor: default; }
+  #btnAtualizar .girando { display: inline-block; animation: girar .8s linear infinite; }
+  @keyframes girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
   main { padding: 28px; flex: 1; }
 
   #grid {
@@ -121,6 +141,7 @@
     <span>🔎</span>
     <input type="text" id="inputBusca" placeholder="Buscar app...">
   </div>
+  <button id="btnAtualizar" title="Ignora o cache e busca a lista mais recente">🔄 Atualizar</button>
   <div id="status">Carregando...</div>
 </header>
 
@@ -176,6 +197,7 @@ const gridEl = document.getElementById('grid');
 const vazioEl = document.getElementById('vazio');
 const carregandoEl = document.getElementById('carregando');
 const inputBusca = document.getElementById('inputBusca');
+const btnAtualizar = document.getElementById('btnAtualizar');
 
 let todosOsApps = [];
 
@@ -217,9 +239,19 @@ function usarCacheComoFallback(motivoErro) {
   return false;
 }
 
-async function buscarApps() {
+async function buscarApps(forcar) {
+  if (forcar) {
+    btnAtualizar.disabled = true;
+    btnAtualizar.innerHTML = '<span class="girando">🔄</span> Atualizando...';
+    setStatus('Forçando atualização (ignorando cache)...', '');
+  }
+  // Ao forçar, adiciona um parâmetro anti-cache e pede pro navegador não usar
+  // cache local — isso também tende a furar o cache de borda do jsDelivr,
+  // que costuma variar por URL completa (path + query).
+  const url = forcar ? `${JSDELIVR_URL}?_=${Date.now()}` : JSDELIVR_URL;
+  const opcoesFetch = forcar ? { cache: 'no-store' } : {};
   try {
-    const resp = await fetch(JSDELIVR_URL);
+    const resp = await fetch(url, opcoesFetch);
     if (!resp.ok) {
       let motivo;
       if (resp.status === 404) {
@@ -246,7 +278,7 @@ async function buscarApps() {
 
     salvarCache(todosOsApps);
     carregandoEl.style.display = 'none';
-    setStatus(`${todosOsApps.length} app(s) encontrado(s)`, 'ok');
+    setStatus(`${todosOsApps.length} app(s) encontrado(s)${forcar ? ' (atualizado agora)' : ''}`, 'ok');
     renderizar();
   } catch (e) {
     console.error(e);
@@ -254,6 +286,11 @@ async function buscarApps() {
       setStatus('Falha ao conectar com o jsDelivr', 'erro');
       carregandoEl.style.display = 'none';
       renderizar();
+    }
+  } finally {
+    if (forcar) {
+      btnAtualizar.disabled = false;
+      btnAtualizar.innerHTML = '🔄 Atualizar';
     }
   }
 }
@@ -320,6 +357,7 @@ function renderizar() {
 }
 
 inputBusca.addEventListener('input', renderizar);
+btnAtualizar.addEventListener('click', () => buscarApps(true));
 
 buscarApps();
 setInterval(buscarApps, REFRESH_MS);
