@@ -156,7 +156,7 @@
 const GITHUB_USER = 'atendimentomapgeo-byte';
 const GITHUB_REPO = 'biblioteca-de-app';
 const GITHUB_BRANCH = 'main';
-const REFRESH_MS = 120000; // reconsulta a cada 2 minutos
+const REFRESH_MS = 600000; // reconsulta automática a cada 10 minutos (usa a API do GitHub, limite de 60 req/hora sem login — use o botão "Atualizar" pra forçar na hora)
 const CACHE_KEY = 'biblioteca-apps-cache';
 const CACHE_MAX_IDADE_MS = 30 * 60 * 1000; // usa cache de até 30min como plano B
 
@@ -176,6 +176,11 @@ const APPS_EXTRAS = [
 ];
 
 const PAGES_BASE = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
+// Fonte primária: API oficial do GitHub — sempre reflete o estado real do
+// repositório (sem o atraso/dessincronia que o índice do jsDelivr pode ter).
+// Limite: 60 requisições/hora por IP sem autenticação.
+const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
+// Fonte de reserva, usada só se a API do GitHub falhar (rate limit, fora do ar etc.)
 const JSDELIVR_URL = `https://data.jsdelivr.com/v1/package/gh/${GITHUB_USER}/${GITHUB_REPO}@${GITHUB_BRANCH}/flat`;
 
 const CORES = ['#4b8bf5','#4bc0d9','#7fd88f','#f2b84b','#e0678a','#8f7ff2'];
@@ -239,51 +244,76 @@ function usarCacheComoFallback(motivoErro) {
   return false;
 }
 
+// Tenta a API oficial do GitHub primeiro (sempre em tempo real).
+// Retorna { apps } em caso de sucesso, ou lança erro em caso de falha.
+async function buscarViaGitHubAPI(forcar) {
+  const url = forcar ? `${GITHUB_API_URL}&_=${Date.now()}` : GITHUB_API_URL;
+  const opcoes = forcar ? { cache: 'no-store' } : {};
+  const resp = await fetch(url, opcoes);
+  if (!resp.ok) {
+    if (resp.status === 403) throw new Error('RATE_LIMIT');
+    if (resp.status === 404) throw new Error('Repositório ou branch não encontrado');
+    throw new Error('Erro ao consultar a API do GitHub (' + resp.status + ')');
+  }
+  const dados = await resp.json();
+  if (!Array.isArray(dados)) throw new Error('Resposta inesperada da API do GitHub');
+
+  const apps = dados
+    .filter(item => item.type === 'file' && /\.html?$/i.test(item.name) && !/^index\.html?$/i.test(item.name))
+    .map(item => ({ name: item.name }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  return apps;
+}
+
+// Reserva: índice do jsDelivr. Pode ficar dessincronizado do repositório
+// real por tempo indeterminado (bug conhecido do serviço), então só é usado
+// se a API do GitHub falhar.
+async function buscarViaJsDelivr(forcar) {
+  const url = forcar ? `${JSDELIVR_URL}?_=${Date.now()}` : JSDELIVR_URL;
+  const opcoes = forcar ? { cache: 'no-store' } : {};
+  const resp = await fetch(url, opcoes);
+  if (!resp.ok) {
+    if (resp.status === 404) throw new Error('Repositório ou branch não encontrado no jsDelivr');
+    throw new Error('Erro ao consultar o jsDelivr (' + resp.status + ')');
+  }
+  const dados = await resp.json();
+  const arquivos = Array.isArray(dados.files) ? dados.files : [];
+  return arquivos
+    .map(f => ({ name: f.name.replace(/^\//, '') }))
+    .filter(f => /^[^/]+\.html?$/i.test(f.name) && !/^index\.html?$/i.test(f.name))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+}
+
 async function buscarApps(forcar) {
   if (forcar) {
     btnAtualizar.disabled = true;
     btnAtualizar.innerHTML = '<span class="girando">🔄</span> Atualizando...';
-    setStatus('Forçando atualização (ignorando cache)...', '');
+    setStatus('Forçando atualização (consultando o GitHub diretamente)...', '');
   }
-  // Ao forçar, adiciona um parâmetro anti-cache e pede pro navegador não usar
-  // cache local — isso também tende a furar o cache de borda do jsDelivr,
-  // que costuma variar por URL completa (path + query).
-  const url = forcar ? `${JSDELIVR_URL}?_=${Date.now()}` : JSDELIVR_URL;
-  const opcoesFetch = forcar ? { cache: 'no-store' } : {};
   try {
-    const resp = await fetch(url, opcoesFetch);
-    if (!resp.ok) {
-      let motivo;
-      if (resp.status === 404) {
-        motivo = 'Repositório ou branch não encontrado';
-      } else {
-        motivo = 'Erro ao consultar o jsDelivr (' + resp.status + ')';
-      }
-      if (!usarCacheComoFallback(motivo)) {
-        setStatus(motivo, 'erro');
-        carregandoEl.style.display = 'none';
-        renderizar();
-      }
-      return;
+    let apps;
+    let fonte = 'GitHub';
+    try {
+      apps = await buscarViaGitHubAPI(forcar);
+    } catch (erroGitHub) {
+      // GitHub falhou (rate limit, fora do ar etc.) — tenta o jsDelivr como plano B.
+      console.warn('API do GitHub falhou, tentando jsDelivr:', erroGitHub.message);
+      fonte = 'jsDelivr (reserva)';
+      apps = await buscarViaJsDelivr(forcar);
     }
-    const dados = await resp.json();
-    const arquivos = Array.isArray(dados.files) ? dados.files : [];
 
-    todosOsApps = arquivos
-      // jsDelivr retorna caminhos com "/" na frente; nome de exibição sem a barra
-      .map(f => ({ name: f.name.replace(/^\//, '') }))
-      // só arquivos .html na raiz (sem subpasta) e sem ser o index.html
-      .filter(f => /^[^/]+\.html?$/i.test(f.name) && !/^index\.html?$/i.test(f.name))
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-
+    todosOsApps = apps;
     salvarCache(todosOsApps);
     carregandoEl.style.display = 'none';
-    setStatus(`${todosOsApps.length} app(s) encontrado(s)${forcar ? ' (atualizado agora)' : ''}`, 'ok');
+    setStatus(`${todosOsApps.length} app(s) encontrado(s) via ${fonte}${forcar ? ' — atualizado agora' : ''}`, 'ok');
     renderizar();
   } catch (e) {
     console.error(e);
-    if (!usarCacheComoFallback('Falha ao conectar com o jsDelivr')) {
-      setStatus('Falha ao conectar com o jsDelivr', 'erro');
+    const motivo = e.message === 'RATE_LIMIT'
+      ? 'Limite de requisições do GitHub atingido'
+      : 'Falha ao conectar (GitHub e jsDelivr indisponíveis)';
+    if (!usarCacheComoFallback(motivo)) {
+      setStatus(motivo, 'erro');
       carregandoEl.style.display = 'none';
       renderizar();
     }
