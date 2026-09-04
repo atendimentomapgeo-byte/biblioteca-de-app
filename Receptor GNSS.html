@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Locação de Vértices</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #121a2b;
+      --card2: #172235;
+      --text: #e8eefc;
+      --muted: #9fb0d0;
+      --ok: #28c76f;
+      --warn: #ff9f43;
+      --bad: #ea5455;
+      --accent: #4f8cff;
+      --line: #24324d;
+      --btn: #22314d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, #0b1220 0%, #0f1729 100%);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 1.3rem;
+      margin: 0 0 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: rgba(18, 26, 43, 0.96);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      margin: 0 0 10px;
+      color: #d8e3ff;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .field {
+      flex: 1 1 160px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    label {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+
+    input, select, button, textarea {
+      border: 1px solid var(--line);
+      background: #0f1729;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    textarea { min-height: 80px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+    button {
+      background: var(--btn);
+      cursor: pointer;
+      font-weight: 600;
+      min-height: 46px;
+    }
+    button.primary { background: var(--accent); color: white; }
+    button.ok { background: var(--ok); color: #08120d; }
+    button.warn { background: var(--warn); color: #1d1204; }
+    button.bad { background: var(--bad); color: #fff; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      background: var(--card2);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .metric .k {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .metric .v {
+      font-size: 1.05rem;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #10192b;
+      border: 1px solid var(--line);
+      font-size: .9rem;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--bad);
+      display: inline-block;
+    }
+
+    .dot.ok { background: var(--ok); }
+    .dot.warn { background: var(--warn); }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      background: #0f1729;
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: .84rem;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .9rem;
+    }
+    .table th, .table td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .table th { color: var(--muted); font-weight: 600; }
+
+    .footer-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 780px) {
+      .split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Locação de Vértices</h1>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div class="row" style="justify-content:space-between;">
+        <div class="status" id="statusChip"><span class="dot" id="statusDot"></span><span id="statusText">Parado</span></div>
+        <div class="small" id="sourceInfo">Fonte: não iniciada</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <h2>Coleta</h2>
+        <div class="row">
+          <div class="field">
+            <label for="vertexId">ID do vértice</label>
+            <input id="vertexId" value="V-001" />
+          </div>
+          <div class="field">
+            <label for="minObs">Mínimo de observações</label>
+            <input id="minObs" type="number" value="30" min="5" max="10000" />
+          </div>
+          <div class="field">
+            <label for="maxAcc">Precisão máxima (m)</label>
+            <input id="maxAcc" type="number" value="10" min="1" step="0.1" />
+          </div>
+          <div class="field">
+            <label for="mode">Modo</label>
+            <select id="mode">
+              <option value="internal">GPS interno</option>
+              <option value="external">GNSS externo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="footer-actions">
+          <button class="primary" id="btnStart">Iniciar locação</button>
+          <button class="ok" id="btnSave" disabled>Salvar vértice</button>
+          <button class="warn" id="btnStop" disabled>Parar coleta</button>
+          <button id="btnClear">Limpar sessão</button>
+        </div>
+
+        <div style="margin-top:14px;" class="metrics">
+          <div class="metric"><div class="k">Latitude</div><div class="v" id="lat">—</div></div>
+          <div class="metric"><div class="k">Longitude</div><div class="v" id="lng">—</div></div>
+          <div class="metric"><div class="k">Altitude</div><div class="v" id="alt">—</div></div>
+          <div class="metric"><div class="k">Precisão horizontal</div><div class="v" id="acc">—</div></div>
+          <div class="metric"><div class="k">Precisão vertical</div><div class="v" id="vAcc">—</div></div>
+          <div class="metric"><div class="k">Leituras válidas</div><div class="v" id="count">0</div></div>
+          <div class="metric"><div class="k">Tempo</div><div class="v" id="elapsed">00:00</div></div>
+          <div class="metric"><div class="k">Precisão estimada</div><div class="v" id="estAcc">—</div></div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <label for="notes">Observações</label>
+          <textarea id="notes" placeholder="Ex.: marco em concreto, visada livre, ponto ocupado após nivelamento..."></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Vértices salvos</h2>
+        <div class="list" id="vertexList"></div>
+        <div class="footer-actions">
+          <button id="btnExportCSV">Exportar CSV</button>
+          <button id="btnExportGeoJSON">Exportar GeoJSON</button>
+          <button id="btnExportKML">Exportar KML</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2>Observações brutas</h2>
+      <div class="small" style="margin-bottom:8px;">As leituras com precisão acima do limite são ignoradas no cálculo final.</div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Hora</th>
+            <th>Lat</th>
+            <th>Lng</th>
+            <th>Acc</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rawTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      watchId: null,
+      running: false,
+      startedAt: null,
+      raw: [],
+      valid: [],
+      saved: []
+    };
+
+    const el = id => document.getElementById(id);
+
+    function formatTime(ms) {
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+    }
+
+    function setStatus(type, text) {
+      const dot = el('statusDot');
+      dot.className = 'dot' + (type ? ' ' + type : '');
+      el('statusText').textContent = text;
+    }
+
+    function updateElapsed() {
+      if (!state.running || !state.startedAt) {
+        el('elapsed').textContent = '00:00';
+        return;
+      }
+      el('elapsed').textContent = formatTime(Date.now() - state.startedAt);
+    }
+
+    function renderRaw() {
+      const tbody = el('rawTable');
+      tbody.innerHTML = state.raw.map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${r.time}</td>
+          <td>${r.lat.toFixed(7)}</td>
+          <td>${r.lng.toFixed(7)}</td>
+          <td>${r.acc.toFixed(2)} m</td>
+          <td>${r.valid ? 'OK' : 'Descartada'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSaved() {
+      const box = el('vertexList');
+      if (!state.saved.length) {
+        box.innerHTML = '<div class="small">Nenhum vértice salvo ainda.</div>';
+        return;
+      }
+      box.innerHTML = state.saved.map(v => `
+        <div class="item">
+          <div class="item-top">
+            <strong>${v.id}</strong>
+            <span class="small">${v.count} leituras</span>
+          </div>
+          <div class="small">Lat: \${v.lat.toFixed(7)} | Lng: \${v.lng.toFixed(7)} | Alt: \${v.alt ?? '—'} m</div>
+          <div class="small">Acc final: \${v.estAcc.toFixed(2)} m | Duração: \${v.duration}</div>
+          <div class="small">Fonte: \${v.source}</div>
+          <div class="small">Obs.: \${v.notes || '—'}</div>
+        </div>
+      `).join('');
+    }
+
+    function calcAverage(points) {
+      const n = points.length;
+      if (!n) return null;
+      let lat = 0, lng = 0, altSum = 0, altN = 0, accSum = 0;
+      for (const p of points) {
+        lat += p.lat;
+        lng += p.lng;
+        accSum += p.acc;
+        if (typeof p.alt === 'number') {
+          altSum += p.alt;
+          altN++;
+        }
+      }
+      return {
+        lat: lat / n,
+        lng: lng / n,
+        alt: altN ? altSum / altN : null,
+        estAcc: accSum / n
+      };
+    }
+
+    function updateMetrics(last) {
+      if (!last) return;
+      el('lat').textContent = last.lat.toFixed(7);
+      el('lng').textContent = last.lng.toFixed(7);
+      el('alt').textContent = last.alt === null ? '—' : last.alt.toFixed(2) + ' m';
+      el('acc').textContent = last.acc.toFixed(2) + ' m';
+      el('vAcc').textContent = last.vAcc == null ? '—' : last.vAcc.toFixed(2) + ' m';
+      el('count').textContent = state.valid.length;
+    }
+
+    function addObservation(pos) {
+      const coords = pos.coords;
+      const maxAcc = parseFloat(el('maxAcc').value || '10');
+      const obs = {
+        lat: coords.latitude,
+        lng: coords.longitude,
+        alt: coords.altitude,
+        acc: coords.accuracy,
+        vAcc: coords.altitudeAccuracy,
+        time: new Date().toLocaleTimeString()
+      };
+      obs.valid = obs.acc <= maxAcc;
+
+      state.raw.push(obs);
+      if (obs.valid) state.valid.push(obs);
+
+      const avg = calcAverage(state.valid.length ? state.valid : []);
+      if (avg) {
+        updateMetrics({
+          lat: avg.lat,
+          lng: avg.lng,
+          alt: avg.alt,
+          acc: obs.acc,
+          vAcc: obs.vAcc
+        });
+        el('estAcc').textContent = avg.estAcc.toFixed(2) + ' m';
+      }
+
+      renderRaw();
+      updateElapsed();
+
+      const minObs = parseInt(el('minObs').value || '30', 10);
+      el('btnSave').disabled = state.valid.length < minObs;
+    }
+
+    function startTracking() {
+      if (!navigator.geolocation) {
+        alert('Geolocalização não suportada neste navegador.');
+        return;
+      }
+
+      state.raw = [];
+      state.valid = [];
+      state.startedAt = Date.now();
+      state.running = true;
+      setStatus('warn', 'Coletando');
+      el('sourceInfo').textContent = 'Fonte: ' + (el('mode').value === 'external' ? 'GNSS externo' : 'GPS interno');
+      el('btnStart').disabled = true;
+      el('btnStop').disabled = false;
+      el('btnSave').disabled = true;
+
+      state.watchId = navigator.geolocation.watchPosition(
+        addObservation,
+        err => {
+          setStatus('warn', 'Erro: ' + err.message);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 20000
+        }
+      );
+    }
+
+    function stopTracking() {
+      if (state.watchId !== null) navigator.geolocation.clearWatch(state.watchId);
+      state.watchId = null;
+      state.running = false;
+      setStatus('ok', 'Parado');
+      el('btnStart').disabled = false;
+      el('btnStop').disabled = true;
+      updateElapsed();
+    }
+
+    function saveVertex() {
+      const avg = calcAverage(state.valid);
+      if (!avg) return;
+
+      const id = el('vertexId').value.trim() || ('V-' + String(state.saved.length + 1).padStart(3, '0'));
+      const duration = formatTime(Date.now() - state.startedAt);
+      const source = el('mode').value === 'external' ? 'GNSS externo' : 'GPS interno';
+
+      state.saved.push({
+        id,
+        lat: avg.lat,
+        lng: avg.lng,
+        alt: avg.alt,
+        estAcc: avg.estAcc,
+        count: state.valid.length,
+        duration,
+        source,
+        notes: el('notes').value.trim()
+      });
+
+      renderSaved();
+
+      const nextNum = state.saved.length + 1;
+      el('vertexId').value = 'V-' + String(nextNum).padStart(3, '0');
+      el('notes').value = '';
+      alert('Vértice salvo com sucesso.');
+    }
+
+    function clearSession() {
+      stopTracking();
+      state.raw = [];
+      state.valid = [];
+      state.startedAt = null;
+      el('lat').textContent = '—';
+      el('lng').textContent = '—';
+      el('alt').textContent = '—';
+      el('acc').textContent = '—';
+      el('vAcc').textContent = '—';
+      el('count').textContent = '0';
+      el('estAcc').textContent = '—';
+      el('rawTable').innerHTML = '';
+      setStatus('', 'Parado');
+      el('btnSave').disabled = true;
+    }
+
+    function download(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportCSV() {
+      const header = 'id,lat,lng,alt,estAcc,count,duration,source,notes';
+      const rows = state.saved.map(v => [
+        v.id,
+        v.lat,
+        v.lng,
+        v.alt ?? '',
+        v.estAcc,
+        v.count,
+        v.duration,
+        v.source,
+        '"' + (v.notes || '').replaceAll('"', '""') + '"'
+      ].join(','));
+      download('vertices.csv', [header, ...rows].join('\n'), 'text/csv;charset=utf-8');
+    }
+
+    function exportGeoJSON() {
+      const geojson = {
+        type: 'FeatureCollection',
+        features: state.saved.map(v => ({
+          type: 'Feature',
+          properties: {
+            id: v.id,
+            alt: v.alt,
+            estAcc: v.estAcc,
+            count: v.count,
+            duration: v.duration,
+            source: v.source,
+            notes: v.notes
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [v.lng, v.lat]
+          }
+        }))
+      };
+      download('vertices.geojson', JSON.stringify(geojson, null, 2), 'application/geo+json');
+    }
+
+    function exportKML() {
+      const placemarks = state.saved.map(v => `
+        <Placemark>
+          <name>${escapeXml(v.id)}</name>
+          <description>${escapeXml(v.notes || '')}</description>
+          <Point><coordinates>${v.lng},${v.lat},${v.alt ?? 0}</coordinates></Point>
+        </Placemark>`).join('');
+      const kml = `<?xml version="1.0" encoding="UTF-8"?>
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>${placemarks}</Document>
+      </kml>`;
+      download('vertices.kml', kml, 'application/vnd.google-earth.kml+xml');
+    }
+
+    function escapeXml(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+    }
+
+    el('btnStart').addEventListener('click', startTracking);
+    el('btnStop').addEventListener('click', stopTracking);
+    el('btnSave').addEventListener('click', saveVertex);
+    el('btnClear').addEventListener('click', clearSession);
+    el('btnExportCSV').addEventListener('click', exportCSV);
+    el('btnExportGeoJSON').addEventListener('click', exportGeoJSON);
+    el('btnExportKML').addEventListener('click', exportKML);
+
+    setInterval(updateElapsed, 1000);
+    renderSaved();
+    setStatus('', 'Parado');
+  </script>
+</body>
+</html>
