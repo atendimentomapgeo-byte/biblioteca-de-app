@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v37';
+  const APP_BUILD_VERSION = 'v38';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -553,16 +553,13 @@
     const precisao = data.accuracy != null && !Number.isNaN(data.accuracy) ? `±${Math.round(data.accuracy)}m` : '';
     $('gps-status-text').textContent = labels[data.quality] || 'GPS';
     $('gps-acc-text').textContent = precisao;
-    let linhaCoord;
+    $('gps-acc-text').className = 'fg-gps-acc fg-gps-acc-' + data.quality;
     if (settings.coords.format === 'utm') {
       const utm = Coordinates.toUTM(data.lat, data.lon, settings.coords.datum);
-      linhaCoord = `${utm.easting.toFixed(2)}E  ${utm.northing.toFixed(2)}N  ${utm.label}`;
+      $('gps-coord-text').textContent = `${utm.easting.toFixed(2)}E  ${utm.northing.toFixed(2)}N  ${utm.label}`;
     } else {
-      linhaCoord = `${Coordinates.formatLat(data.lat, settings.coords.format)}  ${Coordinates.formatLon(data.lon, settings.coords.format)}`;
+      $('gps-coord-text').textContent = `${Coordinates.formatLat(data.lat, settings.coords.format)}  ${Coordinates.formatLon(data.lon, settings.coords.format)}`;
     }
-    // Precisão em números, além do selinho colorido ao lado do status.
-    if (precisao) linhaCoord += `  ·  precisão ${precisao}`;
-    $('gps-coord-text').textContent = linhaCoord;
   }
 
   const ORDEM_FORMATOS_COORD = ['dms', 'utm', 'dd'];
