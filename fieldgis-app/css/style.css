@@ -216,6 +216,8 @@ label {
    a seta "atrasar" em relação ao mapa e só alinhar depois de alguns
    instantes, em vez de ficar sempre travada apontando pra cima. */
 .fg-position-arrow { }
+
+.fg-compass-rose-icon { opacity: 0.25; pointer-events: none; }
 .fg-point-pin {
   width: 26px; height: 34px;
   background: var(--fg-primary);
