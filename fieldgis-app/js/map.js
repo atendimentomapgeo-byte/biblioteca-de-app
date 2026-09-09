@@ -38,6 +38,8 @@
   let gridLayer = null;
   let positionMarker = null;
   let accuracyCircle = null;
+  let compassRoseMarker = null;
+  let compassRoseVisivel = false;
   let settingsCache = null;
   let cursorCoordCallback = null;
   let viewportEl = null; // #map — a "janela" fixa que recorta a visão
@@ -95,6 +97,49 @@
              </div>`,
       iconSize: [34, 34],
       iconAnchor: [17, 17],
+    });
+  }
+
+  /**
+   * Ícone da rosa dos ventos exibida ao redor do marcador de posição
+   * (opcional, ligada/desligada pelo usuário — ver MapModule.setCompassRoseVisible).
+   * Fica ancorada geograficamente no ponto do GPS e gira junto com o mapa
+   * quando a rotação por bússola está ativa (representa direções reais
+   * N/S/L/O do próprio mapa, não a orientação da tela).
+   */
+  function createCompassRoseIcon() {
+    const tamanho = 220;
+    const c = tamanho / 2;
+    const rExterno = c - 6;
+    const rInterno = rExterno - 14;
+    let ticks = '';
+    for (let g = 0; g < 360; g += 30) {
+      const principal = g % 90 === 0;
+      const r1 = principal ? rInterno - 10 : rInterno - 5;
+      const rad = (g - 90) * (Math.PI / 180); // 0° = topo (Norte)
+      const x1 = c + r1 * Math.cos(rad);
+      const y1 = c + r1 * Math.sin(rad);
+      const x2 = c + rInterno * Math.cos(rad);
+      const y2 = c + rInterno * Math.sin(rad);
+      ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#e9edf2" stroke-width="${principal ? 2.4 : 1.4}"/>`;
+    }
+    const rotulo = (letra, g) => {
+      const rad = (g - 90) * (Math.PI / 180);
+      const rr = rInterno - 22;
+      const x = c + rr * Math.cos(rad);
+      const y = c + rr * Math.sin(rad);
+      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="800" font-size="17" fill="#e9edf2">${letra}</text>`;
+    };
+    return L.divIcon({
+      className: 'fg-compass-rose-icon',
+      html: `<svg width="${tamanho}" height="${tamanho}" viewBox="0 0 ${tamanho} ${tamanho}">
+               <circle cx="${c}" cy="${c}" r="${rExterno}" fill="none" stroke="#e9edf2" stroke-width="2.4"/>
+               <circle cx="${c}" cy="${c}" r="${rInterno}" fill="none" stroke="#e9edf2" stroke-width="1.4"/>
+               ${ticks}
+               ${rotulo('N', 0)}${rotulo('L', 90)}${rotulo('S', 180)}${rotulo('O', 270)}
+             </svg>`,
+      iconSize: [tamanho, tamanho],
+      iconAnchor: [c, c],
     });
   }
 
@@ -162,6 +207,7 @@
 
       positionMarker = L.marker(DEFAULT_CENTER, { icon: createPositionIcon(), zIndexOffset: 1000, interactive: false });
       accuracyCircle = L.circle(DEFAULT_CENTER, { radius: 0, className: 'fg-accuracy-circle', color: '#1a73e8', weight: 1, fillOpacity: 0.12 });
+      compassRoseMarker = L.marker(DEFAULT_CENTER, { icon: createCompassRoseIcon(), zIndexOffset: 900, interactive: false, className: 'fg-compass-rose-marker' });
 
       return map;
     },
@@ -216,6 +262,21 @@
       accuracyCircle.setLatLng(latlng);
       accuracyCircle.setRadius(accuracy || 0);
       if (!map.hasLayer(accuracyCircle)) accuracyCircle.addTo(map);
+      if (compassRoseVisivel) {
+        compassRoseMarker.setLatLng(latlng);
+        if (!map.hasLayer(compassRoseMarker)) compassRoseMarker.addTo(map);
+      }
+    },
+
+    /** Liga/desliga a rosa dos ventos ao redor do marcador de posição atual. */
+    setCompassRoseVisible(visivel) {
+      compassRoseVisivel = visivel;
+      if (visivel) {
+        compassRoseMarker.setLatLng(positionMarker.getLatLng());
+        if (!map.hasLayer(compassRoseMarker)) compassRoseMarker.addTo(map);
+      } else if (map.hasLayer(compassRoseMarker)) {
+        map.removeLayer(compassRoseMarker);
+      }
     },
 
     /**
