@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v38';
+  const APP_BUILD_VERSION = 'v39';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -405,6 +405,7 @@
   // =======================================================================
   let seguindoGPS = false; // modo "seguir": recentraliza a cada atualização de posição (ver wireLocate)
   let declinacaoAtual = null; // declinação magnética (graus) na última posição conhecida — ver wireCompass
+  let rosaDosVentosAtiva = false; // rosa dos ventos ao redor do marcador de posição — ver renderGpsDetail
 
   function wireGPS() {
     GPS.on((event, data) => {
@@ -610,7 +611,14 @@
         <div class="fg-coord-box"><div class="k">Declinação magnética</div><div class="v">${declinacaoAtual != null ? `${declinacaoAtual.toFixed(2)}° ${declinacaoAtual < 0 ? 'W' : 'E'} (WMM2025)` : '—'}</div></div>
         <div class="fg-coord-box"><div class="k">Última leitura</div><div class="v">${new Date(pos.timestamp).toLocaleTimeString('pt-BR')}</div></div>
         <div class="fg-coord-box"><div class="k">Distância percorrida</div><div class="v">${(GPS.getTotalDistance() / 1000).toFixed(3)} km</div></div>
-      </div>`;
+      </div>
+      <div class="fg-switch-row"><span>🧭 Rosa dos ventos no mapa</span><div class="fg-switch ${rosaDosVentosAtiva ? 'on' : ''}" id="st-compass-rose"></div></div>`;
+
+    $('st-compass-rose').onclick = (e) => {
+      rosaDosVentosAtiva = !rosaDosVentosAtiva;
+      e.target.classList.toggle('on', rosaDosVentosAtiva);
+      MapModule.setCompassRoseVisible(rosaDosVentosAtiva);
+    };
   }
 
   function wireLocate() {
