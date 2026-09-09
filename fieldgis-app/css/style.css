@@ -217,7 +217,7 @@ label {
    instantes, em vez de ficar sempre travada apontando pra cima. */
 .fg-position-arrow { }
 
-.fg-compass-rose-icon { opacity: 0.25; pointer-events: none; }
+.fg-compass-rose-icon { opacity: var(--fg-compass-rose-opacity, 0.6); pointer-events: none; }
 .fg-point-pin {
   width: 26px; height: 34px;
   background: var(--fg-primary);
