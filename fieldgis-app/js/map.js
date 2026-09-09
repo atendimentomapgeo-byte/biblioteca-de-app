@@ -108,35 +108,51 @@
    * N/S/L/O do próprio mapa, não a orientação da tela).
    */
   function createCompassRoseIcon() {
-    const tamanho = 220;
+    const tamanho = 260;
     const c = tamanho / 2;
-    const rExterno = c - 6;
-    const rInterno = rExterno - 14;
-    let ticks = '';
-    for (let g = 0; g < 360; g += 30) {
-      const principal = g % 90 === 0;
-      const r1 = principal ? rInterno - 10 : rInterno - 5;
-      const rad = (g - 90) * (Math.PI / 180); // 0° = topo (Norte)
-      const x1 = c + r1 * Math.cos(rad);
-      const y1 = c + r1 * Math.sin(rad);
+    const rExterno = c - 8;
+    const rNumeros = rExterno - 20;
+    const rInterno = rNumeros - 18;
+    const rCruz = 26;
+
+    let ticksFinos = '';
+    for (let g = 0; g < 360; g += 10) {
+      if (g % 30 === 0) continue; // esses viram números, não traço fino
+      const rad = (g - 90) * (Math.PI / 180);
+      const x1 = c + (rInterno - 4) * Math.cos(rad);
+      const y1 = c + (rInterno - 4) * Math.sin(rad);
       const x2 = c + rInterno * Math.cos(rad);
       const y2 = c + rInterno * Math.sin(rad);
-      ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#e9edf2" stroke-width="${principal ? 2.4 : 1.4}"/>`;
+      ticksFinos += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#ffb300" stroke-width="1.6"/>`;
     }
-    const rotulo = (letra, g) => {
+
+    let numeros = '';
+    for (let g = 0; g < 360; g += 30) {
       const rad = (g - 90) * (Math.PI / 180);
-      const rr = rInterno - 22;
+      const x = c + rNumeros * Math.cos(rad);
+      const y = c + rNumeros * Math.sin(rad);
+      numeros += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#ffb300">${g}</text>`;
+    }
+
+    const cardeal = (letra, g, cor) => {
+      const rad = (g - 90) * (Math.PI / 180);
+      const rr = rInterno - 24;
       const x = c + rr * Math.cos(rad);
       const y = c + rr * Math.sin(rad);
-      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="800" font-size="17" fill="#e9edf2">${letra}</text>`;
+      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="800" font-size="22" fill="${cor}">${letra}</text>`;
     };
+
     return L.divIcon({
       className: 'fg-compass-rose-icon',
       html: `<svg width="${tamanho}" height="${tamanho}" viewBox="0 0 ${tamanho} ${tamanho}">
                <circle cx="${c}" cy="${c}" r="${rExterno}" fill="none" stroke="#e9edf2" stroke-width="2.4"/>
                <circle cx="${c}" cy="${c}" r="${rInterno}" fill="none" stroke="#e9edf2" stroke-width="1.4"/>
-               ${ticks}
-               ${rotulo('N', 0)}${rotulo('L', 90)}${rotulo('S', 180)}${rotulo('O', 270)}
+               ${ticksFinos}
+               ${numeros}
+               ${cardeal('N', 0, '#e53935')}${cardeal('L', 90, '#e9edf2')}${cardeal('S', 180, '#e9edf2')}${cardeal('O', 270, '#e9edf2')}
+               <line x1="${c}" y1="${c - rCruz}" x2="${c}" y2="${c + rCruz}" stroke="#e53935" stroke-width="1.6" stroke-dasharray="4 3"/>
+               <line x1="${c - rCruz}" y1="${c}" x2="${c + rCruz}" y2="${c}" stroke="#e9edf2" stroke-width="1.6" stroke-dasharray="4 3"/>
+               <circle cx="${c}" cy="${c}" r="3" fill="#e53935"/>
              </svg>`,
       iconSize: [tamanho, tamanho],
       iconAnchor: [c, c],
@@ -277,6 +293,11 @@
       } else if (map.hasLayer(compassRoseMarker)) {
         map.removeLayer(compassRoseMarker);
       }
+    },
+
+    /** Ajusta a transparência da rosa dos ventos (0 a 1). */
+    setCompassRoseOpacity(valor) {
+      document.documentElement.style.setProperty('--fg-compass-rose-opacity', valor);
     },
 
     /**

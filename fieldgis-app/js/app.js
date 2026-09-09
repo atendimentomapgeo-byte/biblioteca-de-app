@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v39';
+  const APP_BUILD_VERSION = 'v40';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -72,6 +72,7 @@
 
     map = MapModule.init('map', settings);
     MapModule.toggleGrid(settings.map.showGrid, settings.coords.datum);
+    MapModule.setCompassRoseOpacity(settings.map.compassRoseOpacity ?? 0.6);
     MapModule.onCursorMove(() => {}); // reservado para exibir coordenada do cursor (desktop)
 
     Offline.init();
@@ -612,12 +613,22 @@
         <div class="fg-coord-box"><div class="k">Última leitura</div><div class="v">${new Date(pos.timestamp).toLocaleTimeString('pt-BR')}</div></div>
         <div class="fg-coord-box"><div class="k">Distância percorrida</div><div class="v">${(GPS.getTotalDistance() / 1000).toFixed(3)} km</div></div>
       </div>
-      <div class="fg-switch-row"><span>🧭 Rosa dos ventos no mapa</span><div class="fg-switch ${rosaDosVentosAtiva ? 'on' : ''}" id="st-compass-rose"></div></div>`;
+      <div class="fg-switch-row"><span>🧭 Rosa dos ventos no mapa</span><div class="fg-switch ${rosaDosVentosAtiva ? 'on' : ''}" id="st-compass-rose"></div></div>
+      <label style="margin-top:10px">Transparência da rosa dos ventos</label>
+      <input type="range" id="st-compass-rose-opacity" min="10" max="100" step="5" value="${Math.round((settings.map.compassRoseOpacity ?? 0.6) * 100)}" style="width:100%"/>`;
 
     $('st-compass-rose').onclick = (e) => {
       rosaDosVentosAtiva = !rosaDosVentosAtiva;
       e.target.classList.toggle('on', rosaDosVentosAtiva);
       MapModule.setCompassRoseVisible(rosaDosVentosAtiva);
+    };
+
+    $('st-compass-rose-opacity').oninput = (e) => {
+      MapModule.setCompassRoseOpacity(e.target.value / 100);
+    };
+    $('st-compass-rose-opacity').onchange = async (e) => {
+      const valor = e.target.value / 100;
+      settings = await DB.saveSettings({ map: Object.assign({}, settings.map, { compassRoseOpacity: valor }) });
     };
   }
 
