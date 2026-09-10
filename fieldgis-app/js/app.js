@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v40';
+  const APP_BUILD_VERSION = 'v41';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -886,9 +886,21 @@
   // O Wake Lock é automaticamente liberado pelo navegador quando a aba
   // fica em segundo plano/tela bloqueia — precisa ser pedido de novo ao
   // voltar, se ainda estiver gravando uma trilha.
+  //
+  // A bússola (sensor de orientação) tem o mesmo problema, mas pior: o iOS
+  // às vezes para de enviar leituras silenciosamente (sem nenhum erro)
+  // depois que a tela pisca ou o app fica em segundo plano — mesmo que a
+  // permissão continue concedida. Por isso, sempre que o app volta a ficar
+  // visível com a bússola ainda marcada como ativa, reconectamos o sensor
+  // do zero (para + inicia de novo), em vez de esperar o usuário perceber
+  // que travou e ter que fechar/reabrir o app manualmente.
   document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState === 'visible' && Tracks.getState() === 'recording') {
-      ativarWakeLock();
+    if (document.visibilityState === 'visible') {
+      if (Tracks.getState() === 'recording') ativarWakeLock();
+      if (Compass.isActive()) {
+        Compass.stop();
+        Compass.start();
+      }
     }
   });
 

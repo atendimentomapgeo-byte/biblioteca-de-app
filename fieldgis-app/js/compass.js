@@ -35,8 +35,17 @@
   let attachedEventNames = [];
   let smoothedHeading = null;
   let watchdogTimer = null;
+  let vigiaMudoTimer = null;
   let rawEventCount = 0; // quantos eventos de orientação chegaram, utilizáveis ou não
   let usableEventCount = 0; // quantos tinham um rumo de bússola aproveitável
+  let ultimaLeituraUtilEm = 0; // timestamp (ms) da última leitura útil recebida
+
+  // Se o sensor ficar mudo por mais que isso ENQUANTO já vinha funcionando
+  // normalmente, reconecta sozinho. O iOS às vezes para de enviar eventos de
+  // orientação silenciosamente (sem nenhum erro) depois que a tela pisca ou
+  // o app passa um instante em segundo plano — sem essa vigilância, a seta/
+  // rotação do mapa ficava travada até o usuário fechar e reabrir o app.
+  const LIMITE_SILENCIO_MS = 6000;
 
   function emit(event, data) {
     listeners.forEach((cb) => cb(event, data));
@@ -122,6 +131,7 @@
         }
 
         usableEventCount++;
+        ultimaLeituraUtilEm = Date.now();
         emit('heading', { heading: smooth(rumo), rawHeading: rumo, accuracy: precisao });
       };
 
@@ -134,6 +144,7 @@
       attachedEventNames.forEach((name) => window.addEventListener(name, handler));
       activeHandler = handler;
       active = true;
+      ultimaLeituraUtilEm = Date.now();
       emit('started', {});
 
       // Watchdog: se em alguns segundos nenhum dado utilizável chegou, avisa
@@ -145,10 +156,24 @@
           emit('timeout', { rawEventCount, usableEventCount });
         }
       }, 3000);
+
+      // Vigia contínua: reconecta sozinha se o sensor ficar mudo por tempo
+      // demais DEPOIS de já ter funcionado normalmente (diferente do
+      // watchdog acima, que só olha pra falha logo no início).
+      clearInterval(vigiaMudoTimer);
+      vigiaMudoTimer = setInterval(() => {
+        if (!active) return;
+        if (usableEventCount > 0 && Date.now() - ultimaLeituraUtilEm > LIMITE_SILENCIO_MS) {
+          Compass.stop();
+          Compass.start();
+          emit('reconectado', {});
+        }
+      }, 2000);
     },
 
     stop() {
       clearTimeout(watchdogTimer);
+      clearInterval(vigiaMudoTimer);
       if (active && activeHandler) {
         attachedEventNames.forEach((name) => window.removeEventListener(name, activeHandler));
       }
