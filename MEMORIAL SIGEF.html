@@ -163,7 +163,7 @@
 <main>
 
   <div class="disclaimer">
-    <b>Antes de usar:</b> esta ferramenta é um apoio para <b>redigir e organizar</b> os documentos. Ela não substitui o levantamento de campo, o ajustamento geodésico nem a responsabilidade técnica exigida pelo INCRA. O memorial descritivo e as peças técnicas só têm validade para o SIGEF quando assinados por profissional habilitado (com ART/RRT) e conferidos com os dados reais do levantamento. As coordenadas UTM aqui calculadas usam fórmulas padrão sobre o datum WGS84/SIRGAS2000 a partir do KML enviado — confira sempre contra sua base de campo antes de submeter.
+    <b>Antes de usar:</b> esta ferramenta é um apoio para <b>redigir e organizar</b> os documentos. Ela não substitui o levantamento de campo, o ajustamento geodésico nem a responsabilidade técnica exigida pelo INCRA. O memorial descritivo e as peças técnicas só têm validade para o SIGEF quando assinados por profissional habilitado (com ART/TRT) e conferidos com os dados reais do levantamento. As coordenadas UTM aqui calculadas usam fórmulas padrão sobre o datum WGS84/SIRGAS2000 a partir do KML enviado — confira sempre contra sua base de campo antes de submeter.
   </div>
 
   <!-- STEP 1 -->
@@ -206,7 +206,7 @@
     <label>Data do documento</label>
     <input type="text" id="fData" inputmode="numeric" maxlength="10" placeholder="Ex.: 05/07/2026">
 
-    <div class="step-head" style="margin-top:26px;"><div><h2 style="font-size:16px;">Responsável técnico</h2><div class="sub">Exigido pelo INCRA para assinatura do memorial e ART/RRT.</div></div></div>
+    <div class="step-head" style="margin-top:26px;"><div><h2 style="font-size:16px;">Responsável técnico</h2><div class="sub">Exigido pelo INCRA para assinatura do memorial e ART/TRT.</div></div></div>
     <div class="row">
       <div><label class="first">Nome do(a) responsável técnico(a)</label><input type="text" id="fTecnico"></div>
       <div><label class="first">Formação / função</label><input type="text" id="fTecnicoFormacao" placeholder="Ex.: Engenheiro Agrimensor"></div>
@@ -214,11 +214,11 @@
     <div class="row">
       <div><label>Conselho e nº de registro (CREA/CFTA)</label><input type="text" id="fConselho"></div>
       <div>
-        <label>Tipo e nº de ART/RRT</label>
+        <label>Tipo e nº de ART/TRT</label>
         <div style="display:flex; gap:8px;">
           <select id="fArtTipo" style="max-width:100px; flex:0 0 auto;">
             <option value="ART" selected>ART</option>
-            <option value="RRT">RRT</option>
+            <option value="TRT">TRT</option>
           </select>
           <input type="text" id="fArt" placeholder="Número">
         </div>
