@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Memorial Descritivo &amp; Peças SIGEF</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{
+    --paper:#FAF7EF;
+    --ink:#1F2A24;
+    --line:#1F2A24;
+    --olive:#4B5B44;
+    --olive-dk:#38452F;
+    --brass:#B08D57;
+    --brass-dk:#8C6D3E;
+    --paper-card:#FFFFFF;
+    --muted:#6b7566;
+    --danger:#8C3B2E;
+    --grid:#D8D2C0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',-apple-system,Segoe UI,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  @font-face{}
+  h1,h2,h3{font-family:'Spectral',Georgia,serif; margin:0;}
+  .mono{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;}
+
+  header.hero{
+    position:relative;
+    background:var(--olive-dk);
+    color:#F1EFE3;
+    padding:48px 24px 40px;
+    overflow:hidden;
+    border-bottom:4px solid var(--brass);
+  }
+  header.hero .grid-bg{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(241,239,227,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(241,239,227,0.06) 1px, transparent 1px);
+    background-size:28px 28px;
+    pointer-events:none;
+  }
+  .hero-inner{max-width:960px; margin:0 auto; position:relative;}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:.12em; text-transform:uppercase;
+    font-size:12px; color:var(--brass); margin-bottom:10px;
+  }
+  header.hero h1{font-size:34px; font-weight:600; line-height:1.15; max-width:680px;}
+  header.hero p{max-width:600px; color:#D9D6C6; font-size:15px; line-height:1.55; margin-top:12px;}
+  svg.poly{position:absolute; right:-10px; top:10px; opacity:.9;}
+
+  main{max-width:960px; margin:0 auto; padding:32px 24px 80px;}
+
+  .disclaimer{
+    background:#F3ECD8; border:1px solid var(--brass); border-left:4px solid var(--brass-dk);
+    padding:14px 16px; border-radius:2px; font-size:13.5px; line-height:1.55; color:#4a3d24;
+    margin-bottom:28px;
+  }
+  .disclaimer b{color:var(--brass-dk);}
+
+  .step{
+    background:var(--paper-card);
+    border:1px solid var(--grid);
+    border-radius:4px;
+    padding:24px 24px 26px;
+    margin-bottom:22px;
+  }
+  .step-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .step-num{
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:#fff;
+    background:var(--olive); padding:3px 8px; border-radius:2px; letter-spacing:.05em;
+  }
+  .step h2{font-size:19px; color:var(--olive-dk);}
+  .step .sub{font-size:13px; color:var(--muted); margin-top:2px;}
+
+  label{display:block; font-size:12.5px; font-weight:600; color:#465043; margin-bottom:5px; margin-top:14px;}
+  label.first{margin-top:0;}
+  input[type=text], input[type=file], select, textarea{
+    width:100%; padding:9px 10px; border:1px solid #C9C3AE; border-radius:3px;
+    font-size:14px; font-family:inherit; background:#FCFBF6; color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--brass); outline-offset:1px; border-color:var(--brass);}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;}
+  @media (max-width:640px){.row,.row3{grid-template-columns:1fr;}}
+
+  button{
+    font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;
+    border:none; border-radius:3px; padding:11px 18px;
+    background:var(--olive); color:#fff; transition:background .15s;
+  }
+  button:hover{background:var(--olive-dk);}
+  button.secondary{background:#fff; color:var(--olive-dk); border:1px solid var(--olive);}
+  button.secondary:hover{background:#F1EFE3;}
+  button.brass{background:var(--brass);}
+  button.brass:hover{background:var(--brass-dk);}
+  button:disabled{background:#ccc; cursor:not-allowed;}
+
+  table.data{width:100%; border-collapse:collapse; font-size:13px; margin-top:8px;}
+  table.data th{
+    text-align:left; font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase;
+    letter-spacing:.04em; color:var(--muted); border-bottom:2px solid var(--olive); padding:6px 8px;
+  }
+  table.data td{padding:6px 8px; border-bottom:1px solid var(--grid); vertical-align:middle;}
+  table.data input{padding:6px 8px; font-size:13px;}
+
+  .badge{display:inline-block; background:#EDEADA; color:var(--olive-dk); font-family:'JetBrains Mono',monospace;
+    font-size:11.5px; padding:3px 8px; border-radius:2px; margin-right:8px; margin-bottom:6px;}
+  .summary-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:6px;}
+  @media (max-width:640px){.summary-grid{grid-template-columns:repeat(2,1fr);}}
+  .summary-card{background:#F1EFE3; border-radius:3px; padding:12px 14px;}
+  .summary-card .k{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-family:'JetBrains Mono',monospace;}
+  .summary-card .v{font-size:18px; font-weight:700; color:var(--olive-dk); margin-top:2px;}
+
+  .confrontante-card{border:1px solid var(--grid); border-radius:3px; padding:14px; margin-top:12px; background:#FCFBF6;}
+  .confrontante-card h4{font-size:14px; margin:0 0 8px; color:var(--olive-dk); font-family:'Spectral',serif;}
+
+  .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:6px;}
+  .status{font-size:13px; margin-top:10px; color:var(--muted);}
+  .status.err{color:var(--danger); font-weight:600;}
+  .status.ok{color:var(--olive-dk); font-weight:600;}
+
+  .hint{font-size:12.5px; color:var(--muted); margin-top:4px; line-height:1.5;}
+  .checkbox-line{display:flex; align-items:center; gap:8px; margin-top:8px;}
+  .checkbox-line input{width:auto;}
+  .checkbox-line label{margin:0; font-weight:500;}
+  footer{text-align:center; font-size:12px; color:var(--muted); padding:20px; font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="grid-bg"></div>
+  <div class="hero-inner">
+    <div class="eyebrow">KML → SIGEF / INCRA</div>
+    <h1>Memorial descritivo, peças técnicas e cartas de anuência a partir do seu KML</h1>
+    <p>Envie o contorno do imóvel em KML, preencha os dados do proprietário e dos confrontantes, e gere os documentos de apoio ao georreferenciamento — memorial descritivo, quadro de vértices/azimutes/distâncias, cartas de anuência e planilha ODS.</p>
+  </div>
+  <svg class="poly" width="220" height="180" viewBox="0 0 220 180">
+    <polygon points="40,150 30,60 110,20 190,55 175,140" fill="none" stroke="#B08D57" stroke-width="2"/>
+    <circle cx="40" cy="150" r="3" fill="#F1EFE3"/>
+    <circle cx="30" cy="60" r="3" fill="#F1EFE3"/>
+    <circle cx="110" cy="20" r="3" fill="#F1EFE3"/>
+    <circle cx="190" cy="55" r="3" fill="#F1EFE3"/>
+    <circle cx="175" cy="140" r="3" fill="#F1EFE3"/>
+    <text x="46" y="150" fill="#D9D6C6" font-size="10" font-family="monospace">P1</text>
+    <text x="14" y="58" fill="#D9D6C6" font-size="10" font-family="monospace">P2</text>
+    <text x="112" y="14" fill="#D9D6C6" font-size="10" font-family="monospace">P3</text>
+    <text x="196" y="52" fill="#D9D6C6" font-size="10" font-family="monospace">P4</text>
+    <text x="181" y="145" fill="#D9D6C6" font-size="10" font-family="monospace">P5</text>
+  </svg>
+</header>
+
+<main>
+
+  <div class="disclaimer">
+    <b>Antes de usar:</b> esta ferramenta é um apoio para <b>redigir e organizar</b> os documentos. Ela não substitui o levantamento de campo, o ajustamento geodésico nem a responsabilidade técnica exigida pelo INCRA. O memorial descritivo e as peças técnicas só têm validade para o SIGEF quando assinados por profissional habilitado (com ART/RRT) e conferidos com os dados reais do levantamento. As coordenadas UTM aqui calculadas usam fórmulas padrão sobre o datum WGS84/SIRGAS2000 a partir do KML enviado — confira sempre contra sua base de campo antes de submeter.
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <div class="step-head"><span class="step-num">01</span><div><h2>Envie o KML do imóvel</h2><div class="sub">O contorno (polígono) do perímetro. Se o arquivo tiver mais de um traçado, você escolhe qual usar.</div></div></div>
+
+    <label class="first">Arquivo KML</label>
+    <input type="file" id="kmlFile" accept=".kml">
+    <div id="kmlStatus" class="status"></div>
+
+    <div id="polySelectWrap" style="display:none;">
+      <label>Traçado encontrado no arquivo</label>
+      <select id="polySelect"></select>
+    </div>
+
+    <div id="summaryWrap" style="display:none;">
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-head"><span class="step-num">02</span><div><h2>Dados do imóvel e do proprietário</h2><div class="sub">Usados no cabeçalho do memorial e nas peças técnicas.</div></div></div>
+    <div class="row">
+      <div><label class="first">Denominação do imóvel</label><input type="text" id="fDenominacao" placeholder='Ex.: Fazenda Santa Luzia'></div>
+      <div><label class="first">Código do imóvel no INCRA / SNCR (se já houver)</label><input type="text" id="fCodigoIncra" inputmode="numeric" maxlength="16" placeholder="Ex.: 751.234.567.890-1"></div>
+    </div>
+    <div class="row">
+      <div><label>Proprietário(a)</label><input type="text" id="fProprietario"></div>
+      <div><label>CPF/CNPJ do proprietário(a)</label><input type="text" id="fCpfProprietario" inputmode="numeric" maxlength="18" placeholder="000.000.000-00"></div>
+    </div>
+    <div class="row">
+      <div><label>Matrícula do imóvel</label><input type="text" id="fMatricula"></div>
+      <div><label>Cartório / Comarca</label><input type="text" id="fComarca"></div>
+    </div>
+    <div class="row">
+      <div><label>Município</label><input type="text" id="fMunicipio"></div>
+      <div><label>UF</label><input type="text" id="fUf" maxlength="2" placeholder="Ex.: MT"></div>
+    </div>
+    <label>Data do documento</label>
+    <input type="text" id="fData" inputmode="numeric" maxlength="10" placeholder="Ex.: 05/07/2026">
+
+    <div class="step-head" style="margin-top:26px;"><div><h2 style="font-size:16px;">Responsável técnico</h2><div class="sub">Exigido pelo INCRA para assinatura do memorial e ART/RRT.</div></div></div>
+    <div class="row">
+      <div><label class="first">Nome do(a) responsável técnico(a)</label><input type="text" id="fTecnico"></div>
+      <div><label class="first">Formação / função</label><input type="text" id="fTecnicoFormacao" placeholder="Ex.: Engenheiro Agrimensor"></div>
+    </div>
+    <div class="row">
+      <div><label>Conselho e nº de registro (CREA/CFTA)</label><input type="text" id="fConselho"></div>
+      <div>
+        <label>Tipo e nº de ART/RRT</label>
+        <div style="display:flex; gap:8px;">
+          <select id="fArtTipo" style="max-width:100px; flex:0 0 auto;">
+            <option value="ART" selected>ART</option>
+            <option value="RRT">RRT</option>
+          </select>
+          <input type="text" id="fArt" placeholder="Número">
+        </div>
+      </div>
+    </div>
+
+    <div class="step-head" style="margin-top:26px;"><div><h2 style="font-size:16px;">Logo / brasão (opcional)</h2><div class="sub">Aparece centralizado no topo do memorial e da carta de anuência. Aceita PNG, JPG ou similar.</div></div></div>
+    <label class="first">Arquivo de imagem</label>
+    <input type="file" id="fLogo" accept="image/*">
+    <div id="logoPreviewWrap" style="display:none; margin-top:10px;">
+      <img id="logoPreviewImg" alt="Pré-visualização da logo" style="max-height:70px; max-width:220px; border:1px solid var(--grid); border-radius:3px; padding:4px; background:#fff;">
+      <button type="button" class="secondary" id="btnRemoverLogo" style="margin-left:10px; padding:6px 12px; font-size:12.5px;">Remover logo</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: vértices (tipo/número) + confrontante, tudo em linha -->
+  <div class="step" id="stepVertices" style="display:none;">
+    <div class="step-head"><span class="step-num">03</span><div><h2>Vértices e confrontantes</h2><div class="sub">Para cada vértice: código do agrimensor, tipo e número (gera o código, ex.: FBGS-M-0001) e o confrontante do lado até o próximo vértice. Código do agrimensor, tipo e confrontante se repetem automaticamente nos campos abaixo, até você preencher um novo valor. O memorial começa no vértice mais ao norte e segue em sentido horário.</div></div></div>
+    <table class="data" id="verticesTable">
+      <thead><tr><th>Vértice</th><th>Cód. Agrimensor</th><th>Tipo</th><th>Número</th><th>Código</th><th>Confrontante (até o próximo vértice)</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- STEP 4: confrontante details -->
+  <div class="step" id="stepConfrontantes" style="display:none;">
+    <div class="step-head"><span class="step-num">04</span><div><h2>Qualificação dos confrontantes</h2><div class="sub">Usada para preencher as cartas de anuência. Pode deixar em branco e completar depois, à mão.</div></div></div>
+    <div id="confrontantesList"></div>
+  </div>
+
+  <!-- STEP 5: generate -->
+  <div class="step">
+    <div class="step-head"><span class="step-num">05</span><div><h2>Gerar documentos</h2><div class="sub">Cada botão baixa um arquivo separado.</div></div></div>
+
+    <label class="first">Formato do Memorial e da Carta de anuência</label>
+    <select id="formatoExport">
+      <option value="pdf" selected>PDF</option>
+      <option value="html">HTML</option>
+      <option value="doc">Word (.doc)</option>
+    </select>
+    <div class="hint">A Peça Técnica e a Planilha de vértices continuam em PDF/ODS, que são os formatos padrão para esses documentos.</div>
+
+    <div class="actions" style="margin-top:14px;">
+      <button class="brass" id="btnMemorial" disabled>Memorial Descritivo</button>
+      <button class="brass" id="btnSigef" disabled>Peça Técnica SIGEF (PDF)</button>
+      <button class="brass" id="btnOds" disabled>Planilha de vértices (ODS)</button>
+    </div>
+    <div class="hint">A planilha ODS traz uma linha por vértice, com latitude/longitude originais, coordenadas UTM, azimute e distância até o próximo vértice, e o confrontante do lado.</div>
+    <div id="cartasWrap" style="margin-top:20px; display:none;">
+      <label class="first">Cartas de anuência (uma por confrontante)</label>
+      <div class="actions" id="cartasButtons"></div>
+    </div>
+    <div id="genStatus" class="status"></div>
+  </div>
+
+</main>
+
+<footer>gerador de memorial descritivo · roda inteiramente no seu navegador · nenhum dado é enviado para servidores</footer>
+
+<script>
+// ---------------------------------------------------------------
+// ESTADO GLOBAL
+// ---------------------------------------------------------------
+let placemarks = [];       // [{name, coordsLonLat:[[lon,lat],...]}]
+let vertices = [];         // [{lat,lon,E,N}]
+let sides = [];            // [{from,to,azimuthDeg,azimuthDMS,distance}]
+let areaInfo = {areaM2:0, areaHa:0, perimeter:0, zone:0, hemis:'S', mc:0};
+let logoData = {dataUrl:null, w:0, h:0}; // logo opcional para o topo do memorial/carta
+
+// ---------------------------------------------------------------
+// LOGO / BRASÃO (opcional)
+// ---------------------------------------------------------------
+document.getElementById('fLogo').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      logoData = {dataUrl: ev.target.result, w: img.naturalWidth, h: img.naturalHeight};
+      document.getElementById('logoPreviewImg').src = ev.target.result;
+      document.getElementById('logoPreviewWrap').style.display = 'block';
+    };
+    img.onerror = function(){
+      setStatus('genStatus', 'Não foi possível ler essa imagem. Tente outro arquivo.', true);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('btnRemoverLogo').addEventListener('click', function(){
+  logoData = {dataUrl:null, w:0, h:0};
+  document.getElementById('fLogo').value = '';
+  document.getElementById('logoPreviewWrap').style.display = 'none';
+});
+
+// Detecta o formato de imagem (PNG/JPEG/etc.) a partir do data URL, exigido pelo
+// doc.addImage do jsPDF.
+function detectImgFormat(dataUrl){
+  const m = /^data:image\/(\w+);/.exec(dataUrl || '');
+  if(!m) return 'PNG';
+  let f = m[1].toUpperCase();
+  if(f === 'JPG') f = 'JPEG';
+  return f;
+}
+
+// Insere a logo (se houver) centralizada no topo do PDF, respeitando a proporção
+// original da imagem dentro de uma caixa máxima de maxW x maxH. Retorna o novo y.
+function addLogoToPdf(doc, centerX, y, maxW, maxH){
+  if(!logoData.dataUrl) return y;
+  let w = maxW, h = maxW * (logoData.h / logoData.w);
+  if(h > maxH){ h = maxH; w = maxH * (logoData.w / logoData.h); }
+  doc.addImage(logoData.dataUrl, detectImgFormat(logoData.dataUrl), centerX - w/2, y, w, h);
+  return y + h + 14;
+}
+
+// ---------------------------------------------------------------
+// MÁSCARAS DE CAMPOS (CPF/CNPJ, CÓDIGO INCRA/SNCR, DATA)
+// E FORMATAÇÃO DE NOMES EM ESTILO DE TÍTULO
+// ---------------------------------------------------------------
+
+// Formata progressivamente conforme a quantidade de dígitos digitados:
+// até 11 dígitos -> CPF (000.000.000-00); a partir do 12º -> CNPJ (00.000.000/0000-00)
+function maskCpfCnpj(value){
+  let v = value.replace(/\D/g, '').slice(0, 14);
+  if(v.length <= 11){
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  } else {
+    v = v.replace(/(\d{2})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d)/, '$1/$2');
+    v = v.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+  }
+  return v;
+}
+
+// Código do imóvel no INCRA / SNCR (padrão CCIR): NNN.NNN.NNN.NNN-N (13 dígitos)
+function maskIncraSncr(value){
+  let v = value.replace(/\D/g, '').slice(0, 13);
+  v = v.replace(/(\d{3})(\d)/, '$1.$2');
+  v = v.replace(/(\d{3})(\d)/, '$1.$2');
+  v = v.replace(/(\d{3})(\d)/, '$1.$2');
+  v = v.replace(/(\d{3})(\d{1})$/, '$1-$2');
+  return v;
+}
+
+// Data no formato DD/MM/AAAA, formatada conforme os dígitos digitados
+function maskData(value){
+  let v = value.replace(/\D/g, '').slice(0, 8);
+  v = v.replace(/(\d{2})(\d)/, '$1/$2');
+  v = v.replace(/(\d{2})(\d)/, '$1/$2');
+  return v;
+}
+
+// Aplica uma função de máscara a um input, atualizando o valor a cada digitação
+function attachMask(input, maskFn){
+  if(!input) return;
+  input.addEventListener('input', function(){
+    const pos = input.selectionEnd;
+    const before = input.value.length;
+    input.value = maskFn(input.value);
+    const after = input.value.length;
+    // reposiciona o cursor considerando os caracteres de máscara inseridos
+    const newPos = Math.max(0, pos + (after - before));
+    input.setSelectionRange(newPos, newPos);
+  });
+}
+
+// Deixa nomes em "Estilo de Título", mantendo preposições comuns em minúsculo (exceto no início)
+const PREPOSICOES_MINUSCULAS = ['de','da','do','das','dos','e'];
+function toTitleCase(str){
+  return String(str||'')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .split(' ')
+    .map(function(word, i){
+      if(word === '') return word;
+      if(i !== 0 && PREPOSICOES_MINUSCULAS.indexOf(word) !== -1) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+}
+
+// Aplica formatação de título a um input quando o usuário sai do campo (blur),
+// evitando interferir na digitação. onAfter é chamado depois da formatação (opcional).
+function attachTitleCase(input, onAfter){
+  if(!input) return;
+  input.addEventListener('blur', function(){
+    input.value = toTitleCase(input.value);
+    if(typeof onAfter === 'function') onAfter();
+  });
+}
+
+// Conecta as máscaras aos campos fixos do formulário
+attachMask(document.getElementById('fCpfProprietario'), maskCpfCnpj);
+attachMask(document.getElementById('fCodigoIncra'), maskIncraSncr);
+attachMask(document.getElementById('fData'), maskData);
+attachTitleCase(document.getElementById('fProprietario'));
+attachTitleCase(document.getElementById('fTecnico'));
+
+// ---------------------------------------------------------------
+// KML PARSING
+// ---------------------------------------------------------------
+document.getElementById('kmlFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  const statusEl = document.getElementById('kmlStatus');
+  if(!file){ return; }
+  statusEl.textContent = 'Lendo arquivo...';
+  statusEl.className = 'status';
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const text = ev.target.result;
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, 'text/xml');
+      const parserError = xml.getElementsByTagName('parsererror');
+      if(parserError.length > 0){
+        throw new Error('O arquivo não é um XML/KML válido.');
+      }
+      placemarks = extractPlacemarks(xml);
+      if(placemarks.length === 0){
+        statusEl.textContent = 'Não encontrei nenhum polígono ou linha com coordenadas nesse KML.';
+        statusEl.className = 'status err';
+        return;
+      }
+      statusEl.textContent = 'Encontrado(s) ' + placemarks.length + ' traçado(s). Escolha qual representa o perímetro do imóvel.';
+      statusEl.className = 'status ok';
+      const sel = document.getElementById('polySelect');
+      sel.innerHTML = '';
+      placemarks.forEach(function(p, i){
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = (p.name || ('Traçado ' + (i+1))) + ' — ' + p.coordsLonLat.length + ' pontos';
+        sel.appendChild(opt);
+      });
+      document.getElementById('polySelectWrap').style.display = 'block';
+      sel.onchange = function(){ selectPlacemark(parseInt(sel.value)); };
+      selectPlacemark(0);
+    }catch(err){
+      statusEl.textContent = 'Erro ao ler o KML: ' + err.message;
+      statusEl.className = 'status err';
+    }
+  };
+  reader.readAsText(file);
+});
+
+function extractPlacemarks(xml){
+  const results = [];
+  const pms = xml.getElementsByTagName('Placemark');
+  const list = pms.length > 0 ? Array.from(pms) : [xml.documentElement];
+  list.forEach(function(pm){
+    const nameNode = pm.getElementsByTagName ? pm.getElementsByTagName('name')[0] : null;
+    const name = nameNode ? nameNode.textContent.trim() : null;
+    const coordNodes = pm.getElementsByTagName ? pm.getElementsByTagName('coordinates') : [];
+    Array.from(coordNodes).forEach(function(cn, idx){
+      const raw = cn.textContent.trim();
+      if(!raw) return;
+      const pts = raw.split(/\s+/).map(function(triplet){
+        const parts = triplet.split(',');
+        return [parseFloat(parts[0]), parseFloat(parts[1])];
+      }).filter(function(p){ return !isNaN(p[0]) && !isNaN(p[1]); });
+      if(pts.length >= 2){
+        // remove ponto de fechamento duplicado (último == primeiro)
+        if(pts.length > 2){
+          const first = pts[0], last = pts[pts.length-1];
+          if(Math.abs(first[0]-last[0]) < 1e-9 && Math.abs(first[1]-last[1]) < 1e-9){
+            pts.pop();
+          }
+        }
+        results.push({ name: name ? (name + (coordNodes.length>1?(' ('+(idx+1)+')'):'')) : null, coordsLonLat: pts });
+      }
+    });
+  });
+  return results;
+}
+
+function selectPlacemark(index){
+  const p = placemarks[index];
+  let verts = p.coordsLonLat.map(function(pt){
+    const ll = { lon: pt[0], lat: pt[1] };
+    const utm = latLonToUTM(ll.lat, ll.lon);
+    return { lat: ll.lat, lon: ll.lon, E: utm.easting, N: utm.northing, zone: utm.zone, hemis: utm.hemisphere };
+  });
+  verts = orderClockwiseFromNorth(verts);
+  vertices = verts.map(function(v, i){
+    v.numero = String(i+1).padStart(4,'0');
+    return v;
+  });
+  computeSidesAndArea();
+  renderSummary();
+  renderVerticesTable();
+  enableButtons();
+}
+
+// Reordena os vértices para que a descrição comece no ponto mais ao norte
+// (maior latitude) e siga em sentido horário, conforme exigido no memorial.
+function orderClockwiseFromNorth(verts){
+  const n = verts.length;
+  if(n < 3) return verts;
+
+  // Sinal da área pelo shoelace em coordenadas UTM (E=x, N=y): positivo = sentido
+  // anti-horário, negativo = sentido horário. Se estiver anti-horário, inverte.
+  let areaSum = 0;
+  for(let i=0;i<n;i++){
+    const p1 = verts[i], p2 = verts[(i+1)%n];
+    areaSum += (p1.E * p2.N - p2.E * p1.N);
+  }
+  let ordered = areaSum > 0 ? verts.slice().reverse() : verts.slice();
+
+  // Localiza o vértice mais ao norte (maior latitude)
+  let northIdx = 0;
+  for(let i=1;i<ordered.length;i++){
+    if(ordered[i].lat > ordered[northIdx].lat) northIdx = i;
+  }
+
+  // Roda o array para que esse vértice vire o primeiro, sem mudar a ordem/sentido
+  return ordered.slice(northIdx).concat(ordered.slice(0, northIdx));
+}
+
+// ---------------------------------------------------------------
+// CONVERSÃO LAT/LON (WGS84) -> UTM  (fórmulas de Snyder, padrão USGS)
+// ---------------------------------------------------------------
+function latLonToUTM(lat, lon){
+  const a = 6378137.0;
+  const f = 1/298.257223563;
+  const e2 = f*(2-f);
+  const k0 = 0.9996;
+  const zone = Math.floor((lon+180)/6)+1;
+  const lonOrigin = (zone-1)*6-180+3;
+  const toRad = function(d){ return d*Math.PI/180; };
+  const latRad = toRad(lat);
+  const lonRad = toRad(lon);
+  const lonOriginRad = toRad(lonOrigin);
+
+  const ep2 = e2/(1-e2);
+  const N = a/Math.sqrt(1-e2*Math.sin(latRad)*Math.sin(latRad));
+  const T = Math.tan(latRad)*Math.tan(latRad);
+  const C = ep2*Math.cos(latRad)*Math.cos(latRad);
+  const A = Math.cos(latRad)*(lonRad-lonOriginRad);
+
+  const M = a*((1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256)*latRad
+      - (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024)*Math.sin(2*latRad)
+      + (15*e2*e2/256 + 45*e2*e2*e2/1024)*Math.sin(4*latRad)
+      - (35*e2*e2*e2/3072)*Math.sin(6*latRad));
+
+  let easting = k0*N*(A + (1-T+C)*Math.pow(A,3)/6
+      + (5-18*T+T*T+72*C-58*ep2)*Math.pow(A,5)/120) + 500000.0;
+
+  let northing = k0*(M + N*Math.tan(latRad)*(A*A/2 + (5-T+9*C+4*C*C)*Math.pow(A,4)/24
+      + (61-58*T+T*T+600*C-330*ep2)*Math.pow(A,6)/720));
+
+  if(lat < 0){ northing += 10000000.0; }
+
+  return { easting: easting, northing: northing, zone: zone, hemisphere: (lat<0?'S':'N'), lonOrigin: lonOrigin };
+}
+
+function toDMS(deg){
+  const d = Math.floor(deg);
+  const mFull = (deg-d)*60;
+  const m = Math.floor(mFull);
+  const s = (mFull-m)*60;
+  return d + '°' + String(m).padStart(2,'0') + "'" + s.toFixed(2).padStart(5,'0') + '"';
+}
+
+// Converte uma coordenada geográfica decimal (latitude ou longitude) para
+// Graus, Minutos e Segundos (GMS) com 4 casas decimais nos segundos,
+// incluindo a letra de hemisfério (N/S para latitude, E/W para longitude).
+function toGMSCoord(decDeg, kind){
+  const hemis = kind === 'lat' ? (decDeg < 0 ? 'S' : 'N') : (decDeg < 0 ? 'W' : 'E');
+  const abs = Math.abs(decDeg);
+  const d = Math.floor(abs);
+  const mFull = (abs - d) * 60;
+  const m = Math.floor(mFull);
+  const s = (mFull - m) * 60;
+  return d + '°' + String(m).padStart(2,'0') + "'" + s.toFixed(4).padStart(7,'0') + '"' + hemis;
+}
+
+function computeSidesAndArea(){
+  sides = [];
+  const n = vertices.length;
+  let areaSum = 0, perim = 0;
+  for(let i=0;i<n;i++){
+    const p1 = vertices[i], p2 = vertices[(i+1)%n];
+    const dE = p2.E - p1.E, dN = p2.N - p1.N;
+    let az = Math.atan2(dE, dN) * 180/Math.PI;
+    if(az < 0) az += 360;
+    const dist = Math.sqrt(dE*dE + dN*dN);
+    sides.push({ fromIdx:i, toIdx:(i+1)%n, azimuthDeg:az, azimuthDMS:toDMS(az), distance:dist });
+    areaSum += (p1.E * p2.N - p2.E * p1.N);
+    perim += dist;
+  }
+  const areaM2 = Math.abs(areaSum)/2;
+  areaInfo = {
+    areaM2: areaM2,
+    areaHa: areaM2/10000,
+    perimeter: perim,
+    zone: vertices[0] ? vertices[0].zone : 0,
+    hemis: vertices[0] ? vertices[0].hemis : 'S',
+  };
+}
+
+// ---------------------------------------------------------------
+// RENDER: resumo, tabela de lados, cartas
+// ---------------------------------------------------------------
+function renderSummary(){
+  document.getElementById('summaryWrap').style.display = 'block';
+  const grid = document.getElementById('summaryGrid');
+  grid.innerHTML = '';
+  const items = [
+    ['Vértices', vertices.length],
+    ['Área', areaInfo.areaHa.toFixed(4) + ' ha'],
+    ['Perímetro', areaInfo.perimeter.toFixed(2) + ' m'],
+    ['Zona UTM', areaInfo.zone + areaInfo.hemis]
+  ];
+  items.forEach(function(it){
+    const div = document.createElement('div');
+    div.className = 'summary-card';
+    div.innerHTML = '<div class="k">'+it[0]+'</div><div class="v">'+it[1]+'</div>';
+    grid.appendChild(div);
+  });
+}
+
+// Monta o código do vértice a partir do código do agrimensor, do tipo e do número
+// (ex.: FBGS-M-0001). Se o código do agrimensor ainda não foi preenchido, mostra
+// só tipo-número (ex.: M-0001) para não quebrar a exibição.
+function vertexCodigo(v){
+  const agr = String(v.agrimensor || '').trim().toUpperCase();
+  return (agr ? agr + '-' : '') + (v.tipo || 'M') + '-' + String(v.numero || '').padStart(4,'0');
+}
+
+// Rótulo a ser usado em todos os documentos para identificar o vértice pelo índice
+function vertLabel(idx){
+  const v = vertices[idx];
+  return v ? vertexCodigo(v) : ('P' + (idx+1));
+}
+
+function renderVerticesTable(){
+  document.getElementById('stepVertices').style.display = 'block';
+  const tbody = document.querySelector('#verticesTable tbody');
+  // preserva os valores já digitados (agrimensor e confrontante) antes de recriar as linhas
+  const existingAgri = Array.from(document.querySelectorAll('.vAgrimensor')).map(function(i){ return i.value; });
+  const existingVals = Array.from(document.querySelectorAll('.ladoConfrontante')).map(function(i){ return i.value; });
+  tbody.innerHTML = '';
+  vertices.forEach(function(v, i){
+    if(!v.tipo) v.tipo = 'M';
+    if(!v.numero) v.numero = String(i+1).padStart(4,'0');
+    if(existingAgri[i]) v.agrimensor = existingAgri[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="mono">Vértice ' + (i+1) + '</td>' +
+      '<td><input type="text" class="vAgrimensor" data-idx="'+i+'" placeholder="Código do agrimensor" value="'+escapeHtml(existingAgri[i]||'')+'"></td>' +
+      '<td><select class="vTipo" data-idx="'+i+'">' +
+        '<option value="M"'+(v.tipo==='M'?' selected':'')+'>M — Marco materializado</option>' +
+        '<option value="P"'+(v.tipo==='P'?' selected':'')+'>P — Rastreado não materializado</option>' +
+        '<option value="V"'+(v.tipo==='V'?' selected':'')+'>V — Virtual</option>' +
+        '<option value="B"'+(v.tipo==='B'?' selected':'')+'>B — Base Implantada</option>' +
+      '</select></td>' +
+      '<td><input type="text" class="vNumero mono" data-idx="'+i+'" value="'+v.numero+'" maxlength="6" inputmode="numeric"></td>' +
+      '<td class="mono" id="vCodigo'+i+'">' + vertexCodigo(v) + '</td>' +
+      '<td><input type="text" class="ladoConfrontante" data-idx="'+i+'" placeholder="Nome do confrontante" value="'+escapeHtml(existingVals[i]||'')+'"></td>';
+    tbody.appendChild(tr);
+  });
+
+  // Número: só atualiza o código exibido na própria linha, sem mexer nos demais campos
+  tbody.querySelectorAll('.vNumero').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      inp.value = inp.value.replace(/\D/g,'').slice(0,6);
+      const idx = parseInt(inp.dataset.idx);
+      vertices[idx].numero = inp.value;
+      document.getElementById('vCodigo'+idx).textContent = vertexCodigo(vertices[idx]);
+    });
+  });
+
+  // Código do agrimensor: atualiza vertices[i].agrimensor e o código exibido em tempo
+  // real, e sempre grava em maiúsculas. Ao alterar o campo em qualquer linha, o novo
+  // valor passa a valer dali para baixo (sobrescrevendo os que tinham o valor anterior),
+  // até a próxima alteração — assim como no exemplo: FBGS no vértice 1 vale até onde for
+  // trocado, digamos no vértice 8, dali em diante vale o novo código.
+  attachAutoFillDown('.vAgrimensor', function(inp){
+    const idx = parseInt(inp.dataset.idx);
+    vertices[idx].agrimensor = inp.value;
+    const cell = document.getElementById('vCodigo'+idx);
+    if(cell) cell.textContent = vertexCodigo(vertices[idx]);
+  }, function(v){ return v.toUpperCase(); });
+  // Tipo do vértice: mesmo comportamento de cascata do código do agrimensor — o valor
+  // escolhido em uma linha vale para as linhas abaixo que ainda tinham o valor anterior
+  // (o padrão "M"), até ser trocado de novo em outra linha.
+  attachAutoFillDown('.vTipo', function(sel){
+    const idx = parseInt(sel.dataset.idx);
+    vertices[idx].tipo = sel.value;
+    const cell = document.getElementById('vCodigo'+idx);
+    if(cell) cell.textContent = vertexCodigo(vertices[idx]);
+  });
+  // Confrontante: mesmo comportamento de cascata, com Estilo de Título, e atualiza a
+  // lista de qualificação usada na carta de anuência
+  attachAutoFillDown('.ladoConfrontante', function(){ renderConfrontantesDetails(); }, toTitleCase);
+}
+
+// Ao alterar um campo de uma classe, propaga o novo valor para os campos abaixo dele
+// (mesma classe) que ainda estavam vazios ou tinham o valor anterior — ou seja, faziam
+// parte do mesmo trecho. Campos que já foram preenchidos com outro valor diferente não
+// são tocados. onEach (opcional) roda para CADA input tocado (o editado e os que foram
+// atualizados em cascata), para manter dados/derivados em sincronia (ex.: código do
+// vértice, lista de confrontantes). transformFn (opcional) normaliza o valor ao sair do
+// campo (ex.: maiúsculas para códigos, Estilo de Título para nomes) antes de propagar.
+function attachAutoFillDown(selector, onEach, transformFn){
+  document.querySelectorAll(selector).forEach(function(inp){
+    inp.dataset.prevVal = inp.value;
+    inp.addEventListener('focus', function(){ inp.dataset.prevVal = inp.value; });
+    inp.addEventListener('input', function(){
+      if(typeof onEach === 'function') onEach(inp);
+    });
+    inp.addEventListener('change', function(){
+      const idx = parseInt(inp.dataset.idx);
+      let newVal = inp.value;
+      if(typeof transformFn === 'function'){ newVal = transformFn(newVal); inp.value = newVal; }
+      const oldVal = inp.dataset.prevVal || '';
+      document.querySelectorAll(selector).forEach(function(other){
+        const oIdx = parseInt(other.dataset.idx);
+        if(oIdx > idx && (other.value.trim() === '' || other.value === oldVal)){
+          other.value = newVal;
+          other.dataset.prevVal = newVal;
+          if(typeof onEach === 'function') onEach(other);
+        }
+      });
+      inp.dataset.prevVal = newVal;
+      if(typeof onEach === 'function') onEach(inp);
+    });
+  });
+}
+
+function getLadoConfrontantes(){
+  return Array.from(document.querySelectorAll('.ladoConfrontante')).map(function(i){ return i.value.trim(); });
+}
+
+function renderConfrontantesDetails(){
+  const names = getLadoConfrontantes().filter(function(n){ return n !== ''; });
+  const unique = Array.from(new Set(names));
+  const wrap = document.getElementById('stepConfrontantes');
+  const list = document.getElementById('confrontantesList');
+  if(unique.length === 0){ wrap.style.display = 'none'; document.getElementById('cartasWrap').style.display='none'; return; }
+  wrap.style.display = 'block';
+
+  // preserva valores já digitados
+  const existing = {};
+  list.querySelectorAll('.confrontante-card').forEach(function(card){
+    const key = card.dataset.key;
+    existing[key] = {
+      cpf: card.querySelector('.cf-cpf').value,
+      rg: card.querySelector('.cf-rg').value,
+      estadoCivil: card.querySelector('.cf-ec').value,
+      nacionalidade: card.querySelector('.cf-nac').value,
+      endereco: card.querySelector('.cf-end').value,
+      denominacao: card.querySelector('.cf-denom').value,
+      car: card.querySelector('.cf-car').value,
+      matricula: card.querySelector('.cf-matricula').value,
+      comarca: card.querySelector('.cf-comarca').value,
+    };
+  });
+
+  list.innerHTML = '';
+  unique.forEach(function(name){
+    const e = existing[name] || {cpf:'',rg:'',estadoCivil:'',nacionalidade:'',endereco:'',denominacao:'',car:'',matricula:'',comarca:''};
+    const card = document.createElement('div');
+    card.className = 'confrontante-card';
+    card.dataset.key = name;
+    card.innerHTML =
+      '<h4>'+escapeHtml(name)+'</h4>' +
+      '<div class="row3">' +
+        '<div><label class="first" style="margin-top:0;">CPF/CNPJ</label><input type="text" class="cf-cpf" value="'+escapeHtml(e.cpf)+'"></div>' +
+        '<div><label class="first" style="margin-top:0;">RG</label><input type="text" class="cf-rg" value="'+escapeHtml(e.rg)+'"></div>' +
+        '<div><label class="first" style="margin-top:0;">Estado civil</label><input type="text" class="cf-ec" value="'+escapeHtml(e.estadoCivil)+'"></div>' +
+      '</div>' +
+      '<div class="row3">' +
+        '<div><label class="first">Nacionalidade</label><input type="text" class="cf-nac" value="'+escapeHtml(e.nacionalidade)+'" placeholder="Ex.: brasileiro(a)"></div>' +
+        '<div style="grid-column: span 2;"><label class="first">Endereço</label><input type="text" class="cf-end" value="'+escapeHtml(e.endereco)+'"></div>' +
+      '</div>' +
+      '<label>Nome do imóvel do confrontante</label><input type="text" class="cf-denom" value="'+escapeHtml(e.denominacao)+'" placeholder="Ex.: Fazenda Campo Feliz I - 817">' +
+      '<div class="row3">' +
+        '<div><label class="first">CAR nº</label><input type="text" class="cf-car" value="'+escapeHtml(e.car)+'"></div>' +
+        '<div><label class="first">Matrícula nº</label><input type="text" class="cf-matricula" value="'+escapeHtml(e.matricula)+'"></div>' +
+        '<div><label class="first">Comarca</label><input type="text" class="cf-comarca" value="'+escapeHtml(e.comarca)+'"></div>' +
+      '</div>';
+    list.appendChild(card);
+    attachMask(card.querySelector('.cf-cpf'), maskCpfCnpj);
+  });
+  document.getElementById('cartasWrap').style.display = 'block';
+  renderCartasButtons(unique);
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function renderCartasButtons(unique){
+  const wrap = document.getElementById('cartasButtons');
+  wrap.innerHTML = '';
+  unique.forEach(function(name){
+    const btn = document.createElement('button');
+    btn.className = 'secondary';
+    btn.textContent = 'Carta — ' + name;
+    btn.onclick = function(){ gerarCartaAnuencia(name); };
+    wrap.appendChild(btn);
+  });
+}
+
+function enableButtons(){
+  document.getElementById('btnMemorial').disabled = false;
+  document.getElementById('btnSigef').disabled = false;
+  document.getElementById('btnOds').disabled = false;
+}
+
+// ---------------------------------------------------------------
+// COLETA DE DADOS DO FORMULÁRIO
+// ---------------------------------------------------------------
+function collectData(){
+  const g = function(id){ return document.getElementById(id).value.trim(); };
+  return {
+    denominacao: g('fDenominacao') || '(imóvel sem denominação informada)',
+    codigoIncra: g('fCodigoIncra'),
+    proprietario: g('fProprietario') || '(proprietário não informado)',
+    cpfProprietario: g('fCpfProprietario'),
+    matricula: g('fMatricula'),
+    comarca: g('fComarca'),
+    municipio: g('fMunicipio'),
+    uf: g('fUf'),
+    data: g('fData'),
+    tecnico: g('fTecnico'),
+    tecnicoFormacao: g('fTecnicoFormacao'),
+    conselho: g('fConselho'),
+    art: g('fArt'),
+    artTipo: g('fArtTipo') || 'ART',
+  };
+}
+
+function getConfrontanteDetails(name){
+  const cards = document.querySelectorAll('.confrontante-card');
+  for(const card of cards){
+    if(card.dataset.key === name){
+      return {
+        cpf: card.querySelector('.cf-cpf').value.trim(),
+        rg: card.querySelector('.cf-rg').value.trim(),
+        estadoCivil: card.querySelector('.cf-ec').value.trim(),
+        nacionalidade: card.querySelector('.cf-nac').value.trim(),
+        endereco: card.querySelector('.cf-end').value.trim(),
+        denominacao: card.querySelector('.cf-denom').value.trim(),
+        car: card.querySelector('.cf-car').value.trim(),
+        matricula: card.querySelector('.cf-matricula').value.trim(),
+        comarca: card.querySelector('.cf-comarca').value.trim(),
+      };
+    }
+  }
+  return {cpf:'',rg:'',estadoCivil:'',nacionalidade:'',endereco:'',denominacao:'',car:'',matricula:'',comarca:''};
+}
+
+// Procura o código do agrimensor (ex.: FBGS) já preenchido em algum vértice
+function getCodigoAgrimensor(){
+  for(let i=0;i<vertices.length;i++){
+    const a = String(vertices[i].agrimensor||'').trim();
+    if(a) return a.toUpperCase();
+  }
+  return '';
+}
+
+// Converte "dd/mm/aaaa" em "dd de {mês} de aaaa" (data por extenso)
+function formatDateExtenso(str){
+  const m = String(str||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return '';
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const dia = parseInt(m[1],10), mes = parseInt(m[2],10), ano = m[3];
+  if(mes < 1 || mes > 12) return '';
+  return dia + ' de ' + meses[mes-1] + ' de ' + ano;
+}
+
+// ---------------------------------------------------------------
+// GERAÇÃO: MEMORIAL DESCRITIVO (PDF)
+// ---------------------------------------------------------------
+document.getElementById('btnMemorial').addEventListener('click', gerarMemorial);
+function gerarMemorial(){
+  const d = collectData();
+  const ladoConf = getLadoConfrontantes();
+  const n = vertices.length;
+
+  let paragrafo = 'Inicia-se a descrição deste perímetro no vértice ' + vertLabel(0) + ', de coordenadas Latitude ' +
+    toGMSCoord(vertices[0].lat, 'lat') + ' e Longitude ' + toGMSCoord(vertices[0].lon, 'lon') + '; ';
+  // O confrontante só é mencionado no texto quando muda em relação ao trecho anterior —
+  // se o mesmo confrontante segue por vários lados seguidos, ele aparece apenas uma vez,
+  // na primeira vez em que passa a valer. No memorial, o correto é identificar o
+  // confrontante pela denominação do imóvel dele (ex.: "Fazenda Boa Vista"), e não pelo
+  // nome da pessoa — a denominação vem da qualificação do confrontante (passo 4); se
+  // ainda não foi preenchida, usa o nome digitado no passo 3 como alternativa.
+  let prevConf = '';
+  for(let i=0;i<n;i++){
+    const s = sides[i];
+    const nextLabel = vertLabel((i+1)%n);
+    const confName = (ladoConf[i] || '').trim();
+    const mudouConfrontante = confName !== prevConf;
+    let trechoDesc;
+    if(confName && mudouConfrontante){
+      const confDenom = getConfrontanteDetails(confName).denominacao || confName;
+      trechoDesc = 'deste, segue confrontando com ' + confDenom + ', com azimute de ' + s.azimuthDMS + ' e distância de ' + s.distance.toFixed(2) + 'm até o vértice ' + nextLabel;
+    } else {
+      trechoDesc = 'deste, segue com azimute de ' + s.azimuthDMS + ' e distância de ' + s.distance.toFixed(2) + 'm até o vértice ' + nextLabel;
+    }
+    prevConf = confName;
+    paragrafo += trechoDesc +
+      (i === n-1 ? ', ponto inicial da descrição deste perímetro.' :
+        ', de coordenadas Latitude ' + toGMSCoord(vertices[s.toIdx].lat, 'lat') +
+        ' e Longitude ' + toGMSCoord(vertices[s.toIdx].lon, 'lon') + '; ');
+  }
+
+  const nota = 'As coordenadas geográficas (latitude/longitude) aqui descritas estão expressas em Graus, Minutos e ' +
+    'Segundos (GMS), com 4 casas decimais nos segundos, referenciadas ao datum SIRGAS2000. Azimutes e distâncias ' +
+    'foram calculados no plano de projeção UTM, Meridiano Central da zona ' + areaInfo.zone + areaInfo.hemis + '.';
+
+  // Cabeçalho do memorial todo em maiúsculas (rótulo e valor)
+  const header = [
+    ['Imóvel', d.denominacao],
+    ['Proprietário(a)', d.proprietario + (d.cpfProprietario ? ' — CPF/CNPJ ' + d.cpfProprietario : '')],
+    ['Matrícula', d.matricula + (d.comarca ? ' — ' + d.comarca : '')],
+    ['Município/UF', (d.municipio || '(não informado)') + '/' + (d.uf || '--')],
+    ['Área', areaInfo.areaHa.toFixed(4) + ' ha (' + areaInfo.areaM2.toFixed(2) + ' m²)'],
+    ['Perímetro', areaInfo.perimeter.toFixed(2) + ' m'],
+    ['Referencial', 'SIRGAS2000 · UTM, Zona ' + areaInfo.zone + areaInfo.hemis],
+  ].map(function(row){ return [String(row[0]).toUpperCase(), String(row[1]).toUpperCase()]; });
+
+  const fmt = document.getElementById('formatoExport').value;
+  if(fmt === 'html'){ gerarMemorialHTML(d, header, paragrafo, nota); }
+  else if(fmt === 'doc'){ gerarMemorialDoc(d, header, paragrafo, nota); }
+  else { gerarMemorialPDF(d, header, paragrafo, nota); }
+}
+
+function gerarMemorialPDF(d, header, paragrafo, nota){
+  const doc = new jspdf.jsPDF({unit:'pt', format:'a4'});
+  const margin = 56;
+  let y = margin;
+  const pageWidth = doc.internal.pageSize.getWidth() - margin*2;
+  const pageHeightMem = doc.internal.pageSize.getHeight();
+  const centerXMem = margin + pageWidth/2;
+
+  y = addLogoToPdf(doc, centerXMem, y, 90, 70);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(14);
+  doc.text('MEMORIAL DESCRITIVO', centerXMem, y, {align:'center'}); y += 26;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+  header.forEach(function(row){
+    doc.setFont('helvetica','bold'); doc.text(row[0]+':', margin, y);
+    doc.setFont('helvetica','normal');
+    const lines = doc.splitTextToSize(row[1], pageWidth-110);
+    doc.text(lines, margin+110, y);
+    y += 14*lines.length;
+  });
+
+  y += 12;
+  doc.setFont('helvetica','bold'); doc.setFontSize(11.5);
+  doc.text('DESCRIÇÃO DO PERÍMETRO', centerXMem, y, {align:'center'}); y += 18;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+  y = writeJustified(doc, paragrafo, margin, y, pageWidth, 14, margin, pageHeightMem);
+
+  y += 10;
+  y = writeJustified(doc, nota, margin, y, pageWidth, 14, margin, pageHeightMem);
+
+  y += 30;
+  if(y > pageHeightMem-110){ doc.addPage(); y = margin+20; }
+  const dataExtensoMem = formatDateExtenso(d.data);
+  doc.text((toTitleCase(d.municipio) || '____________') + ', ' + (dataExtensoMem || '____ de ____________ de 20__'), centerXMem, y, {align:'center'});
+  y += 46;
+  doc.line(centerXMem-140, y, centerXMem+140, y); y += 16;
+  doc.setFont('helvetica','bold');
+  doc.text(d.tecnico || '(responsável técnico não informado)', centerXMem, y, {align:'center'}); y += 13;
+  doc.setFont('helvetica','normal');
+  if(d.tecnicoFormacao) { doc.text(toTitleCase(d.tecnicoFormacao), centerXMem, y, {align:'center'}); y += 13; }
+  if(d.conselho) { doc.text(d.conselho.toUpperCase(), centerXMem, y, {align:'center'}); y += 13; }
+  if(d.art) { doc.text((d.artTipo || 'ART') + ' nº ' + d.art, centerXMem, y, {align:'center'}); y += 13; }
+
+  doc.setFontSize(8); doc.setTextColor(140);
+  doc.text('Documento gerado automaticamente a partir de KML — requer conferência de campo e assinatura de profissional habilitado antes de uso no SIGEF.', margin, pageHeightMem-30, {maxWidth:pageWidth});
+
+  doc.save('memorial-descritivo.pdf');
+  setStatus('genStatus', 'Memorial descritivo gerado (PDF).', false);
+}
+
+// Monta o miolo (sem <html>/<head>) do memorial em HTML, reaproveitado tanto pelo
+// arquivo .html quanto pelo .doc (Word abre HTML normalmente quando salvo com essa
+// extensão e o tipo MIME certo — é o mesmo truque usado pelos "Exportar para Word"
+// da maioria dos sistemas, já que gerar um .docx real exigiria uma biblioteca à parte).
+function buildMemorialHtmlBody(d, header, paragrafo, nota){
+  const logoHtml = logoData.dataUrl
+    ? '<div style="text-align:center;margin-bottom:18px;"><img src="'+logoData.dataUrl+'" style="max-width:160px;max-height:120px;"></div>'
+    : '';
+  const headerHtml = header.map(function(row){
+    return '<tr><td style="font-weight:bold;padding:2px 10px 2px 0;white-space:nowrap;vertical-align:top;">'+escapeHtml(row[0])+':</td><td style="padding:2px 0;">'+escapeHtml(row[1])+'</td></tr>';
+  }).join('');
+  return '' +
+    '<div style="font-family:Georgia,\'Times New Roman\',serif;font-size:11pt;color:#1a1a1a;max-width:760px;margin:0 auto;line-height:1.5;">' +
+    logoHtml +
+    '<h1 style="text-align:center;font-size:16pt;letter-spacing:1px;margin:0 0 22px;">MEMORIAL DESCRITIVO</h1>' +
+    '<table style="border-collapse:collapse;margin-bottom:20px;">' + headerHtml + '</table>' +
+    '<h2 style="text-align:center;font-size:12.5pt;margin:0 0 12px;">DESCRIÇÃO DO PERÍMETRO</h2>' +
+    '<p style="text-align:justify;margin:0 0 14px;">' + escapeHtml(paragrafo) + '</p>' +
+    '<p style="text-align:justify;margin:0 0 30px;">' + escapeHtml(nota) + '</p>' +
+    '<p style="text-align:center;margin:0 0 46px;">' + escapeHtml((toTitleCase(d.municipio)||'____________') + ', ' + (formatDateExtenso(d.data) || '____ de ____________ de 20__')) + '</p>' +
+    '<div style="text-align:center;">' +
+      '<div style="display:inline-block;border-top:1px solid #1a1a1a;width:260px;padding-top:6px;">' +
+        '<div style="font-weight:bold;">' + escapeHtml(d.tecnico || '(responsável técnico não informado)') + '</div>' +
+        (d.tecnicoFormacao ? '<div>'+escapeHtml(toTitleCase(d.tecnicoFormacao))+'</div>' : '') +
+        (d.conselho ? '<div>'+escapeHtml(d.conselho.toUpperCase())+'</div>' : '') +
+        (d.art ? '<div>'+escapeHtml(d.artTipo || 'ART')+' nº '+escapeHtml(d.art)+'</div>' : '') +
+      '</div>' +
+    '</div>' +
+    '<p style="text-align:center;font-size:8pt;color:#777;margin-top:40px;">Documento gerado automaticamente a partir de KML — requer conferência de campo e assinatura de profissional habilitado antes de uso no SIGEF.</p>' +
+    '</div>';
+}
+
+function gerarMemorialHTML(d, header, paragrafo, nota){
+  const body = buildMemorialHtmlBody(d, header, paragrafo, nota);
+  downloadHtmlFile(wrapHtmlDocument('Memorial Descritivo', body), 'memorial-descritivo.html');
+  setStatus('genStatus', 'Memorial descritivo gerado (HTML).', false);
+}
+
+function gerarMemorialDoc(d, header, paragrafo, nota){
+  const body = buildMemorialHtmlBody(d, header, paragrafo, nota);
+  downloadWordFile(wrapWordDocument('Memorial Descritivo', body), 'memorial-descritivo.doc');
+  setStatus('genStatus', 'Memorial descritivo gerado (Word).', false);
+}
+
+// ---------------------------------------------------------------
+// GERAÇÃO: PEÇA TÉCNICA SIGEF (PDF com tabela)
+// ---------------------------------------------------------------
+document.getElementById('btnSigef').addEventListener('click', gerarSigef);
+function gerarSigef(){
+  const d = collectData();
+  const ladoConf = getLadoConfrontantes();
+  const n = vertices.length;
+
+  const doc = new jspdf.jsPDF({unit:'pt', format:'a4'});
+  const margin = 40;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('QUADRO DE VÉRTICES, AZIMUTES E DISTÂNCIAS', margin, 40);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+  doc.text(d.denominacao + '  ·  ' + (d.municipio||'') + '/' + (d.uf||'') + '  ·  SIRGAS2000 UTM Zona ' + areaInfo.zone + areaInfo.hemis, margin, 56);
+
+  const rows = [];
+  for(let i=0;i<n;i++){
+    const v = vertices[i]; const s = sides[i];
+    rows.push([
+      vertLabel(i),
+      v.lat.toFixed(6), v.lon.toFixed(6),
+      v.E.toFixed(2), v.N.toFixed(2),
+      s.azimuthDMS, s.distance.toFixed(2),
+      ladoConf[i] || ''
+    ]);
+  }
+
+  doc.autoTable({
+    startY: 70,
+    margin: {left:margin, right:margin},
+    head: [['Vért.','Latitude','Longitude','E (m)','N (m)','Azimute','Dist. (m)','Confrontante']],
+    body: rows,
+    styles: {fontSize:8, cellPadding:4},
+    headStyles: {fillColor:[75,91,68], textColor:255},
+    columnStyles: {0:{cellWidth:28}, 5:{cellWidth:55}, 6:{cellWidth:50}}
+  });
+
+  let y = doc.lastAutoTable.finalY + 20;
+  doc.setFontSize(9.5);
+  doc.text('Área: ' + areaInfo.areaHa.toFixed(4) + ' ha (' + areaInfo.areaM2.toFixed(2) + ' m²)   |   Perímetro: ' + areaInfo.perimeter.toFixed(2) + ' m', margin, y);
+  y += 20;
+  doc.setFontSize(8); doc.setTextColor(140);
+  doc.text('Peça técnica de apoio — conferir com o levantamento de campo e o padrão vigente do SIGEF/INCRA antes da submissão.', margin, y, {maxWidth: doc.internal.pageSize.getWidth()-margin*2});
+
+  doc.save('peca-tecnica-sigef.pdf');
+  setStatus('genStatus', 'Peça técnica gerada.', false);
+}
+
+// ---------------------------------------------------------------
+// GERAÇÃO: PLANILHA ODS
+// ---------------------------------------------------------------
+document.getElementById('btnOds').addEventListener('click', gerarOds);
+function gerarOds(){
+  const ladoConf = getLadoConfrontantes();
+  const n = vertices.length;
+  const data = [['Vértice','Latitude','Longitude','E_UTM(m)','N_UTM(m)','Zona','Azimute_para_proximo','Distancia_m','Confrontante_do_lado']];
+  for(let i=0;i<n;i++){
+    const v = vertices[i]; const s = sides[i];
+    data.push([vertLabel(i), v.lat, v.lon, Number(v.E.toFixed(3)), Number(v.N.toFixed(3)), areaInfo.zone+areaInfo.hemis, s.azimuthDMS, Number(s.distance.toFixed(3)), ladoConf[i]||'']);
+  }
+  data.push([]);
+  data.push(['Área (ha)', Number(areaInfo.areaHa.toFixed(4))]);
+  data.push(['Área (m²)', Number(areaInfo.areaM2.toFixed(2))]);
+  data.push(['Perímetro (m)', Number(areaInfo.perimeter.toFixed(2))]);
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:8},{wch:12},{wch:12},{wch:12},{wch:14},{wch:8},{wch:18},{wch:12},{wch:26}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Vertices');
+  const wbout = XLSX.write(wb, {bookType:'ods', type:'array'});
+  const blob = new Blob([wbout], {type:'application/vnd.oasis.opendocument.spreadsheet'});
+  downloadBlob(blob, 'planilha-vertices.ods');
+  setStatus('genStatus', 'Planilha ODS gerada.', false);
+}
+
+// ---------------------------------------------------------------
+// GERAÇÃO: CARTA DE ANUÊNCIA (PDF por confrontante)
+// ---------------------------------------------------------------
+// Desenha, dentro do retângulo (x0,y0,w,h) do PDF, o croqui do perímetro: todos os
+// vértices ligados na ordem, com os vértices/lados do trecho que confronta com
+// "nomeConfrontante" destacados em vermelho. Usa as coordenadas UTM (E,N) dos vértices,
+// projetadas em escala para caber no retângulo — não depende de nenhuma imagem.
+function desenharCroqui(doc, x0, y0, w, h, nomeConfrontante){
+  const ladoConf = getLadoConfrontantes();
+  const n = vertices.length;
+  if(n < 2) return;
+
+  const Es = vertices.map(function(v){ return v.E; });
+  const Ns = vertices.map(function(v){ return v.N; });
+  const minE = Math.min.apply(null, Es), maxE = Math.max.apply(null, Es);
+  const minN = Math.min.apply(null, Ns), maxN = Math.max.apply(null, Ns);
+  const spanE = Math.max(maxE - minE, 1), spanN = Math.max(maxN - minN, 1);
+  const pad = 0.85; // usa 85% do retângulo, deixando margem para os rótulos
+  const scale = Math.min((w*pad)/spanE, (h*pad)/spanN);
+  const drawW = spanE*scale, drawH = spanN*scale;
+  const offX = x0 + (w-drawW)/2;
+  const offY = y0 + (h-drawH)/2;
+
+  function toXY(v){
+    return {
+      x: offX + (v.E - minE)*scale,
+      y: offY + drawH - (v.N - minN)*scale // inverte N para o topo ficar ao norte
+    };
+  }
+
+  // marca quais vértices e lados pertencem ao trecho deste confrontante
+  const highlightVert = new Array(n).fill(false);
+  const highlightSide = new Array(n).fill(false);
+  for(let i=0;i<n;i++){
+    if((ladoConf[i] || '').trim() === nomeConfrontante){
+      highlightSide[i] = true;
+      highlightVert[i] = true;
+      highlightVert[(i+1)%n] = true;
+    }
+  }
+
+  // desenha o perímetro (contorno completo em cinza claro, só como referência de fundo)
+  for(let i=0;i<n;i++){
+    const p1 = toXY(vertices[i]), p2 = toXY(vertices[(i+1)%n]);
+    if(highlightSide[i]){ doc.setDrawColor(190,40,40); doc.setLineWidth(1.3); }
+    else { doc.setDrawColor(190,190,190); doc.setLineWidth(0.4); }
+    doc.line(p1.x, p1.y, p2.x, p2.y);
+  }
+
+  // desenha marcador e código só dos vértices do trecho confrontante (para não poluir)
+  doc.setFont('helvetica','normal'); doc.setFontSize(5.5);
+  for(let i=0;i<n;i++){
+    if(!highlightVert[i]) continue;
+    const p = toXY(vertices[i]);
+    doc.setFillColor(190,40,40); doc.setDrawColor(190,40,40);
+    doc.circle(p.x, p.y, 2, 'FD');
+    doc.setTextColor(190,40,40);
+    doc.text(vertLabel(i), p.x+3, p.y-2);
+  }
+
+  doc.setTextColor(0); doc.setDrawColor(0); doc.setFillColor(0);
+}
+
+function gerarCartaAnuencia(nomeConfrontante){
+  const d = collectData();
+  const det = getConfrontanteDetails(nomeConfrontante);
+  const ladoConf = getLadoConfrontantes();
+  const codigoAgrimensor = getCodigoAgrimensor();
+
+  // Trechos (lados) do perímetro que confrontam com esta pessoa/empresa: uma linha por
+  // lado, no formato "DE VÉRTICE / LONGITUDE / LATITUDE / PARA VÉRTICE / AZIMUTE / DISTÂNCIA".
+  // Ao final de cada trecho (quando o lado seguinte já é de outro confrontante, ou fecha
+  // o perímetro), acrescenta uma linha extra só com as coordenadas do último vértice do
+  // trecho, para garantir que TODAS as coordenadas do intervalo apareçam na tabela — ex.:
+  // trecho do vértice 1 ao 10 tem as coordenadas de 1 a 10, mesmo o vértice 10 sendo o
+  // início do próximo trecho (com outro confrontante).
+  const n = sides.length;
+  const rowsCoord = [];
+  for(let i=0;i<n;i++){
+    if((ladoConf[i] || '').trim() !== nomeConfrontante) continue;
+    const s = sides[i];
+    rowsCoord.push([
+      vertLabel(s.fromIdx),
+      toGMSCoord(vertices[s.fromIdx].lon, 'lon'),
+      toGMSCoord(vertices[s.fromIdx].lat, 'lat'),
+      vertLabel(s.toIdx),
+      s.azimuthDMS,
+      s.distance.toFixed(2)
+    ]);
+    const proximoLadoMesmoConfrontante = (ladoConf[(i+1)%n] || '').trim() === nomeConfrontante;
+    if(!proximoLadoMesmoConfrontante){
+      rowsCoord.push([
+        vertLabel(s.toIdx),
+        toGMSCoord(vertices[s.toIdx].lon, 'lon'),
+        toGMSCoord(vertices[s.toIdx].lat, 'lat'),
+        '-', '-', '-'
+      ]);
+    }
+  }
+
+  // Parágrafo 1: qualificação do confrontante e do imóvel dele
+  const qualificacao = 'Eu, ' + nomeConfrontante +
+    (det.nacionalidade ? ', ' + det.nacionalidade : '') +
+    (det.estadoCivil ? ', ' + det.estadoCivil : '') +
+    (det.rg ? ', portador(a) do RG nº ' + det.rg : '') +
+    (det.cpf ? (det.rg ? ' e inscrito(a) no CPF/CNPJ sob o nº: ' : ', inscrito(a) no CPF/CNPJ sob o nº: ') + det.cpf : '') +
+    (det.endereco ? ', residente e domiciliado(a) em ' + det.endereco : '') +
+    ', declaro para os devidos fins, na qualidade de proprietário(a)/possuidor(a) do imóvel denominado ' +
+    (det.denominacao || '(imóvel do confrontante não informado)') +
+    (det.car ? ', inscrito no CAR sob o nº ' + det.car : '') +
+    (det.matricula ? ' e com matrícula nº ' + det.matricula : '') +
+    (det.comarca ? ' no Cartório de Registro de Imóveis da Comarca de ' + det.comarca : '') +
+    ':';
+
+  // Parágrafo 2: reconhecimento do trabalho técnico
+  const acordoTecnico = 'Que ESTOU DE ACORDO com a demarcação, o levantamento topográfico e o reconhecimento dos ' +
+    'limites divisórios executados pelo(a) ' + (d.tecnicoFormacao || 'responsável técnico(a)') +
+    ', senhor(a) ' + (d.tecnico || '(responsável técnico não informado)') +
+    (d.conselho ? ', ' + d.conselho : '') +
+    (codigoAgrimensor ? ', credenciado(a) junto ao INCRA sob o código ' + codigoAgrimensor : '') + '.';
+
+  // Parágrafo 3: reconhecimento dos limites com o imóvel principal (o que está sendo georreferenciado)
+  const acordoLimites = 'Declaro, ainda, que os limites entre o meu imóvel e a propriedade denominada ' +
+    (d.denominacao) + ', de propriedade de ' + d.proprietario + ', foram devidamente conferidos in loco. ' +
+    'Concordo com a exatidão dos vértices e coordenadas abaixo descritos, não havendo contestação, litígio ou ' +
+    'sobreposição de áreas entre as propriedades:';
+
+  // Parágrafo final: autorização de registro
+  const autorizacao = 'Por fim, autorizo o registro e a certificação do referido memorial descritivo no SIGEF ' +
+    '(Sistema de Gestão Fundiária do Incra) e a posterior retificação/atualização no Cartório de Registro de ' +
+    'Imóveis competente.';
+
+  const dataExtenso = formatDateExtenso(d.data);
+  const dataLinha = (d.municipio||'____________') + (d.uf ? ' - '+d.uf : '') + ', ' +
+    (dataExtenso || '____ de ____________ de 20__') + '.';
+
+  const fmt = document.getElementById('formatoExport').value;
+  if(fmt === 'html'){
+    gerarCartaHTML(nomeConfrontante, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord, dataLinha);
+  } else if(fmt === 'doc'){
+    gerarCartaDoc(nomeConfrontante, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord, dataLinha);
+  } else {
+    gerarCartaPDF(nomeConfrontante, d, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord);
+  }
+}
+
+function gerarCartaPDF(nomeConfrontante, d, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord){
+  const doc = new jspdf.jsPDF({unit:'pt', format:'a4'});
+  const margin = 56;
+  const pageWidth = doc.internal.pageSize.getWidth() - margin*2;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const centerX = margin + pageWidth/2;
+  let y = margin;
+
+  y = addLogoToPdf(doc, centerX, y, 90, 70);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('CARTA DE ANUÊNCIA E RECONHECIMENTO DE LIMITES', centerX, y, {align:'center'});
+  y += 30;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  [qualificacao, acordoTecnico, acordoLimites].forEach(function(par){
+    y = writeJustified(doc, par, margin, y, pageWidth, 16, margin, pageHeight);
+    y += 10;
+  });
+
+  if(rowsCoord.length > 0){
+    if(y > pageHeight-150){ doc.addPage(); y = margin; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+    doc.text('TABELA DE COORDENADAS', centerX, y, {align:'center'}); y += 8;
+
+    doc.autoTable({
+      startY: y,
+      margin: {left:margin, right:margin},
+      head: [['DE VÉRTICE','LONGITUDE','LATITUDE','PARA VÉRTICE','AZIMUTE','DISTÂNCIA (m)']],
+      body: rowsCoord,
+      styles: {fontSize:8.5, cellPadding:4, halign:'center'},
+      headStyles: {fillColor:[75,91,68], textColor:255},
+    });
+    y = doc.lastAutoTable.finalY + 24;
+  }
+
+  if(y > pageHeight-100){ doc.addPage(); y = margin; }
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  y = writeJustified(doc, autorizacao, margin, y, pageWidth, 16, margin, pageHeight);
+  y += 30;
+
+  if(y > pageHeight-100){ doc.addPage(); y = margin; }
+  const dataExtenso = formatDateExtenso(d.data);
+  doc.text((d.municipio||'____________') + (d.uf ? ' - '+d.uf : '') + ', ' +
+    (dataExtenso || '____ de ____________ de 20__') + '.', centerX, y, {align:'center'});
+  y += 60;
+
+  if(y > pageHeight-90){ doc.addPage(); y = margin; }
+  doc.setLineWidth(0.7);
+  doc.line(centerX-140, y, centerX+140, y);
+  y += 16;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+  const nomeLines = doc.splitTextToSize(nomeConfrontante.toUpperCase(), pageWidth-80);
+  nomeLines.forEach(function(line){ doc.text(line, centerX, y, {align:'center'}); y += 14; });
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  if(det.cpf){
+    const digits = det.cpf.replace(/\D/g,'');
+    const label = digits.length > 11 ? 'CNPJ' : 'CPF';
+    doc.text(label + ': ' + det.cpf, centerX, y, {align:'center'}); y += 14;
+  }
+  doc.text('Confrontante do Imóvel: ' + (det.denominacao || '(imóvel do confrontante não informado)'), centerX, y, {align:'center'});
+  y += 30;
+
+  // Croqui de localização: perímetro com todos os vértices, destacando em vermelho o
+  // trecho que confronta com este(a) confrontante
+  if(vertices.length >= 3){
+    const croquiH = 230;
+    if(y > pageHeight - croquiH - 40){ doc.addPage(); y = margin; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(0);
+    doc.text('CROQUI DE LOCALIZAÇÃO', centerX, y, {align:'center'}); y += 14;
+    desenharCroqui(doc, margin, y, pageWidth, croquiH - 30, nomeConfrontante);
+    y += croquiH - 30 + 10;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(190,40,40);
+    doc.text('— trecho confrontante com ' + nomeConfrontante, margin, y);
+    doc.setTextColor(0);
+    y += 14;
+  }
+
+  doc.setFontSize(8); doc.setTextColor(140);
+  doc.text('Documento gerado automaticamente — colher assinatura física ou eletrônica válida antes de anexar ao processo do SIGEF.', margin, pageHeight-30, {maxWidth:pageWidth});
+
+  doc.save('carta-anuencia-' + slugify(nomeConfrontante) + '.pdf');
+  setStatus('genStatus', 'Carta de anuência de ' + nomeConfrontante + ' gerada (PDF).', false);
+}
+
+// Monta o miolo em HTML da carta de anuência (mesma lógica de reaproveitamento do
+// memorial: usado tanto pelo .html quanto pelo .doc). O croqui de localização, por ser
+// desenhado diretamente no PDF, não é reproduzido aqui — fica indicado no rodapé.
+function buildCartaHtmlBody(nomeConfrontante, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord, dataLinha){
+  const logoHtml = logoData.dataUrl
+    ? '<div style="text-align:center;margin-bottom:18px;"><img src="'+logoData.dataUrl+'" style="max-width:160px;max-height:120px;"></div>'
+    : '';
+  const pTag = function(t){ return '<p style="text-align:justify;margin:0 0 14px;">' + escapeHtml(t) + '</p>'; };
+  let tabelaHtml = '';
+  if(rowsCoord.length){
+    const head = ['DE VÉRTICE','LONGITUDE','LATITUDE','PARA VÉRTICE','AZIMUTE','DISTÂNCIA (m)'];
+    tabelaHtml = '<h3 style="text-align:center;font-size:11.5pt;margin:22px 0 8px;">TABELA DE COORDENADAS</h3>' +
+      '<table style="border-collapse:collapse;width:100%;font-size:9pt;margin-bottom:20px;">' +
+      '<tr style="background:#4B5B44;color:#fff;">' +
+      head.map(function(h){ return '<th style="padding:5px 6px;border:1px solid #ccc;">'+h+'</th>'; }).join('') +
+      '</tr>' +
+      rowsCoord.map(function(r){
+        return '<tr>' + r.map(function(c){ return '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;">'+escapeHtml(String(c))+'</td>'; }).join('') + '</tr>';
+      }).join('') +
+      '</table>';
+  }
+  return '' +
+    '<div style="font-family:Georgia,\'Times New Roman\',serif;font-size:11pt;color:#1a1a1a;max-width:760px;margin:0 auto;line-height:1.5;">' +
+    logoHtml +
+    '<h1 style="text-align:center;font-size:14.5pt;letter-spacing:.5px;margin:0 0 22px;">CARTA DE ANUÊNCIA E RECONHECIMENTO DE LIMITES</h1>' +
+    pTag(qualificacao) + pTag(acordoTecnico) + pTag(acordoLimites) +
+    tabelaHtml +
+    pTag(autorizacao) +
+    '<p style="text-align:center;margin:26px 0 46px;">' + escapeHtml(dataLinha) + '</p>' +
+    '<div style="text-align:center;">' +
+      '<div style="display:inline-block;border-top:1px solid #1a1a1a;width:280px;padding-top:6px;">' +
+        '<div style="font-weight:bold;">' + escapeHtml(nomeConfrontante.toUpperCase()) + '</div>' +
+        (det.cpf ? '<div>' + (det.cpf.replace(/\D/g,'').length>11 ? 'CNPJ' : 'CPF') + ': ' + escapeHtml(det.cpf) + '</div>' : '') +
+        '<div>Confrontante do Imóvel: ' + escapeHtml(det.denominacao || '(imóvel do confrontante não informado)') + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<p style="text-align:center;font-size:8pt;color:#777;margin-top:40px;">Documento gerado automaticamente — colher assinatura física ou eletrônica válida antes de anexar ao processo do SIGEF. O croqui de localização com o trecho confrontante destacado está disponível na versão em PDF.</p>' +
+    '</div>';
+}
+
+function gerarCartaHTML(nomeConfrontante, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord, dataLinha){
+  const body = buildCartaHtmlBody(nomeConfrontante, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord, dataLinha);
+  downloadHtmlFile(wrapHtmlDocument('Carta de Anuência - ' + nomeConfrontante, body), 'carta-anuencia-' + slugify(nomeConfrontante) + '.html');
+  setStatus('genStatus', 'Carta de anuência de ' + nomeConfrontante + ' gerada (HTML).', false);
+}
+
+function gerarCartaDoc(nomeConfrontante, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord, dataLinha){
+  const body = buildCartaHtmlBody(nomeConfrontante, det, qualificacao, acordoTecnico, acordoLimites, autorizacao, rowsCoord, dataLinha);
+  downloadWordFile(wrapWordDocument('Carta de Anuência - ' + nomeConfrontante, body), 'carta-anuencia-' + slugify(nomeConfrontante) + '.doc');
+  setStatus('genStatus', 'Carta de anuência de ' + nomeConfrontante + ' gerada (Word).', false);
+}
+
+// Escreve um parágrafo com o corpo justificado (as linhas preenchem toda a largura),
+// mantendo a última linha do parágrafo alinhada à esquerda, como é costume tipográfico
+// (senão ela ficaria esticada de forma estranha). Quebra de página automática. Retorna
+// o novo valor de y para continuar a escrita depois do parágrafo.
+// Obs.: a opção nativa {align:'justify'} do jsPDF não estica os espaços de forma
+// confiável nesta versão da biblioteca, então a justificação é feita manualmente:
+// mede-se a largura de cada palavra e redistribui-se o espaço sobrando entre elas.
+function writeJustified(doc, text, x, y, maxWidth, lineHeight, marginTop, pageHeight){
+  const lines = doc.splitTextToSize(text, maxWidth);
+  lines.forEach(function(line, idx){
+    if(y > pageHeight - 70){ doc.addPage(); y = marginTop; }
+    const isLast = (idx === lines.length - 1);
+    if(isLast || lines.length === 1){
+      doc.text(line, x, y);
+    } else {
+      justifyLine(doc, line, x, y, maxWidth);
+    }
+    y += lineHeight;
+  });
+  return y;
+}
+
+// Distribui as palavras de UMA linha ao longo de maxWidth, aumentando o espaço entre
+// elas (mantendo cada palavra intacta) até preencher a largura toda.
+function justifyLine(doc, line, x, y, maxWidth){
+  const words = line.split(' ').filter(function(w){ return w.length > 0; });
+  if(words.length <= 1){ doc.text(line, x, y); return; }
+  const wordWidths = words.map(function(w){ return doc.getTextWidth(w); });
+  const totalWordsWidth = wordWidths.reduce(function(a,b){ return a+b; }, 0);
+  const totalGaps = words.length - 1;
+  const spaceWidth = Math.max(doc.getTextWidth(' '), (maxWidth - totalWordsWidth) / totalGaps);
+  let cx = x;
+  words.forEach(function(w, i){
+    doc.text(w, cx, y);
+    cx += wordWidths[i] + spaceWidth;
+  });
+}
+
+function slugify(s){
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+// ---------------------------------------------------------------
+// UTIL
+// ---------------------------------------------------------------
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+}
+
+// Envolve o miolo do documento num .html independente e completo.
+function wrapHtmlDocument(title, bodyHtml){
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<title>' + escapeHtml(title) + '</title></head><body>' + bodyHtml + '</body></html>';
+}
+
+// Envolve o miolo do documento com os marcadores que o Word reconhece para abrir um
+// arquivo HTML como se fosse um documento nativo (extensão .doc, mime application/msword).
+function wrapWordDocument(title, bodyHtml){
+  return '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+    'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head><meta charset="utf-8"><title>' + escapeHtml(title) + '</title>' +
+    '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->' +
+    '</head><body>' + bodyHtml + '</body></html>';
+}
+
+function downloadHtmlFile(html, filename){
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  downloadBlob(blob, filename);
+}
+
+function downloadWordFile(html, filename){
+  const blob = new Blob(['\ufeff', html], {type:'application/msword'});
+  downloadBlob(blob, filename);
+}
+
+function setStatus(elId, msg, isErr){
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.className = 'status ' + (isErr ? 'err' : 'ok');
+}
+</script>
+</body>
+</html>
