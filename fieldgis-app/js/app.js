@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v41';
+  const APP_BUILD_VERSION = 'v42';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -1670,11 +1670,20 @@
         // (mesmo em PDFs corretamente georreferenciados), caindo sem necessidade
         // no modo manual. Usamos slice(0) para trabalhar sobre uma cópia própria.
         const bounds = Importer.extractGeoPdfBounds(arrayBuffer.slice(0));
+        const viewportBBox = Importer.extractViewportBBox(arrayBuffer.slice(0));
 
         const res = await Importer.renderPDFPage(arrayBuffer, 1, 2.5);
         canvas = res.canvas;
 
         if (bounds) {
+          // Se o PDF tiver um Viewport (área do quadro do mapa MENOR que a
+          // folha inteira — comum em pranchas com título/legenda fora do
+          // mapa), recorta a imagem pra essa área antes de salvar. Sem isso,
+          // a folha inteira ficaria esticada/distorcida para caber nas
+          // coordenadas geográficas, que correspondem só à área do Viewport.
+          if (viewportBBox) {
+            canvas = Importer.cropCanvasToViewport(canvas, viewportBBox, res.scale, res.pageHeightPts);
+          }
           const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
           await saveRasterLayer(file.name, {
             blob,

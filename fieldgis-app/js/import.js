@@ -389,6 +389,48 @@
     }
   }
 
+  /**
+   * Extrai o retângulo (/BBox) do dicionário /Viewport do PDF, em pontos da
+   * página (origem no canto inferior-esquerdo, como o PDF usa nativamente).
+   *
+   * IMPORTANTE: as coordenadas GPTS/LPTS de um GeoPDF costumam ser relativas
+   * a esse Viewport — ou seja, à área real do quadro do mapa — e NÃO à folha
+   * inteira. Documentos com título, legenda ou margens fora do quadro do
+   * mapa (comuns em pranchas técnicas/cadastrais) têm um Viewport MENOR que
+   * a página, com uma proporção diferente dela. Se a imagem inteira da
+   * página for esticada para caber nas coordenadas geográficas pensadas só
+   * para essa área menor, o resultado sai distorcido (retangular virando
+   * quase quadrado, ou vice-versa) — por isso precisamos recortar a imagem
+   * para esse retângulo antes de posicioná-la no mapa (ver handlePdfOrImageFile).
+   */
+  function extractViewportBBox(arrayBuffer) {
+    try {
+      const bytes = new Uint8Array(arrayBuffer);
+      let raw = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        raw += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      const m = raw.match(/\/Type\s*\/Viewport[\s\S]{0,400}?\/BBox\s*\[\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s*\]/);
+      if (!m) return null;
+      const [x1, y1, x2, y2] = [m[1], m[2], m[3], m[4]].map(Number);
+      if ([x1, y1, x2, y2].some(Number.isNaN)) return null;
+      // A especificação do PDF permite que os 4 números de um retângulo
+      // venham em qualquer ordem nos cantos — quem lê deve normalizar
+      // (min/max) em vez de assumir llx<urx e lly<ury. Sem isso, um arquivo
+      // com os valores de Y invertidos (como aconteceu aqui) geraria uma
+      // altura negativa e quebraria o recorte da imagem.
+      const llx = Math.min(x1, x2);
+      const urx = Math.max(x1, x2);
+      const lly = Math.min(y1, y2);
+      const ury = Math.max(y1, y2);
+      if (urx <= llx || ury <= lly) return null;
+      return { llx, lly, urx, ury };
+    } catch (e) {
+      return null;
+    }
+  }
+
   // PDF / imagem com georreferenciamento manual (2 pontos de controle)
   // ------------------------------------------------------------------
 
@@ -406,7 +448,31 @@
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d');
     await page.render({ canvasContext: ctx, viewport }).promise;
-    return { canvas, numPages: pdf.numPages };
+    const pageHeightPts = page.view[3] - page.view[1];
+    return { canvas, numPages: pdf.numPages, scale, pageHeightPts };
+  }
+
+  /**
+   * Recorta um canvas renderizado de uma página PDF para o retângulo do
+   * Viewport georreferenciado (ver extractViewportBBox), convertendo de
+   * pontos da página (origem embaixo-à-esquerda) para pixels do canvas
+   * (origem em cima-à-esquerda, escalado pelo "scale" usado em renderPDFPage).
+   * Sem esse recorte, margens/título/legenda fora do Viewport ficam
+   * distorcendo a proporção da imagem ao posicioná-la no mapa.
+   */
+  function cropCanvasToViewport(canvas, bbox, scale, pageHeightPts) {
+    const x = bbox.llx * scale;
+    const yTopo = (pageHeightPts - bbox.ury) * scale;
+    const w = (bbox.urx - bbox.llx) * scale;
+    const h = (bbox.ury - bbox.lly) * scale;
+    if (w <= 0 || h <= 0) return canvas;
+
+    const recortado = document.createElement('canvas');
+    recortado.width = Math.round(w);
+    recortado.height = Math.round(h);
+    const ctx = recortado.getContext('2d');
+    ctx.drawImage(canvas, x, yTopo, w, h, 0, 0, recortado.width, recortado.height);
+    return recortado;
   }
 
   /**
@@ -451,6 +517,8 @@
     importGeoTIFF,
     renderPDFPage,
     extractGeoPdfBounds,
+    extractViewportBBox,
+    cropCanvasToViewport,
     computeBoundsFromControlPoints,
     utmFromEPSG,
   };
