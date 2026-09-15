@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v42';
+  const APP_BUILD_VERSION = 'v43';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -1676,18 +1676,20 @@
         canvas = res.canvas;
 
         if (bounds) {
-          // Se o PDF tiver um Viewport (área do quadro do mapa MENOR que a
+          // Se o PDF tiver um Viewport (área georreferenciada MENOR que a
           // folha inteira — comum em pranchas com título/legenda fora do
-          // mapa), recorta a imagem pra essa área antes de salvar. Sem isso,
-          // a folha inteira ficaria esticada/distorcida para caber nas
-          // coordenadas geográficas, que correspondem só à área do Viewport.
+          // mapa), estende as coordenadas geográficas pra folha inteira
+          // (mesma escala graus/ponto medida dentro do Viewport). Mantém a
+          // página completa visível (título, legenda, tudo), sem distorcer
+          // a proporção — em vez de recortar só a área do mapa.
+          let boundsFinal = bounds;
           if (viewportBBox) {
-            canvas = Importer.cropCanvasToViewport(canvas, viewportBBox, res.scale, res.pageHeightPts);
+            boundsFinal = Importer.extrapolateFullPageBounds(bounds, viewportBBox, res.pageWidthPts, res.pageHeightPts);
           }
           const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
           await saveRasterLayer(file.name, {
             blob,
-            bounds: [[bounds.sw.lat, bounds.sw.lon], [bounds.ne.lat, bounds.ne.lon]],
+            bounds: [[boundsFinal.sw.lat, boundsFinal.sw.lon], [boundsFinal.ne.lat, boundsFinal.ne.lon]],
             width: canvas.width,
             height: canvas.height,
           });

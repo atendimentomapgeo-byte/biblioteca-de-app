@@ -448,31 +448,30 @@
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d');
     await page.render({ canvasContext: ctx, viewport }).promise;
+    const pageWidthPts = page.view[2] - page.view[0];
     const pageHeightPts = page.view[3] - page.view[1];
-    return { canvas, numPages: pdf.numPages, scale, pageHeightPts };
+    return { canvas, numPages: pdf.numPages, scale, pageWidthPts, pageHeightPts };
   }
 
   /**
-   * Recorta um canvas renderizado de uma página PDF para o retângulo do
-   * Viewport georreferenciado (ver extractViewportBBox), convertendo de
-   * pontos da página (origem embaixo-à-esquerda) para pixels do canvas
-   * (origem em cima-à-esquerda, escalado pelo "scale" usado em renderPDFPage).
-   * Sem esse recorte, margens/título/legenda fora do Viewport ficam
-   * distorcendo a proporção da imagem ao posicioná-la no mapa.
+   * Estende os limites geográficos conhecidos (validados dentro do Viewport
+   * do GeoPDF) para cobrir a FOLHA INTEIRA da página, extrapolando a mesma
+   * escala graus/ponto usada dentro do Viewport. Diferente de recortar a
+   * imagem, isso mantém título, legenda e margens visíveis — a folha inteira
+   * continua sendo exibida, só que agora com as coordenadas corretas em
+   * cada canto, sem distorcer a proporção (a escala usada fora do Viewport
+   * é a mesma medida dentro dele, então a imagem inteira fica com o
+   * tamanho/proporção corretos).
    */
-  function cropCanvasToViewport(canvas, bbox, scale, pageHeightPts) {
-    const x = bbox.llx * scale;
-    const yTopo = (pageHeightPts - bbox.ury) * scale;
-    const w = (bbox.urx - bbox.llx) * scale;
-    const h = (bbox.ury - bbox.lly) * scale;
-    if (w <= 0 || h <= 0) return canvas;
-
-    const recortado = document.createElement('canvas');
-    recortado.width = Math.round(w);
-    recortado.height = Math.round(h);
-    const ctx = recortado.getContext('2d');
-    ctx.drawImage(canvas, x, yTopo, w, h, 0, 0, recortado.width, recortado.height);
-    return recortado;
+  function extrapolateFullPageBounds(bounds, bbox, pageWidthPts, pageHeightPts) {
+    const lonPerPt = (bounds.ne.lon - bounds.sw.lon) / (bbox.urx - bbox.llx);
+    const latPerPt = (bounds.ne.lat - bounds.sw.lat) / (bbox.ury - bbox.lly);
+    const lonAtX = (xPts) => bounds.sw.lon + (xPts - bbox.llx) * lonPerPt;
+    const latAtY = (yPts) => bounds.sw.lat + (yPts - bbox.lly) * latPerPt;
+    return {
+      sw: { lat: latAtY(0), lon: lonAtX(0) },
+      ne: { lat: latAtY(pageHeightPts), lon: lonAtX(pageWidthPts) },
+    };
   }
 
   /**
@@ -518,7 +517,7 @@
     renderPDFPage,
     extractGeoPdfBounds,
     extractViewportBBox,
-    cropCanvasToViewport,
+    extrapolateFullPageBounds,
     computeBoundsFromControlPoints,
     utmFromEPSG,
   };
