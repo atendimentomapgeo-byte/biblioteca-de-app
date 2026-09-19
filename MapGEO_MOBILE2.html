@@ -771,8 +771,10 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
   #results-panel.collapsed .actions-footer{display:none !important;}
   #results-panel.collapsed .sheet-handle{height:52px;min-height:52px !important;}
   #results-panel.collapsed .sheet-handle .lbl{display:block;}
-  body.sheet-collapsed .leaflet-bottom{margin-bottom:58px;}
-  body.sheet-collapsed .report-fab{bottom:66px !important;}
+  /* Pilha de widgets acima da gaveta recolhida: atribuição/zoom -> bússola -> botão de relatório */
+  body.sheet-collapsed .leaflet-bottom{margin-bottom:52px;}
+  body.sheet-collapsed #compass-panel{bottom:76px !important;}
+  body.sheet-collapsed .report-fab{bottom:calc(76px + var(--compass-stack, 0px)) !important;}
 }
 
 @media (max-width:430px){
@@ -4820,9 +4822,21 @@ function escapeHtml(s){
   btn.addEventListener('keydown', function(e){
     if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setCollapsed(!panel.classList.contains('collapsed')); }
   });
+  /* Mantém o botão de relatório sempre acima da bússola (altura medida, pois o texto de status pode quebrar linha). */
+  var compass=document.getElementById('compass-panel');
+  if(compass && window.ResizeObserver){
+    new ResizeObserver(function(){
+      var h=compass.classList.contains('hidden') ? 0 : compass.offsetHeight;
+      document.documentElement.style.setProperty('--compass-stack', h ? (h+8)+'px' : '0px');
+    }).observe(compass);
+    new MutationObserver(function(){
+      var h=compass.classList.contains('hidden') ? 0 : compass.offsetHeight;
+      document.documentElement.style.setProperty('--compass-stack', h ? (h+8)+'px' : '0px');
+    }).observe(compass,{attributes:true,attributeFilter:['class']});
+  }
   window.MapGEOSheet={collapse:function(){setCollapsed(true);}, expand:function(){setCollapsed(false);}};
 })();
 </script>
-<div id="build-stamp" style="position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1 monospace;color:#fff;background:rgba(0,0,0,.55);padding:2px 5px;border-radius:4px;pointer-events:none;">build kml-fix-2</div>
+<div id="build-stamp" style="position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1 monospace;color:#fff;background:rgba(0,0,0,.55);padding:2px 5px;border-radius:4px;pointer-events:none;">build kml-fix-3</div>
 </body>
 </html>
