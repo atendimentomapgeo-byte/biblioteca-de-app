@@ -976,6 +976,9 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
             <label>Número do CAR</label>
             <input type="text" id="input-numero-car" placeholder="Ex.: MT99077/2017">
           </div>
+          <div class="field" style="margin-top:-4px;">
+            <button type="button" id="btn-recibo-simcar" class="small" style="width:100%;" title="Baixa o PDF do recibo de inscrição direto da SEMA-MT">📄 Baixar recibo SIMCAR</button>
+          </div>
 
           <div class="metric-grid">
             <div class="metric"><div class="v" id="m-area">—</div><div class="l">Área (ha)</div></div>
@@ -1083,7 +1086,8 @@ const state = {
   nome: '',
   proprietario: '',
   matricula: '',
-  numeroCar: ''
+  numeroCar: '',
+  requerimentoId: ''
 };
 
 const IBGE_UF_CODE = 51; // Mato Grosso
@@ -1617,6 +1621,8 @@ async function loadProperty(feature, sourceFormat, filename){
   state.proprietario = nomeProprietarios ? String(nomeProprietarios).trim() : '';
   state.matricula = matricula ? String(matricula).trim() : '';
   state.numeroCar = numeroCar ? String(numeroCar).trim() : '';
+  // ID interno do requerimento (usado no download do recibo SIMCAR) — vem da camada MVW_REQUERIMENTO_ATP
+  state.requerimentoId = (function(){ for(const k of Object.keys(importProps)){ if(/^requerimento_?id$/i.test(k) && importProps[k]!=null && String(importProps[k]).trim()) return String(importProps[k]).trim(); } return ''; })();
 
   state.areaHa = turf.area(feature) / 10000;
   state.perimetroKm = calcPerimeterKm(feature);
@@ -4795,6 +4801,154 @@ function escapeHtml(s){
   return d.innerHTML;
 }
 
+
+/* ============================================================
+   RECIBO SIMCAR — download direto do PDF pela API pública da SEMA-MT (via proxy CORS do MapGEO)
+   O endereço usa o REQUERIMENTO_ID (ID interno), não o número do CAR; ele vem da camada
+   MVW_REQUERIMENTO_ATP. Se algo falhar, o próximo toque abre uma página alternativa.
+============================================================ */
+const RECIBO_SIMCAR_API = 'https://monitoramento.sema.mt.gov.br/simcar/tecnico.api/api/Publico/BuscarPdfRecibo/';
+const RECIBO_SIMCAR_PAGINA_ALT = 'https://simcar-2hpta2.manus.space/';
+const RECIBO_ROTULO = '📄 Baixar recibo SIMCAR';
+let reciboFalhou = false;
+// O endereço de 2019 (BuscarPdfRecibo/<id>) não existe mais: em 19/09/2026 a SEMA-MT respondeu "No HTTP resource was
+// found that matches the request URI". Enquanto o endereço novo não for descoberto, o fluxo usa a página alternativa
+// (que aceita o REQUERIMENTO_ID). Para religar o download direto: ajustar RECIBO_SIMCAR_API e trocar a flag abaixo.
+const RECIBO_DIRETO_ATIVO = false;
+let reciboIdPronto = '';   // REQUERIMENTO_ID já resolvido para o CAR digitado
+
+function pickRequerimentoId(props){
+  if(!props) return '';
+  for(const k of Object.keys(props)){
+    if(/^requerimento_?id$/i.test(k) && props[k]!=null && String(props[k]).trim()) return String(props[k]).trim();
+  }
+  return '';
+}
+
+async function resolverRequerimentoId(numeroCar){
+  const digitado = numeroCar.trim();
+  if(state.requerimentoId && state.numeroCar && state.numeroCar.toUpperCase() === digitado.toUpperCase()){
+    return state.requerimentoId;
+  }
+  const gj = await searchCarLayerByNumero('MVW_REQUERIMENTO_ATP', digitado, 'CODIGO_CAR_FEDERAL');
+  const cands = (gj.features||[]).map(f=>({ props:f.properties||{}, id:pickRequerimentoId(f.properties) })).filter(c=>c.id);
+  if(!cands.length) return '';
+  const exatos = cands.filter(c=> String(c.props.NUMEROESTADUAL||'').trim().toUpperCase() === digitado.toUpperCase());
+  const lista = exatos.length ? exatos : cands;
+  lista.sort((a,b)=> Number(b.id) - Number(a.id)); // se houver mais de um requerimento, usa o mais recente
+  return lista[0].id;
+}
+
+function base64ParaBytes(b64){
+  const bin = atob(b64.replace(/\s/g,''));
+  const u8 = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+function acharBase64Pdf(obj){
+  if(typeof obj === 'string'){
+    const t = obj.replace(/^data:[^,]*,/,'').trim();
+    return (t.length > 100 && t.startsWith('JVBER')) ? t : null; // "JVBER" = "%PDF" em base64
+  }
+  if(obj && typeof obj === 'object'){
+    for(const v of Object.values(obj)){ const r = acharBase64Pdf(v); if(r) return r; }
+  }
+  return null;
+}
+function ehPdf(b){ return b && b.length > 4 && b[0]===0x25 && b[1]===0x50 && b[2]===0x44 && b[3]===0x46; }
+
+async function baixarPdfRecibo(requerimentoId){
+  const alvo = RECIBO_SIMCAR_API + encodeURIComponent(requerimentoId);
+  const url = settings.proxy ? settings.proxy + encodeURIComponent(alvo) : alvo;
+  const ctrl = new AbortController();
+  const to = setTimeout(()=>ctrl.abort(), 45000);
+  let resp;
+  try{
+    resp = await fetch(url, { signal: ctrl.signal });
+  }catch(e){
+    clearTimeout(to);
+    if(e.name === 'AbortError') throw new Error('tempo esgotado ao baixar o recibo');
+    throw new Error(settings.proxy ? 'não foi possível alcançar o proxy/SEMA-MT (' + e.message + ')' : 'bloqueio de CORS — configure o proxy em "⚙ Conexão"');
+  }
+  clearTimeout(to);
+  if(!resp.ok){
+    const t = await resp.text().catch(()=> '');
+    throw new Error('a SEMA-MT respondeu HTTP ' + resp.status + (t ? ': ' + t.slice(0,120) : ''));
+  }
+  const buf = new Uint8Array(await resp.arrayBuffer());
+  let bytes = buf;
+  if(!ehPdf(bytes)){
+    // algumas APIs devolvem o PDF como base64 dentro de um JSON
+    const texto = new TextDecoder().decode(buf);
+    let b64 = null;
+    try{ b64 = acharBase64Pdf(JSON.parse(texto)); }catch(_){ b64 = acharBase64Pdf(texto.replace(/^"|"$/g,'')); }
+    bytes = null;
+    if(b64){ try{ bytes = base64ParaBytes(b64); }catch(_){ bytes = null; } }
+    if(!ehPdf(bytes)) throw new Error('a resposta da SEMA-MT não parece ser um PDF: ' + texto.slice(0,120));
+  }
+  return new Blob([bytes], { type:'application/pdf' });
+}
+
+(function(){
+  const btn = document.getElementById('btn-recibo-simcar');
+  const inputCar = document.getElementById('input-numero-car');
+  if(!btn || !inputCar) return;
+  function resetarEstado(){ reciboFalhou = false; reciboIdPronto = ''; btn.textContent = RECIBO_ROTULO; }
+  inputCar.addEventListener('input', resetarEstado);
+
+  // A página alternativa pede o "Número do Requerimento" = REQUERIMENTO_ID (não o número do CAR).
+  function abrirPaginaAlternativa(valor){
+    try{ if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(valor).catch(()=>{}); }catch(_){}
+    window.open(RECIBO_SIMCAR_PAGINA_ALT, '_blank', 'noopener');
+    toast('Requerimento ' + valor + ' copiado. Cole no campo "Número do Requerimento".', 6000);
+  }
+
+  async function baixarDireto(numero, id){
+    const blob = await baixarPdfRecibo(id);
+    downloadBlob(blob, 'Recibo_SIMCAR_' + numero.replace(/[^A-Za-z0-9_-]+/g,'_') + '.pdf');
+    toast('Recibo baixado (' + Math.max(1, Math.round(blob.size/1024)) + ' KB).');
+    btn.textContent = RECIBO_ROTULO;
+  }
+
+  btn.addEventListener('click', async ()=>{
+    const numero = (inputCar.value || '').trim();
+    if(!numero){ toast('Preencha o Número do CAR antes de baixar o recibo.'); return; }
+
+    // 2º toque depois de uma falha do download direto
+    if(reciboFalhou){ const v = reciboIdPronto || numero; resetarEstado(); abrirPaginaAlternativa(v); return; }
+
+    // ID já conhecido (veio da busca por CAR ou de uma consulta anterior) => segue sem esperar rede
+    let id = reciboIdPronto;
+    if(!id && state.requerimentoId && state.numeroCar && state.numeroCar.toUpperCase() === numero.toUpperCase()) id = state.requerimentoId;
+
+    if(id && !RECIBO_DIRETO_ATIVO){ reciboIdPronto = id; abrirPaginaAlternativa(id); return; }
+
+    btn.disabled = true;
+    try{
+      if(!id){
+        btn.textContent = '⏳ Buscando requerimento…';
+        id = await resolverRequerimentoId(numero);
+        if(!id){ toast('Não encontrei o requerimento desse CAR na base da SEMA-MT. Confira o número.', 6000); btn.textContent = RECIBO_ROTULO; return; }
+        reciboIdPronto = id;
+        if(!RECIBO_DIRETO_ATIVO){
+          // o iOS só deixa abrir a página/copiar dentro de um toque: por isso o passo final é um 2º toque
+          btn.textContent = '📄 Abrir recibo (requerimento ' + id + ')';
+          toast('Requerimento ' + id + ' encontrado. Toque de novo para abrir a página do recibo.', 5000);
+          return;
+        }
+      }
+      btn.textContent = '⏳ Baixando recibo…';
+      await baixarDireto(numero, id);
+    }catch(err){
+      console.error(err);
+      reciboFalhou = true;
+      btn.textContent = '📄 Tentar pela página alternativa';
+      toast('Não consegui baixar direto: ' + err.message + '. Toque de novo para usar a página alternativa.', 9000);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+})();
 })();
 </script>
 <script>
@@ -4837,6 +4991,6 @@ function escapeHtml(s){
   window.MapGEOSheet={collapse:function(){setCollapsed(true);}, expand:function(){setCollapsed(false);}};
 })();
 </script>
-<div id="build-stamp" style="position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1 monospace;color:#fff;background:rgba(0,0,0,.55);padding:2px 5px;border-radius:4px;pointer-events:none;">build kml-fix-3</div>
+<div id="build-stamp" style="position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1 monospace;color:#fff;background:rgba(0,0,0,.55);padding:2px 5px;border-radius:4px;pointer-events:none;">build kml-fix-6</div>
 </body>
 </html>
