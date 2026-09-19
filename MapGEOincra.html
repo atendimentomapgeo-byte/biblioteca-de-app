@@ -208,7 +208,7 @@
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
     <button class="btn btn-sm btn-ghost" id="btn-import" title="Restaura os cadastros a partir de um arquivo .json exportado antes">Importar backup</button>
-    <input type="file" id="input-import" accept="application/json" style="display:none;">
+    <input type="file" id="input-import" accept=".json,application/json,text/json,*/*" style="display:none;">
   </div>
 </header>
 
@@ -383,7 +383,7 @@
 
     <div class="card">
       <h2>Importar limites via KML / KMZ</h2>
-      <div class="field"><label>Arquivo .kml ou .kmz</label><input type="file" id="kml-file-imo" accept=".kml,.kmz,.xml"></div>
+      <div class="field"><label>Arquivo .kml ou .kmz</label><input type="file" id="kml-file-imo" accept=".kml,.kmz,.xml,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz,application/xml,text/xml,*/*"></div>
       <button class="btn btn-primary" id="btn-import-kml-imo">Importar KML/KMZ para este imóvel</button>
       <div class="note">
         Se o imóvel ainda não foi salvo, ele será criado automaticamente ao importar. O <strong>nome do imóvel é definido automaticamente a partir do nome do arquivo</strong> importado (substituindo o nome atual, se houver) — renomeie depois se quiser.
@@ -408,7 +408,7 @@
 
     <div class="card">
       <h2>Importar limites via Shapefile</h2>
-      <div class="field"><label>Arquivo .zip contendo .shp, .shx, .dbf (e .prj, se possível)</label><input type="file" id="shp-file-imo" accept=".zip"></div>
+      <div class="field"><label>Arquivo .zip contendo .shp, .shx, .dbf (e .prj, se possível)</label><input type="file" id="shp-file-imo" accept=".zip,application/zip,application/x-zip-compressed,multipart/x-zip,*/*"></div>
       <button class="btn btn-primary" id="btn-import-shp-imo">Importar Shapefile para este imóvel</button>
       <div class="note">
         Envie um único arquivo .zip com os componentes do shapefile (.shp, .shx, .dbf e, de preferência, .prj com a projeção). O <strong>nome do imóvel é definido automaticamente a partir do nome do arquivo .zip</strong> importado (substituindo o nome atual, se houver) — renomeie depois se quiser. Sem o .prj, as coordenadas são tratadas como já estando em graus (WGS84) — com .prj, coordenadas projetadas (ex.: UTM) são convertidas automaticamente. Segue o mesmo processo de importação do KML acima (substitui os marcos existentes deste imóvel). <strong>Se o arquivo tiver mais de uma geometria</strong> (mais de um registro no .shp), você escolhe qual delas é o polígono ativo antes de importar. Requer conexão com a internet na primeira vez, para carregar a biblioteca de leitura.
@@ -595,7 +595,7 @@
         <strong>Alternativa: importar o arquivo baixado manualmente</strong><br>
         Se a busca ao vivo não funcionar, baixe o shapefile da mesma camada em <a href="https://www.gov.br/pt-br/servicos/obter-coordenadas-e-baixar-os-arquivos-dos-imoveis-ruras-certificados" target="_blank" rel="noopener">Obter coordenadas e baixar os arquivos dos imóveis rurais certificados</a> (serviço gratuito do INCRA — escolha a camada de parcelas certificadas e a UF/município) e envie o .zip abaixo.
       </div>
-      <div class="field"><label>Malha de parcelas certificadas SIGEF (.zip contendo .shp, .shx, .dbf e, de preferência, .prj)</label><input type="file" id="sigef-malha-file" accept=".zip"></div>
+      <div class="field"><label>Malha de parcelas certificadas SIGEF (.zip contendo .shp, .shx, .dbf e, de preferência, .prj)</label><input type="file" id="sigef-malha-file" accept=".zip,application/zip,application/x-zip-compressed,multipart/x-zip,*/*"></div>
       <button type="button" class="btn btn-ghost" id="btn-consultar-sigef">Buscar confrontantes no arquivo importado</button>
       <div class="note">Qualquer uma das duas buscas acima compara o polígono do imóvel selecionado com as parcelas encontradas e aponta as que fazem divisa dentro da tolerância informada, sugerindo nome, Parcela SIGEF e situação para atribuir aos lados correspondentes. Parcelas que parecem ser o próprio imóvel (contorno e área muito parecidos) são identificadas e ignoradas automaticamente.</div>
       <div id="sigef-confrontantes-resultado"></div>
@@ -730,7 +730,7 @@
       </div>
       <div class="field" id="doc-planta-dxf-externo-wrap" style="display:none; margin-top:12px;">
         <label>Arquivo DXF do layout externo</label>
-        <input type="file" id="doc-planta-dxf-file" accept=".dxf,.DXF">
+        <input type="file" id="doc-planta-dxf-file" accept=".dxf,.DXF,application/dxf,image/vnd.dxf,application/octet-stream,*/*">
         <div class="note" id="doc-planta-dxf-status">Nenhum arquivo selecionado. Esse DXF é lido apenas no seu navegador, a cada clique em "Gerar documentos" — ele não fica embutido/salvo neste arquivo HTML, então você troca o layout quando quiser sem editar o gestor.</div>
         <div class="note">
           O traçado do DXF (linhas, polilinhas, círculos, arcos, elipses e textos/ATTDEF da seção ENTITIES, sem blocos/inserts) é reproduzido tal como está. Para plugar os dados do imóvel automaticamente:
@@ -912,7 +912,7 @@
               <b>Clique ou arraste um .dxf aqui</b>
               Layers, cores, textos, arcos e blocos são reproduzidos automaticamente
             </div>
-            <input type="file" id="dxfpdf-fileInput" accept=".dxf" style="display:none">
+            <input type="file" id="dxfpdf-fileInput" accept=".dxf,application/dxf,image/vnd.dxf,application/octet-stream,*/*" style="display:none">
             <div id="dxfpdf-fileInfo"></div>
             <div id="dxfpdf-warnings"></div>
           </div>
