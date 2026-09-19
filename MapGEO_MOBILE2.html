@@ -791,10 +791,10 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
     <button class="small" id="btn-settings" title="Configurações de conexão">⚙ Conexão</button>
     <button class="small" id="btn-search-car" title="Buscar imóvel por número de CAR (SEMA-MT)">🔍 Buscar CAR</button>
     <button class="primary small" id="btn-run-diagnostico" title="Cruza o imóvel carregado com as 35 bases fundiárias e ambientais já confirmadas (INCRA/SIGEF, INTERMAT, SEMA‑MT, IBAMA, INPE)">▶ Análise Preliminar</button>
-    <input type="file" id="file-input"
-       accept=".kml,.kmz,.geojson,.json,.zip,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz,application/geo+json,application/json,application/zip"
-       aria-label="Selecionar arquivo espacial" />
-    <input type="file" id="local-layer-input" accept=".kml,.kmz,.geojson,.json,.zip" style="display:none;" />
+    <!-- Sem atributo accept de propósito: no iOS/Safari, extensões sem UTI conhecido (.kml, .kmz)
+         ficam acinzentadas no seletor. O formato é validado pela extensão em parseSpatialFile(). -->
+    <input type="file" id="file-input" aria-label="Selecionar arquivo espacial" />
+    <input type="file" id="local-layer-input" style="display:none;" />
   </div>
 </header>
 
@@ -1496,7 +1496,7 @@ async function parseSpatialFile(file){
     geojson = await shp(buf); // shpjs -> reprojeta usando .prj quando presente
     sourceFormat = 'SHP (ZIP)';
   } else {
-    throw new Error('Formato não suportado: .' + ext);
+    throw new Error('Formato não suportado: .' + (ext || '(sem extensão)') + '. Use KML, KMZ, GeoJSON ou ZIP (Shapefile).');
   }
   return { geojson, sourceFormat };
 }
