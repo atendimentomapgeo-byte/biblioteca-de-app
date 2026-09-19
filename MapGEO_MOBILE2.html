@@ -746,6 +746,35 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
   .source-card,.alert-item,.layer-group,.comp-chart{max-width:100%;overflow-x:hidden;}
 }
 
+/* ---------- Gaveta recolhível (mobile) ---------- */
+.sheet-handle{display:none;}
+@media (max-width:900px){
+  #results-panel{transition:height .25s ease, min-height .25s ease;}
+  #results-panel::before{display:none !important;}
+  .sheet-handle{
+    display:block;position:absolute;top:0;left:0;right:0;z-index:30;
+    height:40px;min-height:40px !important;padding:0;margin:0;border:0;border-radius:16px 16px 0 0;
+    background:transparent;box-shadow:none;touch-action:none;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .sheet-handle .pill{
+    position:absolute;top:9px;left:50%;transform:translateX(-50%);
+    width:52px;height:5px;border-radius:999px;background:var(--text-2);opacity:.75;
+  }
+  .sheet-handle .lbl{
+    position:absolute;top:19px;left:0;right:0;text-align:center;
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);
+    display:none;
+  }
+  #results-panel.collapsed{height:52px !important;min-height:52px !important;}
+  #results-panel.collapsed .results-scroll,
+  #results-panel.collapsed .actions-footer{display:none !important;}
+  #results-panel.collapsed .sheet-handle{height:52px;min-height:52px !important;}
+  #results-panel.collapsed .sheet-handle .lbl{display:block;}
+  body.sheet-collapsed .leaflet-bottom{margin-bottom:58px;}
+  body.sheet-collapsed .report-fab{bottom:66px !important;}
+}
+
 @media (max-width:430px){
   header{height:54px;min-height:54px;}
   .app{height:calc(100% - 54px);}
@@ -921,6 +950,7 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
 
   <!-- RIGHT: RESULTS (single scroll, no tabs) -->
   <aside id="results-panel" class="panel">
+    <button type="button" id="sheet-toggle" class="sheet-handle" aria-expanded="true" aria-controls="results-panel" aria-label="Recolher ou expandir painel de resultados"><span class="pill"></span><span class="lbl">▲ Resultados</span></button>
     <div class="results-scroll">
 
       <!-- RESUMO -->
@@ -4765,6 +4795,34 @@ function escapeHtml(s){
 
 })();
 </script>
-<div id="build-stamp" style="position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1 monospace;color:#fff;background:rgba(0,0,0,.55);padding:2px 5px;border-radius:4px;pointer-events:none;">build kml-fix-1</div>
+<script>
+/* Gaveta de resultados (mobile): toque na alça alterna; arrastar p/ baixo recolhe, p/ cima expande. */
+(function(){
+  var panel=document.getElementById('results-panel');
+  var btn=document.getElementById('sheet-toggle');
+  if(!panel||!btn) return;
+  function setCollapsed(c){
+    panel.classList.toggle('collapsed', c);
+    document.body.classList.toggle('sheet-collapsed', c);
+    btn.setAttribute('aria-expanded', c ? 'false' : 'true');
+    btn.querySelector('.lbl').textContent = c ? '▲ Resultados' : '';
+  }
+  var y0=null;
+  btn.addEventListener('pointerdown', function(e){ y0=e.clientY; try{btn.setPointerCapture(e.pointerId);}catch(_){} });
+  btn.addEventListener('pointerup', function(e){
+    if(y0===null) return;
+    var dy=e.clientY-y0; y0=null;
+    if(dy>40) setCollapsed(true);
+    else if(dy<-40) setCollapsed(false);
+    else if(Math.abs(dy)<10) setCollapsed(!panel.classList.contains('collapsed'));
+  });
+  btn.addEventListener('pointercancel', function(){ y0=null; });
+  btn.addEventListener('keydown', function(e){
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setCollapsed(!panel.classList.contains('collapsed')); }
+  });
+  window.MapGEOSheet={collapse:function(){setCollapsed(true);}, expand:function(){setCollapsed(false);}};
+})();
+</script>
+<div id="build-stamp" style="position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1 monospace;color:#fff;background:rgba(0,0,0,.55);padding:2px 5px;border-radius:4px;pointer-events:none;">build kml-fix-2</div>
 </body>
 </html>
