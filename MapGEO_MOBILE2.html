@@ -2186,19 +2186,32 @@ function registerFeatureForExport(label, feature){
    buildKmlString, mas esse é usado só para o imóvel; aqui cobrimos também Point/LineString e seus
    Multi*, porque camadas como hidrografia/vértices podem vir nesses tipos). */
 function geometryToKmlGeom(geometry){
+  if(!geometry){
+    throw new Error('Geometria vazia');
+  }
+  
+  // Usa a mesma normalização que o Shapefile pra garantir consistência
+  let geoToUse = normalizeGeometry(geometry);
+  if(!geoToUse || !geoToUse.type){
+    throw new Error('Não foi possível extrair uma geometria válida');
+  }
+  
+  if(geoToUse.type === 'Feature' || geoToUse.type === 'GeometryCollection'){
+    throw new Error('Geometria em formato não suportado: ' + geoToUse.type);
+  }
+  
   const ring = c => c.map(p=>`${p[0]},${p[1]},0`).join(' ');
   const polyXml = coords => `<Polygon><outerBoundaryIs><LinearRing><coordinates>${ring(coords[0])}</coordinates></LinearRing></outerBoundaryIs>${
     coords.slice(1).map(h=>`<innerBoundaryIs><LinearRing><coordinates>${ring(h)}</coordinates></LinearRing></innerBoundaryIs>`).join('')
   }</Polygon>`;
-  switch(geometry.type){
-    case 'Point': return `<Point><coordinates>${geometry.coordinates[0]},${geometry.coordinates[1]},0</coordinates></Point>`;
-    case 'MultiPoint': return `<MultiGeometry>${geometry.coordinates.map(p=>`<Point><coordinates>${p[0]},${p[1]},0</coordinates></Point>`).join('')}</MultiGeometry>`;
-    case 'LineString': return `<LineString><coordinates>${ring(geometry.coordinates)}</coordinates></LineString>`;
-    case 'MultiLineString': return `<MultiGeometry>${geometry.coordinates.map(l=>`<LineString><coordinates>${ring(l)}</coordinates></LineString>`).join('')}</MultiGeometry>`;
-    case 'Polygon': return polyXml(geometry.coordinates);
-    case 'MultiPolygon': return `<MultiGeometry>${geometry.coordinates.map(polyXml).join('')}</MultiGeometry>`;
-    case 'GeometryCollection': return `<MultiGeometry>${geometry.geometries.map(geometryToKmlGeom).join('')}</MultiGeometry>`;
-    default: throw new Error('Tipo de geometria não suportado para exportação: ' + geometry.type);
+  switch(geoToUse.type){
+    case 'Point': return `<Point><coordinates>${geoToUse.coordinates[0]},${geoToUse.coordinates[1]},0</coordinates></Point>`;
+    case 'MultiPoint': return `<MultiGeometry>${geoToUse.coordinates.map(p=>`<Point><coordinates>${p[0]},${p[1]},0</coordinates></Point>`).join('')}</MultiGeometry>`;
+    case 'LineString': return `<LineString><coordinates>${ring(geoToUse.coordinates)}</coordinates></LineString>`;
+    case 'MultiLineString': return `<MultiGeometry>${geoToUse.coordinates.map(l=>`<LineString><coordinates>${ring(l)}</coordinates></LineString>`).join('')}</MultiGeometry>`;
+    case 'Polygon': return polyXml(geoToUse.coordinates);
+    case 'MultiPolygon': return `<MultiGeometry>${geoToUse.coordinates.map(polyXml).join('')}</MultiGeometry>`;
+    default: throw new Error('Tipo de geometria não suportado para KML: ' + geoToUse.type);
   }
 }
 
@@ -3927,7 +3940,8 @@ function buildMultiPointShxBuffer(coords){
   return buf;
 }
 /* Reúne as "partes" (arrays de [x,y]) de Polygon/MultiPolygon/LineString/MultiLineString no formato
-   que buildShpBuffer/buildShxBuffer esperam. Só Polígono precisa de correção de sentido do anel. */
+   que buildShpBuffer/buildShxBuffer esperam. Só Polígono precisa de correção de sentido do anel.
+   NOTA: assume que a geometria já foi validada e normalizada por buildGenericShapefileZipBlob. */
 function collectShpPartsGeneric(geometry){
   switch(geometry.type){
     case 'Polygon':
@@ -3942,9 +3956,10 @@ function collectShpPartsGeneric(geometry){
     case 'MultiLineString':
       return { shapeType:3, parts: geometry.coordinates.slice() };
     default:
-      throw new Error('Tipo de geometria não suportado para Shapefile: ' + geometry.type);
+      throw new Error('Tipo de geometria não suportado para Shapefile: ' + (geometry.type || '(sem tipo)'));
   }
 }
+
 /* DBF genérico: monta os campos a partir das propriedades reais da feição clicada (em vez do
    esquema fixo NOME/PROPRIET/AREA_HA... usado só na exportação do imóvel). Nomes de campo do DBF
    têm limite de 10 caracteres e não podem repetir. */
@@ -4011,19 +4026,72 @@ function buildGenericDbfBuffer(props){
   bytes[off] = 0x1A;
   return buf;
 }
+/* Normaliza geometrias malformadas ou aninhadas de forma recursiva até encontrar um tipo válido.
+   Desaninha Feature/GeometryCollection, seleciona a primeira geometria válida. */
+function normalizeGeometry(geom, depth=0){
+  if(depth > 10) throw new Error('Geometria com nesting profundo demais (recursão > 10 níveis)');
+  if(!geom) return null;
+  
+  // Se tiver .geometry dentro (Feature aninhado), desaninha
+  if(geom.geometry && !geom.type){
+    return normalizeGeometry(geom.geometry, depth+1);
+  }
+  if(geom.type === 'Feature' && geom.geometry){
+    return normalizeGeometry(geom.geometry, depth+1);
+  }
+  
+  // Se for GeometryCollection, pega a primeira geometria válida
+  if(geom.type === 'GeometryCollection' && geom.geometries && geom.geometries.length){
+    for(let g of geom.geometries){
+      if(g && g.type && !['GeometryCollection','Feature'].includes(g.type)){
+        return g;
+      }
+      if(g && (g.type === 'Feature' || g.type === 'GeometryCollection')){
+        const normalized = normalizeGeometry(g, depth+1);
+        if(normalized && normalized.type && !['GeometryCollection','Feature'].includes(normalized.type)){
+          return normalized;
+        }
+      }
+    }
+  }
+  
+  return geom;
+}
+
 async function buildGenericShapefileZipBlob(feature, baseName){
   const geometry = feature.geometry;
+  if(!geometry){ throw new Error('Feição sem geometria. Não é possível exportar para Shapefile.'); }
+  
+  // Normaliza a geometria recursivamente pra desaninhar e desambiguar
+  let geoToUse;
+  try {
+    geoToUse = normalizeGeometry(geometry);
+  } catch(e) {
+    throw new Error('Erro ao normalizar geometria: ' + e.message);
+  }
+  
+  if(!geoToUse){
+    throw new Error('Não foi possível extrair uma geometria válida dessa feição.');
+  }
+  if(!geoToUse.type || geoToUse.type === 'Feature' || geoToUse.type === 'GeometryCollection'){
+    throw new Error('Geometria em formato não suportado ou corrompido: ' + (geoToUse.type || '(sem tipo)'));
+  }
+
   const zip = new JSZip();
-  if(geometry.type === 'Point'){
-    zip.file(baseName+'.shp', buildPointShpBuffer(geometry.coordinates));
-    zip.file(baseName+'.shx', buildPointShxBuffer(geometry.coordinates));
-  } else if(geometry.type === 'MultiPoint'){
-    zip.file(baseName+'.shp', buildMultiPointShpBuffer(geometry.coordinates));
-    zip.file(baseName+'.shx', buildMultiPointShxBuffer(geometry.coordinates));
-  } else {
-    const { parts, shapeType } = collectShpPartsGeneric(geometry);
-    zip.file(baseName+'.shp', buildShpBuffer(parts, shapeType));
-    zip.file(baseName+'.shx', buildShxBuffer(parts, shapeType));
+  try {
+    if(geoToUse.type === 'Point'){
+      zip.file(baseName+'.shp', buildPointShpBuffer(geoToUse.coordinates));
+      zip.file(baseName+'.shx', buildPointShxBuffer(geoToUse.coordinates));
+    } else if(geoToUse.type === 'MultiPoint'){
+      zip.file(baseName+'.shp', buildMultiPointShpBuffer(geoToUse.coordinates));
+      zip.file(baseName+'.shx', buildMultiPointShxBuffer(geoToUse.coordinates));
+    } else {
+      const { parts, shapeType } = collectShpPartsGeneric(geoToUse);
+      zip.file(baseName+'.shp', buildShpBuffer(parts, shapeType));
+      zip.file(baseName+'.shx', buildShxBuffer(parts, shapeType));
+    }
+  } catch(e) {
+    throw new Error('Erro ao processar geometria tipo ' + geoToUse.type + ': ' + e.message);
   }
   zip.file(baseName+'.dbf', buildGenericDbfBuffer(feature.properties||{}));
   zip.file(baseName+'.prj', SHP_PRJ_WGS84);
