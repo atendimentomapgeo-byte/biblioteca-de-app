@@ -233,7 +233,7 @@
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-20.1 — importação completa de atributos do SIGEF</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-20.2 — nomes reais de campo do SIGEF (ltrim, rt/art, registro_matricula, codigo_municipio)</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1061,6 +1061,41 @@ function showToast(msg){
 
 // ---------- UF (estados brasileiros) ----------
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+// Prefixo de 2 dígitos do código de município do IBGE -> UF (tabela oficial e fixa do IBGE, não
+// muda). Usado para descobrir a UF de uma parcela do SIGEF instantaneamente, sem depender de rede,
+// a partir do "codigo_municipio" (7 dígitos) que vem nos atributos do INCRA.
+const IBGE_UF_POR_PREFIXO = {
+  '11':'RO','12':'AC','13':'AM','14':'RR','15':'PA','16':'AP','17':'TO',
+  '21':'MA','22':'PI','23':'CE','24':'RN','25':'PB','26':'PE','27':'AL','28':'SE','29':'BA',
+  '31':'MG','32':'ES','33':'RJ','35':'SP',
+  '41':'PR','42':'SC','43':'RS',
+  '50':'MS','51':'MT','52':'GO','53':'DF',
+};
+// ---------- Nome de município a partir do código do IBGE (usado para traduzir o "codigo_municipio"
+// que vem nas parcelas do SIGEF/INCRA, que é um código numérico, não o nome) ----------
+const MUNICIPIO_POR_CODIGO_CACHE_KEY = 'gestorgeo_municipio_por_codigo_cache_v1';
+let _municipioPorCodigoCache = {};
+try{ _municipioPorCodigoCache = JSON.parse(localStorage.getItem(MUNICIPIO_POR_CODIGO_CACHE_KEY)||'{}'); }catch(e){ _municipioPorCodigoCache = {}; }
+async function resolverMunicipioPorCodigoIbge(codigo){
+  if(!codigo) return null;
+  const uf = IBGE_UF_POR_PREFIXO[String(codigo).slice(0,2)] || '';
+  if(_municipioPorCodigoCache[codigo]) return { nome: _municipioPorCodigoCache[codigo], uf };
+  try{
+    const resp = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${encodeURIComponent(codigo)}`);
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const dados = await resp.json();
+    const nome = dados && dados.nome ? dados.nome : null;
+    if(nome){
+      _municipioPorCodigoCache[codigo] = nome;
+      try{ localStorage.setItem(MUNICIPIO_POR_CODIGO_CACHE_KEY, JSON.stringify(_municipioPorCodigoCache)); }catch(e){}
+    }
+    return { nome, uf };
+  }catch(e){
+    // Sem internet ou API do IBGE fora do ar: pelo menos a UF (derivada localmente, sem rede)
+    // já ajuda — o nome do município fica em branco pra preencher à mão.
+    return { nome: null, uf };
+  }
+}
 // ---------- MUNICÍPIOS POR UF (IBGE) — autocompletar campo Município conforme o Estado ----------
 const MUNICIPIOS_CACHE_KEY = 'gestorgeo_municipios_cache_v1';
 let _municipiosCache = {};
@@ -3529,19 +3564,30 @@ function compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia){
     }
     if(marcosTocados.size>0){
       encontrados.push({
-        nome: pegarAtributoSigef(geo.atributos, ['nome_area','nomearea','denominacao','nome_imov','nome']),
-        parcela: pegarAtributoSigef(geo.atributos, ['parcela_co','parcela_codigo','cod_parcela','codigo_parcela','parcela']),
-        situacao: pegarAtributoSigef(geo.atributos, ['situ_imov','situacao','status']),
-        codImovel: pegarAtributoSigef(geo.atributos, ['cod_imov','codigo_imovel']),
+        // Nomes confirmados a partir de uma consulta real (camada certificada_sigef do INCRA,
+        // WFS ao vivo): parcela_codigo, rt, art, situacao_informada, codigo_imovel, data_submissao,
+        // data_aprovacao, status, ltrim (nome do imóvel!), registro_matricula, codigo_municipio
+        // (código IBGE, não nome). Mantemos também as grafias antigas como reserva, pra continuar
+        // funcionando caso outra camada/versão do INCRA use nomes diferentes.
+        nome: pegarAtributoSigef(geo.atributos, ['ltrim','nome_area','nomearea','denominacao','nome_imov','nome']),
+        parcela: pegarAtributoSigef(geo.atributos, ['parcela_codigo','parcela_co','cod_parcela','codigo_parcela','parcela']),
+        situacao: pegarAtributoSigef(geo.atributos, ['status','situacao_informada','situ_imov','situacao']),
+        codImovel: pegarAtributoSigef(geo.atributos, ['codigo_imovel','cod_imov']),
         // Campos extras — nomes de atributo variam entre camadas/versões do INCRA, por isso cada
         // um tenta várias grafias possíveis; o que não for reconhecido por nenhuma delas ainda
         // fica disponível em "atributosBrutos" abaixo, sem se perder.
         area: pegarAtributoSigef(geo.atributos, ['area_ha','areaha','area_hect','area','st_area','area_calc']),
+        // codigo_municipio vem como código do IBGE (ex.: 5103700), não como nome — é traduzido
+        // pra nome do município (e a UF é derivada do prefixo de 2 dígitos do código) só na hora
+        // de "Atribuir" (atribuirConfrontanteSigef), pra não travar a renderização da lista de
+        // resultados esperando uma chamada de rede pra cada parcela encontrada.
+        codigoMunicipioIbge: pegarAtributoSigef(geo.atributos, ['codigo_municipio','cod_municipio','ibge']),
         municipio: pegarAtributoSigef(geo.atributos, ['municipio','nome_munic','municipi']),
         uf: pegarAtributoSigef(geo.atributos, ['uf','sigla_uf','estado']),
-        matricula: pegarAtributoSigef(geo.atributos, ['matricula','registro','num_matricula']),
-        dataCertificacao: pegarAtributoSigef(geo.atributos, ['data_cert','data_certificacao','dt_cert','datacertif']),
-        responsavelTecnico: pegarAtributoSigef(geo.atributos, ['responsav','responsavel_tecnico','resp_tec','tecnico']),
+        matricula: pegarAtributoSigef(geo.atributos, ['registro_matricula','matricula','registro','num_matricula']),
+        art: pegarAtributoSigef(geo.atributos, ['art']),
+        dataCertificacao: pegarAtributoSigef(geo.atributos, ['data_aprovacao','data_submissao','data_cert','data_certificacao','dt_cert','datacertif']),
+        responsavelTecnico: pegarAtributoSigef(geo.atributos, ['rt','responsav','responsavel_tecnico','resp_tec','tecnico']),
         atributosBrutos: geo.atributos || {},
         distMin,
         marcoIds: Array.from(marcosTocados),
@@ -3775,9 +3821,10 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
                 ${r.codImovel? `Código do imóvel: ${escXml(r.codImovel)}<br>`:''}
                 ${r.area? `Área: ${escXml(r.area)} ha<br>`:''}
                 ${(r.municipio||r.uf)? `Município/UF: ${escXml(r.municipio||'—')}${r.uf? '/'+escXml(r.uf):''}<br>`:''}
+                ${(!r.municipio && r.codigoMunicipioIbge)? `Código do município (IBGE): ${escXml(r.codigoMunicipioIbge)} — nome será buscado ao atribuir<br>`:''}
                 ${r.matricula? `Matrícula: ${escXml(r.matricula)}<br>`:''}
                 ${r.dataCertificacao? `Certificado em: ${escXml(r.dataCertificacao)}<br>`:''}
-                ${r.responsavelTecnico? `Responsável técnico: ${escXml(r.responsavelTecnico)}<br>`:''}
+                ${(r.responsavelTecnico||r.art)? `Responsável técnico: ${escXml([r.responsavelTecnico, r.art? 'ART '+r.art:''].filter(Boolean).join(' — '))}<br>`:''}
                 Distância mínima até o polígono: ${r.distMin.toFixed(2)} m
               </div>
               ${listaAtributos}
@@ -3805,11 +3852,24 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
 }
 async function atribuirConfrontanteSigef(r){
   const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Imóvel confrontante (SIGEF)');
+  // "rt" (ex.: "MIRA") e "art" (ex.: "1220250102754-MT") vêm em atributos separados no SIGEF —
+  // junta os dois numa única string legível pro campo de responsável técnico.
+  const respTecnico = [r.responsavelTecnico, r.art? `ART ${r.art}` : ''].filter(Boolean).join(' — ');
+  // Município/UF: quando não veio nome de município direto (a camada certificada_sigef do INCRA
+  // só traz o código do IBGE, não o nome), traduz o código pra nome real + UF antes de salvar.
+  let municipioFinal = r.municipio||'', ufFinal = r.uf||'';
+  if(!municipioFinal && r.codigoMunicipioIbge){
+    const resolvido = await resolverMunicipioPorCodigoIbge(r.codigoMunicipioIbge);
+    if(resolvido){
+      if(resolvido.nome) municipioFinal = resolvido.nome;
+      if(resolvido.uf) ufFinal = ufFinal || resolvido.uf;
+    }
+  }
   let imC = null;
   if(r.parcela) imC = state.imoveis.find(im=>im.origemSigefImportado && im.parcelaSigef===r.parcela);
   if(!imC){
     imC = {
-      id: uid(), nome: nomeExibicao, matricula: r.matricula||'', area: r.area||'', municipio: r.municipio||'', uf: r.uf||'', comarca:'',
+      id: uid(), nome: nomeExibicao, matricula: r.matricula||'', area: r.area||'', municipio: municipioFinal, uf: ufFinal, comarca:'',
       proprietarioId:'', tecnicoId:'', datum:'', perimetro:'', utmZona:'',
       codigoIncra: r.codImovel||'', leiDecreto:'', parcelaSigef: r.parcela||'', parcelaSigefSituacao: r.situacao||'',
       simcar:'', simcarSituacao:'', origemSigefImportado:true,
@@ -3817,7 +3877,7 @@ async function atribuirConfrontanteSigef(r){
       // ficam guardados aqui, e o dump bruto de TODOS os atributos que vieram do INCRA/shapefile
       // fica em sigefAtributosBrutos, pra nada se perder mesmo que o app ainda não saiba nomear
       // aquele campo específico (é possível ver tudo isso na ficha do imóvel).
-      sigefDataCertificacao: r.dataCertificacao||'', sigefResponsavelTecnico: r.responsavelTecnico||'',
+      sigefDataCertificacao: r.dataCertificacao||'', sigefResponsavelTecnico: respTecnico,
       sigefAtributosBrutos: r.atributosBrutos||{},
     };
     state.imoveis.push(imC);
@@ -3827,13 +3887,17 @@ async function atribuirConfrontanteSigef(r){
     // Já existia um confrontante criado antes a partir dessa mesma parcela (ex.: parcela toca
     // mais de um lado do imóvel, atribuída em momentos diferentes) — preenche os campos que ainda
     // estiverem vazios, sem sobrescrever algo que o usuário já tenha preenchido/corrigido à mão.
+    // Registros criados antes de eu reconhecer o campo "ltrim" (nome real do imóvel) ficaram com
+    // o nome genérico "Parcela SIGEF <código>" de fallback — se agora veio um nome de verdade,
+    // atualiza (mas nunca sobrescreve um nome que o usuário tenha digitado/corrigido à mão).
+    if(r.nome && (!imC.nome || imC.nome === `Parcela SIGEF ${r.parcela}`)) imC.nome = r.nome;
     if(!imC.matricula && r.matricula) imC.matricula = r.matricula;
     if(!imC.area && r.area) imC.area = r.area;
-    if(!imC.municipio && r.municipio) imC.municipio = r.municipio;
-    if(!imC.uf && r.uf) imC.uf = r.uf;
+    if(!imC.municipio && municipioFinal) imC.municipio = municipioFinal;
+    if(!imC.uf && ufFinal) imC.uf = ufFinal;
     if(!imC.codigoIncra && r.codImovel) imC.codigoIncra = r.codImovel;
     if(!imC.sigefDataCertificacao && r.dataCertificacao) imC.sigefDataCertificacao = r.dataCertificacao;
-    if(!imC.sigefResponsavelTecnico && r.responsavelTecnico) imC.sigefResponsavelTecnico = r.responsavelTecnico;
+    if(!imC.sigefResponsavelTecnico && respTecnico) imC.sigefResponsavelTecnico = respTecnico;
     imC.sigefAtributosBrutos = Object.assign({}, r.atributosBrutos||{}, imC.sigefAtributosBrutos||{});
     await save('imoveis');
     renderImo(); refreshSelects();
