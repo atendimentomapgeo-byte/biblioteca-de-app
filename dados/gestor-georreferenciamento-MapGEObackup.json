@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-20T19:39:41.706Z",
+  "exportadoEm": "2026-09-20T19:42:15.581Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -240,7 +240,7 @@
       "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 6,
-      "confrontante": "",
+      "confrontante": "Fazenda teste",
       "confrontanteImovelId": null,
       "codigoSigef": "",
       "implantado": false,
@@ -314,8 +314,10 @@
   ],
   "marcosCatalogo": [],
   "config": {
-    "confMostrarMatricula": false,
-    "coordFormatoPadrao": "dms"
+    "confMostrarMatricula": true,
+    "coordFormatoPadrao": "dms",
+    "confMostrarProprietario": true,
+    "confMostrarDoc": true
   },
   "rotulosExtras": []
 }
