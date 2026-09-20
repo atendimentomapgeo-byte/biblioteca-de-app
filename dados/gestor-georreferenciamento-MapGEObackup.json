@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-20T14:12:45.229Z",
+  "exportadoEm": "2026-09-20T14:13:50.443Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -38,20 +38,7 @@
       "uf": "MT"
     }
   ],
-  "imoveis": [
-    {
-      "id": "mu992v6gaeuem",
-      "nome": "FAZENDA S O PEDRO I II E III",
-      "matricula": "",
-      "area": "",
-      "municipio": "",
-      "uf": "",
-      "comarca": "",
-      "proprietarioId": "",
-      "tecnicoId": "",
-      "datum": "SIRGAS2000"
-    }
-  ],
+  "imoveis": [],
   "marcos": [],
   "tiposRegistro": [
     "CREA",
