@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-20T13:50:55.909Z",
+  "exportadoEm": "2026-09-20T13:52:15.808Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -224,7 +224,7 @@
     {
       "id": "mu9ratqth0xgi",
       "imovelId": "mu9ratqs5we49",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 1,
       "confrontante": "FAZENDA ORIENTE  - Parte 1",
       "confrontanteImovelId": "mu9vf9fj15apf",
@@ -238,7 +238,7 @@
     {
       "id": "mu9ratqtbdkzv",
       "imovelId": "mu9ratqs5we49",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 6,
       "confrontante": "",
       "confrontanteImovelId": null,
@@ -252,7 +252,7 @@
     {
       "id": "mu9ratqth8swc",
       "imovelId": "mu9ratqs5we49",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 5,
       "confrontante": "VÔ CIBERIO - Única",
       "confrontanteImovelId": "mu9vfcgf8dfpp",
@@ -266,7 +266,7 @@
     {
       "id": "mu9ratqtj0rhs",
       "imovelId": "mu9ratqs5we49",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 4,
       "confrontante": "LOTE N° 399-C - LOTE N°399-C QUADRA 06",
       "confrontanteImovelId": "mu9vfau5ojvnz",
@@ -280,7 +280,7 @@
     {
       "id": "mu9ratqtmb7xi",
       "imovelId": "mu9ratqs5we49",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 3,
       "confrontante": "Lote 404 – Quadra 06 - Lote 404",
       "confrontanteImovelId": "mu9vf9xwyrcj8",
@@ -294,7 +294,7 @@
     {
       "id": "mu9ratqtizwtr",
       "imovelId": "mu9ratqs5we49",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 2,
       "confrontante": "FAZENDA ORIENTE  - Parte 1",
       "confrontanteImovelId": "mu9vf9fj15apf",
@@ -314,8 +314,9 @@
   ],
   "marcosCatalogo": [],
   "config": {
-    "confMostrarMatricula": false,
-    "coordFormatoPadrao": "dms"
+    "confMostrarMatricula": true,
+    "coordFormatoPadrao": "dms",
+    "confMostrarProprietario": true
   },
   "rotulosExtras": []
 }
