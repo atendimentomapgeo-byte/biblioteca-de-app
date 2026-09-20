@@ -665,6 +665,7 @@
       <h2>Banco de dados de marcos implantados</h2>
       <div class="note" style="margin-top:0;">Catálogo de todos os marcos já implantados (em qualquer imóvel/projeto cadastrado neste navegador). Um código implantado não pode ser reutilizado em outro projeto — ele fica permanentemente vinculado ao imóvel para o qual foi implantado.</div>
       <div class="note">Atenção: este catálogo é salvo localmente neste navegador/dispositivo. Se você trabalha em mais de um computador, use "Exportar backup" / "Importar backup" para manter o banco de marcos consistente entre eles.</div>
+      <div class="note">Importante: os dados ficam salvos vinculados a ESTE arquivo específico, não à internet — se você abrir uma cópia nova/diferente deste MapGEO (outro arquivo baixado, por exemplo), ela começa vazia. Sempre continue usando o mesmo arquivo salvo no seu aparelho e, ao receber uma versão nova da ferramenta, use "Exportar backup" na versão antiga e "Importar backup" na nova antes de continuar cadastrando.</div>
 
       <div style="margin-top:14px; padding:12px 14px; border:1px solid rgba(220,238,245,0.15); border-radius:8px; background:rgba(220,238,245,0.03);">
         <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
@@ -677,6 +678,32 @@
             <button class="btn btn-sm btn-ghost" id="btn-salvar-pasta-agora" style="display:none;">Salvar agora nesta pasta</button>
           </div>
         </div>
+      </div>
+
+      <div style="margin-top:12px; padding:12px 14px; border:1px solid rgba(200,155,60,0.35); border-radius:8px; background:rgba(200,155,60,0.05);">
+        <strong>Salvar automaticamente num repositório do GitHub</strong>
+        <div class="note" style="margin:6px 0 10px;">
+          Alternativa a escolher uma pasta no computador: configure uma vez e todo cadastro (imóveis, marcos, proprietários etc.) passa a ser salvo automaticamente como um arquivo dentro de um repositório seu no GitHub — funciona em qualquer navegador/aparelho, sem precisar escolher pasta local nem existir arquivo no computador. Ao abrir o programa de novo (mesmo numa cópia nova do arquivo), ele restaura os dados de lá automaticamente.
+        </div>
+        <div class="grid g3">
+          <div class="field"><label>Usuário ou organização</label><input type="text" id="gh-owner" placeholder="ex.: atendimentomapgeo-byte"></div>
+          <div class="field"><label>Repositório</label><input type="text" id="gh-repo" placeholder="ex.: biblioteca-de-app"></div>
+          <div class="field"><label>Branch</label><input type="text" id="gh-branch" placeholder="main"></div>
+        </div>
+        <div class="field"><label>Caminho do arquivo dentro do repositório</label><input type="text" id="gh-path" placeholder="dados/gestor-georreferenciamento-backup.json"></div>
+        <div class="field">
+          <label>Token de acesso pessoal do GitHub</label>
+          <input type="password" id="gh-token" placeholder="ghp_... ou github_pat_...">
+          <div class="note" style="margin-top:4px;">
+            Crie em <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> — escolha um token "Fine-grained", limite o acesso só a este repositório, e em "Permissions" dê "Contents: Read and write". Não use um token com acesso a todos os seus repositórios. O token fica salvo só neste navegador (não entra no "Exportar backup").
+          </div>
+        </div>
+        <div class="row-end">
+          <button type="button" class="btn btn-sm btn-ghost" id="btn-gh-testar">Testar conexão</button>
+          <button type="button" class="btn btn-sm btn-ghost" id="btn-gh-restaurar">Restaurar do GitHub agora</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-gh-salvar-config">Salvar configuração</button>
+        </div>
+        <div class="note" id="gh-status" style="margin-top:8px;">Nenhuma configuração salva ainda.</div>
       </div>
 
       <div class="grid g3" style="margin-top:12px;">
@@ -1196,6 +1223,7 @@ async function save(key){
   try{ localStorage.setItem(STORAGE_PREFIX+key, JSON.stringify(state[key])); }
   catch(e){ showToast('Erro ao salvar. Verifique o espaço de armazenamento do navegador.'); }
   agendarSalvarNaPasta();
+  if(typeof agendarSalvarNoGithub==='function') agendarSalvarNoGithub();
 }
 
 // ---------- PASTA DE SALVAMENTO NO COMPUTADOR (File System Access API) ----------
@@ -1265,13 +1293,38 @@ function atualizarUIPastaSalvamento(){
   }
 }
 
+// Tenta ler e interpretar marcos-backup.json de dentro da pasta escolhida. Retorna o objeto
+// parseado, ou null se o arquivo não existe ainda (pasta nova) ou não pôde ser lido/interpretado.
+async function lerBackupDaPasta(handle){
+  try{
+    const fileHandle = await handle.getFileHandle('marcos-backup.json', {create:false});
+    const file = await fileHandle.getFile();
+    const texto = await file.text();
+    return JSON.parse(texto);
+  }catch(e){ return null; } // arquivo ainda não existe nessa pasta, ou está corrompido
+}
+
 async function carregarPastaSalvamentoSalva(){
   if(!suportaPastaSalvamento()){ atualizarUIPastaSalvamento(); return; }
   try{
     const handle = await idbGet(PASTA_HANDLE_KEY);
     if(handle){
       const perm = await handle.queryPermission({mode:'readwrite'});
-      if(perm === 'granted'){ pastaSalvamentoHandle = handle; }
+      if(perm === 'granted'){
+        pastaSalvamentoHandle = handle;
+        // Recuperação automática: se por algum motivo os dados deste navegador sumiram (cache/
+        // dados do site limpos, por exemplo) mas a pasta de backup ainda está acessível e tem
+        // dados, restaura de lá sozinho — sem isso, um "storage" vazio + pasta esquecida faziam
+        // o app parecer resetado mesmo com o backup real intacto no disco.
+        if(estadoAtualVazio()){
+          const backup = await lerBackupDaPasta(handle);
+          const c = contagemBackup(backup);
+          if(backup && c && (c.imoveis || c.marcos)){
+            await aplicarBackupObjeto(backup);
+            showToast(`Dados restaurados automaticamente da pasta de backup (${c.imoveis} imóvel(is)).`);
+          }
+        }
+      }
       else { pastaSalvamentoPendente = true; pastaSalvamentoHandle = handle; }
     }
   }catch(e){ /* nenhuma pasta salva ainda, ou navegador sem suporte a esta parte da API */ }
@@ -1290,7 +1343,7 @@ async function escolherPastaSalvamento(){
       if(novaPerm === 'granted'){
         pastaSalvamentoPendente = false;
         atualizarUIPastaSalvamento();
-        await salvarBackupNaPasta(true);
+        await confirmarUsoDaPastaEscolhida(pastaSalvamentoHandle);
         return;
       }
     }
@@ -1299,9 +1352,42 @@ async function escolherPastaSalvamento(){
     pastaSalvamentoPendente = false;
     await idbSet(PASTA_HANDLE_KEY, handle);
     atualizarUIPastaSalvamento();
-    await salvarBackupNaPasta(true);
+    await confirmarUsoDaPastaEscolhida(handle);
   }catch(e){
     if(e && e.name !== 'AbortError') showToast('Não foi possível acessar a pasta escolhida.');
+  }
+}
+
+// Decide o que fazer quando uma pasta é escolhida/reativada, olhando para o que já existe nela
+// ANTES de gravar nada. Sem essa checagem, escolher uma pasta que já tinha um backup real de uma
+// sessão anterior simplesmente sobrescrevia esse arquivo com o estado atual (às vezes vazio) —
+// destruindo o único backup existente. Agora: pasta vazia → só salva; estado atual vazio e pasta
+// com dados → restaura de lá; ambos com dados → pergunta antes de decidir qual lado vence.
+async function confirmarUsoDaPastaEscolhida(handle){
+  const backup = await lerBackupDaPasta(handle);
+  const cBackup = contagemBackup(backup);
+  const temBackupNaPasta = !!(backup && cBackup && (cBackup.imoveis || cBackup.marcos || cBackup.proprietarios));
+  if(!temBackupNaPasta){
+    await salvarBackupNaPasta(true);
+    return;
+  }
+  if(estadoAtualVazio()){
+    await aplicarBackupObjeto(backup);
+    showToast(`Backup encontrado nesta pasta foi carregado (${cBackup.imoveis} imóvel(is)).`);
+    return;
+  }
+  const cAtual = contagemBackup(state);
+  const usarDaPasta = confirm(
+    `Esta pasta já tem um backup salvo (${cBackup.imoveis} imóvel(is), ${cBackup.marcos} marco(s)).\n` +
+    `Os dados atuais deste navegador têm ${cAtual.imoveis} imóvel(is), ${cAtual.marcos} marco(s).\n\n` +
+    `Clique OK para IMPORTAR o backup da pasta (substitui os dados atuais).\n` +
+    `Clique Cancelar para MANTER os dados atuais (substitui o arquivo da pasta por eles).`
+  );
+  if(usarDaPasta){
+    await aplicarBackupObjeto(backup);
+    showToast('Backup da pasta importado.');
+  } else {
+    await salvarBackupNaPasta(true);
   }
 }
 
@@ -1335,6 +1421,178 @@ async function salvarBackupNaPasta(mostrarToast){
 
 document.getElementById('btn-escolher-pasta').addEventListener('click', escolherPastaSalvamento);
 document.getElementById('btn-salvar-pasta-agora').addEventListener('click', ()=>salvarBackupNaPasta(true));
+
+// ---------- SALVAR AUTOMATICAMENTE NUM REPOSITÓRIO DO GITHUB ----------
+// Alternativa à "pasta de salvamento" (File System Access API, que só existe em navegadores
+// Chromium no computador e exige escolher a pasta de novo sempre que perde a permissão): grava
+// o estado inteiro como um arquivo JSON dentro de um repositório do GitHub, via API REST, usando
+// um token de acesso pessoal informado pelo usuário. Funciona em qualquer navegador (inclusive
+// celular/Safari), pois é só uma chamada de rede — não depende de nenhuma API específica do
+// Chromium nem de escolher pasta nenhuma. A configuração (owner/repo/branch/caminho/token) fica
+// guardada numa chave própria do localStorage, DE FORA de state.config, justamente para nunca
+// entrar no JSON de "Exportar backup" (evita vazar o token se esse arquivo for compartilhado).
+const GITHUB_CFG_KEY = STORAGE_PREFIX+'githubConfig';
+let githubCfg = null;
+let _debounceGithubTimer = null;
+let _githubSalvando = false;
+
+function carregarGithubConfig(){
+  try{ githubCfg = JSON.parse(localStorage.getItem(GITHUB_CFG_KEY)||'null'); }catch(e){ githubCfg = null; }
+  return githubCfg;
+}
+function githubConfigValida(cfg){
+  return !!(cfg && cfg.owner && cfg.repo && cfg.path && cfg.token);
+}
+function atualizarStatusGithub(msg, erro){
+  const el = document.getElementById('gh-status');
+  if(el){ el.textContent = msg; el.style.color = erro ? '#E08A73' : ''; }
+}
+function preencherCamposGithub(cfg){
+  const map = {'gh-owner':'owner','gh-repo':'repo','gh-branch':'branch','gh-path':'path','gh-token':'token'};
+  Object.entries(map).forEach(([id,campo])=>{ const el=document.getElementById(id); if(el && cfg) el.value = cfg[campo]||''; });
+}
+function githubApiUrl(cfg){
+  const partes = cfg.path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+  return `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${partes}`;
+}
+function utf8ParaBase64(texto){ return btoa(unescape(encodeURIComponent(texto))); }
+function base64ParaUtf8(b64){ return decodeURIComponent(escape(atob((b64||'').replace(/\n/g,'')))); }
+// Lê o arquivo de backup no GitHub. Retorna {sha, conteudo} — sha=null e conteudo=null se o
+// arquivo ainda não existe nesse repositório (primeira vez usando essa configuração).
+async function githubLerArquivo(cfg){
+  const resp = await fetch(`${githubApiUrl(cfg)}?ref=${encodeURIComponent(cfg.branch||'main')}`, {
+    headers: { 'Authorization': `Bearer ${cfg.token}`, 'Accept': 'application/vnd.github+json' },
+  });
+  if(resp.status === 404) return { sha:null, conteudo:null };
+  if(!resp.ok) throw new Error(`GitHub respondeu HTTP ${resp.status} ao ler o arquivo (confira usuário/repositório/branch/token).`);
+  const data = await resp.json();
+  if(Array.isArray(data)) throw new Error('O caminho informado é uma pasta, não um arquivo.');
+  return { sha: data.sha, conteudo: base64ParaUtf8(data.content) };
+}
+async function githubGravarArquivo(cfg, textoConteudo, shaAtual){
+  const body = {
+    message: `MapGEO — backup automático (${new Date().toLocaleString('pt-BR')})`,
+    content: utf8ParaBase64(textoConteudo),
+    branch: cfg.branch || 'main',
+  };
+  if(shaAtual) body.sha = shaAtual;
+  const resp = await fetch(githubApiUrl(cfg), {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${cfg.token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if(!resp.ok){
+    let detalhe = '';
+    try{ detalhe = (await resp.json()).message || ''; }catch(e){}
+    throw new Error(`GitHub respondeu HTTP ${resp.status}${detalhe? ' — '+detalhe : ''}.`);
+  }
+  return await resp.json();
+}
+function agendarSalvarNoGithub(){
+  if(!githubConfigValida(githubCfg)) return;
+  clearTimeout(_debounceGithubTimer);
+  // debounce maior que o da pasta local (2s): é uma chamada de rede de verdade, com custo e
+  // limite de requisições da API do GitHub — não faz sentido gravar a cada tecla digitada.
+  _debounceGithubTimer = setTimeout(()=>salvarBackupNoGithub(false), 2000);
+}
+async function salvarBackupNoGithub(mostrarToast){
+  if(!githubConfigValida(githubCfg)) return;
+  if(_githubSalvando){ agendarSalvarNoGithub(); return; } // evita duas gravações simultâneas brigando pelo mesmo sha
+  _githubSalvando = true;
+  try{
+    atualizarStatusGithub('Salvando no GitHub...');
+    const atual = await githubLerArquivo(githubCfg);
+    const payload = { exportadoEm: new Date().toISOString(), ...state };
+    await githubGravarArquivo(githubCfg, JSON.stringify(payload, null, 2), atual.sha);
+    atualizarStatusGithub(`Salvo no GitHub às ${new Date().toLocaleTimeString('pt-BR')} (${state.imoveis.length} imóvel(is)).`);
+    if(mostrarToast) showToast('Dados salvos no GitHub.');
+  }catch(e){
+    atualizarStatusGithub('Erro ao salvar no GitHub: '+(e.message||e), true);
+    if(mostrarToast) showToast('Erro ao salvar no GitHub: '+(e.message||e));
+  }finally{ _githubSalvando = false; }
+}
+async function restaurarDoGithub(mostrarToast, forcarMesmoComDados){
+  if(!githubConfigValida(githubCfg)){ showToast('Preencha e salve a configuração do GitHub primeiro.'); return; }
+  try{
+    atualizarStatusGithub('Lendo backup do GitHub...');
+    const atual = await githubLerArquivo(githubCfg);
+    const c = contagemBackup(atual.conteudo ? JSON.parse(atual.conteudo) : null);
+    if(!atual.conteudo || !c || (!c.imoveis && !c.marcos && !c.proprietarios)){
+      atualizarStatusGithub('Nenhum backup encontrado ainda nesse arquivo do GitHub.');
+      if(mostrarToast) showToast('Nenhum backup encontrado nesse arquivo do GitHub ainda.');
+      return;
+    }
+    if(!forcarMesmoComDados && !estadoAtualVazio()){
+      const cAtual = contagemBackup(state);
+      const usarDoGithub = confirm(
+        `O GitHub tem um backup com ${c.imoveis} imóvel(is), ${c.marcos} marco(s).\n`+
+        `Os dados atuais nesta tela têm ${cAtual.imoveis} imóvel(is), ${cAtual.marcos} marco(s).\n\n`+
+        `Clique OK para IMPORTAR o backup do GitHub (substitui os dados atuais desta tela).\nClique Cancelar para manter os dados atuais.`
+      );
+      if(!usarDoGithub) return;
+    }
+    await aplicarBackupObjeto(JSON.parse(atual.conteudo));
+    atualizarStatusGithub(`Restaurado do GitHub (${c.imoveis} imóvel(is)).`);
+    if(mostrarToast) showToast('Dados restaurados do GitHub.');
+  }catch(e){
+    atualizarStatusGithub('Erro ao restaurar do GitHub: '+(e.message||e), true);
+    if(mostrarToast) showToast('Erro ao restaurar do GitHub: '+(e.message||e));
+  }
+}
+document.getElementById('btn-gh-salvar-config').addEventListener('click', async ()=>{
+  const cfg = {
+    owner: document.getElementById('gh-owner').value.trim(),
+    repo: document.getElementById('gh-repo').value.trim(),
+    branch: document.getElementById('gh-branch').value.trim() || 'main',
+    path: document.getElementById('gh-path').value.trim(),
+    token: document.getElementById('gh-token').value.trim(),
+  };
+  if(!githubConfigValida(cfg)){ showToast('Preencha usuário, repositório, caminho do arquivo e token.'); return; }
+  githubCfg = cfg;
+  localStorage.setItem(GITHUB_CFG_KEY, JSON.stringify(cfg));
+  showToast('Configuração do GitHub salva.');
+  // Ao salvar a configuração pela primeira vez, verifica se já existe um backup nesse arquivo
+  // (mesma lógica de segurança da pasta local: nunca gravar por cima de um backup existente às
+  // cegas) e decide restaurar ou gravar, igual ao fluxo de "escolher pasta".
+  try{
+    const atual = await githubLerArquivo(cfg);
+    const c = contagemBackup(atual.conteudo ? JSON.parse(atual.conteudo) : null);
+    const temBackupNoGithub = !!(atual.conteudo && c && (c.imoveis || c.marcos || c.proprietarios));
+    if(!temBackupNoGithub){
+      await salvarBackupNoGithub(true);
+    } else if(estadoAtualVazio()){
+      await aplicarBackupObjeto(JSON.parse(atual.conteudo));
+      atualizarStatusGithub(`Backup encontrado no GitHub foi carregado (${c.imoveis} imóvel(is)).`);
+      showToast('Backup existente no GitHub foi carregado.');
+    } else {
+      await restaurarDoGithub(false, false);
+    }
+  }catch(e){
+    atualizarStatusGithub('Erro ao conectar no GitHub: '+(e.message||e), true);
+    showToast('Configuração salva, mas houve erro ao conectar: '+(e.message||e));
+  }
+});
+document.getElementById('btn-gh-testar').addEventListener('click', async ()=>{
+  const cfg = {
+    owner: document.getElementById('gh-owner').value.trim(),
+    repo: document.getElementById('gh-repo').value.trim(),
+    branch: document.getElementById('gh-branch').value.trim() || 'main',
+    path: document.getElementById('gh-path').value.trim(),
+    token: document.getElementById('gh-token').value.trim(),
+  };
+  if(!githubConfigValida(cfg)){ showToast('Preencha todos os campos antes de testar.'); return; }
+  try{
+    atualizarStatusGithub('Testando conexão...');
+    const atual = await githubLerArquivo(cfg);
+    atualizarStatusGithub(atual.conteudo ? 'Conexão OK — já existe um backup nesse arquivo.' : 'Conexão OK — esse arquivo ainda não existe (será criado no primeiro salvamento).');
+    showToast('Conexão com o GitHub funcionando.');
+  }catch(e){
+    atualizarStatusGithub('Falha no teste: '+(e.message||e), true);
+    showToast('Falha ao conectar no GitHub: '+(e.message||e));
+  }
+});
+document.getElementById('btn-gh-restaurar').addEventListener('click', ()=>restaurarDoGithub(true, false));
+
 function renderConfigUI(){
   const cfg = state.config || {};
   const logoInfo = document.getElementById('cfg-logo-info');
@@ -5922,6 +6180,28 @@ document.addEventListener('click', e=>{
 
 
 // ---------- BACKUP (exportar/importar) ----------
+// Todas as chaves de state.* que entram num backup — usada tanto na importação manual (arquivo
+// .json escolhido pelo usuário) quanto na restauração automática a partir da pasta de salvamento.
+// Precisa incluir TODAS as listas que o app guarda (inclusive rotulosExtras — os ajustes manuais
+// de posição de rótulo — que ficavam de fora antes e por isso não voltavam ao importar um backup).
+const BACKUP_KEYS = ['proprietarios','tecnicos','imoveis','marcos','tiposRegistro','marcosCatalogo','rotulosExtras'];
+function contagemBackup(obj){
+  if(!obj) return null;
+  return { imoveis:(obj.imoveis||[]).length, marcos:(obj.marcos||[]).length, proprietarios:(obj.proprietarios||[]).length };
+}
+function estadoAtualVazio(){
+  return !state.imoveis.length && !state.proprietarios.length && !state.tecnicos.length && !state.marcos.length;
+}
+// Aplica um objeto de backup (já parseado de JSON) ao state atual e re-renderiza a tela inteira.
+// Retorna true se o objeto era um backup válido e foi aplicado.
+async function aplicarBackupObjeto(parsed){
+  const temAlgumaChave = BACKUP_KEYS.some(k=>Array.isArray(parsed[k]));
+  if(!temAlgumaChave) return false;
+  for(const k of BACKUP_KEYS){ state[k] = Array.isArray(parsed[k]) ? parsed[k] : []; await save(k); }
+  if(parsed.config && typeof parsed.config==='object'){ state.config = parsed.config; await save('config'); }
+  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI();
+  return true;
+}
 document.getElementById('btn-export').addEventListener('click', ()=>{
   const payload = { exportadoEm: new Date().toISOString(), ...state };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
@@ -5932,7 +6212,23 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
   showToast('Backup exportado.');
+  state.config = state.config || {};
+  state.config.ultimoBackupExportado = new Date().toISOString();
+  save('config');
 });
+// Lembrete de backup: os dados só ficam guardados neste navegador/arquivo (não há servidor).
+// Se já tem imóvel cadastrado e faz mais de 7 dias desde o último "Exportar backup" (ou nunca
+// exportou), avisa uma vez ao abrir — sem isso, um usuário que só usa localStorage (típico no
+// celular, onde não existe a opção de pasta de salvamento) pode ficar sem perceber que nunca fez
+// uma cópia de segurança real fora do navegador.
+function verificarLembreteBackup(){
+  if(!state.imoveis.length) return;
+  const ultimo = state.config && state.config.ultimoBackupExportado;
+  const diasDesde = ultimo ? (Date.now()-new Date(ultimo).getTime())/86400000 : Infinity;
+  if(diasDesde > 7){
+    setTimeout(()=>showToast(`Lembrete: exporte um backup (${state.imoveis.length} imóvel(is) cadastrado(s) só estão salvos neste navegador).`), 1200);
+  }
+}
 document.getElementById('btn-import').addEventListener('click', ()=>{
   document.getElementById('input-import').click();
 });
@@ -5942,14 +6238,12 @@ document.getElementById('input-import').addEventListener('change', e=>{
   reader.onload = async ()=>{
     try{
       const parsed = JSON.parse(reader.result);
-      const keys = ['proprietarios','tecnicos','imoveis','marcos','tiposRegistro','marcosCatalogo'];
-      const temAlgumaChave = keys.some(k=>Array.isArray(parsed[k]));
+      const c = contagemBackup(parsed);
+      const temAlgumaChave = BACKUP_KEYS.some(k=>Array.isArray(parsed[k]));
       if(!temAlgumaChave){ showToast('Arquivo não reconhecido como backup válido.'); return; }
-      if(!confirm('Importar irá substituir todos os dados atuais por este backup. Continuar?')) return;
-      for(const k of keys){ state[k] = Array.isArray(parsed[k]) ? parsed[k] : []; await save(k); }
-      if(parsed.config && typeof parsed.config==='object'){ state.config = parsed.config; await save('config'); }
-      renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI();
-      showToast('Backup importado com sucesso.');
+      if(!confirm(`Este arquivo tem ${c.imoveis} imóvel(is) e ${c.marcos} marco(s). Importar vai SUBSTITUIR todos os dados atuais deste navegador por este backup. Continuar?`)) return;
+      const ok = await aplicarBackupObjeto(parsed);
+      if(ok) showToast('Backup importado com sucesso.');
     }catch(err){ showToast('Erro ao ler o arquivo de backup.'); }
     finally{ e.target.value = ''; }
   };
@@ -5968,8 +6262,36 @@ document.getElementById('input-import').addEventListener('change', e=>{
     if(selDxf) selDxf.value = fmtSalvo;
   }
   if(typeof atualizarAlvoImport==='function') atualizarAlvoImport();
-  carregarPastaSalvamentoSalva();
+  await carregarPastaSalvamentoSalva();
+  await iniciarGithubBackup();
+  verificarLembreteBackup();
 })();
+// Carrega a configuração do GitHub salva (se houver), preenche os campos na tela e, se os dados
+// locais estiverem vazios (por exemplo: abriu uma cópia nova do arquivo, ou limpou o navegador),
+// restaura automaticamente do backup no GitHub — mesma lógica de recuperação já usada pra pasta
+// local, mas sem depender de nada específico do computador/navegador.
+async function iniciarGithubBackup(){
+  carregarGithubConfig();
+  if(!githubCfg) return;
+  preencherCamposGithub(githubCfg);
+  if(!githubConfigValida(githubCfg)) return;
+  if(estadoAtualVazio()){
+    try{
+      const atual = await githubLerArquivo(githubCfg);
+      const c = contagemBackup(atual.conteudo ? JSON.parse(atual.conteudo) : null);
+      if(atual.conteudo && c && (c.imoveis || c.marcos || c.proprietarios)){
+        await aplicarBackupObjeto(JSON.parse(atual.conteudo));
+        atualizarStatusGithub(`Dados restaurados automaticamente do GitHub (${c.imoveis} imóvel(is)).`);
+        showToast(`Dados restaurados automaticamente do GitHub (${c.imoveis} imóvel(is)).`);
+        return;
+      }
+    }catch(e){
+      atualizarStatusGithub('Não foi possível verificar o backup no GitHub agora: '+(e.message||e), true);
+      return;
+    }
+  }
+  atualizarStatusGithub('Configuração carregada. Os dados são salvos automaticamente no GitHub a cada alteração.');
+}
 </script>
 
 <!-- ===== DXF -> PDF: bibliotecas de terceiros (dxf-parser e jsPDF, ambos MIT) ===== -->
