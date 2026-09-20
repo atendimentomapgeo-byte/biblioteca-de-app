@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-20T22:12:44.639Z",
+  "exportadoEm": "2026-09-20T22:13:52.678Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -233,7 +233,8 @@
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 767301.295,
-      "coordN": 8629943.199
+      "coordN": 8629943.199,
+      "confrontanteOrigem": "sigef"
     },
     {
       "id": "mua5ppjel1mrh",
@@ -289,7 +290,8 @@
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 767533.52,
-      "coordN": 8627298.63
+      "coordN": 8627298.63,
+      "confrontanteOrigem": "sigef"
     },
     {
       "id": "mua5ppjedx7zp",
@@ -303,7 +305,8 @@
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 767367.098,
-      "coordN": 8628956.309
+      "coordN": 8628956.309,
+      "confrontanteOrigem": "sigef"
     }
   ],
   "tiposRegistro": [
