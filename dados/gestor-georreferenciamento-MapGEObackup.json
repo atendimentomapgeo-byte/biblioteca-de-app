@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-20T18:35:04.537Z",
+  "exportadoEm": "2026-09-20T18:36:15.591Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -40,7 +40,7 @@
   ],
   "imoveis": [
     {
-      "id": "mua5ohwvobfix",
+      "id": "mua5ppjexla5m",
       "nome": "AIR PLANTA MEMORIAL",
       "matricula": "",
       "area": "633.5195",
@@ -60,14 +60,14 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": "",
-      "kmlRaw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n<Document>\n\t<name>AIR_PLANTA_MEMORIAL.kmz</name>\n\t<Style id=\"area1\">\n\t\t<LineStyle>\n\t\t\t<color>ff0065cc</color>\n\t\t</LineStyle>\n\t\t<PolyStyle>\n\t\t\t<color>bf007fff</color>\n\t\t</PolyStyle>\n\t</Style>\n\t<Folder>\n\t\t<name>Area Features</name>\n\t\t<description>Area Features</description>\n\t\t<Placemark>\n\t\t\t<description>Unknown Area Type</description>\n\t\t\t<styleUrl>#area1</styleUrl>\n\t\t\t<Polygon>\n\t\t\t\t<extrude>1</extrude>\n\t\t\t\t<altitudeMode>relativeToGround</altitudeMode>\n\t\t\t\t<outerBoundaryIs>\n\t\t\t\t\t<LinearRing>\n\t\t\t\t\t\t<coordinates>\n\t\t\t\t\t\t\t-54.54169056,-12.38228556,0 -54.56315222000001,-12.38569167,0 -54.56462167,-12.38592417,0 -54.56100972,-12.40861806,0 -54.539332026,-12.406159227,0 -54.54100222,-12.39119639,0 -54.54169056,-12.38228556,0 \n\t\t\t\t\t\t</coordinates>\n\t\t\t\t\t</LinearRing>\n\t\t\t\t</outerBoundaryIs>\n\t\t\t</Polygon>\n\t\t</Placemark>\n\t</Folder>\n</Document>\n</kml>\n",
+      "kmlRaw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:globalmapper=\"https://www.bluemarblegeo.com/globalmapper\">\r\n<Document>\r\n  <!-- Begin Style Definitions -->\r\n  <Style id=\"area1\">\r\n    <LineStyle>\r\n      <color>FF0065CC</color>\r\n      <width>1</width>\r\n    </LineStyle>\r\n    <PolyStyle>\r\n      <color>BF007FFF</color>\r\n      <fill>1</fill>\r\n      <outline>1</outline>\r\n    </PolyStyle>\r\n  </Style>\r\n  <Folder>\r\n    <name>Area Features</name>\r\n    <description>Area Features</description>\r\n    <Placemark>\r\n      <description>Unknown Area Type</description>\r\n      <styleUrl>#area1</styleUrl>\r\n      <Polygon>\r\n        <altitudeMode>relativeToGround</altitudeMode>\r\n        <extrude>1</extrude>\r\n        <outerBoundaryIs>\r\n          <LinearRing>\r\n            <coordinates>\r\n              -54.541690560,-12.382285560,0\r\n              -54.563152220,-12.385691670,0\r\n              -54.564621670,-12.385924170,0\r\n              -54.561009720,-12.408618060,0\r\n              -54.539332026,-12.406159227,0\r\n              -54.541002220,-12.391196390,0\r\n              -54.541690560,-12.382285560,0\r\n            </coordinates>\r\n          </LinearRing>\r\n        </outerBoundaryIs>\r\n      </Polygon>\r\n    </Placemark>\r\n  </Folder>\r\n</Document>\r\n</kml>\r\n",
       "kmlNomeArquivo": "AIR_PLANTA_MEMORIAL.kml"
     }
   ],
   "marcos": [
     {
-      "id": "mua5ohww1okqx",
-      "imovelId": "mua5ohwvobfix",
+      "id": "mua5ppjegpp00",
+      "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 1,
       "confrontante": "",
@@ -80,8 +80,8 @@
       "coordN": 8629943.199
     },
     {
-      "id": "mua5ohwwsdf50",
-      "imovelId": "mua5ohwvobfix",
+      "id": "mua5ppjel1mrh",
+      "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 6,
       "confrontante": "",
@@ -94,8 +94,8 @@
       "coordN": 8629587.637
     },
     {
-      "id": "mua5ohwwp6ev7",
-      "imovelId": "mua5ohwvobfix",
+      "id": "mua5ppjem8mn8",
+      "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 5,
       "confrontante": "",
@@ -108,8 +108,8 @@
       "coordN": 8629563.365
     },
     {
-      "id": "mua5ohwwsjpz1",
-      "imovelId": "mua5ohwvobfix",
+      "id": "mua5ppje5eagr",
+      "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 4,
       "confrontante": "",
@@ -122,8 +122,8 @@
       "coordN": 8627048.18
     },
     {
-      "id": "mua5ohwwlqyh7",
-      "imovelId": "mua5ohwvobfix",
+      "id": "mua5ppjerio89",
+      "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 3,
       "confrontante": "",
@@ -136,8 +136,8 @@
       "coordN": 8627298.63
     },
     {
-      "id": "mua5ohwwtyfsy",
-      "imovelId": "mua5ohwvobfix",
+      "id": "mua5ppjedx7zp",
+      "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 2,
       "confrontante": "",
