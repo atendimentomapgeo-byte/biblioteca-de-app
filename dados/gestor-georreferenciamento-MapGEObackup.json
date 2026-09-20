@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-20T13:11:35.780Z",
+  "exportadoEm": "2026-09-20T13:28:20.008Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -56,6 +56,8 @@
       "leiDecreto": "",
       "parcelaSigef": "",
       "parcelaSigefSituacao": "",
+      "sigefDataCertificacao": "",
+      "sigefResponsavelTecnico": "",
       "simcar": "MT59443/2017",
       "simcarSituacao": "Ativo",
       "kmlRaw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n<Document>\n\t<name>AIR_PLANTA_MEMORIAL.kmz</name>\n\t<Style id=\"area1\">\n\t\t<LineStyle>\n\t\t\t<color>ff0065cc</color>\n\t\t</LineStyle>\n\t\t<PolyStyle>\n\t\t\t<color>bf007fff</color>\n\t\t</PolyStyle>\n\t</Style>\n\t<Folder>\n\t\t<name>Area Features</name>\n\t\t<description>Area Features</description>\n\t\t<Placemark>\n\t\t\t<description>Unknown Area Type</description>\n\t\t\t<styleUrl>#area1</styleUrl>\n\t\t\t<Polygon>\n\t\t\t\t<extrude>1</extrude>\n\t\t\t\t<altitudeMode>relativeToGround</altitudeMode>\n\t\t\t\t<outerBoundaryIs>\n\t\t\t\t\t<LinearRing>\n\t\t\t\t\t\t<coordinates>\n\t\t\t\t\t\t\t-54.54169056,-12.38228556,0 -54.56315222000001,-12.38569167,0 -54.56462167,-12.38592417,0 -54.56100972,-12.40861806,0 -54.539332026,-12.406159227,0 -54.54100222,-12.39119639,0 -54.54169056,-12.38228556,0 \n\t\t\t\t\t\t</coordinates>\n\t\t\t\t\t</LinearRing>\n\t\t\t\t</outerBoundaryIs>\n\t\t\t</Polygon>\n\t\t</Placemark>\n\t</Folder>\n</Document>\n</kml>\n",
