@@ -21,6 +21,12 @@
     --paper-dim:#D9D0BB;
   }
   *{box-sizing:border-box;}
+  html, body{
+    /* Rede de segurança contra qualquer elemento que acabe passando 1px do limite da tela —
+       sem isso, no celular, um único elemento largo demais deixa a página inteira "escorregar"
+       para os lados ao arrastar o dedo, o que é confuso e parece bug. */
+    overflow-x:hidden;
+  }
   body{
     margin:0;
     background:
@@ -84,7 +90,20 @@
     table{display:block; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch;}
     th, td{padding:7px 6px; font-size:0.78rem;}
     .btn{padding:9px 14px; font-size:0.8rem;}
-    .actions{flex-wrap:wrap;}
+    /* .btn.btn-sm (duas classes) tem mais especificidade que a regra .btn-sm isolada lá embaixo,
+       então isto realmente prevalece no celular — sem isso os botões pequenos das tabelas
+       (editar/remover) ficam com ~26px de altura, abaixo do tamanho mínimo confortável pro dedo. */
+    .btn.btn-sm{padding:8px 12px; font-size:0.78rem;}
+    .actions{flex-wrap:wrap; gap:10px;}
+    /* Nas linhas com rótulo fixo + campo (usadas no conversor DXF→PDF), empilha rótulo em cima do
+       campo em vez de espremer os dois lado a lado — é o que causava a tela "vazar" alguns
+       pixels pra fora e criar rolagem horizontal na aba DXF→PDF. */
+    .dxfpdf-row{flex-wrap:wrap;}
+    .dxfpdf-row label{width:100%;}
+    .dxfpdf-row select, .dxfpdf-row input[type=number]{max-width:100%; width:100%;}
+    /* Duas grades de checkbox do conversor DXF→PDF usam 3 colunas fixas no estilo inline —
+       em telas estreitas isso espremia rótulos como "CONFRONTANTE" até cortar o texto. */
+    [style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:repeat(2,1fr) !important;}
   }
   .registro-extra-row{align-items:flex-end;}
   input[readonly]{opacity:0.75; cursor:not-allowed;}
@@ -99,9 +118,11 @@
   label{display:block; font-size:0.72rem; color:var(--chalk-dim); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;}
   input, select, textarea{
     width:100%; background:var(--paper); border:1px solid var(--paper-dim);
-    color:#2B2417; padding:9px 10px; border-radius:4px; font-size:0.9rem;
+    color:#2B2417; padding:9px 10px; border-radius:4px; font-size:1rem;
     font-family:'IBM Plex Sans', sans-serif;
   }
+  /* 1rem (16px) evita que o iPhone/Safari dê zoom automático ao focar um campo — com menos de
+     16px o Safari sempre aumenta o zoom da página inteira ao tocar em qualquer input/select. */
   input:focus, select:focus, textarea:focus{outline:2px solid var(--brass); outline-offset:1px;}
   .field{margin-bottom:12px;}
   textarea{resize:vertical; min-height:60px;}
@@ -158,6 +179,10 @@
   .anuencia-footer{font-size:0.68rem; color:#8a8272; text-align:center; margin-top:20px; border-top:1px solid #e5ded0; padding-top:8px;}
   /* ---------- DXF -> PDF (conversor independente) ---------- */
   .dxfpdf-grid{display:grid; grid-template-columns:340px 1fr; gap:20px; align-items:start;}
+  /* min-width:0 nas colunas do grid: por padrão uma coluna de grid não encolhe além do
+     conteúdo interno (min-content), então uma linha flex que não quebra dentro dela empurra a
+     página inteira pra lados — isso causava ~9px de rolagem horizontal indevida no celular. */
+  .dxfpdf-grid > div{min-width:0;}
   @media(max-width:900px){.dxfpdf-grid{grid-template-columns:1fr;}}
   #dxfpdf-dropZone{border:2px dashed rgba(220,238,245,0.3); border-radius:6px; padding:22px 12px; text-align:center;
     cursor:pointer; font-size:0.82rem; color:var(--chalk-dim); transition:.15s;}
@@ -2495,6 +2520,7 @@ function renderConfrontantePoligono(){
     const fill = isInicio ? '#B5533C' : '#2B2417';
     return `<g class="confronto-vertice" style="cursor:pointer;" onclick="toggleConfrontanteVertice('${m.id}')">
         <title>${m.codigo}${isInicio? ' — início do trecho selecionado: clique em outro vértice para fechar' : ' — clique para iniciar/fechar um trecho de confrontação'}</title>
+        <circle cx="${x}" cy="${y}" r="16" fill="transparent"></circle>
         ${tipoMarkerShapeSVG(m.tipo, x, y, r, fill, isInicio?'#EDE6D6':'none', isInicio?2:0)}
       </g>
       <text x="${x+8}" y="${y-8}" font-family="IBM Plex Mono" font-size="10" fill="#2B2417" style="pointer-events:none;">${m.codigo}</text>`;
@@ -2588,8 +2614,9 @@ function renderRotulosPoligono(){
     if(empurrado) out += `<line x1="${it.x0.toFixed(2)}" y1="${it.y0.toFixed(2)}" x2="${it.x.toFixed(2)}" y2="${it.y.toFixed(2)}" stroke="#2B241755" stroke-width="0.6" stroke-dasharray="1.5,1.5"/>`;
     out += `<g class="rotulo-clicavel" style="cursor:grab;" onmousedown="iniciarArrastoRotulo(event,'marco','${m.id}')" ontouchstart="iniciarArrastoRotulo(event,'marco','${m.id}')" onmouseenter="rotuloHoverAlvo={tipo:'marco',marcoId:'${m.id}'}" onmouseleave="rotuloHoverAlvo=null">
       <title>Código do marco ${m.codigo} — clique para selecionar, ou arraste para reposicionar</title>
+      <rect x="${(it.x-20).toFixed(2)}" y="${(it.y-16).toFixed(2)}" width="40" height="24" fill="transparent" transform="rotate(${it.ang.toFixed(2)} ${it.x.toFixed(2)} ${it.y.toFixed(2)})"/>
       ${sel? `<rect x="${(it.x-16).toFixed(2)}" y="${(it.y-10).toFixed(2)}" width="32" height="13" fill="#C89B3C33" stroke="#C89B3C" stroke-width="1" rx="2" transform="rotate(${it.ang.toFixed(2)} ${it.x.toFixed(2)} ${it.y.toFixed(2)})"/>` : ''}
-      <text x="${it.x.toFixed(2)}" y="${it.y.toFixed(2)}" text-anchor="${it.anchor}" transform="rotate(${it.ang.toFixed(2)} ${it.x.toFixed(2)} ${it.y.toFixed(2)})" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="${sel?'700':'400'}" fill="${sel?'#8a6a1f':'#2B2417'}">${escXml(m.codigo)}</text>
+      <text x="${it.x.toFixed(2)}" y="${it.y.toFixed(2)}" text-anchor="${it.anchor}" transform="rotate(${it.ang.toFixed(2)} ${it.x.toFixed(2)} ${it.y.toFixed(2)})" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="${sel?'700':'400'}" fill="${sel?'#8a6a1f':'#2B2417'}" style="pointer-events:none;">${escXml(m.codigo)}</text>
     </g>`;
   });
   // rótulo do confrontante — um único rótulo por trecho contínuo com o mesmo confrontante
@@ -2601,10 +2628,12 @@ function renderRotulosPoligono(){
     const largura = it.w;
     const empurrado = Math.hypot(it.x-it.xAuto, it.y-it.yAuto) > 3;
     if(empurrado) out += `<line x1="${it.x0.toFixed(2)}" y1="${it.y0.toFixed(2)}" x2="${it.x.toFixed(2)}" y2="${it.y.toFixed(2)}" stroke="#3E4A2C55" stroke-width="0.6" stroke-dasharray="1.5,1.5"/>`;
+    const hitW = Math.max(largura+10, 30), hitH = Math.max((it.h||14)+10, 24);
     out += `<g class="rotulo-clicavel" style="cursor:grab;" onmousedown="iniciarArrastoRotulo(event,'conf','${g.owner.id}')" ontouchstart="iniciarArrastoRotulo(event,'conf','${g.owner.id}')" onmouseenter="rotuloHoverAlvo={tipo:'conf',marcoId:'${g.owner.id}'}" onmouseleave="rotuloHoverAlvo=null">
       <title>Confrontante "${escXml(g.nome)}" (trecho ${g.owner.codigo} …) — clique para selecionar, ou arraste para reposicionar</title>
+      <rect x="${(it.x-hitW/2).toFixed(2)}" y="${(it.y-hitH/2).toFixed(2)}" width="${hitW.toFixed(2)}" height="${hitH.toFixed(2)}" fill="transparent" transform="rotate(${it.ang.toFixed(2)} ${it.x.toFixed(2)} ${it.y.toFixed(2)})"/>
       ${sel? `<rect x="${(it.x-largura/2).toFixed(2)}" y="${(it.y-11).toFixed(2)}" width="${largura.toFixed(2)}" height="14" fill="#C89B3C33" stroke="#C89B3C" stroke-width="1" rx="2" transform="rotate(${it.ang.toFixed(2)} ${it.x.toFixed(2)} ${it.y.toFixed(2)})"/>` : ''}
-      <text x="${it.x.toFixed(2)}" y="${it.y.toFixed(2)}" text-anchor="middle" transform="rotate(${it.ang.toFixed(2)} ${it.x.toFixed(2)} ${it.y.toFixed(2)})" font-family="Space Grotesk, sans-serif" fill="${sel?'#8a6a1f':'#3E4A2C'}">${tspansConfrontante(it.linhas, it.x, 9.5)}</text>
+      <text x="${it.x.toFixed(2)}" y="${it.y.toFixed(2)}" text-anchor="middle" transform="rotate(${it.ang.toFixed(2)} ${it.x.toFixed(2)} ${it.y.toFixed(2)})" font-family="Space Grotesk, sans-serif" fill="${sel?'#8a6a1f':'#3E4A2C'}" style="pointer-events:none;">${tspansConfrontante(it.linhas, it.x, 9.5)}</text>
     </g>`;
   });
   // duplicatas coladas (Ctrl+V em local vazio) — vinculadas ao mesmo dado do marco/confrontante de origem
@@ -2616,10 +2645,12 @@ function renderRotulosPoligono(){
     const sel = rotuloSelecionado && rotuloSelecionado.tipo==='dup' && rotuloSelecionado.marcoId===d.id;
     const isMarco = d.tipo==='marco';
     const largura = Math.min(120, Math.max(30, texto.length*5.2));
+    const hitWDup = largura+10, hitHDup = 24;
     out += `<g class="rotulo-clicavel" style="cursor:grab;" onmousedown="iniciarArrastoRotulo(event,'dup','${d.id}')" ontouchstart="iniciarArrastoRotulo(event,'dup','${d.id}')" onmouseenter="rotuloHoverAlvo={tipo:'dup',marcoId:'${d.id}'}" onmouseleave="rotuloHoverAlvo=null">
       <title>Duplicata de "${escXml(texto)}" — clique para selecionar, arraste para mover, Delete para excluir</title>
+      <rect x="${(x-hitWDup/2).toFixed(2)}" y="${(y-hitHDup/2).toFixed(2)}" width="${hitWDup.toFixed(2)}" height="${hitHDup.toFixed(2)}" fill="transparent" transform="rotate(${ang.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)})"/>
       ${sel? `<rect x="${(x-largura/2).toFixed(2)}" y="${(y-11).toFixed(2)}" width="${largura.toFixed(2)}" height="14" fill="#C89B3C33" stroke="#C89B3C" stroke-width="1" rx="2" transform="rotate(${ang.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)})"/>` : ''}
-      <text x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle" transform="rotate(${ang.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)})" font-family="${isMarco?'IBM Plex Mono, monospace':'Space Grotesk, sans-serif'}" font-size="${isMarco?10:9.5}" font-weight="${sel?'700':(isMarco?'400':'700')}" fill="${sel?'#8a6a1f':(isMarco?'#2B2417':'#3E4A2C')}" opacity="0.85">${escXml(texto)}</text>
+      <text x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle" transform="rotate(${ang.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)})" font-family="${isMarco?'IBM Plex Mono, monospace':'Space Grotesk, sans-serif'}" font-size="${isMarco?10:9.5}" font-weight="${sel?'700':(isMarco?'400':'700')}" fill="${sel?'#8a6a1f':(isMarco?'#2B2417':'#3E4A2C')}" opacity="0.85" style="pointer-events:none;">${escXml(texto)}</text>
     </g>`;
   });
 
