@@ -586,18 +586,24 @@
     <div class="card">
       <h2>Consultar confrontantes no SIGEF (camada oficial do INCRA)</h2>
       <div class="note" style="margin-top:0;">
-        A API oficial de consulta por CPF/código do SIGEF (SIGEFGEO) é restrita a órgãos públicos, mas o INCRA também publica as parcelas certificadas como um serviço geoespacial (WMS/WFS) público, camada <code>certificada_sigef_particular_&lt;uf&gt;</code> / <code>certificada_sigef_publico_&lt;uf&gt;</code>, em <code>acervofundiario.incra.gov.br/i3geo</code>. O botão abaixo consulta essa camada <strong>ao vivo</strong>, já filtrando pela área do imóvel selecionado — sem precisar baixar nada.
+        Compara o polígono do imóvel selecionado com a malha de parcelas certificadas do INCRA (camada <code>certificada_sigef_particular_&lt;uf&gt;</code> / <code>certificada_sigef_publico_&lt;uf&gt;</code>) e sugere, lado a lado, quem são os confrontantes — pronto para atribuir aos marcos com um clique. Escolha uma das duas opções abaixo.
       </div>
       <div class="field" style="max-width:240px;"><label>Tolerância de divisa (metros)</label><input type="number" id="sigef-tolerancia" value="5" min="0.5" max="50" step="0.5"></div>
-      <button type="button" class="btn btn-primary" id="btn-consultar-sigef-wfs">Buscar direto no INCRA (WFS, ao vivo)</button>
-      <div class="note">Usa a Zona UTM e a UF cadastradas do imóvel para montar a busca. O site do INCRA é conhecido por ser lento/instável, e alguns navegadores podem bloquear a resposta por CORS — se a busca ao vivo falhar, a mensagem de erro aparece abaixo e você pode usar a opção de importar o arquivo manualmente, logo a seguir.</div>
-      <div class="note" style="margin-top:14px; border-top:1px solid #e3dcc8; padding-top:12px;">
-        <strong>Alternativa: importar o arquivo baixado manualmente</strong><br>
-        Se a busca ao vivo não funcionar, baixe o shapefile da mesma camada em <a href="https://www.gov.br/pt-br/servicos/obter-coordenadas-e-baixar-os-arquivos-dos-imoveis-ruras-certificados" target="_blank" rel="noopener">Obter coordenadas e baixar os arquivos dos imóveis rurais certificados</a> (serviço gratuito do INCRA — escolha a camada de parcelas certificadas e a UF/município) e envie o .zip abaixo.
+
+      <div style="margin-top:14px; padding:14px; border:1px solid rgba(200,155,60,0.4); border-radius:8px; background:rgba(200,155,60,0.05);">
+        <strong>Opção 1 — Busca ao vivo (recomendado)</strong>
+        <div class="note" style="margin:6px 0 10px;">Consulta o servidor do INCRA em tempo real, usando a Zona UTM e a UF cadastradas do imóvel. Pode levar alguns segundos — o serviço do INCRA costuma ser lento. Se a resposta falhar (instabilidade do servidor ou bloqueio de rede), a mensagem de erro aparece abaixo e você pode usar a Opção 2.</div>
+        <button type="button" class="btn btn-primary" id="btn-consultar-sigef-wfs">Buscar direto no INCRA (WFS, ao vivo)</button>
       </div>
-      <div class="field"><label>Malha de parcelas certificadas SIGEF (.zip contendo .shp, .shx, .dbf e, de preferência, .prj)</label><input type="file" id="sigef-malha-file" accept=".zip,application/zip,application/x-zip-compressed,multipart/x-zip,*/*"></div>
-      <button type="button" class="btn btn-ghost" id="btn-consultar-sigef">Buscar confrontantes no arquivo importado</button>
-      <div class="note">Qualquer uma das duas buscas acima compara o polígono do imóvel selecionado com as parcelas encontradas e aponta as que fazem divisa dentro da tolerância informada, sugerindo nome, Parcela SIGEF e situação para atribuir aos lados correspondentes. Parcelas que parecem ser o próprio imóvel (contorno e área muito parecidos) são identificadas e ignoradas automaticamente.</div>
+
+      <div style="margin-top:10px; padding:14px; border:1px solid rgba(220,238,245,0.15); border-radius:8px; background:rgba(220,238,245,0.03);">
+        <strong>Opção 2 — Importar arquivo baixado manualmente</strong>
+        <div class="note" style="margin:6px 0 10px;">Baixe o shapefile da mesma camada em <a href="https://www.gov.br/pt-br/servicos/obter-coordenadas-e-baixar-os-arquivos-dos-imoveis-ruras-certificados" target="_blank" rel="noopener">Obter coordenadas e baixar os arquivos dos imóveis rurais certificados</a> (serviço gratuito do INCRA — escolha a camada de parcelas certificadas e a UF/município) e envie o .zip abaixo.</div>
+        <div class="field"><label>Malha de parcelas certificadas SIGEF (.zip contendo .shp, .shx, .dbf e, de preferência, .prj)</label><input type="file" id="sigef-malha-file" accept=".zip,application/zip,application/x-zip-compressed,multipart/x-zip,*/*"></div>
+        <button type="button" class="btn btn-ghost" id="btn-consultar-sigef">Buscar confrontantes no arquivo importado</button>
+      </div>
+
+      <div class="note" style="margin-top:12px;">Parcelas que parecem ser o próprio imóvel (contorno e área muito parecidos) são identificadas e ignoradas automaticamente. Atribuir um confrontante não sobrescreve lados que já tenham outro confrontante cadastrado manualmente.</div>
       <div id="sigef-confrontantes-resultado"></div>
     </div>
 
@@ -3372,7 +3378,7 @@ document.getElementById('btn-consultar-sigef-wfs').addEventListener('click', asy
     }
     const {encontrados, ignoradosMesmoImovel} = compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia);
     sigefUltimoResultado = encontrados;
-    renderResultadoSigef(encontrados, geometrias.length, ignoradosMesmoImovel, falhas);
+    renderResultadoSigef(encontrados, geometrias.length, ignoradosMesmoImovel, falhas, marcoInfoPorId(lista));
   }catch(e){
     resultadoEl.innerHTML = `<div class="note" style="color:#b23b3b;">Erro na consulta ao INCRA: ${escXml(e.message||String(e))}. Use a opção "Importar arquivo baixado" logo abaixo como alternativa.</div>`;
   }
@@ -3395,41 +3401,65 @@ document.getElementById('btn-consultar-sigef').addEventListener('click', async (
     const geometrias = await extrairGeometriasDeShapefile(file);
     const {encontrados, ignoradosMesmoImovel} = compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia);
     sigefUltimoResultado = encontrados;
-    renderResultadoSigef(encontrados, geometrias.length, ignoradosMesmoImovel);
+    renderResultadoSigef(encontrados, geometrias.length, ignoradosMesmoImovel, null, marcoInfoPorId(lista));
   }catch(e){
     resultadoEl.innerHTML = `<div class="note" style="color:#b23b3b;">Erro ao ler a malha: ${escXml(e.message||String(e))}</div>`;
   }
 });
-function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, falhasWfs){
+// Monta um mapa {marcoId: {codigo, tipo}} a partir da lista ordenada de marcos do imóvel, pra
+// exibir nos resultados do SIGEF qual(is) lado(s) exatamente cada parcela encontrada afeta (em
+// vez de só "N lado(s)") — reaproveita a mesma numeração (M1, P2...) mostrada na tabela de marcos.
+function marcoInfoPorId(lista){
+  const mapa = {};
+  codigosPorTipo(lista).forEach(m=>{ mapa[m.id] = {codigo: m.codigo, tipo: m.tipo}; });
+  return mapa;
+}
+function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, falhasWfs, marcoInfo){
   const el = document.getElementById('sigef-confrontantes-resultado');
+  marcoInfo = marcoInfo || {};
   const avisoFalhas = (falhasWfs && falhasWfs.length)
     ? `<div class="note" style="color:#b23b3b;">Atenção: a camada ${falhasWfs.map(f=>escXml(f.camada)).join(' e ')} não respondeu (${falhasWfs.map(f=>escXml(f.erro)).join(' | ')}) — os resultados abaixo podem estar incompletos.</div>`
     : '';
+  const badgesLados = ids => ids.map(id=>{
+    const info = marcoInfo[id] || {codigo:'?', tipo:'M'};
+    return `<span class="badge badge-${info.tipo}" style="margin:0 4px 4px 0;">${escXml(info.codigo)}</span>`;
+  }).join('');
+  const btnLimpar = `<div class="row-end" style="margin-bottom:6px;"><button type="button" class="btn btn-sm btn-ghost" id="btn-sigef-limpar-resultado">Limpar resultado</button></div>`;
   if(!encontrados.length){
-    el.innerHTML = avisoFalhas + `<div class="note">Nenhuma parcela da malha (${totalParcelas} lida(s)${ignoradosMesmoImovel?`, ${ignoradosMesmoImovel} ignorada(s) por parecer o próprio imóvel`:''}) encostou no polígono deste imóvel dentro da tolerância informada. Tente aumentar a tolerância ou confira se a UF/município está correto.</div>`;
-    return;
+    el.innerHTML = btnLimpar + avisoFalhas + `<div class="note">Nenhuma parcela da malha (${totalParcelas} lida(s)${ignoradosMesmoImovel?`, ${ignoradosMesmoImovel} ignorada(s) por parecer o próprio imóvel`:''}) encostou no polígono deste imóvel dentro da tolerância informada. Tente aumentar a tolerância ou confira se a UF/município está correto.</div>`;
+  } else {
+    el.innerHTML = btnLimpar + avisoFalhas + `<div class="note" style="margin-top:0;">${encontrados.length} confrontante(s) encontrado(s) em ${totalParcelas} parcela(s) lida(s)${ignoradosMesmoImovel?` (${ignoradosMesmoImovel} ignorada(s) por parecer o próprio imóvel)`:''}, ordenados do mais próximo ao mais distante.</div>` +
+      encontrados.map((r,i)=>{
+        const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Imóvel confrontante (SIGEF)');
+        return `<div class="card" style="background:var(--navy-light); border:1px solid var(--brass); margin-top:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+            <div style="min-width:200px;">
+              <strong>${escXml(nomeExibicao)}</strong>
+              <div style="font-size:0.82rem; color:var(--chalk-dim); margin-top:4px;">
+                ${r.parcela? `Parcela SIGEF: ${escXml(r.parcela)}<br>`:''}
+                ${r.situacao? `Situação: ${escXml(r.situacao)}<br>`:''}
+                ${r.codImovel? `Código do imóvel: ${escXml(r.codImovel)}<br>`:''}
+                Distância mínima até o polígono: ${r.distMin.toFixed(2)} m
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" data-sigef-atribuir="${i}" style="white-space:nowrap;">Atribuir</button>
+          </div>
+          <div style="margin-top:8px; display:flex; flex-wrap:wrap; align-items:center;">
+            <span style="font-size:0.78rem; color:var(--chalk-dim); margin-right:6px;">Lado(s) afetado(s):</span>${badgesLados(r.marcoIds)}
+          </div>
+        </div>`;
+      }).join('');
   }
-  el.innerHTML = avisoFalhas + `<div class="note" style="margin-top:0;">${encontrados.length} confrontante(s) encontrado(s) em ${totalParcelas} parcela(s) lida(s)${ignoradosMesmoImovel?` (${ignoradosMesmoImovel} ignorada(s) por parecer o próprio imóvel)`:''}. Confira os dados e clique em "Atribuir" para preencher os lados correspondentes — isso não sobrescreve lados que já tenham outro confrontante manualmente revisado.</div>` +
-    encontrados.map((r,i)=>{
-      const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Imóvel confrontante (SIGEF)');
-      return `<div class="card" style="background:var(--navy-light); border:1px solid var(--brass); margin-top:8px;">
-        <div><strong>${escXml(nomeExibicao)}</strong></div>
-        <div style="font-size:0.82rem; color:var(--chalk-dim);">
-          ${r.parcela? `Parcela SIGEF: ${escXml(r.parcela)}<br>`:''}
-          ${r.situacao? `Situação: ${escXml(r.situacao)}<br>`:''}
-          ${r.codImovel? `Código do imóvel: ${escXml(r.codImovel)}<br>`:''}
-          Distância mínima até o polígono: ${r.distMin.toFixed(2)} m · ${r.marcoIds.length} lado(s) afetado(s)
-        </div>
-        <div class="row-end" style="margin-top:8px;">
-          <button type="button" class="btn btn-sm btn-primary" data-sigef-atribuir="${i}">Atribuir a ${r.marcoIds.length} lado(s)</button>
-        </div>
-      </div>`;
-    }).join('');
+  const clearBtn = document.getElementById('btn-sigef-limpar-resultado');
+  if(clearBtn) clearBtn.addEventListener('click', ()=>{ el.innerHTML=''; sigefUltimoResultado=[]; });
   el.querySelectorAll('[data-sigef-atribuir]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const r = sigefUltimoResultado[Number(btn.dataset.sigefAtribuir)];
       if(!r) return;
       await atribuirConfrontanteSigef(r);
+      btn.textContent = 'Atribuído ✓';
+      btn.disabled = true;
+      btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost');
     });
   });
 }
