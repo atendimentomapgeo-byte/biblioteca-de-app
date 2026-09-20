@@ -3171,27 +3171,40 @@ function compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia){
     const gMinLat=Math.min(...geo.pontos.map(p=>p.lat)), gMaxLat=Math.max(...geo.pontos.map(p=>p.lat));
     if(gMaxLon<minLon-margemGraus || gMinLon>maxLon+margemGraus || gMaxLat<minLat-margemGraus || gMinLat>maxLat+margemGraus) continue;
     const pts = geo.pontos.map(p=>lonLatParaUTMFusoFixo(p.lon, p.lat, zona, sul));
-    // heurística "é o mesmo imóvel, não um confrontante": muitos vértices de um polígono caem
-    // dentro do outro E as áreas são parecidas — a malha do INCRA às vezes inclui o próprio
-    // imóvel do usuário, se ele já estiver certificado no SIGEF
+    const ladosVizinho = pts.map((p,i)=>({a:p, b:pts[(i+1)%pts.length]}));
+    // heurística "é o mesmo imóvel, não um confrontante": quase todos os vértices de um polígono
+    // caem EM CIMA do contorno do outro (não "dentro" — testar ponto-dentro-de-polígono falha
+    // numericamente quando os vértices coincidem exatamente com o outro contorno, que é
+    // exatamente o caso mais comum aqui: a malha do INCRA às vezes inclui o próprio imóvel do
+    // usuário, se ele já estiver certificado no SIGEF, com as mesmas coordenadas) E as áreas
+    // são parecidas.
     const gArea = _sigefAreaPoligono(pts);
     const menor = pts.length<=meuPoligono.length ? pts : meuPoligono;
-    const maior = pts.length<=meuPoligono.length ? meuPoligono : pts;
-    const dentro = menor.filter(p=>pontoDentroPoligono(p, maior)).length;
+    const ladosMaior = pts.length<=meuPoligono.length ? meusLados : ladosVizinho;
+    const margemMesmoImovel = Math.max(tolerancia*3, 15);
+    const proximosDoContorno = menor.filter(p=>{
+      let d = Infinity;
+      for(const lado of ladosMaior){ const dd = _sigefDistPontoSegmento(p.x,p.y, lado.a.x,lado.a.y, lado.b.x,lado.b.y); if(dd<d) d=dd; }
+      return d<=margemMesmoImovel;
+    }).length;
     const proporcaoArea = meuArea>0 ? Math.min(gArea,meuArea)/Math.max(gArea,meuArea) : 0;
-    if(dentro/menor.length > 0.6 && proporcaoArea > 0.85){ ignoradosMesmoImovel++; continue; }
-    const ladosVizinho = pts.map((p,i)=>({a:p, b:pts[(i+1)%pts.length]}));
+    if(proximosDoContorno/menor.length > 0.7 && proporcaoArea > 0.85){ ignoradosMesmoImovel++; continue; }
+    // pra cada lado do MEU polígono, verifica se o PONTO MÉDIO do lado (não os vértices/pontas)
+    // está perto do contorno do vizinho — usar o ponto médio evita falso positivo nos vértices,
+    // que são compartilhados com os lados vizinhos do próprio polígono (todo vértice do meu
+    // contorno fica a distância 0 de DOIS lados meus, então testar o lado inteiro por distância
+    // mínima de segmento-a-segmento marcava lados que só se tocam numa ponta, não fazem divisa)
     let distMin = Infinity;
     const marcosTocados = new Set();
     for(const ladoMeu of meusLados){
-      let distLadoMin = Infinity;
+      const mx = (ladoMeu.a.x+ladoMeu.b.x)/2, my = (ladoMeu.a.y+ladoMeu.b.y)/2;
+      let distLado = Infinity;
       for(const ladoViz of ladosVizinho){
-        const d = _sigefDistSegmentoSegmento(ladoMeu.a, ladoMeu.b, ladoViz.a, ladoViz.b);
-        if(d<distLadoMin) distLadoMin = d;
-        if(distLadoMin===0) break;
+        const d = _sigefDistPontoSegmento(mx, my, ladoViz.a.x, ladoViz.a.y, ladoViz.b.x, ladoViz.b.y);
+        if(d<distLado) distLado = d;
       }
-      if(distLadoMin<distMin) distMin = distLadoMin;
-      if(distLadoMin<=tolerancia) marcosTocados.add(ladoMeu.marcoId);
+      if(distLado<distMin) distMin = distLado;
+      if(distLado<=tolerancia) marcosTocados.add(ladoMeu.marcoId);
     }
     if(marcosTocados.size>0){
       encontrados.push({
@@ -3222,90 +3235,110 @@ function geoJsonParaGeometrias(fc){
     return {pontos, atributos: f.properties||{}};
   }).filter(Boolean);
 }
-// Fallback pra quando o WFS não devolve GeoJSON e sim GML (formato padrão do WFS quando o
-// servidor não tem outputFormat=json habilitado pra essa camada) — faz um parse genérico:
-// qualquer elemento filho do "member"/"featureMember" que não seja a geometria vira um atributo
-// (nome da tag = campo, texto = valor), e a geometria é lida de gml:posList ou gml:coordinates.
-function gmlParaGeometrias(xmlText){
-  const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
-  if(xml.querySelector('parsererror')) return [];
-  const membros = Array.from(xml.querySelectorAll('*'))
-    .filter(el=>/^(featureMember|member)$/.test(el.localName));
-  const geometrias = [];
-  for(const membro of membros){
-    const feature = Array.from(membro.children)[0];
-    if(!feature) continue;
-    const posListEl = feature.querySelector('posList, coordinates');
-    if(!posListEl) continue;
-    const bruto = posListEl.textContent.trim();
-    let pares;
-    if(posListEl.localName==='coordinates'){
-      // GML2: "x1,y1 x2,y2 ..." (às vezes com ; como separador de par)
-      pares = bruto.split(/\s+/).filter(Boolean).map(par=>par.split(',').map(Number));
-    } else {
-      // GML3 posList: números soltos separados por espaço — agrupa de 2 em 2
-      const nums = bruto.split(/\s+/).filter(Boolean).map(Number);
-      pares = [];
-      for(let i=0;i+1<nums.length;i+=2) pares.push([nums[i], nums[i+1]]);
-    }
-    if(pares.length<3) continue;
-    // Ordem dos eixos em GML geográfico é ambígua (lon,lat ou lat,lon conforme a CRS/servidor) —
-    // decide pelo bom senso: no Brasil, a longitude é sempre negativa e "maior em módulo" que a
-    // latitude na prática (longitude ~ -35 a -74, latitude ~ 5 a -34); se o primeiro valor de cada
-    // par não parece longitude do Brasil mas o segundo sim, inverte a ordem.
-    const pareceLon = v => v<-30 && v>-80;
-    const pareceLat = v => v>-35 && v<10;
-    let inverter = false;
-    const amostra = pares[0];
-    if(!(pareceLon(amostra[0]) && pareceLat(amostra[1])) && (pareceLon(amostra[1]) && pareceLat(amostra[0]))) inverter = true;
-    const pontos = pares.map(p=> inverter ? {lon:p[1], lat:p[0]} : {lon:p[0], lat:p[1]});
-    if(pontos.length && Math.abs(pontos[0].lon-pontos[pontos.length-1].lon)<1e-9 && Math.abs(pontos[0].lat-pontos[pontos.length-1].lat)<1e-9) pontos.pop();
-    const atributos = {};
-    Array.from(feature.children).forEach(campo=>{
-      if(campo===posListEl || campo.contains(posListEl)) return;
-      if(campo.querySelector && campo.querySelector('posList, coordinates')) return; // é a geometria (ex.: <geom><Polygon>...)
-      atributos[campo.localName] = campo.textContent.trim();
-    });
-    geometrias.push({pontos, atributos});
-  }
-  return geometrias;
+// Parser de GML robusto (adaptado de uma implementação já testada em produção contra o WFS do
+// INCRA). O WFS do acervo fundiário do INCRA só responde em GML 3.1.1 — não existe outputFormat
+// que devolva JSON nessa camada (o parâmetro outputFormat, quando enviado, chega corrompido no
+// servidor — o ';' vira espaço no caminho até lá) — por isso o pedido é feito sem outputFormat e
+// a resposta (sempre GML) é interpretada aqui, virando uma FeatureCollection GeoJSON-like que o
+// resto do código (geoJsonParaGeometrias) já sabe consumir.
+function byLocalName(root, name){
+  return Array.from(root.getElementsByTagName('*')).filter(el => el.localName === name);
 }
+function fixAxisOrder(ring){
+  if(!ring.length) return ring;
+  const [a,b] = ring[0];
+  // Território brasileiro: longitude ~ -74 a -30, latitude ~ -35 a 6. Se o primeiro valor do par
+  // parece latitude e o segundo longitude, os eixos vieram invertidos (lat,lon) — corrige pra (lon,lat).
+  const looksLatLon = (a >= -35 && a <= 6) && (b <= -28 && b >= -75);
+  return looksLatLon ? ring.map(([x,y])=>[y,x]) : ring;
+}
+function parseGmlPosList(text){
+  const nums = text.trim().split(/\s+/).map(Number);
+  const coords = [];
+  for(let i=0;i+1<nums.length;i+=2) coords.push([nums[i], nums[i+1]]);
+  return coords;
+}
+function parseGmlCoordinates(text){
+  return text.trim().split(/\s+/).filter(Boolean).map(pair=>{ const [x,y] = pair.split(',').map(Number); return [x,y]; });
+}
+function parseRingEl(boundaryEl){
+  const posList = byLocalName(boundaryEl, 'posList')[0];
+  if(posList) return fixAxisOrder(parseGmlPosList(posList.textContent));
+  const coordsEl = byLocalName(boundaryEl, 'coordinates')[0];
+  if(coordsEl) return fixAxisOrder(parseGmlCoordinates(coordsEl.textContent));
+  const posEls = byLocalName(boundaryEl, 'pos');
+  if(posEls.length) return fixAxisOrder(posEls.map(p=>p.textContent.trim().split(/\s+/).map(Number)));
+  return [];
+}
+function parsePolygonEl(polygonEl){
+  const exterior = byLocalName(polygonEl, 'exterior')[0] || byLocalName(polygonEl, 'outerBoundaryIs')[0];
+  if(!exterior) return null;
+  const rings = [parseRingEl(exterior)];
+  byLocalName(polygonEl, 'interior').concat(byLocalName(polygonEl, 'innerBoundaryIs')).forEach(hole=>{ rings.push(parseRingEl(hole)); });
+  return rings;
+}
+function parseGML(xmlText){
+  const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('XML inválido.');
+  const featureMembers = byLocalName(doc, 'featureMember').concat(byLocalName(doc, 'member'));
+  const features = [];
+  featureMembers.forEach(fm=>{
+    const featureEl = Array.from(fm.children)[0];
+    if(!featureEl) return;
+    const properties = {};
+    const polygonRings = [];
+    Array.from(featureEl.children).forEach(child=>{
+      const polys = byLocalName(child, 'Polygon');
+      if(polys.length){ polys.forEach(p=>{ const rings = parsePolygonEl(p); if(rings) polygonRings.push(rings); }); }
+      else if(!byLocalName(child,'MultiPolygon').length && !byLocalName(child,'MultiSurface').length){ properties[child.localName] = child.textContent.trim(); }
+    });
+    if(polygonRings.length === 0) return;
+    const geometry = polygonRings.length === 1 ? { type:'Polygon', coordinates: polygonRings[0] } : { type:'MultiPolygon', coordinates: polygonRings };
+    features.push({ type:'Feature', properties, geometry });
+  });
+  return { type:'FeatureCollection', features };
+}
+// Proxy CORS público (Cloudflare Worker) usado como intermediário: o navegador não consegue
+// chamar o WFS do INCRA diretamente (o servidor do INCRA não devolve cabeçalhos CORS), então a
+// requisição passa por esse proxy, que repassa a resposta com os cabeçalhos corretos.
+const SIGEF_CORS_PROXY = 'https://mapgeo-cors-proxy.fagner-agri.workers.dev/?url=';
 // Busca ao vivo, por WFS, nas camadas públicas do INCRA (particular + pública) do estado do
 // imóvel, filtrando por um retângulo (BBOX) em volta do polígono — evita ter que baixar/importar
-// a malha manualmente. Pode falhar por CORS ou instabilidade do servidor do INCRA: quando isso
-// acontece, cada tentativa fica registrada em falhas[] pra explicar ao usuário e ele pode cair
-// pra opção de importar o arquivo manualmente logo abaixo.
+// a malha manualmente. Pode falhar por instabilidade do servidor do INCRA ou do proxy: quando
+// isso acontece, cada tentativa fica registrada em falhas[] pra explicar ao usuário e ele pode
+// cair pra opção de importar o arquivo manualmente logo abaixo.
 async function buscarWFSIncra(uf, minLon, minLat, maxLon, maxLat){
   const ufMin = uf.toLowerCase();
   const camadas = [`certificada_sigef_particular_${ufMin}`, `certificada_sigef_publico_${ufMin}`];
   const geometrias = [];
   const falhas = [];
   for(const camada of camadas){
-    const base = `https://acervofundiario.incra.gov.br/i3geo/ogc.php?tema=${camada}`;
-    const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+    const baseUrl = `https://acervofundiario.incra.gov.br/i3geo/ogc.php?tema=${camada}&service=WFS&version=1.1.0&request=GetFeature&srsName=EPSG:4326&bbox=${minLat},${minLon},${maxLat},${maxLon},EPSG:4326`;
+    const url = SIGEF_CORS_PROXY + encodeURIComponent(baseUrl);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=>controller.abort(), 25000);
     try{
-      const urlJson = `${base}&service=WFS&version=1.0.0&request=GetFeature&typeName=${camada}&outputFormat=json&srsName=EPSG:4674&bbox=${bbox}`;
-      const resp = await fetch(urlJson, {mode:'cors'});
-      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const texto = await resp.text();
+      let resp;
+      try{
+        resp = await fetch(url, {signal: controller.signal});
+      }catch(networkErr){
+        if(networkErr.name==='AbortError') throw new Error('Tempo esgotado consultando o servidor do INCRA (o serviço costuma ser lento) — tente novamente em alguns instantes.');
+        throw new Error('Não foi possível alcançar o proxy/servidor (falha de rede): ' + (networkErr.message||networkErr));
+      }
+      const rawText = await resp.text();
+      if(/ServiceExceptionReport|ExceptionReport/i.test(rawText)){
+        const m = rawText.match(/<(?:ows:)?ExceptionText>([\s\S]*?)<\/(?:ows:)?ExceptionText>/) || rawText.match(/<ServiceException[^>]*>([\s\S]*?)<\/ServiceException>/);
+        throw new Error('O INCRA recusou a consulta: ' + (m ? m[1].trim() : rawText.slice(0,300)));
+      }
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}. Resposta: ${rawText.slice(0,300)}`);
       let fc;
-      try{ fc = JSON.parse(texto); }catch(e){ fc = null; }
-      if(fc && fc.features){
-        geometrias.push(...geoJsonParaGeometrias(fc));
-        continue;
-      }
-      // não veio JSON — tenta interpretar como GML (padrão do WFS quando outputFormat=json
-      // não está habilitado pra essa camada no servidor)
-      if(/<(wfs:FeatureCollection|FeatureCollection|ServiceExceptionReport)/i.test(texto)){
-        if(/ServiceExceptionReport/i.test(texto)){
-          throw new Error('O servidor recusou o pedido (ServiceException) — tente sem o outputFormat=json ou confira o nome da camada.');
-        }
-        geometrias.push(...gmlParaGeometrias(texto));
-      } else {
-        throw new Error('Resposta em formato inesperado (nem JSON nem GML reconhecível).');
-      }
+      try{ fc = parseGML(rawText); }
+      catch(parseErr){ throw new Error('Não foi possível interpretar a resposta GML do INCRA: ' + (parseErr.message||parseErr) + '. Início da resposta: ' + rawText.slice(0,200)); }
+      geometrias.push(...geoJsonParaGeometrias(fc));
     }catch(e){
       falhas.push({camada, erro: e.message||String(e)});
+    }finally{
+      clearTimeout(timeoutId);
     }
   }
   return {geometrias, falhas};
