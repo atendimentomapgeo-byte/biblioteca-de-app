@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-20T22:13:52.678Z",
+  "exportadoEm": "2026-09-20T22:15:38.267Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -226,15 +226,15 @@
       "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 1,
-      "confrontante": "FAZENDA ORIENTE  - Parte 1",
-      "confrontanteImovelId": "mua7zy7getpfn",
+      "confrontante": "",
+      "confrontanteImovelId": null,
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 767301.295,
       "coordN": 8629943.199,
-      "confrontanteOrigem": "sigef"
+      "confrontanteOrigem": ""
     },
     {
       "id": "mua5ppjel1mrh",
@@ -262,7 +262,8 @@
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 764802.855,
-      "coordN": 8629563.365
+      "coordN": 8629563.365,
+      "confrontanteOrigem": "sigef"
     },
     {
       "id": "mua5ppje5eagr",
@@ -276,7 +277,8 @@
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 765172.838,
-      "coordN": 8627048.18
+      "coordN": 8627048.18,
+      "confrontanteOrigem": "sigef"
     },
     {
       "id": "mua5ppjerio89",
@@ -298,15 +300,15 @@
       "imovelId": "mua5ppjexla5m",
       "tipo": "V",
       "ordem": 2,
-      "confrontante": "FAZENDA ORIENTE  - Parte 1",
-      "confrontanteImovelId": "mua7zy7getpfn",
+      "confrontante": "",
+      "confrontanteImovelId": null,
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 767367.098,
       "coordN": 8628956.309,
-      "confrontanteOrigem": "sigef"
+      "confrontanteOrigem": ""
     }
   ],
   "tiposRegistro": [
