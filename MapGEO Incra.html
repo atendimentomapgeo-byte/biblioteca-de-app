@@ -376,6 +376,11 @@
         <div class="grid g3">
           <div class="field"><label>Parcela SIGEF</label><input id="imo-parcela-sigef" placeholder="Código da parcela"></div>
           <div class="field"><label>Situação (Parcela SIGEF)</label><input id="imo-parcela-sigef-situacao" placeholder="Ex.: Certificado, Registrado..." list="dl-sigef-situacao"></div>
+          <div class="field"><label>Data de certificação (SIGEF)</label><input id="imo-sigef-data-cert" placeholder="Ex.: 15/01/2020"></div>
+        </div>
+        <div class="grid g3">
+          <div class="field"><label>Responsável técnico (declarado no SIGEF)</label><input id="imo-sigef-resp-tecnico" placeholder="Nome do responsável técnico que certificou a parcela"></div>
+          <div></div>
           <div></div>
         </div>
         <div class="grid g3">
@@ -1997,6 +2002,8 @@ window.editImo = id=>{
   document.getElementById('imo-lei-decreto').value=im.leiDecreto||'';
   document.getElementById('imo-parcela-sigef').value=im.parcelaSigef||'';
   document.getElementById('imo-parcela-sigef-situacao').value=im.parcelaSigefSituacao||'';
+  document.getElementById('imo-sigef-data-cert').value=im.sigefDataCertificacao||'';
+  document.getElementById('imo-sigef-resp-tecnico').value=im.sigefResponsavelTecnico||'';
   document.getElementById('imo-simcar').value=im.simcar||'';
   document.getElementById('imo-simcar-situacao').value=im.simcarSituacao||'';
   document.getElementById('form-imo-title').textContent='Editar imóvel';
@@ -2044,10 +2051,16 @@ document.getElementById('form-imo').addEventListener('submit', async e=>{
     leiDecreto: document.getElementById('imo-lei-decreto').value.trim(),
     parcelaSigef: document.getElementById('imo-parcela-sigef').value.trim(),
     parcelaSigefSituacao: document.getElementById('imo-parcela-sigef-situacao').value.trim(),
+    sigefDataCertificacao: document.getElementById('imo-sigef-data-cert').value.trim(),
+    sigefResponsavelTecnico: document.getElementById('imo-sigef-resp-tecnico').value.trim(),
     simcar: document.getElementById('imo-simcar').value.trim(),
     simcarSituacao: document.getElementById('imo-simcar-situacao').value.trim(),
     kmlRaw: anterior? anterior.kmlRaw : undefined,
     kmlNomeArquivo: anterior? anterior.kmlNomeArquivo : undefined,
+    // Preserva marcadores/dados de origem do SIGEF que não têm campo próprio no formulário —
+    // sem isso, editar e salvar um imóvel importado do SIGEF apagaria essas informações.
+    origemSigefImportado: anterior? anterior.origemSigefImportado : undefined,
+    sigefAtributosBrutos: anterior? anterior.sigefAtributosBrutos : undefined,
   };
   if(editing.imo){ state.imoveis = state.imoveis.map(x=>x.id===editing.imo?data:x); }
   else state.imoveis.push(data);
@@ -3515,6 +3528,16 @@ function compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia){
         parcela: pegarAtributoSigef(geo.atributos, ['parcela_co','parcela_codigo','cod_parcela','codigo_parcela','parcela']),
         situacao: pegarAtributoSigef(geo.atributos, ['situ_imov','situacao','status']),
         codImovel: pegarAtributoSigef(geo.atributos, ['cod_imov','codigo_imovel']),
+        // Campos extras — nomes de atributo variam entre camadas/versões do INCRA, por isso cada
+        // um tenta várias grafias possíveis; o que não for reconhecido por nenhuma delas ainda
+        // fica disponível em "atributosBrutos" abaixo, sem se perder.
+        area: pegarAtributoSigef(geo.atributos, ['area_ha','areaha','area_hect','area','st_area','area_calc']),
+        municipio: pegarAtributoSigef(geo.atributos, ['municipio','nome_munic','municipi']),
+        uf: pegarAtributoSigef(geo.atributos, ['uf','sigla_uf','estado']),
+        matricula: pegarAtributoSigef(geo.atributos, ['matricula','registro','num_matricula']),
+        dataCertificacao: pegarAtributoSigef(geo.atributos, ['data_cert','data_certificacao','dt_cert','datacertif']),
+        responsavelTecnico: pegarAtributoSigef(geo.atributos, ['responsav','responsavel_tecnico','resp_tec','tecnico']),
+        atributosBrutos: geo.atributos || {},
         distMin,
         marcoIds: Array.from(marcosTocados),
       });
@@ -3728,6 +3751,15 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
     el.innerHTML = btnLimpar + avisoFalhas + `<div class="note" style="margin-top:0;">${encontrados.length} confrontante(s) encontrado(s) em ${totalParcelas} parcela(s) lida(s)${ignoradosMesmoImovel?` (${ignoradosMesmoImovel} ignorada(s) por parecer o próprio imóvel)`:''}, ordenados do mais próximo ao mais distante.</div>` +
       encontrados.map((r,i)=>{
         const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Imóvel confrontante (SIGEF)');
+        const brutos = r.atributosBrutos || {};
+        const chavesBrutas = Object.keys(brutos).filter(k=>brutos[k]!=null && String(brutos[k]).trim()!=='');
+        const listaAtributos = chavesBrutas.length
+          ? `<details style="margin-top:8px;"><summary style="cursor:pointer; font-size:0.78rem; color:var(--brass);">Ver todos os atributos recebidos do INCRA (${chavesBrutas.length})</summary>
+              <div class="mono" style="font-size:0.76rem; margin-top:6px; max-height:220px; overflow:auto; background:rgba(0,0,0,0.15); padding:8px; border-radius:6px;">
+                ${chavesBrutas.map(k=>`<div><span style="color:var(--chalk-dim);">${escXml(k)}:</span> ${escXml(String(brutos[k]))}</div>`).join('')}
+              </div>
+            </details>`
+          : '';
         return `<div class="card" style="background:var(--navy-light); border:1px solid var(--brass); margin-top:8px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
             <div style="min-width:200px;">
@@ -3736,8 +3768,14 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
                 ${r.parcela? `Parcela SIGEF: ${escXml(r.parcela)}<br>`:''}
                 ${r.situacao? `Situação: ${escXml(r.situacao)}<br>`:''}
                 ${r.codImovel? `Código do imóvel: ${escXml(r.codImovel)}<br>`:''}
+                ${r.area? `Área: ${escXml(r.area)} ha<br>`:''}
+                ${(r.municipio||r.uf)? `Município/UF: ${escXml(r.municipio||'—')}${r.uf? '/'+escXml(r.uf):''}<br>`:''}
+                ${r.matricula? `Matrícula: ${escXml(r.matricula)}<br>`:''}
+                ${r.dataCertificacao? `Certificado em: ${escXml(r.dataCertificacao)}<br>`:''}
+                ${r.responsavelTecnico? `Responsável técnico: ${escXml(r.responsavelTecnico)}<br>`:''}
                 Distância mínima até o polígono: ${r.distMin.toFixed(2)} m
               </div>
+              ${listaAtributos}
             </div>
             <button type="button" class="btn btn-sm btn-primary" data-sigef-atribuir="${i}" style="white-space:nowrap;">Atribuir</button>
           </div>
@@ -3754,7 +3792,7 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
       const r = sigefUltimoResultado[Number(btn.dataset.sigefAtribuir)];
       if(!r) return;
       await atribuirConfrontanteSigef(r);
-      btn.textContent = 'Atribuído ✓';
+      btn.textContent = 'Atribuído ✓ (dados importados)';
       btn.disabled = true;
       btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost');
     });
@@ -3766,12 +3804,32 @@ async function atribuirConfrontanteSigef(r){
   if(r.parcela) imC = state.imoveis.find(im=>im.origemSigefImportado && im.parcelaSigef===r.parcela);
   if(!imC){
     imC = {
-      id: uid(), nome: nomeExibicao, matricula:'', area:'', municipio:'', uf:'', comarca:'',
+      id: uid(), nome: nomeExibicao, matricula: r.matricula||'', area: r.area||'', municipio: r.municipio||'', uf: r.uf||'', comarca:'',
       proprietarioId:'', tecnicoId:'', datum:'', perimetro:'', utmZona:'',
-      codigoIncra:'', leiDecreto:'', parcelaSigef: r.parcela||'', parcelaSigefSituacao: r.situacao||'',
+      codigoIncra: r.codImovel||'', leiDecreto:'', parcelaSigef: r.parcela||'', parcelaSigefSituacao: r.situacao||'',
       simcar:'', simcarSituacao:'', origemSigefImportado:true,
+      // Data de certificação e responsável técnico não têm campo próprio no cadastro de imóvel —
+      // ficam guardados aqui, e o dump bruto de TODOS os atributos que vieram do INCRA/shapefile
+      // fica em sigefAtributosBrutos, pra nada se perder mesmo que o app ainda não saiba nomear
+      // aquele campo específico (é possível ver tudo isso na ficha do imóvel).
+      sigefDataCertificacao: r.dataCertificacao||'', sigefResponsavelTecnico: r.responsavelTecnico||'',
+      sigefAtributosBrutos: r.atributosBrutos||{},
     };
     state.imoveis.push(imC);
+    await save('imoveis');
+    renderImo(); refreshSelects();
+  } else {
+    // Já existia um confrontante criado antes a partir dessa mesma parcela (ex.: parcela toca
+    // mais de um lado do imóvel, atribuída em momentos diferentes) — preenche os campos que ainda
+    // estiverem vazios, sem sobrescrever algo que o usuário já tenha preenchido/corrigido à mão.
+    if(!imC.matricula && r.matricula) imC.matricula = r.matricula;
+    if(!imC.area && r.area) imC.area = r.area;
+    if(!imC.municipio && r.municipio) imC.municipio = r.municipio;
+    if(!imC.uf && r.uf) imC.uf = r.uf;
+    if(!imC.codigoIncra && r.codImovel) imC.codigoIncra = r.codImovel;
+    if(!imC.sigefDataCertificacao && r.dataCertificacao) imC.sigefDataCertificacao = r.dataCertificacao;
+    if(!imC.sigefResponsavelTecnico && r.responsavelTecnico) imC.sigefResponsavelTecnico = r.responsavelTecnico;
+    imC.sigefAtributosBrutos = Object.assign({}, r.atributosBrutos||{}, imC.sigefAtributosBrutos||{});
     await save('imoveis');
     renderImo(); refreshSelects();
   }
