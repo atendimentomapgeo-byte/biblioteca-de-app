@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-20.5 — reorganização de interface: navegação em grupos, Central de Confrontantes, resumo do imóvel</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.3 — "Formato da planta" removido das abas Memorial e Anuência (fica só na aba Planta)</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -926,7 +926,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <button data-group="cadastros">Cadastros</button>
   <button data-group="geometria">Geometria e Marcos</button>
   <button data-group="confrontantes">Confrontantes</button>
-  <button data-group="documentos">Documentos</button>
   <button data-group="ferramentas">Ferramentas</button>
   <button data-group="configuracoes">Configurações</button>
 </nav>
@@ -937,8 +936,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <button data-tab="marcos" data-group="geometria">Marcos</button>
   <button data-tab="banco-marcos" data-group="geometria">Banco de Marcos</button>
   <button data-tab="mapa-confrontantes" data-group="confrontantes">Confrontantes</button>
-  <button data-tab="documentos" data-group="documentos">Documentos</button>
   <button data-tab="dxf-pdf" data-group="ferramentas">DXF → PDF</button>
+  <button data-tab="doc-memorial" data-group="ferramentas">Memorial</button>
+  <button data-tab="doc-anuencia" data-group="ferramentas">Anuência</button>
+  <button data-tab="doc-planta" data-group="ferramentas">Planta</button>
   <button data-tab="configuracoes" data-group="configuracoes">Backup e Configurações</button>
 </nav>
 
@@ -1358,10 +1359,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
   </section>
 
   <!-- DOCUMENTOS -->
-  <section class="panel" id="panel-documentos">
+  <!-- MEMORIAL DESCRITIVO -->
+  <section class="panel" id="panel-doc-memorial">
     <div class="card">
       <h2>Identidade visual dos documentos (logo, QR Code e rodapé)</h2>
-      <div class="note" style="margin-top:0;">Aplicados automaticamente no cabeçalho/rodapé do Memorial Descritivo e da Carta de Anuência. Tudo é salvo neste navegador assim que você altera algo — na próxima vez que reabrir a página, a última edição feita é carregada automaticamente.</div>
+      <div class="note" style="margin-top:0;">Aplicados automaticamente no cabeçalho/rodapé do Memorial Descritivo e da Carta de Anuência (vale para as duas abas). Tudo é salvo neste navegador assim que você altera algo — na próxima vez que reabrir a página, a última edição feita é carregada automaticamente.</div>
       <div class="grid g3">
         <div class="field">
           <label>Logotipo (imagem)</label>
@@ -1387,11 +1389,60 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="note" id="cfg-footer-status">O rodapé é salvo automaticamente ao digitar.</div>
     </div>
     <div class="card">
-      <h2>Gerar documentos</h2>
+      <h2>Gerar Memorial Descritivo</h2>
+      <div class="note" style="margin-top:0;">Um único clique aqui (ou nas abas Anuência / Planta) gera os três documentos juntos — o imóvel e o formato de coordenadas escolhidos valem para os três. O formato da planta é definido na aba Planta; só troque de aba pra ver cada resultado.</div>
       <div class="grid g3">
         <div class="field"><label>Imóvel</label><select id="doc-imovel-select" class="doc-select"></select></div>
         <div class="field"><label>Coordenadas (memorial e carta)</label>
           <select id="doc-coord-formato">
+            <option value="utm">UTM (E, N)</option>
+            <option value="geo">Geográficas (GG°MM'SS,sss")</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-gerar">Gerar documentos</button>
+      <div class="note">Os textos gerados são minutas de apoio — revise sempre com o responsável técnico antes do uso oficial.</div>
+    </div>
+    <div class="card">
+      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1rem; color:var(--brass-light); margin:0 0 16px; display:flex; align-items:center; gap:8px;">Memorial Descritivo <span style="display:flex; gap:8px; margin-left:auto;"><button class="btn btn-sm btn-ghost" data-copy="doc-memorial">Copiar texto</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-memorial">Imprimir / salvar PDF</button></span></h3>
+      <div class="note" id="doc-memorial-vazio">Nenhum memorial gerado ainda — preencha os campos acima e clique em "Gerar documentos".</div>
+      <div class="doc-output" id="doc-memorial"></div>
+    </div>
+  </section>
+
+  <!-- CARTA DE ANUÊNCIA -->
+  <section class="panel" id="panel-doc-anuencia">
+    <div class="card">
+      <h2>Gerar Carta de Anuência</h2>
+      <div class="note" style="margin-top:0;">Mesmo gerador da aba Memorial (gera os três documentos juntos) — repetido aqui pra sua conveniência. A identidade visual (logo/QR/rodapé) e o formato da planta ficam configurados na aba Memorial e na aba Planta, respectivamente, e valem também aqui.</div>
+      <div class="grid g3">
+        <div class="field"><label>Imóvel</label><select id="doc-imovel-select-anu" class="doc-select"></select></div>
+        <div class="field"><label>Coordenadas (memorial e carta)</label>
+          <select id="doc-coord-formato-anu">
+            <option value="utm">UTM (E, N)</option>
+            <option value="geo">Geográficas (GG°MM'SS,sss")</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-gerar-anu">Gerar documentos</button>
+      <div class="note">Os textos gerados são minutas de apoio — revise sempre com o responsável técnico antes do uso oficial.</div>
+    </div>
+    <div class="card">
+      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1rem; color:var(--brass-light); margin:0 0 16px; display:flex; align-items:center; gap:8px;">Carta(s) de Anuência e Reconhecimento de Limites <span style="display:flex; gap:8px; margin-left:auto;"><button class="btn btn-sm btn-ghost" data-copy="doc-anuencia">Copiar texto</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-anuencia">Imprimir / salvar PDF</button></span></h3>
+      <div class="note" id="doc-anuencia-vazio">Nenhuma carta gerada ainda — preencha os campos acima e clique em "Gerar documentos".</div>
+      <div class="doc-output" id="doc-anuencia" style="background:#fff; white-space:normal; padding:16px; display:none;"></div>
+    </div>
+  </section>
+
+  <!-- PLANTA -->
+  <section class="panel" id="panel-doc-planta">
+    <div class="card">
+      <h2>Gerar Planta do Imóvel</h2>
+      <div class="note" style="margin-top:0;">Mesmo gerador da aba Memorial (gera os três documentos juntos) — repetido aqui pra sua conveniência.</div>
+      <div class="grid g3">
+        <div class="field"><label>Imóvel</label><select id="doc-imovel-select-planta" class="doc-select"></select></div>
+        <div class="field"><label>Coordenadas (memorial e carta)</label>
+          <select id="doc-coord-formato-planta">
             <option value="utm">UTM (E, N)</option>
             <option value="geo">Geográficas (GG°MM'SS,sss")</option>
           </select>
@@ -1423,27 +1474,21 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <br>Sem essas camadas, o layout é reproduzido do jeito que está, só com os textos substituídos — nenhum retângulo é obrigatório.
         </div>
       </div>
-      <button class="btn btn-primary" id="btn-gerar">Gerar documentos</button>
+      <button class="btn btn-primary" id="btn-gerar-planta">Gerar documentos</button>
       <div class="note">Os textos gerados são minutas de apoio — revise sempre com o responsável técnico antes do uso oficial.</div>
     </div>
-
-
-    <div class="card" id="doc-results" style="display:none;">
-      <div class="doc-block">
-        <h3>Memorial Descritivo <span style="display:flex; gap:8px;"><button class="btn btn-sm btn-ghost" data-copy="doc-memorial-texto">Copiar texto</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-memorial">Imprimir / salvar PDF</button></span></h3>
-        <div class="doc-output" id="doc-memorial"></div>
-      </div>
-      <div class="doc-block">
-        <h3>Carta(s) de Anuência e Reconhecimento de Limites <span style="display:flex; gap:8px;"><button class="btn btn-sm btn-ghost" data-copy="doc-anuencia">Copiar texto</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-anuencia">Imprimir / salvar PDF</button></span></h3>
-        <div class="doc-output" id="doc-anuencia" style="background:#fff; white-space:normal; padding:16px;"></div>
-      </div>
-      <div class="doc-block">
-        <h3>Planta do Imóvel Georreferenciado <span style="display:flex; gap:8px;"><button class="btn btn-sm btn-ghost" id="btn-baixar-planta">Baixar SVG</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-planta">Imprimir / salvar PDF</button></span></h3>
-        <div id="doc-planta" style="overflow:auto; background:#fff; padding:8px;"></div>
-        <div class="note">Planta gerada automaticamente a partir das coordenadas, tipos e confrontantes cadastrados. O modelo padrão "A2 — Modelo TOPO GEO" reproduz a estrutura do layout de impressão A2 usado no QGIS (planta topográfica com grade, quadro de coordenadas e confrontações, norte/convergência meridiana, planta de situação esquemática, quadro assunto/imóvel/interessado, escala e bloco do responsável técnico/ART). A convergência meridiana é um valor aproximado calculado a partir da zona UTM e do centro do imóvel — informe a Zona UTM do imóvel (aba Imóveis) para que seja exibida. O mapa de situação é esquemático, sem base de imagem de satélite real. Revise sempre com o responsável técnico antes do uso oficial.</div>
-      </div>
+    <div class="card">
+      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1rem; color:var(--brass-light); margin:0 0 16px; display:flex; align-items:center; gap:8px;">Planta do Imóvel Georreferenciado <span style="display:flex; gap:8px; margin-left:auto;"><button class="btn btn-sm btn-ghost" id="btn-baixar-planta">Baixar SVG</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-planta">Imprimir / salvar PDF</button></span></h3>
+      <div class="note" id="doc-planta-vazio">Nenhuma planta gerada ainda — preencha os campos acima e clique em "Gerar documentos".</div>
+      <div id="doc-planta" style="overflow:auto; background:#fff; padding:8px; display:none;"></div>
+      <div class="note">Planta gerada automaticamente a partir das coordenadas, tipos e confrontantes cadastrados. O modelo padrão "A2 — Modelo TOPO GEO" reproduz a estrutura do layout de impressão A2 usado no QGIS (planta topográfica com grade, quadro de coordenadas e confrontações, norte/convergência meridiana, planta de situação esquemática, quadro assunto/imóvel/interessado, escala e bloco do responsável técnico/ART). A convergência meridiana é um valor aproximado calculado a partir da zona UTM e do centro do imóvel — informe a Zona UTM do imóvel (aba Imóveis) para que seja exibida. O mapa de situação é esquemático, sem base de imagem de satélite real. Revise sempre com o responsável técnico antes do uso oficial.</div>
     </div>
   </section>
+
+  <!-- elemento técnico invisível: o gerador (mais abaixo) sinaliza sucesso ligando o display
+       dele pra 'block'; um observer nesse atributo é o que decide revelar o resultado em cada
+       uma das 3 abas acima, sem precisar duplicar a lógica de geração em si. -->
+  <div id="doc-results" style="display:none !important;"></div>
 
   <!-- DXF -> PDF (conversor independente, não relacionado ao Layout externo) -->
   <section class="panel" id="panel-dxf-pdf">
@@ -2567,7 +2612,7 @@ document.getElementById('tabs').addEventListener('click', e=>{
   if(e.target.dataset.tab==='imoveis') refreshSelects();
   if(e.target.dataset.tab==='marcos') refreshSelects();
   if(e.target.dataset.tab==='banco-marcos') renderBancoMarcos();
-  if(e.target.dataset.tab==='documentos') refreshSelects();
+  if(e.target.dataset.tab==='doc-memorial' || e.target.dataset.tab==='doc-anuencia' || e.target.dataset.tab==='doc-planta') refreshSelects();
   if(e.target.dataset.tab==='mapa-confrontantes'){
     refreshSelects();
     if(typeof renderConfrontantesHub==='function') renderConfrontantesHub();
@@ -2865,6 +2910,15 @@ function refreshSelects(){
     : '<option value="">Cadastre um imóvel primeiro</option>';
   document.getElementById('marco-imovel-select').innerHTML = imoOpts;
   document.getElementById('doc-imovel-select').innerHTML = imoOpts;
+  // Memorial/Anuência/Planta viraram 3 abas com o mesmo gerador repetido — mantém as 3 opções de
+  // imóvel e os outros 2 selects de config sincronizados com o valor já escolhido em qualquer um.
+  ['doc-imovel-select-anu','doc-imovel-select-planta'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value || document.getElementById('doc-imovel-select').value;
+    el.innerHTML = imoOpts;
+    if(cur) el.value = cur;
+  });
   if(document.getElementById('mapa-imovel-select')){
     const curMapa = document.getElementById('mapa-imovel-select').value;
     document.getElementById('mapa-imovel-select').innerHTML = imoOpts;
@@ -7192,30 +7246,73 @@ function montarMemorialHtml(memorial){
   }
   return html;
 }
-document.getElementById('doc-planta-formato').addEventListener('change', (e)=>{
-  document.getElementById('doc-planta-dxf-externo-wrap').style.display = (e.target.value==='LAYOUT-EXTERNO-DXF') ? 'block' : 'none';
+// Memorial, Carta de Anuência e Planta viraram 3 abas dentro de Ferramentas, cada uma com sua
+// própria cópia do formulário (imóvel/coordenadas/formato da planta/botão) — mas as 3 sempre
+// geram os TRÊS documentos juntos, exatamente como antes; só o lugar de onde o clique partiu (e
+// portanto de onde vem o arquivo DXF de layout externo, que não dá pra sincronizar entre inputs
+// de arquivo) muda. Por isso a lógica de geração em si (gerarMemorial/gerarAnuencias/gerarPlanta*)
+// foi só extraída pra uma função com os IDs dos campos como parâmetro — nenhum cálculo mudou.
+const DOC_GERADORES = [
+  { imovel:'doc-imovel-select', coord:'doc-coord-formato', formato:'doc-planta-formato', wrap:'doc-planta-dxf-externo-wrap', file:'doc-planta-dxf-file', status:'doc-planta-dxf-status', btn:'btn-gerar' },
+  { imovel:'doc-imovel-select-anu', coord:'doc-coord-formato-anu', formato:'doc-planta-formato', wrap:'doc-planta-dxf-externo-wrap', file:'doc-planta-dxf-file', status:'doc-planta-dxf-status', btn:'btn-gerar-anu' },
+  { imovel:'doc-imovel-select-planta', coord:'doc-coord-formato-planta', formato:'doc-planta-formato', wrap:'doc-planta-dxf-externo-wrap', file:'doc-planta-dxf-file', status:'doc-planta-dxf-status', btn:'btn-gerar-planta' },
+];
+// Mantém as 3 cópias do select de imóvel/coordenadas sincronizadas entre si — escolher o imóvel
+// na aba Planta, por exemplo, já reflete nas abas Memorial e Anuência. O "Formato da planta" (e o
+// arquivo de layout externo) agora vive só na aba Planta — não é mais duplicado em Memorial/
+// Anuência — então não há mais o que sincronizar para ele; as 3 configs acima já apontam pro
+// mesmo elemento canônico.
+function sincronizarCamposDocumento(origemId, valor){
+  DOC_GERADORES.forEach(g=>{
+    [g.imovel, g.coord].forEach(id=>{
+      if(id===origemId) return;
+      const alvo = document.getElementById(id);
+      const origemEhDoMesmoTipo = id.replace(/-anu$|-planta$/,'') === origemId.replace(/-anu$|-planta$/,'');
+      if(alvo && origemEhDoMesmoTipo && alvo.value!==valor) alvo.value = valor;
+    });
+  });
+}
+DOC_GERADORES.forEach(g=>{
+  const selImovel = document.getElementById(g.imovel);
+  const selCoord = document.getElementById(g.coord);
+  if(!selImovel || !selCoord) return;
+  selImovel.addEventListener('change', (e)=> sincronizarCamposDocumento(g.imovel, e.target.value));
+  selCoord.addEventListener('change', (e)=> sincronizarCamposDocumento(g.coord, e.target.value));
 });
-document.getElementById('doc-planta-dxf-file').addEventListener('change', (e)=>{
-  const f = e.target.files && e.target.files[0];
-  document.getElementById('doc-planta-dxf-status').textContent = f
-    ? `Arquivo selecionado: ${f.name} — será lido novamente a cada geração.`
-    : 'Nenhum arquivo selecionado. Esse DXF é lido apenas no seu navegador, a cada clique em "Gerar documentos" — ele não fica embutido/salvo neste arquivo HTML, então você troca o layout quando quiser sem editar o gestor.';
-});
-document.getElementById('btn-gerar').addEventListener('click', async ()=>{
-  const imId = document.getElementById('doc-imovel-select').value;
+// "Formato da planta" e o arquivo de layout externo são únicos (só existem na aba Planta), então
+// o listener é montado uma vez só — nada de repetir pras 3 abas, já que agora é o mesmo elemento.
+const _selFormatoPlanta = document.getElementById('doc-planta-formato');
+const _fileInputPlanta = document.getElementById('doc-planta-dxf-file');
+if(_selFormatoPlanta){
+  _selFormatoPlanta.addEventListener('change', (e)=>{
+    const wrap = document.getElementById('doc-planta-dxf-externo-wrap');
+    if(wrap) wrap.style.display = (e.target.value==='LAYOUT-EXTERNO-DXF') ? 'block' : 'none';
+  });
+}
+if(_fileInputPlanta){
+  _fileInputPlanta.addEventListener('change', (e)=>{
+    const f = e.target.files && e.target.files[0];
+    const statusEl = document.getElementById('doc-planta-dxf-status');
+    if(statusEl) statusEl.textContent = f
+      ? `Arquivo selecionado: ${f.name} — será lido novamente a cada geração.`
+      : 'Nenhum arquivo selecionado. Esse DXF é lido apenas no seu navegador, a cada clique em "Gerar documentos" — ele não fica embutido/salvo neste arquivo HTML, então você troca o layout quando quiser sem editar o gestor.';
+  });
+}
+async function gerarDocumentosDe(g){
+  const imId = document.getElementById(g.imovel).value;
   const imovel = state.imoveis.find(x=>x.id===imId);
   if(!imovel){ showToast('Cadastre um imóvel primeiro.'); return; }
   const prop = state.proprietarios.find(p=>p.id===imovel.proprietarioId);
   const tec = state.tecnicos.find(t=>t.id===imovel.tecnicoId);
   const lista = codigosPorTipo(marcosOrdenados(imId));
-  const formato = document.getElementById('doc-planta-formato').value;
-  const coordFormato = document.getElementById('doc-coord-formato').value;
+  const formato = document.getElementById(g.formato).value;
+  const coordFormato = document.getElementById(g.coord).value;
   document.getElementById('doc-memorial').innerHTML = montarMemorialHtml(gerarMemorial(imovel, prop, tec, lista, coordFormato));
   document.getElementById('doc-anuencia').innerHTML = gerarAnuencias(imovel, prop, tec, lista, coordFormato);
 
   let plantaHtml;
   if(formato==='LAYOUT-EXTERNO-DXF'){
-    const fileInput = document.getElementById('doc-planta-dxf-file');
+    const fileInput = document.getElementById(g.file);
     const file = fileInput.files && fileInput.files[0];
     if(!file){
       showToast('Selecione um arquivo .dxf para usar como layout externo.');
@@ -7236,7 +7333,27 @@ document.getElementById('btn-gerar').addEventListener('click', async ()=>{
   }
   document.getElementById('doc-planta').innerHTML = plantaHtml;
   document.getElementById('doc-results').style.display='block';
+}
+DOC_GERADORES.forEach(g=>{
+  const btn = document.getElementById(g.btn);
+  if(btn) btn.addEventListener('click', ()=>gerarDocumentosDe(g));
 });
+// Revela o resultado em cada uma das 3 abas (Memorial/Anuência/Planta) assim que a geração
+// terminar com sucesso — sinalizado pelo próprio código acima (igual ao de sempre) ligando o
+// elemento invisível #doc-results pra 'block'. Um observer nesse atributo, em vez de duplicar a
+// checagem de sucesso, garante que as 3 abas reagem do mesmo jeito não importa qual botão gerou.
+const _docResultsEl = document.getElementById('doc-results');
+if(_docResultsEl){
+  new MutationObserver(()=>{
+    if(_docResultsEl.style.display==='block'){
+      document.getElementById('doc-memorial-vazio').style.display='none';
+      document.getElementById('doc-anuencia-vazio').style.display='none';
+      document.getElementById('doc-anuencia').style.display='block';
+      document.getElementById('doc-planta-vazio').style.display='none';
+      document.getElementById('doc-planta').style.display='block';
+    }
+  }).observe(_docResultsEl, {attributes:true, attributeFilter:['style']});
+}
 document.getElementById('btn-baixar-planta').addEventListener('click', ()=>{
   const svgEl = document.getElementById('planta-svg-atual');
   if(!svgEl){ showToast('Gere os documentos primeiro.'); return; }
