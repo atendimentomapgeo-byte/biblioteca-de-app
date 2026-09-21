@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-21T21:12:34.436Z",
+  "exportadoEm": "2026-09-21T21:13:30.765Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -42,13 +42,14 @@
     {
       "id": "mua5ppjexla5m",
       "nome": "AIR PLANTA MEMORIAL",
-      "matricula": "",
+      "matricula": "1.937",
       "area": "633.5195",
       "municipio": "Feliz Natal",
       "uf": "MT",
       "comarca": "Feliz Natal",
       "proprietarioId": "mu9rkac9j1gyd",
       "tecnicoId": "mu9rdh0lr8c6a",
+      "art": "132123123123123",
       "datum": "SIRGAS2000",
       "perimetro": "10098.42",
       "utmZona": "21S",
