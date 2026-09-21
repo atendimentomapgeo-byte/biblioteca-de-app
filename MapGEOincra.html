@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.5 — Adicionado seletor ART/TRT no campo de número, na aba Imóveis</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.6 — Corrigido aviso de importação KML que ficava preso no imóvel antigo após editar e salvar</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -2693,6 +2693,15 @@ document.getElementById('prop-cancel').addEventListener('click', ()=>resetForm('
 function resetForm(kind){
   editing[kind]=null;
   document.getElementById('form-'+kind).reset();
+  // form.reset() NÃO limpa o valor de <input type="hidden"> setado via JS (é um comportamento
+  // conhecido do navegador — o reset só volta ao "value" do HTML, que aqui é vazio, mas na
+  // prática o Chrome mantém o último valor atribuído por script). Sem essa linha, o campo
+  // escondido "<kind>-id" continuava apontando pro registro salvo por último mesmo depois do
+  // formulário voltar pra "Novo ..." — no caso de Imóveis isso fazia o aviso de importação
+  // ("Importar agora vai afetar o imóvel X") continuar aparecendo pra sempre depois de editar e
+  // salvar, mesmo com o formulário já limpo.
+  const campoId = document.getElementById(kind+'-id');
+  if(campoId) campoId.value='';
   if(kind==='tec'){ tecExtra=[]; renderTecExtra(); }
   if(kind==='imo'){ atualizarKmlInfo(null); }
   if(kind==='marco'){ document.getElementById('marco-status-implantacao-wrap').style.display='none'; document.getElementById('marco-tipo').disabled=false; setMarcoCoordFormato('dms'); }
