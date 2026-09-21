@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.3 — "Formato da planta" removido das abas Memorial e Anuência (fica só na aba Planta)</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.4 — Nº da ART/TRT corrigido e movido do Técnico para o Imóvel (aba Imóveis)</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1003,12 +1003,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <div class="field"><label>Nome completo</label><input id="tec-nome" required></div>
           <div class="field"><label>Título / formação</label><input id="tec-titulo" placeholder="Ex.: Eng. Agrimensor"></div>
         </div>
-        <div class="grid g4">
+        <div class="grid g3">
           <div class="field"><label>Registro</label>
             <select id="tec-registrotipo"></select>
           </div>
           <div class="field"><label>Nº do registro</label><input id="tec-registronumero"></div>
-          <div class="field"><label>Nº da ART / RRT</label><input id="tec-art"></div>
           <div class="field"><label>Código credenciado no INCRA</label><input id="tec-codigo-incra" placeholder="Ex.: A1B2" maxlength="10" style="text-transform:uppercase;"></div>
         </div>
         <div id="tec-registros-extra"></div>
@@ -1033,7 +1032,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     </div>
     <div class="card">
       <h2>Responsáveis técnicos cadastrados</h2>
-      <table id="table-tec"><thead><tr><th>Nome</th><th>Registro</th><th>ART/RRT</th><th>Código INCRA</th><th></th></tr></thead><tbody></tbody></table>
+      <table id="table-tec"><thead><tr><th>Nome</th><th>Registro</th><th>Código INCRA</th><th></th></tr></thead><tbody></tbody></table>
       <div class="empty" id="empty-tec" style="display:none;">Nenhum responsável técnico cadastrado ainda.</div>
     </div>
   </section>
@@ -1081,6 +1080,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <div class="field"><label>Comarca</label><input id="imo-comarca"></div>
           <div class="field"><label>Proprietário</label><select id="imo-proprietario"></select></div>
           <div class="field"><label>Responsável técnico</label><select id="imo-tecnico"></select></div>
+        </div>
+        <div class="grid g3">
+          <div class="field"><label>Nº da ART / TRT</label><input id="imo-art" placeholder="Número da ART/TRT emitida para este imóvel"></div>
+          <div></div>
+          <div></div>
         </div>
         <div class="grid g3">
           <div class="field"><label>Datum</label>
@@ -1167,7 +1171,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
     <div class="card">
       <h2>Imóveis cadastrados</h2>
-      <table id="table-imo"><thead><tr><th>Nome</th><th>Matrícula</th><th>UF</th><th>Área (ha)</th><th>Proprietário</th><th></th></tr></thead><tbody></tbody></table>
+      <table id="table-imo"><thead><tr><th>Nome</th><th>Matrícula</th><th>UF</th><th>Área (ha)</th><th>Proprietário</th><th>ART/TRT</th><th></th></tr></thead><tbody></tbody></table>
       <div class="empty" id="empty-imo" style="display:none;">Nenhum imóvel cadastrado ainda.</div>
     </div>
   </section>
@@ -2804,7 +2808,7 @@ function renderTec(){
     const regs = (t.registros&&t.registros.length? t.registros : [{tipo:t.registroTipo,numero:t.registroNumero}])
       .filter(r=>r.numero).map(r=>`${r.tipo} ${r.numero}`).join(', ');
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${t.nome}</td><td class="mono">${regs||''}</td><td class="mono">${t.art||''}</td><td class="mono">${t.codigoIncra||''}</td>
+    tr.innerHTML = `<td>${t.nome}</td><td class="mono">${regs||''}</td><td class="mono">${t.codigoIncra||''}</td>
       <td class="actions">
         <button class="btn btn-sm btn-ghost" onclick="editTec('${t.id}')">Editar</button>
         <button class="btn btn-sm btn-danger" onclick="delTec('${t.id}')">Excluir</button>
@@ -2820,7 +2824,6 @@ window.editTec = id=>{
   refreshRegistroTipoSelects();
   document.getElementById('tec-registrotipo').value=t.registroTipo||(state.tiposRegistro[0]||'CREA');
   document.getElementById('tec-registronumero').value=t.registroNumero||'';
-  document.getElementById('tec-art').value=t.art||'';
   document.getElementById('tec-codigo-incra').value=t.codigoIncra||'';
   document.getElementById('tec-empresa').value=t.empresa||'';
   document.getElementById('tec-email').value=t.email||'';
@@ -2852,7 +2855,6 @@ document.getElementById('form-tec').addEventListener('submit', async e=>{
     registroTipo: primeiroRegistro.tipo,
     registroNumero: primeiroRegistro.numero,
     registros: registros,
-    art: document.getElementById('tec-art').value.trim(),
     codigoIncra: document.getElementById('tec-codigo-incra').value.trim().toUpperCase(),
     empresa: document.getElementById('tec-empresa').value.trim(),
     email: document.getElementById('tec-email').value.trim(),
@@ -2873,7 +2875,7 @@ function renderImo(){
   state.imoveis.forEach(im=>{
     const prop = state.proprietarios.find(p=>p.id===im.proprietarioId);
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${im.nome}</td><td class="mono">${im.matricula||''}</td><td class="mono">${im.uf||''}</td><td class="mono">${im.area||'—'}</td><td>${prop?prop.nome:'—'}</td>
+    tr.innerHTML = `<td>${im.nome}</td><td class="mono">${im.matricula||''}</td><td class="mono">${im.uf||''}</td><td class="mono">${im.area||'—'}</td><td>${prop?prop.nome:'—'}</td><td class="mono">${im.art||''}</td>
       <td class="actions">
         <button class="btn btn-sm btn-ghost" onclick="editImo('${im.id}')">Editar</button>
         <button class="btn btn-sm btn-danger" onclick="delImo('${im.id}')">Excluir</button>
@@ -3007,6 +3009,7 @@ window.editImo = id=>{
   if(document.getElementById('imo-uf')._atualizarMunicipios) document.getElementById('imo-uf')._atualizarMunicipios();
   document.getElementById('imo-proprietario').value=im.proprietarioId||'';
   document.getElementById('imo-tecnico').value=im.tecnicoId||'';
+  document.getElementById('imo-art').value=im.art||'';
   document.getElementById('imo-datum').value=im.datum||'SIRGAS2000';
   document.getElementById('imo-perimetro').value=im.perimetro||'';
   document.getElementById('imo-utm-zona').value=im.utmZona||'';
@@ -3056,6 +3059,7 @@ document.getElementById('form-imo').addEventListener('submit', async e=>{
     comarca: document.getElementById('imo-comarca').value.trim(),
     proprietarioId: document.getElementById('imo-proprietario').value,
     tecnicoId: document.getElementById('imo-tecnico').value,
+    art: document.getElementById('imo-art').value.trim(),
     datum: document.getElementById('imo-datum').value,
     perimetro: document.getElementById('imo-perimetro').value,
     utmZona: document.getElementById('imo-utm-zona').value,
@@ -5697,7 +5701,7 @@ function gerarMemorial(imovel, prop, tec, lista, coordFormato){
     { label:'Proprietário', valor: prop? prop.nome+(prop.doc?' — '+prop.doc:''):'_____' },
     { label:'Área', valor: imovel.area? imovel.area+' ha':'_____' },
     { label:'Perímetro calculado', valor: `${perimetro.toFixed(2)} m` },
-    { label:'Responsável técnico', valor: `${tec? tec.nome+' — '+(tec.registroTipo||'')+' '+(tec.registroNumero||''):'_____'}${tec&&tec.art? ' — ART/RRT '+tec.art:''}` },
+    { label:'Responsável técnico', valor: `${tec? tec.nome+' — '+(tec.registroTipo||'')+' '+(tec.registroNumero||''):'_____'}${imovel.art? ' — ART/TRT '+imovel.art:''}` },
     { label:'Datum', valor: imovel.datum||'SIRGAS2000' },
   ];
 
@@ -6373,7 +6377,7 @@ function gerarPlantaFormatada(formato, imovel, prop, tec, lista){
       {label:'Proprietário', valor: prop? prop.nome : '__________________________'},
       {separador:true, label:'Responsável técnico', valor: tec? tec.nome : '__________________________'},
       {label:tec&&tec.registroTipo? `${tec.registroTipo} nº`:'Registro', valor: tec? (tec.registroNumero||'—') : '—'},
-      {label:'ART/RRT nº', valor: tec? (tec.art||'—') : '—'},
+      {label:'ART/TRT nº', valor: imovel.art||'—'},
       {label:'Cód. credenciado INCRA', valor: tec? (tec.codigoIncra||'—') : '—'},
     ];
     const qs = quadroInfo(sidebarX, sy, sidebarW, 'QUADRO DE ASSINATURAS', linhasAss, compacto?2.2:3.0);
@@ -6618,18 +6622,18 @@ function gerarPlantaTopoGeo(imovel, prop, tec, lista){
   out += retSvg(rightX, ry, rightW, boxRtH, '#fff', '#2B2417', 0.4);
   out += `<line x1="${rightX+4}" y1="${ry+5}" x2="${rightX+rightW-4}" y2="${ry+5}" stroke="#2B2417" stroke-width="0.3"/>`;
   const tecReg = tec ? ((tec.registros&&tec.registros.length? tec.registros:[{tipo:tec.registroTipo,numero:tec.registroNumero}]).filter(r=>r.numero).map(r=>`${r.tipo} ${r.numero}`).join(', ')) : '';
-  const artTxt = tec && tec.art ? tec.art : null;
+  const artTxt = imovel.art || null;
   const linhasRt = [
     ['RESPONSÁVEL TÉCNICO', tec? tec.nome.toUpperCase() : '—'],
     ['REGISTRO', tecReg || '—'],
-    ['ART/RRT Nº', artTxt || 'NÃO EMITIDO'],
+    ['ART/TRT Nº', artTxt || 'NÃO EMITIDO'],
     ['CÓD. CREDENCIADO INCRA', tec? (tec.codigoIncra||'—') : '—'],
   ];
   let rty = ry+9;
   linhasRt.forEach(([lab,val])=>{
     out += `<text x="${rightX+2.5}" y="${rty}" font-family="IBM Plex Mono, monospace" font-size="1.9" fill="#6b6455">${escXml(lab)}</text>`;
     rty += 3.1;
-    const cor = (lab==='ART/RRT Nº' && !artTxt) ? '#B5533C' : '#2B2417';
+    const cor = (lab==='ART/TRT Nº' && !artTxt) ? '#B5533C' : '#2B2417';
     out += `<text x="${rightX+2.5}" y="${rty}" font-family="IBM Plex Mono, monospace" font-size="2.3" font-weight="700" fill="${cor}">${escXml(val)}</text>`;
     rty += 4.3;
   });
@@ -6839,7 +6843,7 @@ function gerarPlantaDxfLiteral(imovel, prop, tec, lista){
   out += '<text x="427.697" y="215.859" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.785" fill="#2B2417">' + "DESCRIÇÃO DAS ÁREAS" + '</text>';
   out += '<text x="506.865" y="266.305" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.785" fill="#2B2417">' + "ART n°:" + '</text>';
   out += '<text x="562.776" y="209.932" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="3.713" fill="#2B2417">' + "1:Escala" + '</text>';
-  out += `<text x="524.443" y="265.851" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.901" fill="#2B2417">${escXml((tec && tec.art? tec.art : 'NÃO EMITIDO'))}</text>`;
+  out += `<text x="524.443" y="265.851" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.901" fill="#2B2417">${escXml((imovel.art? imovel.art : 'NÃO EMITIDO'))}</text>`;
   out += '<text x="449.761" y="161.219" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.321" fill="#2B2417">' + "GEORREFERENCIADO AO SISTEMA GEODÉSICO BRASILEIRO" + '</text>';
   out += '<text x="428.349" y="156.141" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="4.332" fill="#2B2417">' + "L E V A N T A M E N T O   P L A N I M É T R I C O" + '</text>';
   out += '<text x="467.186" y="178.593" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.298" fill="#2B2417">' + "REGULARIZAÇÃO FUNDIÁRIA RURAL" + '</text>';
@@ -7066,7 +7070,7 @@ function tokensLayoutExterno(imovel, prop, tec, lista){
     '{{PERIMETRO}}': fmtNum(perimetroTotal,2)+' m',
     '{{RESPONSAVEL_TECNICO}}': tec? tec.nome.toUpperCase(): '—',
     '{{REGISTRO}}': tecReg || '—',
-    '{{ART}}': (tec && tec.art) ? tec.art : 'NÃO EMITIDO',
+    '{{ART}}': imovel.art ? imovel.art : 'NÃO EMITIDO',
     '{{CODIGO_INCRA}}': tec? (tec.codigoIncra||'—') : '—',
     '{{DATUM}}': imovel.datum || 'SIRGAS2000',
     '{{ZONA_UTM}}': zona ? `${zona}${sul?'S':'N'}` : '—',
