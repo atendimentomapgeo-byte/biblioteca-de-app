@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-22T22:43:13.388Z",
+  "exportadoEm": "2026-09-22T22:44:35.567Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -165,42 +165,45 @@
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "V",
       "ordem": 15,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Fazenda Terra Roxa - Lote nº 414",
+      "confrontanteImovelId": "mud95j71y7nh3",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 511726.783,
-      "coordN": 8754958.796
+      "coordN": 8754958.796,
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud8pxpknnlq4",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "V",
       "ordem": 1,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Fazenda Terra Roxa - Lote nº 414",
+      "confrontanteImovelId": "mud95j71y7nh3",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 512797.756,
-      "coordN": 8755743.364
+      "coordN": 8755743.364,
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud8pxpkseylk",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "V",
       "ordem": 2,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Fazenda Terra Roxa - Lote nº 414",
+      "confrontanteImovelId": "mud95j71y7nh3",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 512799.37,
-      "coordN": 8755742.415
+      "coordN": 8755742.415,
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud8pxpkpvdpj",
@@ -348,14 +351,15 @@
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "V",
       "ordem": 13,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Fazenda Chão de Estrelas - Lote nº 450",
+      "confrontanteImovelId": "mud93vdrk068q",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 511849.469,
-      "coordN": 8754800.87
+      "coordN": 8754800.87,
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud8pxpkvqoe7",
@@ -1107,6 +1111,10 @@
     "CFT"
   ],
   "marcosCatalogo": [],
-  "config": {},
+  "config": {
+    "confMostrarMatricula": true,
+    "confMostrarProprietario": true,
+    "confMostrarDoc": true
+  },
   "rotulosExtras": []
 }
