@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.9 — Clique no mapa agora mostra todos os confrontantes sobrepostos num só popup, com croqui e seleção</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-22.2 — Resultados da "Ferramenta avançada" (SIGEF e base local) agora também são plotados no mapa, igual à busca do mapa</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1719,6 +1719,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <input type="file" id="mapa-malha-file" accept=".zip" style="max-width:280px;">
         <button type="button" class="btn btn-sm btn-ghost" id="btn-mapa-buscar-shapefile">Usar arquivo baixado em vez do INCRA ao vivo</button>
       </div>
+      <div class="row-end" style="margin-top:6px; gap:8px;">
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-mapa-buscar-local">Buscar também entre os imóveis já cadastrados na base local</button>
+      </div>
+      <div class="note" style="margin-top:0;">Além do SIGEF/INCRA, também é possível comparar o contorno deste imóvel com o de qualquer OUTRO imóvel já cadastrado aqui que também tenha geometria própria lançada (marcos/vértices) — útil quando o vizinho já foi cadastrado neste app (por levantamento próprio ou importação de KML/Shapefile) mesmo que o SIGEF não tenha essa parcela ou esteja desatualizado. Os resultados aparecem junto com os do SIGEF, marcados como "Imóvel cadastrado na base local".</div>
       <div class="note" id="mapa-confrontantes-status" style="margin-top:8px;">Selecione um imóvel com pelo menos 3 marcos/vértices e clique em "Buscar no INCRA e mostrar no mapa".</div>
 
       <!-- Resumo (contagens) — recalculado a cada atribuição/remoção pra dar uma leitura rápida
@@ -1854,6 +1858,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <div class="note" style="margin:6px 0 10px;">Baixe o shapefile da mesma camada em <a href="https://www.gov.br/pt-br/servicos/obter-coordenadas-e-baixar-os-arquivos-dos-imoveis-ruras-certificados" target="_blank" rel="noopener">Obter coordenadas e baixar os arquivos dos imóveis rurais certificados</a> (serviço gratuito do INCRA — escolha a camada de parcelas certificadas e a UF/município) e envie o .zip abaixo.</div>
           <div class="field"><label>Malha de parcelas certificadas SIGEF (.zip contendo .shp, .shx, .dbf e, de preferência, .prj)</label><input type="file" id="sigef-malha-file" accept=".zip,application/zip,application/x-zip-compressed,multipart/x-zip,*/*"></div>
           <button type="button" class="btn btn-ghost" id="btn-consultar-sigef">Buscar confrontantes no arquivo importado</button>
+        </div>
+
+        <div style="margin-top:10px; padding:14px; border:1px solid rgba(220,238,245,0.15); border-radius:8px; background:rgba(220,238,245,0.03);">
+          <strong>Opção 3 — Comparar com os imóveis já cadastrados na base local</strong>
+          <div class="note" style="margin:6px 0 10px;">Em vez do SIGEF/INCRA, compara o polígono deste imóvel com o de qualquer OUTRO imóvel já cadastrado neste app que também tenha geometria própria lançada (marcos/vértices) — útil quando o vizinho já foi cadastrado aqui (por levantamento próprio ou importação de KML/Shapefile), mesmo que o SIGEF não tenha essa parcela ou esteja desatualizado. Os resultados entram na mesma lista abaixo, somados aos de uma busca no SIGEF já feita antes (sem duplicar o mesmo imóvel se clicar de novo).</div>
+          <button type="button" class="btn btn-ghost" id="btn-consultar-sigef-local">Buscar entre os imóveis já cadastrados na base local</button>
         </div>
 
         <div class="note" style="margin-top:12px;">Parcelas que parecem ser o próprio imóvel (contorno e área muito parecidos) são identificadas e ignoradas automaticamente. Atribuir um confrontante não sobrescreve lados que já tenham outro confrontante cadastrado sem confirmar antes.</div>
@@ -4654,11 +4664,82 @@ function compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia){
         pontosGeo: geo.pontos,
         distMin,
         marcoIds: Array.from(marcosTocados),
+        // Presente só quando "geo" veio de montarGeometriasImoveisLocais (busca contra os imóveis
+        // já cadastrados na base local, não do SIGEF/INCRA) — identifica diretamente o registro em
+        // state.imoveis já existente, pra window._mapaAtribuirDoResultado poder linkar o
+        // confrontante a ele (atribuirConfrontanteLocal) em vez de criar um imóvel novo a partir
+        // de atributos importados (atribuirConfrontanteSigef), que é o caminho certo só quando o
+        // confrontante ainda não existe na base.
+        imovelLocalId: geo.imovelLocalId || null,
       });
     }
   }
   encontrados.sort((a,b)=>a.distMin-b.distMin);
   return {encontrados, ignoradosMesmoImovel};
+}
+// Monta a lista de "geometrias" (mesmo formato usado pelo SIGEF/shapefile: [{pontos:[{lon,lat}],
+// atributos, imovelLocalId}]) a partir dos OUTROS imóveis já cadastrados na base local que também
+// têm geometria própria (marcos/vértices lançados) — pra poder comparar o contorno deles com o do
+// imóvel de referência do mesmo jeito que já é feito com a malha do INCRA, e achar confrontantes
+// que o usuário já cadastrou (por exemplo, uma fazenda vizinha cujo levantamento também foi feito
+// neste mesmo app, ou importado de KML/Shapefile) mesmo que o SIGEF não tenha essa parcela ou
+// esteja desatualizado. Cada imóvel é convertido pro seu PRÓPRIO fuso/hemisfério (podem ser
+// diferentes do imóvel de referência) antes de virar lon/lat — a reprojeção pro fuso fixo do
+// imóvel de referência acontece dentro de compararGeometriasComImovel, igual já acontece pras
+// geometrias do SIGEF.
+function montarGeometriasImoveisLocais(imovelRefId){
+  return state.imoveis.filter(im=>im.id!==imovelRefId).map(im=>{
+    const marcosIm = marcosOrdenados(im.id);
+    // Um imóvel só criado a partir de uma atribuição do SIGEF (atribuirConfrontanteSigef) nasce
+    // sem nenhum marco — some daqui naturalmente até o usuário lançar a geometria dele, sem
+    // precisar de uma checagem própria por origemSigefImportado.
+    if(marcosIm.length<3) return null;
+    const {zona, sul} = inferirZonaHemisferio(im, marcosIm);
+    if(!zona) return null;
+    const pontos = marcosIm.map(m=>utmParaLatLon(m.coordE, m.coordN, zona, sul));
+    const tecnico = im.tecnicoId ? state.tecnicos.find(t=>t.id===im.tecnicoId) : null;
+    return {
+      pontos,
+      imovelLocalId: im.id,
+      origemCamada: 'cadastro_local',
+      atributos: {
+        nome_area: im.nome || '',
+        municipio: im.municipio || '',
+        uf: im.uf || '',
+        matricula: im.matricula || '',
+        area_ha: im.area || '',
+        art: im.art || '',
+        data_aprovacao: im.sigefDataCertificacao || '',
+        rt: im.sigefResponsavelTecnico || (tecnico ? tecnico.nome : ''),
+        codigo_imovel: im.codigoIncra || '',
+      },
+    };
+  }).filter(Boolean);
+}
+// Atribui, a partir de um match achado por montarGeometriasImoveisLocais, o confrontante direto ao
+// imóvel JÁ EXISTENTE na base local (r.imovelLocalId) — bem mais simples que
+// atribuirConfrontanteSigef, que precisa criar (ou reencontrar) um imóvel a partir de atributos
+// importados, porque aqui o registro já existe: só falta linkar os lados tocados a ele. Usa
+// confrontanteOrigem:'cadastro', a mesma origem já usada quando o usuário escolhe manualmente um
+// imóvel cadastrado no seletor da ferramenta de atribuição por lado (ver btn-atribuir-confrontante),
+// já que semanticamente é a mesma coisa: um confrontante vinculado a um imóvel da própria base.
+async function atribuirConfrontanteLocal(r){
+  const imC = state.imoveis.find(im=>im.id===r.imovelLocalId);
+  if(!imC){ showToast('Este imóvel não foi encontrado mais na base local (pode ter sido excluído).'); return; }
+  const nomeExibicao = imC.nome || 'Imóvel cadastrado (sem nome)';
+  if(!confirmarSobrescritaConfrontante(r.marcoIds, nomeExibicao)){
+    showToast('Atribuição cancelada — confrontante existente mantido.');
+    return;
+  }
+  r.marcoIds.forEach(marcoId=>{
+    const m = state.marcos.find(x=>x.id===marcoId);
+    if(m){ m.confrontante = nomeExibicao; m.confrontanteImovelId = imC.id; m.confrontanteOrigem = 'cadastro'; }
+  });
+  await save('marcos');
+  renderMarcos();
+  if(typeof renderConfrontantePoligono==='function') renderConfrontantePoligono();
+  if(typeof renderConfrontantesHub==='function') renderConfrontantesHub();
+  showToast(`Confrontante "${nomeExibicao}" (imóvel já cadastrado) atribuído a ${r.marcoIds.length} lado(s).`);
 }
 // Converte uma FeatureCollection GeoJSON (resposta do WFS em outputFormat=json) para o mesmo
 // formato usado pelas geometrias lidas de Shapefile: [{pontos:[{lon,lat}], atributos}]
@@ -4760,6 +4841,12 @@ const SIGEF_CAMADAS_LABEL = {
   assentamentos: 'Assentamento (INCRA)',
   reconhecimento: 'Território em reconhecimento',
   quilombolas: 'Território quilombola',
+  // Não é uma camada do INCRA — é o "carimbo de origem" usado quando o confrontante vem da busca
+  // geométrica contra os imóveis já cadastrados na própria base local (ver
+  // montarGeometriasImoveisLocais), reaproveitando o mesmo campo camadaOrigem/camadaLabel que já
+  // existe pros resultados do SIGEF, pra aparecer junto no mesmo popup/lista sem precisar de um
+  // campo novo em toda a cadeia (compararGeometriasComImovel → encontrados → popup/croqui).
+  cadastro_local: 'Imóvel cadastrado na base local',
 };
 function rotuloCamadaSigef(origemCamada){
   if(!origemCamada) return null;
@@ -4840,6 +4927,7 @@ document.getElementById('btn-consultar-sigef-wfs').addEventListener('click', asy
     const {encontrados, ignoradosMesmoImovel} = compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia);
     sigefUltimoResultado = encontrados;
     renderResultadoSigef(encontrados, geometrias.length, ignoradosMesmoImovel, falhas, marcoInfoPorId(lista));
+    plotarNoMapaConfrontantes(imovel, lista, zona, sul, encontrados);
   }catch(e){
     resultadoEl.innerHTML = `<div class="note" style="color:#b23b3b;">Erro na consulta ao INCRA: ${escXml(e.message||String(e))}. Use a opção "Importar arquivo baixado" logo abaixo como alternativa.</div>`;
   }
@@ -4863,10 +4951,52 @@ document.getElementById('btn-consultar-sigef').addEventListener('click', async (
     const {encontrados, ignoradosMesmoImovel} = compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia);
     sigefUltimoResultado = encontrados;
     renderResultadoSigef(encontrados, geometrias.length, ignoradosMesmoImovel, null, marcoInfoPorId(lista));
+    plotarNoMapaConfrontantes(imovel, lista, zona, sul, encontrados);
   }catch(e){
     resultadoEl.innerHTML = `<div class="note" style="color:#b23b3b;">Erro ao ler a malha: ${escXml(e.message||String(e))}</div>`;
   }
 });
+// Opção 3 do card: compara com os OUTROS imóveis já cadastrados na base local (não com o
+// SIGEF/INCRA) — ver montarGeometriasImoveisLocais/atribuirConfrontanteLocal. Ao contrário das
+// opções 1 e 2 (que substituem sigefUltimoResultado), esta ACRESCENTA os achados aos que já
+// estiverem na lista, pra dar pra usar em conjunto com uma busca no SIGEF já feita antes — se
+// rodar de novo, atualiza (não duplica) os mesmos imóveis já encontrados antes.
+document.getElementById('btn-consultar-sigef-local').addEventListener('click', ()=>{
+  const imId = currentImovelId();
+  if(!imId){ showToast('Selecione um imóvel primeiro.'); return; }
+  const imovel = state.imoveis.find(x=>x.id===imId);
+  const lista = marcosOrdenados(imId);
+  if(lista.length<3){ showToast('Este imóvel precisa de ao menos 3 marcos/vértices cadastrados.'); return; }
+  const {zona, sul} = inferirZonaHemisferio(imovel, lista);
+  if(!zona){ showToast('Defina a Zona UTM do imóvel na aba Imóveis antes de consultar.'); return; }
+  const tolerancia = Number(document.getElementById('sigef-tolerancia').value) || 5;
+  const geometrias = montarGeometriasImoveisLocais(imId);
+  if(!geometrias.length){
+    showToast('Nenhum outro imóvel cadastrado na base local tem geometria própria (marcos/vértices) lançada ainda, pra comparar.');
+    return;
+  }
+  const {encontrados, ignoradosMesmoImovel} = compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia);
+  const anteriores = (sigefUltimoResultado||[]).filter(r=>!r.imovelLocalId || !encontrados.some(n=>n.imovelLocalId===r.imovelLocalId));
+  const combinados = anteriores.concat(encontrados).sort((a,b)=>a.distMin-b.distMin);
+  sigefUltimoResultado = combinados;
+  renderResultadoSigef(combinados, geometrias.length, ignoradosMesmoImovel, null, marcoInfoPorId(lista));
+  plotarNoMapaConfrontantes(imovel, lista, zona, sul, combinados);
+  if(!encontrados.length){
+    showToast(`Nenhum dos ${geometrias.length} imóvel(is) cadastrado(s) com geometria própria faz divisa com este, dentro da tolerância informada.`);
+  }
+});
+// Reflete os resultados desta "Ferramenta avançada" (cards) também no mapa de satélite da central
+// de confrontantes logo acima, plotando o(s) polígono(s) encontrado(s) exatamente do mesmo jeito
+// que o botão "Buscar no INCRA e mostrar no mapa" do próprio mapa já faz (mesmo estilo vermelho,
+// mesmo clique pra atribuir, mesmo popup de sobreposição se houver mais de um no mesmo ponto) —
+// window._renderMapaConfrontantes é a função renderMapaConfrontantes exposta pelo script do mapa
+// (que já cuida de criar o mapa na hora, se ainda não existir). Assim, não importa se o usuário
+// busca pelo mapa ou por aqui: o que aparece na lista é sempre o mesmo que aparece plotado.
+function plotarNoMapaConfrontantes(imovel, lista, zona, sul, encontrados){
+  if(typeof window._renderMapaConfrontantes==='function'){
+    window._renderMapaConfrontantes(imovel, lista, zona, sul, encontrados);
+  }
+}
 // Monta um mapa {marcoId: {codigo, tipo}} a partir da lista ordenada de marcos do imóvel, pra
 // exibir nos resultados do SIGEF qual(is) lado(s) exatamente cada parcela encontrada afeta (em
 // vez de só "N lado(s)") — reaproveita a mesma numeração (M1, P2...) mostrada na tabela de marcos.
@@ -4901,7 +5031,10 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
         const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Imóvel confrontante (SIGEF)');
         const brutos = r.atributosBrutos || {};
         const chavesBrutas = Object.keys(brutos).filter(k=>brutos[k]!=null && String(brutos[k]).trim()!=='');
-        const listaAtributos = chavesBrutas.length
+        // Pra um resultado da base local (r.imovelLocalId), "atributosBrutos" é só um espelho dos
+        // mesmos campos (nome, matrícula, etc.) já mostrados acima — não um dump de dados externos
+        // como o do INCRA — então o painel "ver todos os atributos" não agrega nada aqui e some.
+        const listaAtributos = (chavesBrutas.length && !r.imovelLocalId)
           ? `<details style="margin-top:8px;"><summary style="cursor:pointer; font-size:0.78rem; color:var(--brass);">Ver todos os atributos recebidos do INCRA (${chavesBrutas.length})</summary>
               <div class="mono" style="font-size:0.76rem; margin-top:6px; max-height:220px; overflow:auto; background:rgba(0,0,0,0.15); padding:8px; border-radius:6px;">
                 ${chavesBrutas.map(k=>`<div><span style="color:var(--chalk-dim);">${escXml(k)}:</span> ${escXml(String(brutos[k]))}</div>`).join('')}
@@ -4940,8 +5073,15 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
     btn.addEventListener('click', async ()=>{
       const r = sigefUltimoResultado[Number(btn.dataset.sigefAtribuir)];
       if(!r) return;
-      await atribuirConfrontanteSigef(r);
-      btn.textContent = 'Atribuído ✓ (dados importados)';
+      // Resultado da Opção 3 (base local): já é um imóvel existente, só linka; senão (SIGEF/INCRA
+      // ou arquivo importado) cria/atualiza o imóvel confrontante a partir dos dados importados.
+      if(r.imovelLocalId){
+        await atribuirConfrontanteLocal(r);
+        btn.textContent = 'Atribuído ✓ (imóvel já cadastrado)';
+      } else {
+        await atribuirConfrontanteSigef(r);
+        btn.textContent = 'Atribuído ✓ (dados importados)';
+      }
       btn.disabled = true;
       btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost');
     });
@@ -10173,13 +10313,16 @@ function exportPDF(scene, sheet, filename) {
     if(_mapaUltimoContexto) reRenderMapaComContextoAtual();
     if(typeof renderConfrontantesHub==='function') renderConfrontantesHub();
   };
-  // Atribui, direto pelo popup do polígono vermelho no mapa, o mesmo confrontante do SIGEF que já
-  // é usado na aba "Implantação de Marco" — reaproveita atribuirConfrontanteSigef, que por sua vez
-  // já cuida de criar/atualizar o imóvel confrontante com todos os dados importados.
+  // Atribui, direto pelo popup do polígono vermelho no mapa, o confrontante encontrado — se veio
+  // da busca contra a base local (r.imovelLocalId presente), reaproveita atribuirConfrontanteLocal
+  // (só linka ao imóvel que já existe); senão, é um resultado do SIGEF/INCRA e reaproveita
+  // atribuirConfrontanteSigef, que cuida de criar/atualizar o imóvel confrontante com os dados
+  // importados.
   window._mapaAtribuirDoResultado = async function(idx){
     const r = _mapaEncontradosAtual[idx];
     if(!r) return;
-    await atribuirConfrontanteSigef(r);
+    if(r.imovelLocalId) await atribuirConfrontanteLocal(r);
+    else await atribuirConfrontanteSigef(r);
     _mapaConfrontantesInstancia.closePopup();
     if(_mapaUltimoContexto) reRenderMapaComContextoAtual();
   };
@@ -10446,6 +10589,39 @@ function exportPDF(scene, sheet, filename) {
       statusEl.textContent = `${encontrados.length} confrontante(s) desenhado(s) no mapa, de ${geometrias.length} parcela(s) lida(s)${ignoradosMesmoImovel?` (${ignoradosMesmoImovel} ignorada(s) por parecer o próprio imóvel)`:''}. Clique num polígono vermelho pra atribuir, ou num lado tracejado do imóvel pra adicionar manualmente.`;
     }catch(e){
       statusEl.textContent = 'Erro ao ler a malha: ' + (e.message||String(e));
+    }
+  });
+
+  // Busca confrontantes comparando com os OUTROS imóveis já cadastrados na base local (não com o
+  // SIGEF/INCRA) — ver montarGeometriasImoveisLocais/atribuirConfrontanteLocal. Ao contrário dos
+  // dois botões acima (que substituem o que estava desenhado), este ACRESCENTA os achados ao que
+  // já estiver no mapa, pra dar pra usar em conjunto com uma busca no INCRA já feita antes e ver
+  // tudo junto no mesmo popup de sobreposição — por isso, se rodar de novo, atualiza (não duplica)
+  // os mesmos imóveis já encontrados antes, mas NÃO apaga resultados de origem diferente (SIGEF).
+  document.getElementById('btn-mapa-buscar-local').addEventListener('click', ()=>{
+    const ctx = validarESelecionarImovel();
+    if(!ctx) return;
+    const {imovel, lista, zona, sul} = ctx;
+    const tolerancia = Number(document.getElementById('mapa-tolerancia').value) || 5;
+    const statusEl = document.getElementById('mapa-confrontantes-status');
+    garantirMapaCriado();
+    setTimeout(()=>_mapaConfrontantesInstancia.invalidateSize(), 30);
+    const geometrias = montarGeometriasImoveisLocais(imovel.id);
+    if(!geometrias.length){
+      statusEl.textContent = 'Nenhum outro imóvel cadastrado na base local tem geometria própria (marcos/vértices) lançada ainda, pra comparar.';
+      return;
+    }
+    const {encontrados, ignoradosMesmoImovel} = compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia);
+    // Junta com o que já estava desenhado (ex.: de uma busca no INCRA anterior), sem duplicar o
+    // mesmo imóvel local se o botão for clicado de novo (ex.: depois de lançar geometria em mais
+    // um imóvel) — os antigos resultados de OUTRAS origens (SIGEF) ficam intactos.
+    const anteriores = (_mapaEncontradosAtual||[]).filter(r=>!r.imovelLocalId || !encontrados.some(n=>n.imovelLocalId===r.imovelLocalId));
+    const combinados = anteriores.concat(encontrados);
+    renderMapaConfrontantes(imovel, lista, zona, sul, combinados);
+    if(!encontrados.length){
+      statusEl.textContent = `Nenhum dos ${geometrias.length} imóvel(is) cadastrado(s) com geometria própria faz divisa com este, dentro da tolerância informada${ignoradosMesmoImovel?` (${ignoradosMesmoImovel} ignorado(s) por parecer o próprio imóvel)`:''}.`;
+    } else {
+      statusEl.textContent = `${encontrados.length} confrontante(s) encontrado(s) entre os imóveis já cadastrados na base local (de ${geometrias.length} com geometria própria), somado(s) ao que já estava no mapa. Clique num polígono vermelho pra atribuir.`;
     }
   });
 
