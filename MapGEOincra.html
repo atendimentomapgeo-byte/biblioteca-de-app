@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.7 — Consulta ao INCRA agora busca todas as 8 camadas do i3Geo (SIGEF, SNCI, parcelageo, assentamentos, reconhecimento, quilombolas), não só as 2 do SIGEF</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.8 — Clicar num polígono de confrontante no mapa agora destaca ele em ciano (#00FFFF)</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -9997,6 +9997,14 @@ function exportPDF(scene, sheet, filename) {
   // rodar a busca de novo — só relê os marcos atualizados.
   let _mapaUltimoContexto = null;
   let _mapaEncontradosAtual = [];
+  // Estilo normal (vermelho) e de seleção (ciano puro, #00FFFF — escolhido justamente por não
+  // aparecer em imagem de satélite nem se confundir com o vermelho/verde/dourado já usados no
+  // mapa) dos polígonos de confrontante. _mapaPoligonoSelecionado guarda a camada Leaflet
+  // atualmente destacada, pra poder devolver ao estilo normal quando outra for clicada (ou a
+  // mesma for clicada de novo / o popup for fechado).
+  const MAPA_CONFRONTANTE_ESTILO = {color:'#D64A4A', weight:2, fillColor:'#D64A4A', fillOpacity:0.18};
+  const MAPA_CONFRONTANTE_SELECIONADO = {color:'#00FFFF', weight:3, fillColor:'#00FFFF', fillOpacity:0.32};
+  let _mapaPoligonoSelecionado = null;
 
   function garantirMapaCriado(){
     if(_mapaConfrontantesInstancia) return _mapaConfrontantesInstancia;
@@ -10171,6 +10179,7 @@ function exportPDF(scene, sheet, filename) {
     const map = garantirMapaCriado();
     _mapaCamadaImovel.clearLayers();
     _mapaCamadaConfrontantes.clearLayers();
+    _mapaPoligonoSelecionado = null; // as camadas antigas já foram removidas do mapa acima
     const todosOsBounds = [];
     _mapaUltimoContexto = {imovel, zona, sul};
     _mapaEncontradosAtual = encontrados || [];
@@ -10210,7 +10219,7 @@ function exportPDF(scene, sheet, filename) {
       if(!r.pontosGeo || r.pontosGeo.length<3) return;
       const anel = r.pontosGeo.map(p=>[p.lat, p.lon]);
       const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Confrontante (SIGEF)');
-      const poligono = L.polygon(anel, { color:'#D64A4A', weight:2, fillColor:'#D64A4A', fillOpacity:0.18 });
+      const poligono = L.polygon(anel, MAPA_CONFRONTANTE_ESTILO);
       const linhasPopup = [
         `<strong>${escXml(nomeExibicao)}</strong>`,
         r.camadaLabel? `<span style="opacity:0.8;">${escXml(r.camadaLabel)}</span>` : '',
@@ -10222,6 +10231,29 @@ function exportPDF(scene, sheet, filename) {
         `<button type="button" class="btn btn-sm btn-primary" style="margin-top:6px;" onclick="window._mapaAtribuirDoResultado(${idx})">Atribuir este confrontante ao(s) lado(s) tocado(s)</button>`,
       ].filter(Boolean);
       poligono.bindPopup(linhasPopup.join('<br>'));
+      // Clique seleciona o polígono (destaca em ciano) — clicar num outro devolve o anterior pro
+      // vermelho normal antes de destacar o novo; clicar de novo no mesmo, ou fechar o popup,
+      // desfaz a seleção. Isso deixa claro qual confrontante está "ativo" quando há vários
+      // próximos uns dos outros no mapa.
+      poligono.on('click', ()=>{
+        if(_mapaPoligonoSelecionado && _mapaPoligonoSelecionado!==poligono){
+          _mapaPoligonoSelecionado.setStyle(MAPA_CONFRONTANTE_ESTILO);
+        }
+        if(_mapaPoligonoSelecionado===poligono){
+          poligono.setStyle(MAPA_CONFRONTANTE_ESTILO);
+          _mapaPoligonoSelecionado = null;
+        } else {
+          poligono.setStyle(MAPA_CONFRONTANTE_SELECIONADO);
+          poligono.bringToFront();
+          _mapaPoligonoSelecionado = poligono;
+        }
+      });
+      poligono.on('popupclose', ()=>{
+        if(_mapaPoligonoSelecionado===poligono){
+          poligono.setStyle(MAPA_CONFRONTANTE_ESTILO);
+          _mapaPoligonoSelecionado = null;
+        }
+      });
       _mapaCamadaConfrontantes.addLayer(poligono);
       todosOsBounds.push(...anel);
     });
