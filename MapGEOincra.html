@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.8 — Clicar num polígono de confrontante no mapa agora destaca ele em ciano (#00FFFF)</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.9 — Clique no mapa agora mostra todos os confrontantes sobrepostos num só popup, com croqui e seleção</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -9999,12 +9999,19 @@ function exportPDF(scene, sheet, filename) {
   let _mapaEncontradosAtual = [];
   // Estilo normal (vermelho) e de seleção (ciano puro, #00FFFF — escolhido justamente por não
   // aparecer em imagem de satélite nem se confundir com o vermelho/verde/dourado já usados no
-  // mapa) dos polígonos de confrontante. _mapaPoligonoSelecionado guarda a camada Leaflet
-  // atualmente destacada, pra poder devolver ao estilo normal quando outra for clicada (ou a
-  // mesma for clicada de novo / o popup for fechado).
+  // mapa) dos polígonos de confrontante.
   const MAPA_CONFRONTANTE_ESTILO = {color:'#D64A4A', weight:2, fillColor:'#D64A4A', fillOpacity:0.18};
   const MAPA_CONFRONTANTE_SELECIONADO = {color:'#00FFFF', weight:3, fillColor:'#00FFFF', fillOpacity:0.32};
-  let _mapaPoligonoSelecionado = null;
+  // Cores usadas SÓ no croqui do popup de sobreposição, uma por candidato (cicla se houver mais
+  // candidatos do que cores) — nenhuma delas é o vermelho/verde/dourado/ciano já usados no resto
+  // do mapa, pra não confundir com o que essas cores já significam ali.
+  const MAPA_CROQUI_PALETA = ['#F2A65A','#63B3ED','#F6E05E','#B794F4','#F687B3','#4FD1C5'];
+  // _mapaPoligonosPorIndice[idx] guarda a camada Leaflet de cada confrontante encontrado (mesmo
+  // índice de _mapaEncontradosAtual), pra poder destacar/desfazer o destaque de vários de uma vez
+  // quando o clique cai numa região onde vários polígonos se sobrepõem. _mapaIdxDestacadosAtual
+  // guarda quais estão destacados agora, pra devolver todos ao normal quando o popup fechar.
+  let _mapaPoligonosPorIndice = [];
+  let _mapaIdxDestacadosAtual = [];
 
   function garantirMapaCriado(){
     if(_mapaConfrontantesInstancia) return _mapaConfrontantesInstancia;
@@ -10017,6 +10024,19 @@ function exportPDF(scene, sheet, filename) {
     _mapaCamadaImovel = L.layerGroup().addTo(_mapaConfrontantesInstancia);
     _mapaCamadaConfrontantes = L.layerGroup().addTo(_mapaConfrontantesInstancia);
     window._mapaConfrontantesInstancia = _mapaConfrontantesInstancia;
+    // Clique no MAPA (não em cada polígono individualmente) — testa geometricamente TODOS os
+    // confrontantes encontrados contra o ponto clicado, então funciona corretamente mesmo quando
+    // dois ou mais polígonos se sobrepõem na tela (um clique num pixel só consegue "acertar" o
+    // polígono desenhado por cima, então testar cada um por conta própria, contra a geometria
+    // real, é a única forma de saber que há mais de um ali). Anexado uma única vez aqui (não em
+    // renderMapaConfrontantes, que roda a cada busca/atribuição) pra não empilhar handlers.
+    _mapaConfrontantesInstancia.on('click', handleMapaCliqueSobreposicao);
+    // Ao fechar qualquer popup (o de sobreposição ou o de "Atribuir" disparado por ele), devolve
+    // ao vermelho normal os polígonos que ficaram destacados em ciano durante a seleção.
+    _mapaConfrontantesInstancia.on('popupclose', ()=>{
+      _mapaIdxDestacadosAtual.forEach(i=>{ const p=_mapaPoligonosPorIndice[i]; if(p) p.setStyle(MAPA_CONFRONTANTE_ESTILO); });
+      _mapaIdxDestacadosAtual = [];
+    });
     return _mapaConfrontantesInstancia;
   }
 
@@ -10169,6 +10189,120 @@ function exportPDF(scene, sheet, filename) {
     renderMapaConfrontantes(imovel, listaAtualizada, zona, sul, _mapaEncontradosAtual);
   }
 
+  // Desenha um croqui simples (SVG) do ponto clicado em meio a um ou mais confrontantes
+  // encontrados naquela região, mais o contorno do próprio imóvel (tracejado, só de referência)
+  // — mesma técnica de projeção equirretangular corrigida por cos(lat) já usada em
+  // svgPreviewPoligono (a prévia de KML/Shapefile antes de importar), só que agora com várias
+  // geometrias e um marcador extra pro ponto do clique.
+  function svgCroquiSobreposicao(anelImovel, candidatos, clickPonto, w, h){
+    w = w || 280; h = h || 220;
+    const todosOsPontos = []
+      .concat(anelImovel||[])
+      .concat(candidatos.flatMap(c=>c.r.pontosGeo))
+      .concat([clickPonto]);
+    if(todosOsPontos.length < 3) return '';
+    const lons = todosOsPontos.map(p=>p.lon), lats = todosOsPontos.map(p=>p.lat);
+    const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const cosLat = Math.cos((minLat+maxLat)/2 * Math.PI/180) || 1;
+    const spanX = ((maxLon-minLon)*cosLat) || 0.0001, spanY = (maxLat-minLat) || 0.0001;
+    const pad = 18;
+    const scale = Math.min((w-2*pad)/spanX, (h-2*pad)/spanY);
+    const drawW = spanX*scale, drawH = spanY*scale;
+    const offX = (w-drawW)/2, offY = (h-drawH)/2;
+    const toX = lon => offX + (lon-minLon)*cosLat*scale;
+    const toY = lat => h-offY-(lat-minLat)*scale;
+    const pontosSvg = ring => ring.map(p=>`${toX(p.lon).toFixed(1)},${toY(p.lat).toFixed(1)}`).join(' ');
+    const centroide = ring => {
+      const cx = ring.reduce((s,p)=>s+p.lon,0)/ring.length, cy = ring.reduce((s,p)=>s+p.lat,0)/ring.length;
+      return {x:toX(cx), y:toY(cy)};
+    };
+    const svgImovel = (anelImovel && anelImovel.length>=3)
+      ? `<polygon points="${pontosSvg(anelImovel)}" fill="rgba(224,195,107,0.10)" stroke="#E0C36B" stroke-width="1.3" stroke-dasharray="4,3"/>`
+      : '';
+    const svgCandidatos = candidatos.map(c=>{
+      const c2 = centroide(c.r.pontosGeo);
+      return `<polygon points="${pontosSvg(c.r.pontosGeo)}" fill="${c.cor}33" stroke="${c.cor}" stroke-width="1.8"/>
+        <circle cx="${c2.x.toFixed(1)}" cy="${c2.y.toFixed(1)}" r="8" fill="${c.cor}" stroke="#16324A" stroke-width="1"/>
+        <text x="${c2.x.toFixed(1)}" y="${(c2.y+3).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#16324A" font-family="IBM Plex Mono, monospace">${c.numero}</text>`;
+    }).join('');
+    const pxClick = {x:toX(clickPonto.lon), y:toY(clickPonto.lat)};
+    const svgClique = `<g stroke="#00FFFF" stroke-width="1.6">
+      <line x1="${(pxClick.x-6).toFixed(1)}" y1="${pxClick.y.toFixed(1)}" x2="${(pxClick.x+6).toFixed(1)}" y2="${pxClick.y.toFixed(1)}"/>
+      <line x1="${pxClick.x.toFixed(1)}" y1="${(pxClick.y-6).toFixed(1)}" x2="${pxClick.x.toFixed(1)}" y2="${(pxClick.y+6).toFixed(1)}"/>
+      <circle cx="${pxClick.x.toFixed(1)}" cy="${pxClick.y.toFixed(1)}" r="9" fill="none"/>
+    </g>`;
+    return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="display:block; background:#0F2436; border-radius:6px;">
+      ${svgImovel}${svgCandidatos}${svgClique}
+    </svg>`;
+  }
+
+  // Clique no mapa: acha TODOS os confrontantes cuja geometria realmente contém o ponto clicado
+  // (não só o que o navegador "acertou" visualmente por estar por cima), destaca todos em ciano
+  // enquanto o popup estiver aberto, e monta um popup único com o croqui + a lista deles, cada um
+  // com um rádio de seleção — escolhido um, o botão no fim do popup atribui esse como confrontante.
+  function handleMapaCliqueSobreposicao(e){
+    if(!_mapaEncontradosAtual || !_mapaEncontradosAtual.length || !_mapaUltimoContexto) return;
+    const clickPt = {x:e.latlng.lng, y:e.latlng.lat};
+    const indicesEncontrados = [];
+    _mapaEncontradosAtual.forEach((r, idx)=>{
+      if(!r.pontosGeo || r.pontosGeo.length<3) return;
+      const poly = r.pontosGeo.map(p=>({x:p.lon, y:p.lat}));
+      if(pontoDentroPoligono(clickPt, poly)) indicesEncontrados.push(idx);
+    });
+    if(!indicesEncontrados.length) return; // clique em área sem nenhum confrontante — nada a mostrar
+
+    // Fecha qualquer popup de sobreposição já aberto ANTES de aplicar o novo destaque. O Leaflet
+    // fecha sozinho o popup anterior ao abrir um novo (autoClose), o que dispara 'popupclose' —
+    // e o handler de 'popupclose' reverte os polígonos destacados usando o valor ATUAL de
+    // _mapaIdxDestacadosAtual. Se isso acontecesse DEPOIS de já termos marcado os novos índices
+    // (como abrir o popup só no fim desta função faria), o fechamento do popup antigo apagaria
+    // por engano o destaque recém-aplicado do clique novo. Fechando explicitamente aqui, o
+    // 'popupclose' reverte só o destaque ANTIGO, antes de _mapaIdxDestacadosAtual ser sobrescrito.
+    _mapaConfrontantesInstancia.closePopup();
+
+    _mapaIdxDestacadosAtual = indicesEncontrados.slice();
+    indicesEncontrados.forEach(i=>{ const p=_mapaPoligonosPorIndice[i]; if(p){ p.setStyle(MAPA_CONFRONTANTE_SELECIONADO); p.bringToFront(); } });
+
+    const candidatos = indicesEncontrados.map((idx,i)=>({
+      idx, r:_mapaEncontradosAtual[idx], cor:MAPA_CROQUI_PALETA[i % MAPA_CROQUI_PALETA.length], numero:i+1,
+    }));
+
+    const {imovel, zona, sul} = _mapaUltimoContexto;
+    const listaImovel = marcosOrdenados(imovel.id);
+    const anelImovel = listaImovel.map(m=>utmParaLatLon(m.coordE, m.coordN, zona, sul));
+    const clickLonLat = {lon:clickPt.x, lat:clickPt.y};
+    const svg = svgCroquiSobreposicao(anelImovel, candidatos, clickLonLat);
+
+    const listaHtml = candidatos.map(c=>{
+      const r = c.r;
+      const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Confrontante (SIGEF)');
+      return `<label style="display:flex; align-items:flex-start; gap:6px; margin-top:7px; cursor:pointer;">
+        <input type="radio" name="croqui-sel" value="${c.idx}" ${candidatos.length===1?'checked':''} style="margin-top:4px; accent-color:${c.cor};">
+        <span style="font-size:0.86rem;">
+          <span style="display:inline-block; width:10px; height:10px; background:${c.cor}; border-radius:2px; margin-right:4px; vertical-align:middle;"></span>
+          <strong>${c.numero}. ${escXml(nomeExibicao)}</strong>${r.camadaLabel? ` <span style="opacity:0.75; font-size:0.78rem;">(${escXml(r.camadaLabel)})</span>`:''}
+          ${r.parcela? `<br><span style="opacity:0.8;">Parcela SIGEF: ${escXml(r.parcela)}</span>`:''}
+        </span>
+      </label>`;
+    }).join('');
+
+    const html = `<div style="min-width:260px; max-width:320px;">
+      <strong>${indicesEncontrados.length>1? indicesEncontrados.length+' polígonos sobrepostos nesse ponto' : '1 polígono nesse ponto'}</strong>
+      <div style="margin:8px 0;">${svg}</div>
+      <div class="note" style="margin:0 0 2px;">Escolha qual será atribuído como confrontante:</div>
+      ${listaHtml}
+      <button type="button" class="btn btn-sm btn-primary" style="margin-top:10px; width:100%;" onclick="window._mapaAtribuirDoCroqui()">Atribuir confrontante selecionado</button>
+    </div>`;
+
+    L.popup({maxWidth:340}).setLatLng(e.latlng).setContent(html).openOn(_mapaConfrontantesInstancia);
+  }
+  window._mapaAtribuirDoCroqui = function(){
+    const sel = document.querySelector('input[name="croqui-sel"]:checked');
+    if(!sel){ showToast('Selecione um dos polígonos na lista antes de atribuir.'); return; }
+    window._mapaAtribuirDoResultado(Number(sel.value));
+  };
+
   // Desenha o polígono do imóvel de referência (a partir dos marcos/vértices já cadastrados,
   // convertidos de UTM para lat/lon) — cada LADO desenhado com sua própria cor: verde se já tem
   // confrontante atribuído (do SIGEF ou manual), amarelo tracejado se ainda não tem (clicável pra
@@ -10179,7 +10313,8 @@ function exportPDF(scene, sheet, filename) {
     const map = garantirMapaCriado();
     _mapaCamadaImovel.clearLayers();
     _mapaCamadaConfrontantes.clearLayers();
-    _mapaPoligonoSelecionado = null; // as camadas antigas já foram removidas do mapa acima
+    _mapaPoligonosPorIndice = []; // as camadas antigas já foram removidas do mapa acima
+    _mapaIdxDestacadosAtual = [];
     const todosOsBounds = [];
     _mapaUltimoContexto = {imovel, zona, sul};
     _mapaEncontradosAtual = encontrados || [];
@@ -10199,7 +10334,11 @@ function exportPDF(scene, sheet, filename) {
         const linha = L.polyline([a.latlng, b.latlng], temConfrontante
           ? { color:'#7C8B5A', weight:5 }
           : { color:'#E0C36B', weight:4, dashArray:'6,6' });
-        linha.on('click', ()=>{
+        linha.on('click', (evClique)=>{
+          // Sem isso, o clique também borbulharia pro handler de clique do MAPA (usado pra achar
+          // sobreposição de confrontantes) — como um lado do imóvel costuma ficar bem em cima de
+          // algum confrontante encontrado, os dois popups disputariam o mesmo clique.
+          L.DomEvent.stopPropagation(evClique);
           const mAtual = state.marcos.find(x=>x.id===a.marco.id) || a.marco;
           const jaTem = !!(mAtual.confrontante && mAtual.confrontante.trim());
           const html = jaTem
@@ -10218,42 +10357,14 @@ function exportPDF(scene, sheet, filename) {
     (encontrados||[]).forEach((r,idx)=>{
       if(!r.pontosGeo || r.pontosGeo.length<3) return;
       const anel = r.pontosGeo.map(p=>[p.lat, p.lon]);
-      const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Confrontante (SIGEF)');
       const poligono = L.polygon(anel, MAPA_CONFRONTANTE_ESTILO);
-      const linhasPopup = [
-        `<strong>${escXml(nomeExibicao)}</strong>`,
-        r.camadaLabel? `<span style="opacity:0.8;">${escXml(r.camadaLabel)}</span>` : '',
-        r.parcela? `Parcela SIGEF: ${escXml(r.parcela)}` : '',
-        r.situacao? `Situação: ${escXml(r.situacao)}` : '',
-        r.codImovel? `Código do imóvel: ${escXml(r.codImovel)}` : '',
-        r.matricula? `Matrícula: ${escXml(r.matricula)}` : '',
-        (r.municipio||r.uf)? `${escXml(r.municipio||'—')}${r.uf? '/'+escXml(r.uf):''}` : '',
-        `<button type="button" class="btn btn-sm btn-primary" style="margin-top:6px;" onclick="window._mapaAtribuirDoResultado(${idx})">Atribuir este confrontante ao(s) lado(s) tocado(s)</button>`,
-      ].filter(Boolean);
-      poligono.bindPopup(linhasPopup.join('<br>'));
-      // Clique seleciona o polígono (destaca em ciano) — clicar num outro devolve o anterior pro
-      // vermelho normal antes de destacar o novo; clicar de novo no mesmo, ou fechar o popup,
-      // desfaz a seleção. Isso deixa claro qual confrontante está "ativo" quando há vários
-      // próximos uns dos outros no mapa.
-      poligono.on('click', ()=>{
-        if(_mapaPoligonoSelecionado && _mapaPoligonoSelecionado!==poligono){
-          _mapaPoligonoSelecionado.setStyle(MAPA_CONFRONTANTE_ESTILO);
-        }
-        if(_mapaPoligonoSelecionado===poligono){
-          poligono.setStyle(MAPA_CONFRONTANTE_ESTILO);
-          _mapaPoligonoSelecionado = null;
-        } else {
-          poligono.setStyle(MAPA_CONFRONTANTE_SELECIONADO);
-          poligono.bringToFront();
-          _mapaPoligonoSelecionado = poligono;
-        }
-      });
-      poligono.on('popupclose', ()=>{
-        if(_mapaPoligonoSelecionado===poligono){
-          poligono.setStyle(MAPA_CONFRONTANTE_ESTILO);
-          _mapaPoligonoSelecionado = null;
-        }
-      });
+      // Sem popup/clique próprios aqui de propósito: quando dois confrontantes se sobrepõem no
+      // mapa, um clique só "acerta" (no sentido do DOM) o polígono desenhado por cima, então cada
+      // um tratando seu próprio clique nunca revelaria os outros embaixo. Por isso o clique é
+      // tratado uma única vez, no nível do MAPA (handleMapaCliqueSobreposicao, ligado em
+      // garantirMapaCriado), que testa a geometria de TODOS os confrontantes contra o ponto
+      // clicado e mostra todos os que realmente contêm aquele ponto — não só o de cima.
+      _mapaPoligonosPorIndice[idx] = poligono;
       _mapaCamadaConfrontantes.addLayer(poligono);
       todosOsBounds.push(...anel);
     });
