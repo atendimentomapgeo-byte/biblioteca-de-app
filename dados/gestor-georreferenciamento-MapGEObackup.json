@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-22T01:29:21.663Z",
+  "exportadoEm": "2026-09-22T01:31:04.389Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -1165,42 +1165,45 @@
       "imovelId": "mubtvq4hlmoh6",
       "tipo": "V",
       "ordem": 52,
-      "confrontante": "",
+      "confrontante": "Teste",
       "confrontanteImovelId": null,
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 797422.076,
-      "coordN": 8261866.503
+      "coordN": 8261866.503,
+      "confrontanteOrigem": "manual"
     },
     {
       "id": "mubtvq4jod9ep",
       "imovelId": "mubtvq4hlmoh6",
       "tipo": "V",
       "ordem": 51,
-      "confrontante": "",
+      "confrontante": "Teste",
       "confrontanteImovelId": null,
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 797529.922,
-      "coordN": 8261591.334
+      "coordN": 8261591.334,
+      "confrontanteOrigem": "manual"
     },
     {
       "id": "mubtvq4jtu7j1",
       "imovelId": "mubtvq4hlmoh6",
       "tipo": "V",
       "ordem": 50,
-      "confrontante": "",
+      "confrontante": "Teste",
       "confrontanteImovelId": null,
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 797736.975,
-      "coordN": 8261167.905
+      "coordN": 8261167.905,
+      "confrontanteOrigem": "manual"
     },
     {
       "id": "mubtvq4j5y4hy",
