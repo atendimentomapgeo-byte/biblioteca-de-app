@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-22T22:38:56.352Z",
+  "exportadoEm": "2026-09-22T22:43:13.388Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -333,14 +333,15 @@
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "V",
       "ordem": 12,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Lote nº 412",
+      "confrontanteImovelId": "mud99cbx736lj",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 512958.09,
-      "coordN": 8755589.855
+      "coordN": 8755589.855,
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud8pxpkz84nf",
