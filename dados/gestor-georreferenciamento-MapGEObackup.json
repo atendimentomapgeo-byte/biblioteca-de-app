@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-22T01:17:08.492Z",
+  "exportadoEm": "2026-09-22T01:18:55.240Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -134,6 +134,32 @@
       "utmZona": "21S",
       "kmlRaw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n<Document>\n\t<name>terreno</name>\n\t<visibility>0</visibility>\n\t<Placemark id=\"1EC12C5A6641EFF2D1EC\">\n\t\t<name>terreno</name>\n\t\t<Polygon>\n\t\t\t<outerBoundaryIs>\n\t\t\t\t<LinearRing>\n\t\t\t\t\t<coordinates>\n\t\t\t\t\t\t-55.78133765329426,-15.38517406444968,0 -55.78055322719554,-15.38471879349945,0 -55.78083008346567,-15.38423830912298,0 -55.78159605247973,-15.38457642787385,0 -55.78133765329426,-15.38517406444968,0 \n\t\t\t\t\t</coordinates>\n\t\t\t\t</LinearRing>\n\t\t\t</outerBoundaryIs>\n\t\t</Polygon>\n\t</Placemark>\n</Document>\n</kml>\n",
       "kmlNomeArquivo": "terreno.kml"
+    },
+    {
+      "id": "mubzijby4xgvu",
+      "nome": "AIR PLANTA MEMORIAL",
+      "matricula": "1.148",
+      "area": "633.5195",
+      "municipio": "",
+      "uf": "MT",
+      "comarca": "",
+      "proprietarioId": "mu9rkac9j1gyd",
+      "tecnicoId": "mu9rdh0lr8c6a",
+      "artTipo": "TRT",
+      "art": "123321123321",
+      "datum": "SIRGAS2000",
+      "perimetro": "10098.42",
+      "utmZona": "21S",
+      "codigoIncra": "",
+      "leiDecreto": "",
+      "parcelaSigef": "",
+      "parcelaSigefSituacao": "",
+      "sigefDataCertificacao": "",
+      "sigefResponsavelTecnico": "",
+      "simcar": "",
+      "simcarSituacao": "",
+      "kmlRaw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n<Document>\n\t<name>AIR_PLANTA_MEMORIAL.kmz</name>\n\t<Style id=\"area1\">\n\t\t<LineStyle>\n\t\t\t<color>ff0065cc</color>\n\t\t</LineStyle>\n\t\t<PolyStyle>\n\t\t\t<color>bf007fff</color>\n\t\t</PolyStyle>\n\t</Style>\n\t<Folder>\n\t\t<name>Area Features</name>\n\t\t<description>Area Features</description>\n\t\t<Placemark>\n\t\t\t<description>Unknown Area Type</description>\n\t\t\t<styleUrl>#area1</styleUrl>\n\t\t\t<Polygon>\n\t\t\t\t<extrude>1</extrude>\n\t\t\t\t<altitudeMode>relativeToGround</altitudeMode>\n\t\t\t\t<outerBoundaryIs>\n\t\t\t\t\t<LinearRing>\n\t\t\t\t\t\t<coordinates>\n\t\t\t\t\t\t\t-54.54169056,-12.38228556,0 -54.56315222000001,-12.38569167,0 -54.56462167,-12.38592417,0 -54.56100972,-12.40861806,0 -54.539332026,-12.406159227,0 -54.54100222,-12.39119639,0 -54.54169056,-12.38228556,0 \n\t\t\t\t\t\t</coordinates>\n\t\t\t\t\t</LinearRing>\n\t\t\t\t</outerBoundaryIs>\n\t\t\t</Polygon>\n\t\t</Placemark>\n\t</Folder>\n</Document>\n</kml>\n",
+      "kmlNomeArquivo": "AIR_PLANTA_MEMORIAL.kml"
     }
   ],
   "marcos": [
@@ -16684,6 +16710,90 @@
       "codigoCompleto": null,
       "coordE": 630759.005,
       "coordN": 8298768.541
+    },
+    {
+      "id": "mubzijc01fum7",
+      "imovelId": "mubzijby4xgvu",
+      "tipo": "V",
+      "ordem": 1,
+      "confrontante": "",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 767301.295,
+      "coordN": 8629943.199
+    },
+    {
+      "id": "mubzijc0set9v",
+      "imovelId": "mubzijby4xgvu",
+      "tipo": "V",
+      "ordem": 6,
+      "confrontante": "",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 764962.954,
+      "coordN": 8629587.637
+    },
+    {
+      "id": "mubzijc0onppi",
+      "imovelId": "mubzijby4xgvu",
+      "tipo": "V",
+      "ordem": 5,
+      "confrontante": "",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 764802.855,
+      "coordN": 8629563.365
+    },
+    {
+      "id": "mubzijc0zft2a",
+      "imovelId": "mubzijby4xgvu",
+      "tipo": "V",
+      "ordem": 4,
+      "confrontante": "",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 765172.838,
+      "coordN": 8627048.18
+    },
+    {
+      "id": "mubzijc0u2ie6",
+      "imovelId": "mubzijby4xgvu",
+      "tipo": "V",
+      "ordem": 3,
+      "confrontante": "",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 767533.52,
+      "coordN": 8627298.63
+    },
+    {
+      "id": "mubzijc0u152k",
+      "imovelId": "mubzijby4xgvu",
+      "tipo": "V",
+      "ordem": 2,
+      "confrontante": "",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 767367.098,
+      "coordN": 8628956.309
     }
   ],
   "tiposRegistro": [
