@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-22T01:21:54.577Z",
+  "exportadoEm": "2026-09-22T01:25:24.642Z",
   "proprietarios": [
     {
       "id": "mu9rkac9j1gyd",
@@ -42,11 +42,11 @@
     {
       "id": "mubtvq4hlmoh6",
       "nome": "FAZENDA S O PEDRO I II E III",
-      "matricula": "",
+      "matricula": "11791, 11792 e 11771",
       "area": "1001.8814",
-      "municipio": "Poxoréu",
+      "municipio": "Primavera do Leste",
       "uf": "MT",
-      "comarca": "",
+      "comarca": "Primavera do Leste",
       "proprietarioId": "",
       "tecnicoId": "mu9rdh0lr8c6a",
       "artTipo": "ART",
@@ -57,7 +57,7 @@
       "codigoIncra": "",
       "leiDecreto": "",
       "parcelaSigef": "",
-      "parcelaSigefSituacao": "",
+      "parcelaSigefSituacao": "Registrado",
       "sigefDataCertificacao": "",
       "sigefResponsavelTecnico": "",
       "simcar": "",
