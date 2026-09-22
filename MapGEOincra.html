@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.6 — Corrigido aviso de importação KML que ficava preso no imóvel antigo após editar e salvar</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-21.7 — Consulta ao INCRA agora busca todas as 8 camadas do i3Geo (SIGEF, SNCI, parcelageo, assentamentos, reconhecimento, quilombolas), não só as 2 do SIGEF</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1839,7 +1839,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <summary style="cursor:pointer; font-family:'Space Grotesk',sans-serif; color:var(--brass-light); font-weight:600; letter-spacing:0.03em;">Ferramenta avançada — consultar confrontantes no SIGEF (resultados em cards)</summary>
       <div style="margin-top:14px;">
         <div class="note" style="margin-top:0;">
-          Compara o polígono do imóvel selecionado com a malha de parcelas certificadas do INCRA (camada <code>certificada_sigef_particular_&lt;uf&gt;</code> / <code>certificada_sigef_publico_&lt;uf&gt;</code>) e sugere, lado a lado, quem são os confrontantes — pronto para atribuir aos marcos com um clique. Escolha uma das duas opções abaixo.
+          Compara o polígono do imóvel selecionado com todas as camadas do Acervo Fundiário/i3Geo do INCRA (<code>certificada_sigef_particular</code>, <code>certificada_sigef_publico</code>, <code>imoveiscertificados_privado</code>, <code>imoveiscertificados_publico</code>, <code>parcelageo</code>, <code>assentamentos</code>, <code>reconhecimento</code> e <code>quilombolas</code>, cada uma pelo estado — <code>&lt;uf&gt;</code> — do imóvel) e sugere, lado a lado, quem são os confrontantes, com a origem (camada) de cada um indicada — pronto para atribuir aos marcos com um clique. Escolha uma das duas opções abaixo.
         </div>
         <div class="field" style="max-width:240px;"><label>Tolerância de divisa (metros)</label><input type="number" id="sigef-tolerancia" value="5" min="0.5" max="50" step="0.5"></div>
 
@@ -4645,6 +4645,8 @@ function compararGeometriasComImovel(geometrias, lista, zona, sul, tolerancia){
         art: pegarAtributoSigef(geo.atributos, ['art']),
         dataCertificacao: pegarAtributoSigef(geo.atributos, ['data_aprovacao','data_submissao','data_cert','data_certificacao','dt_cert','datacertif']),
         responsavelTecnico: pegarAtributoSigef(geo.atributos, ['rt','responsav','responsavel_tecnico','resp_tec','tecnico']),
+        camadaOrigem: geo.origemCamada || null,
+        camadaLabel: rotuloCamadaSigef(geo.origemCamada),
         atributosBrutos: geo.atributos || {},
         // Guarda a geometria original em lon/lat (a mesma vinda do WFS/shapefile, antes de
         // converter pra UTM) — é o que a aba "Consultar Confrontantes" usa pra desenhar o
@@ -4740,14 +4742,39 @@ function parseGML(xmlText){
 // chamar o WFS do INCRA diretamente (o servidor do INCRA não devolve cabeçalhos CORS), então a
 // requisição passa por esse proxy, que repassa a resposta com os cabeçalhos corretos.
 const SIGEF_CORS_PROXY = 'https://mapgeo-cors-proxy.fagner-agri.workers.dev/?url=';
-// Busca ao vivo, por WFS, nas camadas públicas do INCRA (particular + pública) do estado do
-// imóvel, filtrando por um retângulo (BBOX) em volta do polígono — evita ter que baixar/importar
-// a malha manualmente. Pode falhar por instabilidade do servidor do INCRA ou do proxy: quando
-// isso acontece, cada tentativa fica registrada em falhas[] pra explicar ao usuário e ele pode
-// cair pra opção de importar o arquivo manualmente logo abaixo.
+// Todas as camadas do i3Geo/Acervo Fundiário do INCRA que respondem no mesmo padrão de URL
+// "ogc.php?tema=<camada>_<uf>" (documentado publicamente, ex.: forest-gis.com/dados-geoincra) —
+// as 2 primeiras (SIGEF) já eram consultadas antes; as demais (sistema antigo de certificação,
+// parcelas em processamento e áreas especiais) foram incluídas a pedido, pra cobrir todo tipo de
+// confrontante que o acervo do INCRA pode ter. Terras indígenas e unidades de conservação NÃO
+// entraram aqui porque não achamos uma camada própria delas nesse mesmo endpoint do INCRA (podem
+// só existir como camada de visualização dentro do i3Geo, sem WFS próprio) — se o INCRA vier a
+// expor uma, é só adicionar a base aqui embaixo.
+const SIGEF_CAMADAS_BASE = ['certificada_sigef_particular','certificada_sigef_publico','imoveiscertificados_privado','imoveiscertificados_publico','parcelageo','assentamentos','reconhecimento','quilombolas'];
+const SIGEF_CAMADAS_LABEL = {
+  certificada_sigef_particular: 'Imóvel certificado (SIGEF, particular)',
+  certificada_sigef_publico: 'Imóvel certificado (SIGEF, público)',
+  imoveiscertificados_privado: 'Imóvel certificado (sistema antigo/SNCI, particular)',
+  imoveiscertificados_publico: 'Imóvel certificado (sistema antigo/SNCI, público)',
+  parcelageo: 'Parcela georreferenciada (SIGEF, em processamento)',
+  assentamentos: 'Assentamento (INCRA)',
+  reconhecimento: 'Território em reconhecimento',
+  quilombolas: 'Território quilombola',
+};
+function rotuloCamadaSigef(origemCamada){
+  if(!origemCamada) return null;
+  const base = origemCamada.replace(/_[a-z]{2}$/,'');
+  return SIGEF_CAMADAS_LABEL[base] || origemCamada;
+}
+// Busca ao vivo, por WFS, em todas as camadas do INCRA listadas em SIGEF_CAMADAS_BASE, pro
+// estado do imóvel, filtrando por um retângulo (BBOX) em volta do polígono — evita ter que
+// baixar/importar a malha manualmente. Pode falhar por instabilidade do servidor do INCRA ou do
+// proxy: quando isso acontece, cada tentativa fica registrada em falhas[] pra explicar ao usuário
+// e ele pode cair pra opção de importar o arquivo manualmente logo abaixo. Como cada camada é uma
+// requisição separada, uma falhar não impede as outras de responder normalmente.
 async function buscarWFSIncra(uf, minLon, minLat, maxLon, maxLat){
   const ufMin = uf.toLowerCase();
-  const camadas = [`certificada_sigef_particular_${ufMin}`, `certificada_sigef_publico_${ufMin}`];
+  const camadas = SIGEF_CAMADAS_BASE.map(base=>`${base}_${ufMin}`);
   const geometrias = [];
   const falhas = [];
   for(const camada of camadas){
@@ -4772,7 +4799,9 @@ async function buscarWFSIncra(uf, minLon, minLat, maxLon, maxLat){
       let fc;
       try{ fc = parseGML(rawText); }
       catch(parseErr){ throw new Error('Não foi possível interpretar a resposta GML do INCRA: ' + (parseErr.message||parseErr) + '. Início da resposta: ' + rawText.slice(0,200)); }
-      geometrias.push(...geoJsonParaGeometrias(fc));
+      const novasGeometrias = geoJsonParaGeometrias(fc);
+      novasGeometrias.forEach(g=>{ g.origemCamada = camada; });
+      geometrias.push(...novasGeometrias);
     }catch(e){
       falhas.push({camada, erro: e.message||String(e)});
     }finally{
@@ -4846,11 +4875,18 @@ function marcoInfoPorId(lista){
   codigosPorTipo(lista).forEach(m=>{ mapa[m.id] = {codigo: m.codigo, tipo: m.tipo}; });
   return mapa;
 }
+// Junta uma lista de textos em português com vírgulas e "e" antes do último item (em vez de só
+// " e " entre todos), pra ficar legível mesmo com as 8 camadas do INCRA — "X, Y e Z" em vez de
+// "X e Y e Z".
+function listarComE(itens){
+  if(itens.length<=1) return itens.join('');
+  return itens.slice(0,-1).join(', ') + ' e ' + itens[itens.length-1];
+}
 function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, falhasWfs, marcoInfo){
   const el = document.getElementById('sigef-confrontantes-resultado');
   marcoInfo = marcoInfo || {};
   const avisoFalhas = (falhasWfs && falhasWfs.length)
-    ? `<div class="note" style="color:#b23b3b;">Atenção: a camada ${falhasWfs.map(f=>escXml(f.camada)).join(' e ')} não respondeu (${falhasWfs.map(f=>escXml(f.erro)).join(' | ')}) — os resultados abaixo podem estar incompletos.</div>`
+    ? `<div class="note" style="color:#b23b3b;">Atenção: a${falhasWfs.length>1?'s camadas':' camada'} ${listarComE(falhasWfs.map(f=>escXml(f.camada)))} não respond${falhasWfs.length>1?'eram':'eu'} (${falhasWfs.map(f=>escXml(f.erro)).join(' | ')}) — os resultados abaixo podem estar incompletos.</div>`
     : '';
   const badgesLados = ids => ids.map(id=>{
     const info = marcoInfo[id] || {codigo:'?', tipo:'M'};
@@ -4875,7 +4911,7 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
         return `<div class="card" style="background:var(--navy-light); border:1px solid var(--brass); margin-top:8px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
             <div style="min-width:200px;">
-              <strong>${escXml(nomeExibicao)}</strong>
+              <strong>${escXml(nomeExibicao)}</strong>${r.camadaLabel? ` <span class="badge" style="font-size:0.68rem; font-weight:400; vertical-align:middle;">${escXml(r.camadaLabel)}</span>`:''}
               <div style="font-size:0.82rem; color:var(--chalk-dim); margin-top:4px;">
                 ${r.parcela? `Parcela SIGEF: ${escXml(r.parcela)}<br>`:''}
                 ${r.situacao? `Situação: ${escXml(r.situacao)}<br>`:''}
@@ -10177,6 +10213,7 @@ function exportPDF(scene, sheet, filename) {
       const poligono = L.polygon(anel, { color:'#D64A4A', weight:2, fillColor:'#D64A4A', fillOpacity:0.18 });
       const linhasPopup = [
         `<strong>${escXml(nomeExibicao)}</strong>`,
+        r.camadaLabel? `<span style="opacity:0.8;">${escXml(r.camadaLabel)}</span>` : '',
         r.parcela? `Parcela SIGEF: ${escXml(r.parcela)}` : '',
         r.situacao? `Situação: ${escXml(r.situacao)}` : '',
         r.codImovel? `Código do imóvel: ${escXml(r.codImovel)}` : '',
