@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-22T22:34:00.051Z",
+  "exportadoEm": "2026-09-22T22:35:04.536Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -64,17 +64,27 @@
     },
     {
       "id": "mud93vdrk068q",
-      "nome": "Chao de estrelas",
-      "matricula": "",
+      "nome": "Fazenda Chão de Estrelas - Lote nº 450",
+      "matricula": "494",
       "area": "204.9929",
-      "municipio": "",
-      "uf": "",
-      "comarca": "",
-      "proprietarioId": "",
-      "tecnicoId": "",
+      "municipio": "Tabaporã",
+      "uf": "MT",
+      "comarca": "Tabaporã",
+      "proprietarioId": "mud8xhloqw8e6",
+      "tecnicoId": "mud8zucjrpduy",
+      "artTipo": "TRT",
+      "art": "Não possui ainda",
       "datum": "SIRGAS2000",
       "perimetro": "8400.40",
-      "utmZona": "21S"
+      "utmZona": "21S",
+      "codigoIncra": "",
+      "leiDecreto": "",
+      "parcelaSigef": "",
+      "parcelaSigefSituacao": "",
+      "sigefDataCertificacao": "",
+      "sigefResponsavelTecnico": "",
+      "simcar": "",
+      "simcarSituacao": ""
     }
   ],
   "marcos": [
