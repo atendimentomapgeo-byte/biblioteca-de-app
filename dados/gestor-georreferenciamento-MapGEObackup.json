@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-23T02:07:03.369Z",
+  "exportadoEm": "2026-09-23T02:10:09.108Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -221,7 +221,9 @@
       "codigoCompleto": null,
       "coordE": 511726.783,
       "coordN": 8754958.796,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": 76.71291904669019,
+      "rotOffConfN": 47.40616357769396
     },
     {
       "id": "mud8pxpknnlq4",
