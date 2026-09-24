@@ -168,6 +168,17 @@
       redimensionarMapaInterno();
       window.addEventListener('resize', redimensionarMapaInterno);
       window.addEventListener('orientationchange', redimensionarMapaInterno);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', redimensionarMapaInterno);
+      }
+      // Reconfere a medida logo depois do carregamento inicial: se a
+      // primeira medição (linha acima) aconteceu antes da tela "assentar"
+      // de vez (ex.: cálculo de área segura do Safari ainda em transição),
+      // o #map-inner podia ficar permanentemente menor que a tela até um
+      // resize/rotação acontecer — deixando o fundo escuro do próprio mapa
+      // (sem tiles) visível como uma faixa em cima e/ou embaixo.
+      setTimeout(redimensionarMapaInterno, 300);
+      setTimeout(redimensionarMapaInterno, 1200);
 
       map = L.map('map-inner', {
         center: DEFAULT_CENTER,
