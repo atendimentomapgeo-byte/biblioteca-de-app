@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v44';
+  const APP_BUILD_VERSION = 'v46';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -438,8 +438,19 @@
           MapModule.followPosition(data.lat, data.lon);
         }
       } else if (event === 'error') {
-        $('gps-status-text').textContent = 'GPS indisponível';
-        $('gps-dot').className = 'fg-dot unknown';
+        // Erros passageiros (ex.: timeout pontual) podem disparar aqui mesmo
+        // com o GPS funcionando normalmente, entre uma leitura e outra. Só
+        // mostramos "indisponível" quando realmente não há mais uma posição
+        // recente e confiável — senão a badge ficava contraditória: dizendo
+        // "indisponível" em vermelho enquanto ainda mostrava coordenadas e
+        // precisão boas na linha de baixo.
+        const ultima = GPS.getLastPosition();
+        const recente = ultima && Date.now() - ultima.timestamp < 15000;
+        if (!recente) {
+          $('gps-status-text').textContent = 'GPS indisponível';
+          $('gps-dot').className = 'fg-dot unknown';
+          $('gps-acc-text').textContent = '';
+        }
       }
     });
     GPS.start();
