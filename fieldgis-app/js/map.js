@@ -63,19 +63,32 @@
    */
   function redimensionarMapaInterno() {
     if (!viewportEl || !innerEl) return;
+    if (!rotacaoAtiva) {
+      // Sem rotação (o caso comum): usa CSS puro (inset:0) pra preencher a
+      // tela exatamente, sem depender de nenhuma medição em JavaScript —
+      // elimina de vez qualquer risco de calcular a altura errada por causa
+      // de timing (ex.: medir antes da área segura/viewport dinâmico do
+      // Safari terminar de se ajustar), que podia deixar uma faixa do fundo
+      // do mapa (sem tiles) visível em cima e/ou embaixo da tela.
+      innerEl.style.width = '';
+      innerEl.style.height = '';
+      innerEl.style.top = '';
+      innerEl.style.left = '';
+      innerEl.style.transform = '';
+      innerEl.classList.add('fg-map-inner-fit');
+      if (map) map.invalidateSize();
+      return;
+    }
+    innerEl.classList.remove('fg-map-inner-fit');
     const w = viewportEl.clientWidth;
     const h = viewportEl.clientHeight;
-    let novaW = w;
-    let novaH = h;
-    if (rotacaoAtiva) {
-      // +12% de folga sobre a diagonal exata, evitando qualquer costura
-      // visível nas bordas por arredondamento/antialiasing.
-      const diagonal = Math.ceil(Math.sqrt(w * w + h * h) * 1.12);
-      novaW = diagonal;
-      novaH = diagonal;
-    }
-    innerEl.style.width = `${novaW}px`;
-    innerEl.style.height = `${novaH}px`;
+    // +12% de folga sobre a diagonal exata, evitando qualquer costura
+    // visível nas bordas por arredondamento/antialiasing.
+    const diagonal = Math.ceil(Math.sqrt(w * w + h * h) * 1.12);
+    innerEl.style.width = `${diagonal}px`;
+    innerEl.style.height = `${diagonal}px`;
+    innerEl.style.top = '50%';
+    innerEl.style.left = '50%';
     aplicarTransformInner();
     if (map) map.invalidateSize();
   }

@@ -208,6 +208,16 @@ label {
     linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+/* Caso comum (rotação por bússola desligada): preenche #map exatamente via
+   CSS puro, sem nenhuma medição em JavaScript — imune a qualquer erro de
+   timing na hora de calcular a altura real da tela (ver redimensionarMapaInterno
+   em map.js). #map-inner.fg-map-inner-fit tem mais especificidade que a
+   regra base acima (ID + classe vs. só ID), então sempre vence. */
+#map-inner.fg-map-inner-fit {
+  inset: 0;
+  top: 0;
+  left: 0;
+}
 .leaflet-container { background: #0c1015; font-family: inherit; }
 
 /* Sem transição de propósito: a rotação da seta precisa ficar perfeitamente
