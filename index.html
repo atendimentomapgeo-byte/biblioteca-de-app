@@ -78,6 +78,25 @@
   #status.ok { color: #7fd88f; }
   #status.erro { color: #e0678a; }
 
+  #btnAtualizar {
+    background: #1b2734;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 7px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  #btnAtualizar:hover { border-color: var(--accent); }
+  #btnAtualizar:disabled { opacity: 0.5; cursor: default; }
+  #btnAtualizar .girando { display: inline-block; animation: girar 0.8s linear infinite; }
+  @keyframes girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
   main { padding: 28px; flex: 1; }
 
   #grid {
@@ -122,6 +141,7 @@
     <input type="text" id="inputBusca" placeholder="Buscar app...">
   </div>
   <div id="status">Carregando...</div>
+  <button id="btnAtualizar" title="Forçar nova busca por apps agora">🔄 Atualizar</button>
 </header>
 
 <main>
@@ -176,6 +196,7 @@ const gridEl = document.getElementById('grid');
 const vazioEl = document.getElementById('vazio');
 const carregandoEl = document.getElementById('carregando');
 const inputBusca = document.getElementById('inputBusca');
+const btnAtualizar = document.getElementById('btnAtualizar');
 
 let todosOsApps = [];
 
@@ -320,6 +341,14 @@ function renderizar() {
 }
 
 inputBusca.addEventListener('input', renderizar);
+
+btnAtualizar.addEventListener('click', async () => {
+  btnAtualizar.disabled = true;
+  btnAtualizar.innerHTML = '<span class="girando">🔄</span> Buscando...';
+  await buscarApps();
+  btnAtualizar.disabled = false;
+  btnAtualizar.innerHTML = '🔄 Atualizar';
+});
 
 buscarApps();
 setInterval(buscarApps, REFRESH_MS);
