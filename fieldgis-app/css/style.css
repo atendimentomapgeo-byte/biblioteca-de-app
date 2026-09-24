@@ -238,7 +238,7 @@ label {
   background: rgba(16, 22, 29, 0.94);
   backdrop-filter: blur(8px);
   border-top: 1px solid var(--fg-border);
-  padding: 8px 6px calc(8px + var(--fg-safe-bottom));
+  padding: 5px 6px calc(4px + var(--fg-safe-bottom));
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -247,14 +247,14 @@ label {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 6px 10px;
+  gap: 2px;
+  padding: 4px 8px;
   border-radius: var(--fg-radius-sm);
-  font-size: 10.5px;
+  font-size: 9.5px;
   color: var(--fg-text-dim);
-  min-width: 54px;
+  min-width: 50px;
 }
-.fg-navbtn .fg-navicon { font-size: 23px; }
+.fg-navbtn .fg-navicon { font-size: 19px; }
 .fg-navbtn.active, .fg-navbtn:active { color: var(--fg-text); background: rgba(255,255,255,0.06); }
 .fg-navbtn.record { color: var(--fg-danger); }
 
@@ -262,7 +262,7 @@ label {
 .fg-fab-locate {
   position: fixed;
   right: 12px;
-  bottom: calc(84px + var(--fg-safe-bottom));
+  bottom: calc(68px + var(--fg-safe-bottom));
   z-index: 500;
   width: 50px; height: 50px;
   border-radius: 50%;
@@ -277,7 +277,7 @@ label {
 .fg-fab-compass {
   position: fixed;
   right: 12px;
-  bottom: calc(146px + var(--fg-safe-bottom));
+  bottom: calc(118px + var(--fg-safe-bottom));
   z-index: 500;
   width: 44px; height: 44px;
   border-radius: 50%;
