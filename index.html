@@ -158,6 +158,7 @@ const GITHUB_BRANCH = 'main';
 const REFRESH_MS = 120000; // reconsulta a cada 2 minutos
 const CACHE_KEY = 'biblioteca-apps-cache';
 const CACHE_MAX_IDADE_MS = 30 * 60 * 1000; // usa cache de até 30min como plano B
+const ETAG_KEY = 'biblioteca-apps-etag'; // ETag da última resposta 200 da API do GitHub
 
 // Apps que moram em subpastas (ex: PWAs com vários arquivos) não são
 // detectados pela varredura automática — adicione-os aqui manualmente.
@@ -175,6 +176,16 @@ const APPS_EXTRAS = [
 ];
 
 const PAGES_BASE = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
+// Listagem da RAIZ do repositório direto na API do GitHub — reflete o conteúdo atual na hora
+// (sem esperar nenhum CDN reindexar nada), então é a fonte PRINCIPAL usada agora. É pública, não
+// precisa de token nenhum pra ler; só tem o limite de 60 requisições/hora por IP sem login — por
+// isso o pedido sempre manda o ETag salvo da última vez (ver buscarApps): quando nada mudou no
+// repositório, o GitHub responde "304 Not Modified" SEM CONSUMIR NADA da cota, então o
+// atualiza-a-cada-2-minutos abaixo praticamente não gasta limite de requisição no dia a dia.
+const GITHUB_CONTENTS_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
+// jsDelivr fica como PLANO B, só se a API do GitHub falhar (rede bloqueando api.github.com,
+// limite de requisição estourado, etc.) — o CDN dele pode demorar bem mais pra refletir um
+// commit novo (é aquele atraso que fazia apps recém-adicionados não aparecerem aqui).
 const JSDELIVR_URL = `https://data.jsdelivr.com/v1/package/gh/${GITHUB_USER}/${GITHUB_REPO}@${GITHUB_BRANCH}/flat`;
 
 const CORES = ['#4b8bf5','#4bc0d9','#7fd88f','#f2b84b','#e0678a','#8f7ff2'];
@@ -238,41 +249,109 @@ function usarCacheComoFallback(motivoErro) {
   return false;
 }
 
+// Nomes de arquivo .html na raiz do repositório, contando como "app" (exclui o próprio index).
+function ehArquivoDeApp(nome) {
+  return /^[^/]+\.html?$/i.test(nome) && !/^index\.html?$/i.test(nome);
+}
+
+function aplicarListaEncontrada(nomes, mensagemOk) {
+  todosOsApps = nomes
+    .map(nome => ({ name: nome }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  salvarCache(todosOsApps);
+  carregandoEl.style.display = 'none';
+  setStatus(mensagemOk, 'ok');
+  renderizar();
+}
+
+// Fonte PRINCIPAL: lista a raiz do repositório direto na API do GitHub (contents), que reflete
+// o commit mais recente na hora — sem o atraso de cache de CDN que fazia apps recém-adicionados
+// não aparecerem. Usa o ETag salvo da consulta anterior pra pedir "só me avisa se mudou algo"
+// (If-None-Match); um 304 de volta não consome nada da cota de 60 req/hora sem login.
+// Retorna true se conseguiu resolver a lista (nova ou "sem mudanças"), false se precisa cair
+// pro plano B (jsDelivr).
+async function buscarViaGithubApi() {
+  const etagSalvo = localStorage.getItem(ETAG_KEY) || '';
+  const headers = { 'Accept': 'application/vnd.github+json' };
+  if (etagSalvo) headers['If-None-Match'] = etagSalvo;
+  const resp = await fetch(GITHUB_CONTENTS_URL, { headers });
+
+  if (resp.status === 304) {
+    // Nada mudou no repositório desde a última vez — mantém a lista atual. Se a tela abriu com
+    // 'todosOsApps' vazio (cache local passou dos 30min e não foi usado pra exibir na hora, mas
+    // o ETag salvo junto com ele continua valendo, já que o servidor acabou de confirmar isso),
+    // recarrega esse mesmo cache em vez de mostrar "0 apps" por engano.
+    if (todosOsApps.length === 0) {
+      const cache = lerCache();
+      if (cache && cache.apps.length > 0) todosOsApps = cache.apps;
+    }
+    carregandoEl.style.display = 'none';
+    setStatus(`${todosOsApps.length} app(s) — sem mudanças no repositório`, 'ok');
+    renderizar();
+    return true;
+  }
+  if (!resp.ok) {
+    // 403 costuma ser limite de requisição estourado (raro, só em uso muito intenso e
+    // simultâneo); 404 seria repositório/branch errado. Em qualquer caso, deixa o jsDelivr
+    // tentar antes de desistir de vez.
+    return false;
+  }
+
+  const etagNovo = resp.headers.get('etag');
+  if (etagNovo) { try { localStorage.setItem(ETAG_KEY, etagNovo); } catch (e) {} }
+
+  const itens = await resp.json();
+  if (!Array.isArray(itens)) return false; // resposta inesperada (ex.: raiz virou um arquivo?)
+
+  const nomes = itens
+    .filter(item => item.type === 'file' && ehArquivoDeApp(item.name))
+    .map(item => item.name);
+
+  aplicarListaEncontrada(nomes, `${nomes.length} app(s) encontrado(s)`);
+  return true;
+}
+
+// Plano B: jsDelivr, só quando a API do GitHub não respondeu (rede bloqueando api.github.com,
+// limite de requisição estourado, etc.) — pode estar desatualizado em relação ao commit mais
+// recente, por isso o aviso deixa isso claro em vez de passar a impressão de que está tudo certo.
+async function buscarViaJsDelivr() {
+  let resp;
+  try {
+    resp = await fetch(JSDELIVR_URL);
+  } catch (e) {
+    throw new Error('Falha ao conectar com o jsDelivr');
+  }
+  if (!resp.ok) {
+    const motivo = resp.status === 404
+      ? 'Repositório ou branch não encontrado'
+      : 'Erro ao consultar o jsDelivr (' + resp.status + ')';
+    throw new Error(motivo);
+  }
+  const dados = await resp.json();
+  const arquivos = Array.isArray(dados.files) ? dados.files : [];
+  const nomes = arquivos
+    // jsDelivr retorna caminhos com "/" na frente; nome de exibição sem a barra
+    .map(f => f.name.replace(/^\//, ''))
+    .filter(ehArquivoDeApp);
+  aplicarListaEncontrada(nomes, `${nomes.length} app(s) encontrado(s) (via jsDelivr — pode estar até algumas horas desatualizado)`);
+}
+
 async function buscarApps() {
   try {
-    const resp = await fetch(JSDELIVR_URL);
-    if (!resp.ok) {
-      let motivo;
-      if (resp.status === 404) {
-        motivo = 'Repositório ou branch não encontrado';
-      } else {
-        motivo = 'Erro ao consultar o jsDelivr (' + resp.status + ')';
-      }
-      if (!usarCacheComoFallback(motivo)) {
-        setStatus(motivo, 'erro');
-        carregandoEl.style.display = 'none';
-        renderizar();
-      }
-      return;
-    }
-    const dados = await resp.json();
-    const arquivos = Array.isArray(dados.files) ? dados.files : [];
-
-    todosOsApps = arquivos
-      // jsDelivr retorna caminhos com "/" na frente; nome de exibição sem a barra
-      .map(f => ({ name: f.name.replace(/^\//, '') }))
-      // só arquivos .html na raiz (sem subpasta) e sem ser o index.html
-      .filter(f => /^[^/]+\.html?$/i.test(f.name) && !/^index\.html?$/i.test(f.name))
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-
-    salvarCache(todosOsApps);
-    carregandoEl.style.display = 'none';
-    setStatus(`${todosOsApps.length} app(s) encontrado(s)`, 'ok');
-    renderizar();
+    const resolveuPelaApi = await buscarViaGithubApi();
+    if (resolveuPelaApi) return;
+  } catch (e) {
+    console.error('Falha ao consultar a API do GitHub', e);
+  }
+  // Chegou aqui: a API do GitHub não deu uma resposta utilizável — tenta o plano B antes de
+  // recorrer ao cache local (que pode estar bem mais velho que qualquer um dos dois planos).
+  try {
+    await buscarViaJsDelivr();
   } catch (e) {
     console.error(e);
-    if (!usarCacheComoFallback('Falha ao conectar com o jsDelivr')) {
-      setStatus('Falha ao conectar com o jsDelivr', 'erro');
+    const motivo = e.message || 'Falha ao conectar com o jsDelivr';
+    if (!usarCacheComoFallback(motivo)) {
+      setStatus(motivo, 'erro');
       carregandoEl.style.display = 'none';
       renderizar();
     }
