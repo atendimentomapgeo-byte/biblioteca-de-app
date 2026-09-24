@@ -232,7 +232,7 @@ label {
 
 /* ---------------------------- Bottom nav ---------------------------- */
 .fg-bottomnav {
-  position: absolute;
+  position: fixed;
   left: 0; right: 0; bottom: 0;
   z-index: 500;
   background: rgba(16, 22, 29, 0.94);
@@ -260,7 +260,7 @@ label {
 
 /* ---------------------------- Floating locate button ---------------------------- */
 .fg-fab-locate {
-  position: absolute;
+  position: fixed;
   right: 12px;
   bottom: calc(84px + var(--fg-safe-bottom));
   z-index: 500;
@@ -275,7 +275,7 @@ label {
 .fg-fab-locate.centered { background: var(--fg-accent); }
 
 .fg-fab-compass {
-  position: absolute;
+  position: fixed;
   right: 12px;
   bottom: calc(146px + var(--fg-safe-bottom));
   z-index: 500;
