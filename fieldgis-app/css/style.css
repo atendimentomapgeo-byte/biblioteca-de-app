@@ -82,10 +82,19 @@ label {
 }
 
 #app {
+  /* IMPORTANTE: não definir "height" aqui. position:fixed + inset:0 já
+     prende as 4 bordas do elemento exatamente nas bordas do viewport real,
+     sem depender de nenhum cálculo de altura (100dvh, var(--fg-vh), etc).
+     O WebKit do iOS tem um bug conhecido em PWA instalada na Tela de Início
+     (modo standalone) onde 100dvh às vezes fica "preso" num valor menor que
+     a tela real, abrindo uma faixa preta vazia embaixo — porque quando se
+     define "height" JUNTO com inset:0, a regra CSS de over-constraint faz o
+     navegador IGNORAR o "bottom:0" do inset e recalcular a borda inferior a
+     partir de top+height, herdando o valor errado do dvh. Sem "height"
+     nenhum, top/right/bottom/left:0 sozinhos são suficientes e à prova desse
+     bug — não há altura para calcular errado. */
   position: fixed;
   inset: 0;
-  height: 100dvh;
-  height: var(--fg-vh, 100dvh);
   display: flex;
   flex-direction: column;
 }
