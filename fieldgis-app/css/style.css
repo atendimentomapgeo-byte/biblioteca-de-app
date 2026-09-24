@@ -251,30 +251,39 @@ label {
 
 /* ---------------------------- Bottom nav ---------------------------- */
 .fg-bottomnav {
+  /* Sem barra, sem cartão, sem fundo, sem borda: o container em si é
+     totalmente invisível — só serve pra posicionar os ícones. Cada ícone
+     flutua sozinho (ver .fg-navbtn), sem nada os conectando visualmente. */
   position: fixed;
   left: 0; right: 0; bottom: 0;
   z-index: 500;
-  background: rgba(16, 22, 29, 0.94);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid var(--fg-border);
-  padding: 5px 6px calc(4px + var(--fg-safe-bottom));
+  background: none;
+  backdrop-filter: none;
+  border-top: none;
+  box-shadow: none;
+  padding: 8px 6px calc(8px + var(--fg-safe-bottom));
   display: flex;
   justify-content: space-around;
   align-items: center;
+  pointer-events: none;
 }
 .fg-navbtn {
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 4px 8px;
-  border-radius: var(--fg-radius-sm);
+  padding: 6px 10px;
+  border-radius: 14px;
   font-size: 9.5px;
   color: var(--fg-text-dim);
   min-width: 50px;
+  background: rgba(16, 22, 29, 0.82);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--fg-shadow);
 }
 .fg-navbtn .fg-navicon { font-size: 19px; }
-.fg-navbtn.active, .fg-navbtn:active { color: var(--fg-text); background: rgba(255,255,255,0.06); }
+.fg-navbtn.active, .fg-navbtn:active { color: var(--fg-text); background: rgba(26, 115, 232, 0.35); }
 .fg-navbtn.record { color: var(--fg-danger); }
 
 /* ---------------------------- Floating locate button ---------------------------- */

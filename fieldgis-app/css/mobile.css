@@ -139,13 +139,22 @@ body.fg-field-mode .fg-topbar .fg-brand small { display: none; }
     width: 460px;
   }
   .fg-drawbar, .fg-nav-overlay { max-width: 420px; margin: 0 auto; left: 0; right: 0; }
-  .fg-bottomnav { max-width: 620px; left: 50%; transform: translateX(-50%); right: auto; width: 100%; border-radius: 20px 20px 0 0; }
   .fg-field-grid { grid-template-columns: repeat(3, 1fr); max-width: 640px; margin: 0 auto; width: 100%; }
 }
 
+/* IMPORTANTE: o visual de "cartão flutuante" da barra inferior (bordas
+   arredondadas, largura menor, centralizada) só pode existir a partir de
+   1080px de largura — ou seja, desktop/tablet de verdade. A maior tela de
+   iPhone em modo paisagem (deitado) chega a ~930px de largura em pixels CSS,
+   então se esse estilo estivesse no breakpoint de 720px (como estava antes),
+   virar o celular pra usar em campo deixava a barra inferior "flutuando"
+   com cantos arredondados e fundo preto aparecendo ao redor — exatamente o
+   bug relatado. Em qualquer celular, a barra continua ocupando a largura
+   inteira da tela, sem cantos arredondados, sempre. */
 @media (min-width: 1080px) {
   .fg-sheet { width: 520px; }
   .fg-topbar { max-width: 640px; left: 50%; transform: translateX(-50%); right: auto; width: calc(100% - 20px); }
+  .fg-bottomnav { max-width: 620px; left: 50%; transform: translateX(-50%); right: auto; width: 100%; border-radius: 20px 20px 0 0; }
 }
 
 /* ---------------------------- Acessibilidade: alvos de toque grandes ---------------------------- */
