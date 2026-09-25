@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v60';
+  const APP_BUILD_VERSION = 'v61';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -376,8 +376,13 @@
     $('nav-compass').onclick = () => handleNavigateRequest();
     $('nav-measure').onclick = () => handleMeasureRequest();
     $('nav-track').onclick = () => handleTrackToggle();
-    $('measure-choice-distance').onclick = () => startMeasure(false);
-    $('measure-choice-area').onclick = () => startMeasure(true);
+    // Guarda contra null: se index.html estiver desatualizado (upload parcial
+    // sem o overlay-measure-choice novo), isso não pode travar o resto da
+    // função e quebrar os botões acima.
+    const btnDist = $('measure-choice-distance');
+    if (btnDist) btnDist.onclick = () => startMeasure(false);
+    const btnArea = $('measure-choice-area');
+    if (btnArea) btnArea.onclick = () => startMeasure(true);
   }
 
   function wireAddMenu() {
@@ -960,10 +965,24 @@
     if (state === 'recording') {
       actions.appendChild(makeDrawBtn('⏸ Pausar', () => { Tracks.pause(); liberarWakeLock(); }));
       actions.appendChild(makeDrawBtn('⏹ Finalizar', () => finishTrack(), 'danger'));
+      actions.appendChild(makeDrawBtn('🗑 Descartar', () => discardTrack(), 'danger'));
     } else if (state === 'paused') {
       actions.appendChild(makeDrawBtn('▶ Continuar', () => { Tracks.resume(); ativarWakeLock(); }));
       actions.appendChild(makeDrawBtn('⏹ Finalizar', () => finishTrack(), 'danger'));
+      actions.appendChild(makeDrawBtn('🗑 Descartar', () => discardTrack(), 'danger'));
     }
+  }
+
+  // Permite cancelar uma gravação de trilha iniciada sem querer (toque
+  // acidental no ícone de Trilha), sem precisar salvar nada — antes só
+  // existiam "Pausar" e "Finalizar" (que abre a tela de salvar), sem forma
+  // de simplesmente jogar fora a gravação em andamento.
+  function discardTrack() {
+    if (!confirmDialog('Descartar esta trilha? A gravação em andamento será perdida.')) return;
+    liberarWakeLock();
+    Tracks.discard();
+    resetDrawUI();
+    toast('Trilha descartada.');
   }
 
   function makeDrawBtn(label, onClick, cls) {
@@ -1026,6 +1045,41 @@
     drawMode = null;
     $('drawbar').hidden = true;
     $('nav-track').classList.remove('record');
+    retomarBussolaSePausada();
+  }
+
+  // =======================================================================
+  // Pausa automática da bússola durante toques no mapa
+  // -----------------------------------------------------------------------
+  // Enquanto a bússola gira o mapa por CSS (transform: rotate), o Leaflet não
+  // sabe que seu próprio contêiner está visualmente girado — ele calcula a
+  // coordenada do toque como se a tela estivesse sempre "Norte pra cima".
+  // Isso afeta QUALQUER modo que capture coordenada por toque direto no mapa
+  // (Identificar, Medir distância/área, Polígono manual) — não só o
+  // "Identificar coordenada". Por isso a pausa é centralizada aqui e chamada
+  // por todos esses modos, em vez de só um.
+  // =======================================================================
+  let bussolaPausadaParaToque = false;
+
+  function pausarBussolaParaToqueNoMapa() {
+    if (!Compass.isActive()) return;
+    bussolaPausadaParaToque = true;
+    Compass.stop();
+    MapModule.setRotationEnabled(false);
+    const btn = $('btn-compass');
+    if (btn) btn.classList.remove('active');
+    const label = $('compass-heading-label');
+    if (label) label.textContent = '';
+    toast('Bússola pausada enquanto você toca no mapa, pra garantir que o toque acerte o ponto certo. Ela volta a girar sozinha ao encerrar.', 4500);
+  }
+
+  function retomarBussolaSePausada() {
+    if (!bussolaPausadaParaToque) return;
+    bussolaPausadaParaToque = false;
+    MapModule.setRotationEnabled(true);
+    Compass.start();
+    const btn = $('btn-compass');
+    if (btn) btn.classList.add('active');
   }
 
   // =======================================================================
@@ -1034,8 +1088,12 @@
   function startPolygonDrawing(kind) {
     if (!requireProject()) return;
     drawMode = 'polygon';
-    if (kind === 'manual') Polygons.startManual();
-    else Polygons.startGPSWalk(settings.gps.minDistance || 3);
+    if (kind === 'manual') {
+      pausarBussolaParaToqueNoMapa();
+      Polygons.startManual();
+    } else {
+      Polygons.startGPSWalk(settings.gps.minDistance || 3);
+    }
 
     Polygons.onChange(renderPolygonDrawbar);
     renderPolygonDrawbar({ area: 0, perimeter: 0, vertexCount: 0 });
@@ -1086,6 +1144,7 @@
   function startMeasure(isArea) {
     closeSheet('overlay-measure-choice');
     drawMode = isArea ? 'measure-area' : 'measure-distance';
+    pausarBussolaParaToqueNoMapa();
     if (isArea) Measure.startArea();
     else Measure.startDistance();
     Measure.onChange(renderMeasureDrawbar);
@@ -1113,15 +1172,6 @@
   // Identificar coordenada (toque no mapa)
   // =======================================================================
   let identifyMarker = null;
-  // Enquanto a bússola gira o mapa por CSS (transform: rotate), o Leaflet não
-  // sabe que seu próprio contêiner está visualmente girado — ele calcula a
-  // coordenada do toque como se a tela estivesse sempre "Norte pra cima",
-  // então um toque na bússola ligada podia acertar um ponto bem diferente do
-  // que aparece embaixo do dedo. Em vez de só avisar o usuário (como antes),
-  // agora a bússola é pausada automaticamente enquanto "Identificar
-  // coordenada" está ativo — garante 100% de precisão sem precisar que o
-  // usuário lembre de desligar na mão — e retomada sozinha ao encerrar.
-  let bussolaPausadaParaIdentificar = false;
 
   function handleIdentifyRequest() {
     if (drawMode === 'identify') {
@@ -1140,16 +1190,7 @@
     actions.appendChild(makeDrawBtn('✕ Encerrar', () => stopIdentifyMode(), 'danger'));
     $('drawbar').hidden = false;
 
-    if (Compass.isActive()) {
-      bussolaPausadaParaIdentificar = true;
-      Compass.stop();
-      MapModule.setRotationEnabled(false);
-      const btn = $('btn-compass');
-      if (btn) btn.classList.remove('active');
-      const label = $('compass-heading-label');
-      if (label) label.textContent = '';
-      toast('Bússola pausada enquanto você identifica coordenadas, pra garantir que o toque acerte o ponto certo. Ela volta a girar o mapa sozinha ao encerrar.', 4500);
-    }
+    pausarBussolaParaToqueNoMapa();
   }
 
   function stopIdentifyMode() {
@@ -1157,13 +1198,6 @@
     if (identifyMarker) {
       map.removeLayer(identifyMarker);
       identifyMarker = null;
-    }
-    if (bussolaPausadaParaIdentificar) {
-      bussolaPausadaParaIdentificar = false;
-      MapModule.setRotationEnabled(true);
-      Compass.start();
-      const btn = $('btn-compass');
-      if (btn) btn.classList.add('active');
     }
     resetDrawUI();
   }
