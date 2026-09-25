@@ -43,10 +43,7 @@ html, body {
   height: 100dvh;
   height: var(--fg-vh, 100dvh);
   overflow: hidden;
-  /* DEBUG TEMPORÁRIO (v57): vermelho berrante só pra identificar em qual
-     camada exatamente está a faixa lisa que sobra embaixo — se aparecer
-     vermelha, é o body/html (fora do #app); depois volta pra var(--fg-bg). */
-  background: #ff0033;
+  background: var(--fg-bg);
   color: var(--fg-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -86,23 +83,22 @@ label {
 }
 
 #app {
-  /* Confirmado com teste de cor (v57): tanto 100dvh quanto o valor medido
-     em JS (window.innerHeight/visualViewport.height) vêm ~59pt MENORES que
-     a tela real nesse aparelho/modo — aparentemente descontando a área do
-     relógio/Dynamic Island em vez de incluir. Ou seja, "height" NUNCA é
-     confiável aqui, seja CSS ou JS. A única forma à prova disso é não
-     depender de altura nenhuma: position:fixed + inset:0 (sem "height")
-     prende as 4 bordas direto nas bordas reais do viewport, sem cálculo
-     nenhum pra dar errado. */
+  /* Testado exaustivamente (v54-v58, com teste de cor pra confirmar): o
+     vão que sobra embaixo (~59pt) é IDÊNTICO com 100dvh, com altura medida
+     em JS, e mesmo sem nenhuma altura calculada (só inset:0 puro) — e
+     reinstalar o ícone da Tela de Início não muda nada. Isso indica que
+     não é um bug de cálculo de CSS/JS: é o próprio iOS reservando essa
+     faixa no WebView de apps instalados via Tela de Início pro indicador
+     de início (home indicator), reserva que só apps nativos conseguem
+     pedir pra esconder (prefersHomeIndicatorAutoHidden) — não existe
+     equivalente pra apps web. position:fixed + inset:0 continua sendo a
+     forma mais robusta de preencher o que o sistema de fato disponibiliza
+     pro conteúdo, mesmo que essa faixa reservada não dê pra eliminar
+     por código. */
   position: fixed;
   inset: 0;
   display: flex;
   flex-direction: column;
-  /* DEBUG TEMPORÁRIO (v57): azul berrante só pra identificar a camada da
-     faixa lisa. Se a faixa aparecer AZUL, o #app cobre até ali (o problema
-     é dentro do mapa/Leaflet); se aparecer VERMELHA (cor do body), o #app
-     não está chegando até a borda real. Depois volta a ser transparente. */
-  background: #0033ff;
 }
 
 /* ---------------------------- Top bar ---------------------------- */
