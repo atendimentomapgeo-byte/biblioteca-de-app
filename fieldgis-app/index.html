@@ -37,6 +37,13 @@
     }
     function ajustarAlturaReal() {
       document.documentElement.style.setProperty('--fg-vh', alturaAtual() + 'px');
+      // Avisa o mapa (Leaflet) de que a altura real pode ter mudado, pra ele
+      // medir de novo e redesenhar do tamanho certo — sem isso, o mapa fica
+      // preso no tamanho errado que mediu no primeiro instante, mesmo depois
+      // do #app já estar com a altura corrigida (CSS e o mapa são medidos
+      // de formas independentes). Evento próprio (não "resize") pra não
+      // entrar em loop com os listeners de resize já existentes.
+      window.dispatchEvent(new CustomEvent('fg-viewport-changed'));
     }
     ajustarAlturaReal();
     window.addEventListener('resize', ajustarAlturaReal);
