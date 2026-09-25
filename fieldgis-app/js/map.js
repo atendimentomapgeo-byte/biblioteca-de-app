@@ -184,6 +184,11 @@
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', redimensionarMapaInterno);
       }
+      // Disparado pelo index.html toda vez que --fg-vh é recalculada (inclusive
+      // nas reconferências automáticas dos primeiros ~2s após abrir "frio").
+      // Sem isso, o Leaflet fica com o tamanho medido na primeira vez, mesmo
+      // depois do #app já estar com a altura real corrigida.
+      window.addEventListener('fg-viewport-changed', redimensionarMapaInterno);
       // Reconfere a medida logo depois do carregamento inicial: se a
       // primeira medição (linha acima) aconteceu antes da tela "assentar"
       // de vez (ex.: cálculo de área segura do Safari ainda em transição),
