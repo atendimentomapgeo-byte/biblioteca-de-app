@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v59';
+  const APP_BUILD_VERSION = 'v60';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -376,6 +376,8 @@
     $('nav-compass').onclick = () => handleNavigateRequest();
     $('nav-measure').onclick = () => handleMeasureRequest();
     $('nav-track').onclick = () => handleTrackToggle();
+    $('measure-choice-distance').onclick = () => startMeasure(false);
+    $('measure-choice-area').onclick = () => startMeasure(true);
   }
 
   function wireAddMenu() {
@@ -1078,9 +1080,13 @@
       resetDrawUI();
       return;
     }
-    const choice = confirmDialog('Medir ÁREA? (Cancelar = medir distância)');
-    drawMode = choice ? 'measure-area' : 'measure-distance';
-    if (choice) Measure.startArea();
+    openSheet('overlay-measure-choice');
+  }
+
+  function startMeasure(isArea) {
+    closeSheet('overlay-measure-choice');
+    drawMode = isArea ? 'measure-area' : 'measure-distance';
+    if (isArea) Measure.startArea();
     else Measure.startDistance();
     Measure.onChange(renderMeasureDrawbar);
     renderMeasureDrawbar(Measure.getResult());
@@ -1107,6 +1113,15 @@
   // Identificar coordenada (toque no mapa)
   // =======================================================================
   let identifyMarker = null;
+  // Enquanto a bússola gira o mapa por CSS (transform: rotate), o Leaflet não
+  // sabe que seu próprio contêiner está visualmente girado — ele calcula a
+  // coordenada do toque como se a tela estivesse sempre "Norte pra cima",
+  // então um toque na bússola ligada podia acertar um ponto bem diferente do
+  // que aparece embaixo do dedo. Em vez de só avisar o usuário (como antes),
+  // agora a bússola é pausada automaticamente enquanto "Identificar
+  // coordenada" está ativo — garante 100% de precisão sem precisar que o
+  // usuário lembre de desligar na mão — e retomada sozinha ao encerrar.
+  let bussolaPausadaParaIdentificar = false;
 
   function handleIdentifyRequest() {
     if (drawMode === 'identify') {
@@ -1126,7 +1141,14 @@
     $('drawbar').hidden = false;
 
     if (Compass.isActive()) {
-      toast('Atenção: com a bússola (rotação do mapa) ativa, o toque pode não corresponder exatamente ao ponto certo. Para identificar com precisão, desligue o 🧭 antes.', 5500);
+      bussolaPausadaParaIdentificar = true;
+      Compass.stop();
+      MapModule.setRotationEnabled(false);
+      const btn = $('btn-compass');
+      if (btn) btn.classList.remove('active');
+      const label = $('compass-heading-label');
+      if (label) label.textContent = '';
+      toast('Bússola pausada enquanto você identifica coordenadas, pra garantir que o toque acerte o ponto certo. Ela volta a girar o mapa sozinha ao encerrar.', 4500);
     }
   }
 
@@ -1135,6 +1157,13 @@
     if (identifyMarker) {
       map.removeLayer(identifyMarker);
       identifyMarker = null;
+    }
+    if (bussolaPausadaParaIdentificar) {
+      bussolaPausadaParaIdentificar = false;
+      MapModule.setRotationEnabled(true);
+      Compass.start();
+      const btn = $('btn-compass');
+      if (btn) btn.classList.add('active');
     }
     resetDrawUI();
   }
