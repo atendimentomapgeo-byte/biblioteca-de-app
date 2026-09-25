@@ -43,7 +43,10 @@ html, body {
   height: 100dvh;
   height: var(--fg-vh, 100dvh);
   overflow: hidden;
-  background: var(--fg-bg);
+  /* DEBUG TEMPORÁRIO (v57): vermelho berrante só pra identificar em qual
+     camada exatamente está a faixa lisa que sobra embaixo — se aparecer
+     vermelha, é o body/html (fora do #app); depois volta pra var(--fg-bg). */
+  background: #ff0033;
   color: var(--fg-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -99,6 +102,11 @@ label {
   height: var(--fg-vh, 100dvh);
   display: flex;
   flex-direction: column;
+  /* DEBUG TEMPORÁRIO (v57): azul berrante só pra identificar a camada da
+     faixa lisa. Se a faixa aparecer AZUL, o #app cobre até ali (o problema
+     é dentro do mapa/Leaflet); se aparecer VERMELHA (cor do body), o #app
+     não está chegando até a borda real. Depois volta a ser transparente. */
+  background: #0033ff;
 }
 
 /* ---------------------------- Top bar ---------------------------- */
