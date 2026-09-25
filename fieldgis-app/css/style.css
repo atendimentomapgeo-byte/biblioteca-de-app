@@ -263,7 +263,11 @@ label {
   backdrop-filter: none;
   border-top: none;
   box-shadow: none;
-  padding: 8px 6px calc(8px + var(--fg-safe-bottom));
+  /* Sem reserva de área segura aqui: por pedido explícito, os ícones ficam
+     o mais próximo possível da borda real da tela, sem faixa nenhuma
+     sobrando embaixo — mesmo que isso os deixe perto da faixa de gesto do
+     iPhone. */
+  padding: 8px 6px 6px;
   display: flex;
   justify-content: space-around;
   align-items: center;
