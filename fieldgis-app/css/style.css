@@ -86,20 +86,16 @@ label {
 }
 
 #app {
-  /* Histórico: só "inset:0" (sem height) parecia à prova do bug do iOS,
-     mas na prática o problema é mais fundo — no modo standalone recém
-     aberto ("frio"), o WebKit às vezes ainda não terminou de redimensionar
-     a própria janela (o "viewport" usado por QUALQUER position:fixed,
-     inclusive um só com inset:0) pro tamanho final de tela cheia; só um
-     evento real de resize (girar a tela) força esse recálculo. Por isso
-     agora usamos "height: var(--fg-vh)", calculada em JS (index.html) via
-     window.innerHeight/visualViewport — que não tem esse atraso — e
-     reconferida várias vezes nos primeiros ~2s após abrir, imitando o
-     mesmo gatilho que girar a tela provocava, sem precisar girar nada. */
+  /* Confirmado com teste de cor (v57): tanto 100dvh quanto o valor medido
+     em JS (window.innerHeight/visualViewport.height) vêm ~59pt MENORES que
+     a tela real nesse aparelho/modo — aparentemente descontando a área do
+     relógio/Dynamic Island em vez de incluir. Ou seja, "height" NUNCA é
+     confiável aqui, seja CSS ou JS. A única forma à prova disso é não
+     depender de altura nenhuma: position:fixed + inset:0 (sem "height")
+     prende as 4 bordas direto nas bordas reais do viewport, sem cálculo
+     nenhum pra dar errado. */
   position: fixed;
   inset: 0;
-  height: 100dvh;
-  height: var(--fg-vh, 100dvh);
   display: flex;
   flex-direction: column;
   /* DEBUG TEMPORÁRIO (v57): azul berrante só pra identificar a camada da
