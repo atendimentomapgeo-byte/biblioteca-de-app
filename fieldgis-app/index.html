@@ -17,37 +17,44 @@
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/mobile.css" />
 <script>
-  // Corrige um bug conhecido do WebKit/iOS: ao abrir como app instalado na
-  // Tela de Início (modo standalone), "100%"/"100vh" às vezes são calculados
-  // com base num viewport que não existe mais nesse modo, deixando uma faixa
-  // vazia no rodapé. O CSS já usa 100dvh (altura dinâmica nativa do
-  // navegador) como solução principal — isso sozinho já resolve em iOS
-  // moderno (15.4+), que é a esmagadora maioria dos aparelhos reais, porque
-  // o próprio Safari mantém o dvh sincronizado automaticamente com teclado,
-  // barra de endereço, áreas seguras etc.
+  // Corrige um bug real e bem documentado do WebKit/iOS: quando o app é
+  // aberto "frio" (recém aberto pela Tela de Início, em modo standalone), a
+  // unidade CSS 100dvh às vezes fica presa num valor calculado ANTES do
+  // WebKit terminar de redimensionar a janela pro tamanho final de tela
+  // cheia — e só se corrige quando algum evento real de mudança de viewport
+  // acontece, como girar a tela. É exatamente por isso que girar o celular
+  // e voltar "resolvia" a faixa preta: isso força o WebKit a recalcular.
   //
-  // O script abaixo SÓ entra em ação como fallback para navegadores
-  // ANTIGOS, sem suporte a dvh — nesses casos (raros) calculamos a altura
-  // manualmente via JS. Em navegadores modernos, deixamos o dvh nativo
-  // cuidar de tudo sozinho, sem interferir: tentar reimplementar isso em
-  // JS por conta própria é frágil (depende de capturar corretamente todo
-  // evento de mudança de viewport) e foi a causa de esse mesmo tipo de bug
-  // voltar repetidas vezes, de formas diferentes, mesmo depois de "corrigido".
+  // A correção definitiva é calcular a altura em JS (window.innerHeight /
+  // visualViewport.height), que NÃO tem esse atraso — e usar esse valor
+  // sempre, não só como fallback pra navegador antigo. Reforçamos com
+  // algumas reconferências nos primeiros instantes depois do carregamento
+  // e sempre que o app volta a ficar visível, simulando o mesmo gatilho que
+  // girar a tela provocava, sem precisar que o usuário gire nada.
   (function () {
-    if (window.CSS && CSS.supports && CSS.supports('height', '100dvh')) {
-      return; // navegador moderno: confia no dvh nativo, não mexe em nada
+    function alturaAtual() {
+      return (window.visualViewport && window.visualViewport.height) || window.innerHeight;
     }
     function ajustarAlturaReal() {
-      const altura = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-      document.documentElement.style.setProperty('--fg-vh', altura + 'px');
+      document.documentElement.style.setProperty('--fg-vh', alturaAtual() + 'px');
     }
     ajustarAlturaReal();
     window.addEventListener('resize', ajustarAlturaReal);
     window.addEventListener('orientationchange', ajustarAlturaReal);
+    window.addEventListener('pageshow', ajustarAlturaReal);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') ajustarAlturaReal();
+    });
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', ajustarAlturaReal);
       window.visualViewport.addEventListener('scroll', ajustarAlturaReal);
     }
+    // Reconfere algumas vezes logo após abrir "frio": é exatamente nessa
+    // janela de tempo que o WebKit termina de assumir o tamanho final da
+    // tela cheia no modo standalone.
+    [50, 150, 300, 600, 1000, 1800].forEach(function (ms) {
+      setTimeout(ajustarAlturaReal, ms);
+    });
   })();
 </script>
 </head>
