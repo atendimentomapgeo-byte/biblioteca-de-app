@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T04:12:40.084Z",
+  "exportadoEm": "2026-09-26T04:18:45.819Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -27,7 +27,7 @@
       "telefone": "",
       "municipio": "Cuiabá",
       "uf": "MT",
-      "endereco": ""
+      "endereco": "Rua"
     }
   ],
   "tecnicos": [
@@ -86,6 +86,25 @@
       "email": "",
       "telefone": "",
       "municipio": "Cuiabá",
+      "uf": "MT"
+    },
+    {
+      "id": "muhvqhwk2bblh",
+      "nome": "Fagner de Brito Gomes Silva",
+      "titulo": "Téc. em Agrimensura",
+      "registroTipo": "CFT",
+      "registroNumero": "03501377142",
+      "registros": [
+        {
+          "tipo": "CFT",
+          "numero": "03501377142"
+        }
+      ],
+      "codigoIncra": "",
+      "empresa": "Map GEO",
+      "email": "fagner.agri@gmail.com",
+      "telefone": "65 99902-0867",
+      "municipio": "Cuiaba",
       "uf": "MT"
     }
   ],
@@ -263,16 +282,24 @@
       "nome": "Fazenda Modelo",
       "matricula": "12.345",
       "area": "8.0656",
-      "municipio": "Cuiabá",
+      "municipio": "Cuiaba",
       "uf": "MT",
-      "comarca": "Cuiabá",
+      "comarca": "Cuiaba",
       "proprietarioId": "muhviy71a3kkq",
-      "tecnicoId": "muhviy79odjnu",
+      "tecnicoId": "muhvqhwk2bblh",
+      "artTipo": "TRT",
+      "art": "0123456789",
       "datum": "SIRGAS2000",
       "perimetro": "1144.23",
       "utmZona": "21S",
-      "artTipo": "ART",
-      "art": "0123456789"
+      "codigoIncra": "",
+      "leiDecreto": "",
+      "parcelaSigef": "",
+      "parcelaSigefSituacao": "",
+      "sigefDataCertificacao": "",
+      "sigefResponsavelTecnico": "",
+      "simcar": "",
+      "simcarSituacao": ""
     }
   ],
   "marcos": [
@@ -1232,13 +1259,13 @@
       "coordN": 8754642.287
     },
     {
-      "id": "muhviy7hcfhe7",
+      "id": "muhvqslmbtfhi",
       "imovelId": "muhviy7dvgxij",
-      "tipo": "M",
+      "tipo": "B",
       "ordem": 1,
-      "confrontante": "Rio das Pedras",
+      "confrontante": "sasas",
       "confrontanteImovelId": null,
-      "codigoSigef": "",
+      "codigoSigef": "fgbr",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
@@ -1246,13 +1273,13 @@
       "coordN": 8276984.995
     },
     {
-      "id": "muhviy7h1kkbz",
+      "id": "muhvqslmarxqk",
       "imovelId": "muhviy7dvgxij",
-      "tipo": "B",
+      "tipo": "M",
       "ordem": 2,
-      "confrontante": "Rio das Pedras",
+      "confrontante": "sasas",
       "confrontanteImovelId": null,
-      "codigoSigef": "RN-01",
+      "codigoSigef": "fgbr",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
@@ -1260,13 +1287,13 @@
       "coordN": 8276918.077
     },
     {
-      "id": "muhviy7h7x1gl",
+      "id": "muhvqslmcwk23",
       "imovelId": "muhviy7dvgxij",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 3,
-      "confrontante": "João da Silva (matr. 111)",
+      "confrontante": "sasas",
       "confrontanteImovelId": null,
-      "codigoSigef": "",
+      "codigoSigef": "fgbr",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
@@ -1274,13 +1301,13 @@
       "coordN": 8276762.842
     },
     {
-      "id": "muhviy7hmxv0z",
+      "id": "muhvqslmj4eob",
       "imovelId": "muhviy7dvgxij",
-      "tipo": "P",
+      "tipo": "V",
       "ordem": 4,
-      "confrontante": "Estrada Municipal",
+      "confrontante": "sasas",
       "confrontanteImovelId": null,
-      "codigoSigef": "",
+      "codigoSigef": "fgbr",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
@@ -1288,13 +1315,13 @@
       "coordN": 8276542.053
     },
     {
-      "id": "muhviy7honfgk",
+      "id": "muhvqslmzbicf",
       "imovelId": "muhviy7dvgxij",
-      "tipo": "V",
+      "tipo": "M",
       "ordem": 5,
-      "confrontante": "Maria Souza (matr. 222)",
+      "confrontante": "sasas",
       "confrontanteImovelId": null,
-      "codigoSigef": "",
+      "codigoSigef": "fgbr",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
