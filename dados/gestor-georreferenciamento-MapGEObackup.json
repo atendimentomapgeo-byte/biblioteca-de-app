@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T21:21:05.238Z",
+  "exportadoEm": "2026-09-26T21:22:41.308Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -1388,14 +1388,15 @@
       "imovelId": "mud99cbx736lj",
       "tipo": "V",
       "ordem": 14,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Fazenda Chão de Estrelas - Lote nº 450",
+      "confrontanteImovelId": "mud93vdrk068q",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 511972.727,
-      "coordN": 8754642.287
+      "coordN": 8754642.287,
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "muhwln97tu2j9",
