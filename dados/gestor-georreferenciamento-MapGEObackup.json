@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T02:47:04.325Z",
+  "exportadoEm": "2026-09-26T04:12:40.084Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -14,6 +14,20 @@
       "municipio": "Sinop",
       "uf": "MT",
       "endereco": "Avenida das Sibipirunas, n° 1.185, Jardim Celeste, no município de Sinop, no Estado de Mato Grosso, CEP 78556-666"
+    },
+    {
+      "id": "muhviy71a3kkq",
+      "nome": "José da Silva",
+      "nacionalidade": "Brasileiro",
+      "doc": "000.000.000-00",
+      "rg": "",
+      "estadoCivil": "Casado(a)",
+      "profissao": "Produtor rural",
+      "email": "",
+      "telefone": "",
+      "municipio": "Cuiabá",
+      "uf": "MT",
+      "endereco": ""
     }
   ],
   "tecnicos": [
@@ -52,6 +66,25 @@
       "empresa": "Map GEO Agrimensura",
       "email": "fagner.agri@gmail.com",
       "telefone": "(65) 99902-0867",
+      "municipio": "Cuiabá",
+      "uf": "MT"
+    },
+    {
+      "id": "muhviy79odjnu",
+      "nome": "Maria Souza",
+      "titulo": "Engenheira Agrimensora",
+      "registroTipo": "CREA",
+      "registroNumero": "000000/D-MT",
+      "registros": [
+        {
+          "tipo": "CREA",
+          "numero": "000000/D-MT"
+        }
+      ],
+      "codigoIncra": "",
+      "empresa": "",
+      "email": "",
+      "telefone": "",
       "municipio": "Cuiabá",
       "uf": "MT"
     }
@@ -224,6 +257,22 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": ""
+    },
+    {
+      "id": "muhviy7dvgxij",
+      "nome": "Fazenda Modelo",
+      "matricula": "12.345",
+      "area": "8.0656",
+      "municipio": "Cuiabá",
+      "uf": "MT",
+      "comarca": "Cuiabá",
+      "proprietarioId": "muhviy71a3kkq",
+      "tecnicoId": "muhviy79odjnu",
+      "datum": "SIRGAS2000",
+      "perimetro": "1144.23",
+      "utmZona": "21S",
+      "artTipo": "ART",
+      "art": "0123456789"
     }
   ],
   "marcos": [
@@ -1181,6 +1230,76 @@
       "codigoCompleto": null,
       "coordE": 511972.727,
       "coordN": 8754642.287
+    },
+    {
+      "id": "muhviy7hcfhe7",
+      "imovelId": "muhviy7dvgxij",
+      "tipo": "M",
+      "ordem": 1,
+      "confrontante": "Rio das Pedras",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 596814.672,
+      "coordN": 8276984.995
+    },
+    {
+      "id": "muhviy7h1kkbz",
+      "imovelId": "muhviy7dvgxij",
+      "tipo": "B",
+      "ordem": 2,
+      "confrontante": "Rio das Pedras",
+      "confrontanteImovelId": null,
+      "codigoSigef": "RN-01",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 596943.057,
+      "coordN": 8276918.077
+    },
+    {
+      "id": "muhviy7h7x1gl",
+      "imovelId": "muhviy7dvgxij",
+      "tipo": "M",
+      "ordem": 3,
+      "confrontante": "João da Silva (matr. 111)",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 597028.177,
+      "coordN": 8276762.842
+    },
+    {
+      "id": "muhviy7hmxv0z",
+      "imovelId": "muhviy7dvgxij",
+      "tipo": "P",
+      "ordem": 4,
+      "confrontante": "Estrada Municipal",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 596920.018,
+      "coordN": 8276542.053
+    },
+    {
+      "id": "muhviy7honfgk",
+      "imovelId": "muhviy7dvgxij",
+      "tipo": "V",
+      "ordem": 5,
+      "confrontante": "Maria Souza (matr. 222)",
+      "confrontanteImovelId": null,
+      "codigoSigef": "",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 596727.397,
+      "coordN": 8276631.368
     }
   ],
   "tiposRegistro": [
