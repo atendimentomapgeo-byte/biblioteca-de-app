@@ -32,16 +32,9 @@
 html, body {
   margin: 0;
   padding: 0;
+  width: 100%;
   height: 100%;
-  /* Corrige faixa vazia no rodapé ao abrir como app instalado na Tela de
-     Início do iOS: no modo standalone recém-aberto, a unidade CSS 100dvh
-     pode ficar presa num valor de antes do WebKit terminar de assumir o
-     tamanho final de tela cheia (só se corrige sozinha depois de um evento
-     real de resize, como girar a tela). --fg-vh é calculada em JS via
-     window.innerHeight/visualViewport (que não tem esse atraso) e sempre
-     tem prioridade; 100dvh fica só como valor inicial antes do JS rodar. */
-  height: 100dvh;
-  height: var(--fg-vh, 100dvh);
+  min-height: 100%;
   overflow: hidden;
   background: var(--fg-bg);
   color: var(--fg-text);
@@ -83,20 +76,13 @@ label {
 }
 
 #app {
-  /* Testado exaustivamente (v54-v58, com teste de cor pra confirmar): o
-     vão que sobra embaixo (~59pt) é IDÊNTICO com 100dvh, com altura medida
-     em JS, e mesmo sem nenhuma altura calculada (só inset:0 puro) — e
-     reinstalar o ícone da Tela de Início não muda nada. Isso indica que
-     não é um bug de cálculo de CSS/JS: é o próprio iOS reservando essa
-     faixa no WebView de apps instalados via Tela de Início pro indicador
-     de início (home indicator), reserva que só apps nativos conseguem
-     pedir pra esconder (prefersHomeIndicatorAutoHidden) — não existe
-     equivalente pra apps web. position:fixed + inset:0 continua sendo a
-     forma mais robusta de preencher o que o sistema de fato disponibiliza
-     pro conteúdo, mesmo que essa faixa reservada não dê pra eliminar
-     por código. */
   position: fixed;
   inset: 0;
+  /* Não definir height aqui. Com top/right/bottom/left em position:fixed,
+     o WebKit usa o containing block real da tela. Em alguns iOS/PWA,
+     100dvh pode ficar menor que a área física disponível e criar uma faixa
+     vazia no rodapé. */
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -167,14 +153,11 @@ label {
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #0b0f14;
+  color: var(--fg-bg);
+  background: var(--fg-accent);
   padding: 1px 7px;
   border-radius: 999px;
-  background: var(--fg-text-dim);
 }
-.fg-gps-acc-excellent, .fg-gps-acc-good { background: #2ecc71; }
-.fg-gps-acc-moderate { background: #ffb300; }
-.fg-gps-acc-weak, .fg-gps-acc-unknown { background: #e53935; color: #fff; }
 .fg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .fg-dot.excellent, .fg-dot.good { background: #2ecc71; }
 .fg-dot.moderate { background: #ffb300; }
@@ -219,16 +202,6 @@ label {
     linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
   background-size: 24px 24px;
 }
-/* Caso comum (rotação por bússola desligada): preenche #map exatamente via
-   CSS puro, sem nenhuma medição em JavaScript — imune a qualquer erro de
-   timing na hora de calcular a altura real da tela (ver redimensionarMapaInterno
-   em map.js). #map-inner.fg-map-inner-fit tem mais especificidade que a
-   regra base acima (ID + classe vs. só ID), então sempre vence. */
-#map-inner.fg-map-inner-fit {
-  inset: 0;
-  top: 0;
-  left: 0;
-}
 .leaflet-container { background: #0c1015; font-family: inherit; }
 
 /* Sem transição de propósito: a rotação da seta precisa ficar perfeitamente
@@ -237,8 +210,6 @@ label {
    a seta "atrasar" em relação ao mapa e só alinhar depois de alguns
    instantes, em vez de ficar sempre travada apontando pra cima. */
 .fg-position-arrow { }
-
-.fg-compass-rose-icon { opacity: var(--fg-compass-rose-opacity, 0.6); pointer-events: none; }
 .fg-point-pin {
   width: 26px; height: 34px;
   background: var(--fg-primary);
@@ -253,50 +224,37 @@ label {
 
 /* ---------------------------- Bottom nav ---------------------------- */
 .fg-bottomnav {
-  /* Sem barra, sem cartão, sem fundo, sem borda: o container em si é
-     totalmente invisível — só serve pra posicionar os ícones. Cada ícone
-     flutua sozinho (ver .fg-navbtn), sem nada os conectando visualmente. */
-  position: fixed;
+  position: absolute;
   left: 0; right: 0; bottom: 0;
   z-index: 500;
-  background: none;
-  backdrop-filter: none;
-  border-top: none;
-  box-shadow: none;
-  /* Sem reserva de área segura aqui: por pedido explícito, os ícones ficam
-     o mais próximo possível da borda real da tela, sem faixa nenhuma
-     sobrando embaixo — mesmo que isso os deixe perto da faixa de gesto do
-     iPhone. */
-  padding: 8px 6px 6px;
+  background: rgba(16, 22, 29, 0.94);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--fg-border);
+  padding: 8px 6px calc(8px + var(--fg-safe-bottom));
   display: flex;
   justify-content: space-around;
   align-items: center;
-  pointer-events: none;
 }
 .fg-navbtn {
-  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   padding: 6px 10px;
-  border-radius: 14px;
-  font-size: 9.5px;
+  border-radius: var(--fg-radius-sm);
+  font-size: 10.5px;
   color: var(--fg-text-dim);
-  min-width: 50px;
-  background: rgba(16, 22, 29, 0.82);
-  backdrop-filter: blur(6px);
-  box-shadow: var(--fg-shadow);
+  min-width: 54px;
 }
-.fg-navbtn .fg-navicon { font-size: 19px; }
-.fg-navbtn.active, .fg-navbtn:active { color: var(--fg-text); background: rgba(26, 115, 232, 0.35); }
+.fg-navbtn .fg-navicon { font-size: 23px; }
+.fg-navbtn.active, .fg-navbtn:active { color: var(--fg-text); background: rgba(255,255,255,0.06); }
 .fg-navbtn.record { color: var(--fg-danger); }
 
 /* ---------------------------- Floating locate button ---------------------------- */
 .fg-fab-locate {
-  position: fixed;
+  position: absolute;
   right: 12px;
-  bottom: calc(68px + var(--fg-safe-bottom));
+  bottom: calc(84px + var(--fg-safe-bottom));
   z-index: 500;
   width: 50px; height: 50px;
   border-radius: 50%;
@@ -309,9 +267,9 @@ label {
 .fg-fab-locate.centered { background: var(--fg-accent); }
 
 .fg-fab-compass {
-  position: fixed;
+  position: absolute;
   right: 12px;
-  bottom: calc(118px + var(--fg-safe-bottom));
+  bottom: calc(146px + var(--fg-safe-bottom));
   z-index: 500;
   width: 44px; height: 44px;
   border-radius: 50%;
