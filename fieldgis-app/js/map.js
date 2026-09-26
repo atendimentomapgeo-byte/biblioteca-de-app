@@ -38,8 +38,6 @@
   let gridLayer = null;
   let positionMarker = null;
   let accuracyCircle = null;
-  let compassRoseMarker = null;
-  let compassRoseVisivel = false;
   let settingsCache = null;
   let cursorCoordCallback = null;
   let viewportEl = null; // #map — a "janela" fixa que recorta a visão
@@ -63,34 +61,24 @@
    */
   function redimensionarMapaInterno() {
     if (!viewportEl || !innerEl) return;
-    if (!rotacaoAtiva) {
-      // Sem rotação (o caso comum): usa CSS puro (inset:0) pra preencher a
-      // tela exatamente, sem depender de nenhuma medição em JavaScript —
-      // elimina de vez qualquer risco de calcular a altura errada por causa
-      // de timing (ex.: medir antes da área segura/viewport dinâmico do
-      // Safari terminar de se ajustar), que podia deixar uma faixa do fundo
-      // do mapa (sem tiles) visível em cima e/ou embaixo da tela.
-      innerEl.style.width = '';
-      innerEl.style.height = '';
-      innerEl.style.top = '';
-      innerEl.style.left = '';
-      innerEl.style.transform = '';
-      innerEl.classList.add('fg-map-inner-fit');
-      if (map) map.invalidateSize();
-      return;
-    }
-    innerEl.classList.remove('fg-map-inner-fit');
     const w = viewportEl.clientWidth;
     const h = viewportEl.clientHeight;
-    // +12% de folga sobre a diagonal exata, evitando qualquer costura
-    // visível nas bordas por arredondamento/antialiasing.
-    const diagonal = Math.ceil(Math.sqrt(w * w + h * h) * 1.12);
-    innerEl.style.width = `${diagonal}px`;
-    innerEl.style.height = `${diagonal}px`;
-    innerEl.style.top = '50%';
-    innerEl.style.left = '50%';
+    let novaW = w;
+    let novaH = h;
+    if (rotacaoAtiva) {
+      // +12% de folga sobre a diagonal exata, evitando qualquer costura
+      // visível nas bordas por arredondamento/antialiasing.
+      const diagonal = Math.ceil(Math.sqrt(w * w + h * h) * 1.12);
+      novaW = diagonal;
+      novaH = diagonal;
+    }
+    innerEl.style.width = `${novaW}px`;
+    innerEl.style.height = `${novaH}px`;
     aplicarTransformInner();
-    if (map) map.invalidateSize();
+    if (map) {
+      map.invalidateSize(true);
+      requestAnimationFrame(() => map && map.invalidateSize(true));
+    }
   }
 
   /** Aplica a centralização (sempre) + rotação atual (quando houver) em #map-inner. */
@@ -113,65 +101,6 @@
     });
   }
 
-  /**
-   * Ícone da rosa dos ventos exibida ao redor do marcador de posição
-   * (opcional, ligada/desligada pelo usuário — ver MapModule.setCompassRoseVisible).
-   * Fica ancorada geograficamente no ponto do GPS e gira junto com o mapa
-   * quando a rotação por bússola está ativa (representa direções reais
-   * N/S/L/O do próprio mapa, não a orientação da tela).
-   */
-  function createCompassRoseIcon() {
-    const tamanho = 260;
-    const c = tamanho / 2;
-    const rExterno = c - 8;
-    const rNumeros = rExterno - 20;
-    const rInterno = rNumeros - 18;
-    const rCruz = 26;
-
-    let ticksFinos = '';
-    for (let g = 0; g < 360; g += 10) {
-      if (g % 30 === 0) continue; // esses viram números, não traço fino
-      const rad = (g - 90) * (Math.PI / 180);
-      const x1 = c + (rInterno - 4) * Math.cos(rad);
-      const y1 = c + (rInterno - 4) * Math.sin(rad);
-      const x2 = c + rInterno * Math.cos(rad);
-      const y2 = c + rInterno * Math.sin(rad);
-      ticksFinos += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#ffb300" stroke-width="1.6"/>`;
-    }
-
-    let numeros = '';
-    for (let g = 0; g < 360; g += 30) {
-      const rad = (g - 90) * (Math.PI / 180);
-      const x = c + rNumeros * Math.cos(rad);
-      const y = c + rNumeros * Math.sin(rad);
-      numeros += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#ffb300">${g}</text>`;
-    }
-
-    const cardeal = (letra, g, cor) => {
-      const rad = (g - 90) * (Math.PI / 180);
-      const rr = rInterno - 24;
-      const x = c + rr * Math.cos(rad);
-      const y = c + rr * Math.sin(rad);
-      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="800" font-size="22" fill="${cor}">${letra}</text>`;
-    };
-
-    return L.divIcon({
-      className: 'fg-compass-rose-icon',
-      html: `<svg width="${tamanho}" height="${tamanho}" viewBox="0 0 ${tamanho} ${tamanho}">
-               <circle cx="${c}" cy="${c}" r="${rExterno}" fill="none" stroke="#e9edf2" stroke-width="2.4"/>
-               <circle cx="${c}" cy="${c}" r="${rInterno}" fill="none" stroke="#e9edf2" stroke-width="1.4"/>
-               ${ticksFinos}
-               ${numeros}
-               ${cardeal('N', 0, '#e53935')}${cardeal('L', 90, '#e9edf2')}${cardeal('S', 180, '#e9edf2')}${cardeal('O', 270, '#e9edf2')}
-               <line x1="${c}" y1="${c - rCruz}" x2="${c}" y2="${c + rCruz}" stroke="#e53935" stroke-width="1.6" stroke-dasharray="4 3"/>
-               <line x1="${c - rCruz}" y1="${c}" x2="${c + rCruz}" y2="${c}" stroke="#e9edf2" stroke-width="1.6" stroke-dasharray="4 3"/>
-               <circle cx="${c}" cy="${c}" r="3" fill="#e53935"/>
-             </svg>`,
-      iconSize: [tamanho, tamanho],
-      iconAnchor: [c, c],
-    });
-  }
-
   const MapModule = {
     init(containerId, settings) {
       settingsCache = settings || DB.defaultSettings();
@@ -179,24 +108,14 @@
       innerEl = document.getElementById('map-inner');
 
       redimensionarMapaInterno();
-      window.addEventListener('resize', redimensionarMapaInterno);
-      window.addEventListener('orientationchange', redimensionarMapaInterno);
+      window.addEventListener('resize', redimensionarMapaInterno, { passive: true });
+      window.addEventListener('orientationchange', redimensionarMapaInterno, { passive: true });
       if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', redimensionarMapaInterno);
+        // No iOS/PWA o visual viewport pode mudar sem um resize convencional
+        // do window. Atualizamos o Leaflet para que tiles e controles cubram
+        // toda a área visível depois dessas mudanças.
+        window.visualViewport.addEventListener('resize', redimensionarMapaInterno, { passive: true });
       }
-      // Disparado pelo index.html toda vez que --fg-vh é recalculada (inclusive
-      // nas reconferências automáticas dos primeiros ~2s após abrir "frio").
-      // Sem isso, o Leaflet fica com o tamanho medido na primeira vez, mesmo
-      // depois do #app já estar com a altura real corrigida.
-      window.addEventListener('fg-viewport-changed', redimensionarMapaInterno);
-      // Reconfere a medida logo depois do carregamento inicial: se a
-      // primeira medição (linha acima) aconteceu antes da tela "assentar"
-      // de vez (ex.: cálculo de área segura do Safari ainda em transição),
-      // o #map-inner podia ficar permanentemente menor que a tela até um
-      // resize/rotação acontecer — deixando o fundo escuro do próprio mapa
-      // (sem tiles) visível como uma faixa em cima e/ou embaixo.
-      setTimeout(redimensionarMapaInterno, 300);
-      setTimeout(redimensionarMapaInterno, 1200);
 
       map = L.map('map-inner', {
         center: DEFAULT_CENTER,
@@ -252,7 +171,6 @@
 
       positionMarker = L.marker(DEFAULT_CENTER, { icon: createPositionIcon(), zIndexOffset: 1000, interactive: false });
       accuracyCircle = L.circle(DEFAULT_CENTER, { radius: 0, className: 'fg-accuracy-circle', color: '#1a73e8', weight: 1, fillOpacity: 0.12 });
-      compassRoseMarker = L.marker(DEFAULT_CENTER, { icon: createCompassRoseIcon(), zIndexOffset: 900, interactive: false, className: 'fg-compass-rose-marker' });
 
       return map;
     },
@@ -307,26 +225,6 @@
       accuracyCircle.setLatLng(latlng);
       accuracyCircle.setRadius(accuracy || 0);
       if (!map.hasLayer(accuracyCircle)) accuracyCircle.addTo(map);
-      if (compassRoseVisivel) {
-        compassRoseMarker.setLatLng(latlng);
-        if (!map.hasLayer(compassRoseMarker)) compassRoseMarker.addTo(map);
-      }
-    },
-
-    /** Liga/desliga a rosa dos ventos ao redor do marcador de posição atual. */
-    setCompassRoseVisible(visivel) {
-      compassRoseVisivel = visivel;
-      if (visivel) {
-        compassRoseMarker.setLatLng(positionMarker.getLatLng());
-        if (!map.hasLayer(compassRoseMarker)) compassRoseMarker.addTo(map);
-      } else if (map.hasLayer(compassRoseMarker)) {
-        map.removeLayer(compassRoseMarker);
-      }
-    },
-
-    /** Ajusta a transparência da rosa dos ventos (0 a 1). */
-    setCompassRoseOpacity(valor) {
-      document.documentElement.style.setProperty('--fg-compass-rose-opacity', valor);
     },
 
     /**
