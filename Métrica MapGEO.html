@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-23.1 — Backup no GitHub agora carrega os dados do escritório automaticamente ao abrir, sem precisar de token (token só é exigido para salvar)</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-25.1 — Novo: gera um modelo de importação (KML + Shapefile, com exemplo preenchido) com todos os campos do imóvel/proprietário/técnico/marcos; ao reimportar, cadastra tudo automaticamente</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1169,6 +1169,17 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="note">
         Envie um único arquivo .zip com os componentes do shapefile (.shp, .shx, .dbf e, de preferência, .prj com a projeção). O <strong>nome do imóvel é definido automaticamente a partir do nome do arquivo .zip</strong> importado (substituindo o nome atual, se houver) — renomeie depois se quiser. Sem o .prj, as coordenadas são tratadas como já estando em graus (WGS84) — com .prj, coordenadas projetadas (ex.: UTM) são convertidas automaticamente. Segue o mesmo processo de importação do KML acima (substitui os marcos existentes deste imóvel). <strong>Se o arquivo tiver mais de uma geometria</strong> (mais de um registro no .shp), você escolhe qual delas é o polígono ativo antes de importar. Requer conexão com a internet na primeira vez, para carregar a biblioteca de leitura.
       </div>
+    </div>
+
+    <div class="card" style="border:1px solid var(--brass);">
+      <h2>Modelo de importação completo (KML + Shapefile)</h2>
+      <div class="note" style="margin-top:0;">
+        Gere um arquivo-modelo com <strong>todos os campos</strong> do imóvel, do proprietário, do responsável técnico e de cada marco (vértice) — já com um exemplo preenchido — pronto para editar num programa de GIS (QGIS, ArcGIS, etc.). Depois de preenchido com os dados reais do levantamento, importe o arquivo de volta aqui embaixo: o MapGEO lê todos os atributos automaticamente e cadastra tudo (imóvel, proprietário, responsável técnico e marcos, com tipo/ordem/confrontante de cada um) sem precisar digitar nada de novo. O modelo é baixado como um único .zip contendo o KML e as duas camadas de Shapefile — edite qualquer um dos dois formatos, não precisa editar os dois.
+      </div>
+      <button type="button" class="btn btn-primary" id="btn-baixar-modelo-importacao">Baixar modelo de importação (.zip)</button>
+      <div style="height:14px;"></div>
+      <div class="field"><label>Arquivo do modelo preenchido (.kml, .kmz ou .zip do Shapefile)</label><input type="file" id="modelo-file-imo" accept=".kml,.kmz,.zip,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz,application/zip,application/x-zip-compressed,*/*"></div>
+      <button type="button" class="btn btn-primary" id="btn-import-modelo">Importar modelo preenchido</button>
     </div>
 
     <div class="card">
@@ -5537,6 +5548,29 @@ function parseKMLCoordinates(xmlText){
 }
 // Lê TODAS as geometrias do KML (um Placemark por geometria), em vez de só a maior — necessário
 // pra arquivos com mais de um polígono/limite, onde o usuário precisa escolher qual é o ativo.
+// Lê os atributos (ExtendedData/SchemaData/description) de um elemento KML (Placemark) —
+// função de uso geral, reaproveitada tanto pelo parser "geometria simples" (parseKMLGeometrias)
+// quanto pelo parser do modelo de importação completo (parseKMLModelo).
+function extrairAtributosDeElemento(pm){
+  const atributos = {};
+  // <ExtendedData><Data name="X"><value>Y</value></Data>...</ExtendedData>
+  Array.from(pm.getElementsByTagName('Data')).forEach(d=>{
+    const nomeAttr = d.getAttribute('name');
+    const valEl = d.getElementsByTagName('value')[0];
+    if(nomeAttr && valEl) atributos[nomeAttr] = valEl.textContent.trim();
+  });
+  // <ExtendedData><SchemaData><SimpleData name="X">Y</SimpleData>...</SchemaData></ExtendedData>
+  Array.from(pm.getElementsByTagName('SimpleData')).forEach(d=>{
+    const nomeAttr = d.getAttribute('name');
+    if(nomeAttr) atributos[nomeAttr] = d.textContent.trim();
+  });
+  // <description> — texto livre, só entra se não vazio e se não duplicar o que já veio do ExtendedData
+  const descEl = pm.getElementsByTagName('description')[0];
+  if(descEl && descEl.textContent.trim() && !Object.keys(atributos).length){
+    atributos['Descrição'] = descEl.textContent.trim();
+  }
+  return atributos;
+}
 function parseKMLGeometrias(xmlText){
   const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
   const err = doc.querySelector('parsererror');
@@ -5553,26 +5587,6 @@ function parseKMLGeometrias(xmlText){
   }
   const placemarks = Array.from(doc.getElementsByTagName('Placemark'));
   const geometrias = [];
-  function extrairAtributosPlacemark(pm){
-    const atributos = {};
-    // <ExtendedData><Data name="X"><value>Y</value></Data>...</ExtendedData>
-    Array.from(pm.getElementsByTagName('Data')).forEach(d=>{
-      const nomeAttr = d.getAttribute('name');
-      const valEl = d.getElementsByTagName('value')[0];
-      if(nomeAttr && valEl) atributos[nomeAttr] = valEl.textContent.trim();
-    });
-    // <ExtendedData><SchemaData><SimpleData name="X">Y</SimpleData>...</SchemaData></ExtendedData>
-    Array.from(pm.getElementsByTagName('SimpleData')).forEach(d=>{
-      const nomeAttr = d.getAttribute('name');
-      if(nomeAttr) atributos[nomeAttr] = d.textContent.trim();
-    });
-    // <description> — texto livre, só entra se não vazio e se não duplicar o que já veio do ExtendedData
-    const descEl = pm.getElementsByTagName('description')[0];
-    if(descEl && descEl.textContent.trim() && !Object.keys(atributos).length){
-      atributos['Descrição'] = descEl.textContent.trim();
-    }
-    return atributos;
-  }
   placemarks.forEach((pm, i) => {
     const nomeEl = pm.getElementsByTagName('name')[0];
     const nome = (nomeEl && nomeEl.textContent.trim()) || `Geometria ${i + 1}`;
@@ -5584,7 +5598,7 @@ function parseKMLGeometrias(xmlText){
     }
     if (!best) return;
     const pontos = coordTextParaPontos(best);
-    if (pontos.length >= 3) geometrias.push({ nome, pontos, atributos: extrairAtributosPlacemark(pm) });
+    if (pontos.length >= 3) geometrias.push({ nome, pontos, atributos: extrairAtributosDeElemento(pm) });
   });
   if (!geometrias.length) {
     // KML atípico, sem Placemark — cai pro comportamento antigo (pega o maior bloco do doc todo)
@@ -5738,6 +5752,512 @@ async function extrairGeometriasDeShapefile(file){
   if(!geometrias.length) throw new Error('Nenhuma geometria com pelo menos 3 pontos encontrada no shapefile.');
   return geometrias;
 }
+// ---------- MODELO DE IMPORTAÇÃO COMPLETO (KML + Shapefile "para preencher num GIS") ----------
+// Cada campo abaixo descreve: chave = nome interno usado pelo app; kml = nome do atributo no
+// KML/KMZ (pode ser longo/descritivo); dbf = nome do campo no Shapefile .dbf (limitado a 10
+// caracteres pelo formato dBase III, por isso é abreviado); tipo/tamanho = tipo e largura do
+// campo no .dbf ('C'=texto, 'N'=número); exemplo = valor usado no arquivo-modelo pré-preenchido;
+// ajuda = texto explicativo (vai para o LEIA-ME). Campos calculados automaticamente pelo app
+// (área, perímetro, zona UTM) e campos só de uso interno (kmlRaw, origem SIGEF etc.) ficam de
+// fora do modelo de propósito — não fazem sentido preenchidos manualmente num GIS.
+const MODELO_CAMPOS_IMOVEL = [
+  {chave:'nome', kml:'Imovel_Nome', dbf:'IM_NOME', tipo:'C', tamanho:100, exemplo:'Fazenda Modelo', ajuda:'Nome do imóvel/propriedade.'},
+  {chave:'matricula', kml:'Imovel_Matricula', dbf:'IM_MATRIC', tipo:'C', tamanho:30, exemplo:'12.345', ajuda:'Número da matrícula no Cartório de Registro de Imóveis.'},
+  {chave:'municipio', kml:'Imovel_Municipio', dbf:'IM_MUNIC', tipo:'C', tamanho:60, exemplo:'Cuiabá', ajuda:'Município onde o imóvel está localizado.'},
+  {chave:'uf', kml:'Imovel_UF', dbf:'IM_UF', tipo:'C', tamanho:2, exemplo:'MT', ajuda:'Sigla da UF (2 letras).'},
+  {chave:'comarca', kml:'Imovel_Comarca', dbf:'IM_COMARC', tipo:'C', tamanho:60, exemplo:'Cuiabá', ajuda:'Comarca do Cartório de Registro de Imóveis.'},
+  {chave:'artTipo', kml:'Imovel_Tipo_ART_TRT', dbf:'IM_ARTTIP', tipo:'C', tamanho:10, exemplo:'ART', ajuda:'Tipo de registro de responsabilidade técnica: ART ou TRT.'},
+  {chave:'art', kml:'Imovel_Numero_ART_TRT', dbf:'IM_ART', tipo:'C', tamanho:30, exemplo:'0123456789', ajuda:'Número da ART/TRT.'},
+  {chave:'datum', kml:'Imovel_Datum', dbf:'IM_DATUM', tipo:'C', tamanho:20, exemplo:'SIRGAS2000', ajuda:'Datum geodésico (ex.: SIRGAS2000, WGS84).'},
+  {chave:'codigoIncra', kml:'Imovel_Codigo_INCRA_SNCR', dbf:'IM_CODINC', tipo:'C', tamanho:30, exemplo:'', ajuda:'Código do imóvel no INCRA/SNCR (CCIR), se houver.'},
+  {chave:'leiDecreto', kml:'Imovel_Lei_Decreto', dbf:'IM_LEIDEC', tipo:'C', tamanho:60, exemplo:'', ajuda:'Lei ou decreto relacionado ao imóvel, se aplicável.'},
+  {chave:'parcelaSigef', kml:'Imovel_Parcela_SIGEF', dbf:'IM_PSIGEF', tipo:'C', tamanho:30, exemplo:'', ajuda:'Código da parcela no SIGEF, se já certificado.'},
+  {chave:'parcelaSigefSituacao', kml:'Imovel_Situacao_SIGEF', dbf:'IM_SITSIG', tipo:'C', tamanho:30, exemplo:'', ajuda:'Situação da parcela no SIGEF (ex.: Certificada, Pendente).'},
+  {chave:'sigefDataCertificacao', kml:'Imovel_Data_Certificacao_SIGEF', dbf:'IM_DTCERT', tipo:'C', tamanho:20, exemplo:'', ajuda:'Data de certificação no SIGEF (dd/mm/aaaa).'},
+  {chave:'sigefResponsavelTecnico', kml:'Imovel_Responsavel_Tecnico_SIGEF', dbf:'IM_RESPTS', tipo:'C', tamanho:100, exemplo:'', ajuda:'Responsável técnico conforme constava no SIGEF (texto livre).'},
+  {chave:'simcar', kml:'Imovel_Codigo_CAR_SIMCAR', dbf:'IM_SIMCAR', tipo:'C', tamanho:30, exemplo:'', ajuda:'Código do CAR (Cadastro Ambiental Rural) no SIMCAR.'},
+  {chave:'simcarSituacao', kml:'Imovel_Situacao_CAR', dbf:'IM_SITCAR', tipo:'C', tamanho:30, exemplo:'', ajuda:'Situação do CAR (ex.: Ativo, Pendente).'},
+];
+const MODELO_CAMPOS_PROPRIETARIO = [
+  {chave:'nome', kml:'Proprietario_Nome', dbf:'PR_NOME', tipo:'C', tamanho:100, exemplo:'José da Silva', ajuda:'Nome completo do proprietário.'},
+  {chave:'nacionalidade', kml:'Proprietario_Nacionalidade', dbf:'PR_NACION', tipo:'C', tamanho:40, exemplo:'Brasileiro', ajuda:'Nacionalidade do proprietário.'},
+  {chave:'doc', kml:'Proprietario_CPF_CNPJ', dbf:'PR_DOC', tipo:'C', tamanho:20, exemplo:'000.000.000-00', ajuda:'CPF ou CNPJ (usado para não duplicar o cadastro em novas importações).'},
+  {chave:'rg', kml:'Proprietario_RG', dbf:'PR_RG', tipo:'C', tamanho:20, exemplo:'', ajuda:'RG do proprietário.'},
+  {chave:'estadoCivil', kml:'Proprietario_Estado_Civil', dbf:'PR_ESTCIV', tipo:'C', tamanho:20, exemplo:'Casado(a)', ajuda:'Estado civil.'},
+  {chave:'profissao', kml:'Proprietario_Profissao', dbf:'PR_PROFIS', tipo:'C', tamanho:60, exemplo:'Produtor rural', ajuda:'Profissão.'},
+  {chave:'email', kml:'Proprietario_Email', dbf:'PR_EMAIL', tipo:'C', tamanho:60, exemplo:'', ajuda:'E-mail de contato.'},
+  {chave:'telefone', kml:'Proprietario_Telefone', dbf:'PR_TEL', tipo:'C', tamanho:20, exemplo:'', ajuda:'Telefone de contato.'},
+  {chave:'municipio', kml:'Proprietario_Municipio', dbf:'PR_MUNIC', tipo:'C', tamanho:60, exemplo:'Cuiabá', ajuda:'Município de residência.'},
+  {chave:'uf', kml:'Proprietario_UF', dbf:'PR_UF', tipo:'C', tamanho:2, exemplo:'MT', ajuda:'UF de residência.'},
+  {chave:'endereco', kml:'Proprietario_Endereco', dbf:'PR_ENDER', tipo:'C', tamanho:150, exemplo:'', ajuda:'Endereço completo.'},
+];
+const MODELO_CAMPOS_TECNICO = [
+  {chave:'nome', kml:'Tecnico_Nome', dbf:'TC_NOME', tipo:'C', tamanho:100, exemplo:'Maria Souza', ajuda:'Nome completo do responsável técnico.'},
+  {chave:'titulo', kml:'Tecnico_Titulo', dbf:'TC_TITULO', tipo:'C', tamanho:60, exemplo:'Engenheira Agrimensora', ajuda:'Título profissional.'},
+  {chave:'registroTipo', kml:'Tecnico_Tipo_Registro', dbf:'TC_REGTIP', tipo:'C', tamanho:15, exemplo:'CREA', ajuda:'Tipo do conselho de registro (CREA, CAU, CFT, etc.).'},
+  {chave:'registroNumero', kml:'Tecnico_Numero_Registro', dbf:'TC_REGNUM', tipo:'C', tamanho:30, exemplo:'000000/D-MT', ajuda:'Número do registro no conselho de classe (usado para não duplicar o cadastro em novas importações, junto com o Código INCRA).'},
+  {chave:'codigoIncra', kml:'Tecnico_Codigo_INCRA', dbf:'TC_CODINC', tipo:'C', tamanho:30, exemplo:'', ajuda:'Código do responsável técnico no INCRA, se houver.'},
+  {chave:'empresa', kml:'Tecnico_Empresa', dbf:'TC_EMPRES', tipo:'C', tamanho:100, exemplo:'', ajuda:'Empresa/escritório do responsável técnico.'},
+  {chave:'email', kml:'Tecnico_Email', dbf:'TC_EMAIL', tipo:'C', tamanho:60, exemplo:'', ajuda:'E-mail de contato.'},
+  {chave:'telefone', kml:'Tecnico_Telefone', dbf:'TC_TEL', tipo:'C', tamanho:20, exemplo:'', ajuda:'Telefone de contato.'},
+  {chave:'municipio', kml:'Tecnico_Municipio', dbf:'TC_MUNIC', tipo:'C', tamanho:60, exemplo:'Cuiabá', ajuda:'Município.'},
+  {chave:'uf', kml:'Tecnico_UF', dbf:'TC_UF', tipo:'C', tamanho:2, exemplo:'MT', ajuda:'UF.'},
+];
+const MODELO_CAMPOS_MARCO = [
+  {chave:'ordem', kml:'Marco_Ordem', dbf:'MC_ORDEM', tipo:'N', tamanho:6, ajuda:'Ordem do vértice no perímetro (sequência ao redor do imóvel — o sentido não importa, o app ajusta automaticamente para o sentido horário a partir do ponto mais ao norte).'},
+  {chave:'tipo', kml:'Marco_Tipo', dbf:'MC_TIPO', tipo:'C', tamanho:1, ajuda:'Tipo do marco: M = Marco, P = Rastreado não Materializado, V = Virtual, B = Base.'},
+  {chave:'confrontante', kml:'Marco_Confrontante', dbf:'MC_CONFR', tipo:'C', tamanho:150, ajuda:'Nome do confrontante (vizinho) neste trecho do perímetro.'},
+  {chave:'codigoSigef', kml:'Marco_Codigo_Campo', dbf:'MC_CODSIG', tipo:'C', tamanho:40, ajuda:'Código/anotação de campo (opcional).'},
+];
+function pegarValorCampo(atributos, campoDef){
+  return pegarAtributoSigef(atributos, [campoDef.kml, campoDef.dbf, campoDef.chave]);
+}
+function normalizarTipoMarco(v){
+  const t = String(v==null?'':v).trim().toUpperCase();
+  return ['M','P','V','B'].includes(t) ? t : 'V';
+}
+// Exemplo autocontido (sem depender de nada já cadastrado) usado para pré-preencher o modelo —
+// coordenadas próximas de Cuiabá-MT só para o exemplo cair num lugar plausível; o usuário troca
+// pela geometria real do levantamento no programa de GIS.
+function montarExemploModelo(){
+  const baseLon = -56.0970, baseLat = -15.5850, d = 0.0020; // ~200m
+  const pontosExemplo = [
+    {tipo:'M', confrontante:'Rio das Pedras',             codigoSigef:'',      lon: baseLon,       lat: baseLat+d},
+    {tipo:'B', confrontante:'Rio das Pedras',             codigoSigef:'RN-01', lon: baseLon+d*0.6, lat: baseLat+d*0.7},
+    {tipo:'M', confrontante:'João da Silva (matr. 111)',  codigoSigef:'',      lon: baseLon+d,     lat: baseLat},
+    {tipo:'P', confrontante:'Estrada Municipal',          codigoSigef:'',      lon: baseLon+d*0.5, lat: baseLat-d},
+    {tipo:'V', confrontante:'Maria Souza (matr. 222)',    codigoSigef:'',      lon: baseLon-d*0.4, lat: baseLat-d*0.6},
+  ];
+  const porChave = campos => Object.fromEntries(campos.map(c=>[c.chave, c.exemplo!==undefined?c.exemplo:'']));
+  return {
+    imovel: porChave(MODELO_CAMPOS_IMOVEL),
+    proprietario: porChave(MODELO_CAMPOS_PROPRIETARIO),
+    tecnico: porChave(MODELO_CAMPOS_TECNICO),
+    pontos: pontosExemplo.map((p,i)=>({lon:p.lon, lat:p.lat, ordem:i+1, tipo:p.tipo, confrontante:p.confrontante, codigoSigef:p.codigoSigef})),
+  };
+}
+function gerarModeloKML(dados){
+  const extendedData = (campos, obj) => campos.map(c=>
+    `<Data name="${escXml(c.kml)}"><value>${escXml(obj[c.chave]==null?'':obj[c.chave])}</value></Data>`
+  ).join('\n        ');
+  const coordsPoligono = dados.pontos.map(p=>`${p.lon},${p.lat},0`).join(' ') + ` ${dados.pontos[0].lon},${dados.pontos[0].lat},0`;
+  const placemarkImovel = `<Placemark>
+      <name>${escXml(dados.imovel.nome||'Imóvel')}</name>
+      <ExtendedData>
+        ${extendedData(MODELO_CAMPOS_IMOVEL, dados.imovel)}
+        ${extendedData(MODELO_CAMPOS_PROPRIETARIO, dados.proprietario)}
+        ${extendedData(MODELO_CAMPOS_TECNICO, dados.tecnico)}
+      </ExtendedData>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>${coordsPoligono}</coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>`;
+  const placemarksMarcos = dados.pontos.map((p,i)=>`<Placemark>
+      <name>Vértice ${p.ordem||i+1}</name>
+      <ExtendedData>
+        ${extendedData(MODELO_CAMPOS_MARCO, p)}
+      </ExtendedData>
+      <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>
+    </Placemark>`).join('\n    ');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Modelo de importação - MapGEO</name>
+  <Folder>
+    <name>Imóvel (polígono)</name>
+    ${placemarkImovel}
+  </Folder>
+  <Folder>
+    <name>Marcos (vértices)</name>
+    ${placemarksMarcos}
+  </Folder>
+</Document>
+</kml>`;
+}
+// Lê o modelo completo a partir de um texto KML — separa o Placemark do polígono (dados do
+// imóvel/proprietário/técnico) dos Placemarks de ponto (um por marco/vértice, com seus atributos).
+function parseKMLModelo(xmlText){
+  const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  const err = doc.querySelector('parsererror');
+  if(err) throw new Error('Arquivo KML inválido.');
+  const placemarks = Array.from(doc.getElementsByTagName('Placemark'));
+  let atributosImovel = {};
+  const vertices = [];
+  let placemarkPoligono = null;
+  placemarks.forEach(pm=>{
+    const atributos = extrairAtributosDeElemento(pm);
+    if(pm.getElementsByTagName('Polygon').length){
+      placemarkPoligono = pm;
+      if(Object.keys(atributos).length) atributosImovel = atributos;
+    } else if(pm.getElementsByTagName('Point').length){
+      const coordNode = pm.getElementsByTagName('coordinates')[0];
+      if(coordNode){
+        const [lon,lat] = coordNode.textContent.trim().split(',').map(Number);
+        if(!isNaN(lon) && !isNaN(lat)) vertices.push({lon, lat, atributos});
+      }
+    }
+  });
+  if(!vertices.length && placemarkPoligono){
+    // Nenhum Placemark de ponto (ex.: usuário editou/exportou só o polígono no GIS) — usa os
+    // próprios vértices do anel do polígono como marcos, sem atributos por vértice.
+    const coordNodes = placemarkPoligono.getElementsByTagName('coordinates');
+    let best = null;
+    for(let j=0;j<coordNodes.length;j++){ const t=coordNodes[j].textContent.trim(); if(t && (!best||t.length>best.length)) best=t; }
+    if(best){
+      const pontos = best.split(/\s+/).filter(Boolean).map(tri=>{ const [lon,lat]=tri.split(',').map(Number); return {lon,lat}; }).filter(p=>!isNaN(p.lon)&&!isNaN(p.lat));
+      if(pontos.length && Math.abs(pontos[0].lon-pontos[pontos.length-1].lon)<1e-9 && Math.abs(pontos[0].lat-pontos[pontos.length-1].lat)<1e-9) pontos.pop();
+      pontos.forEach(p=>vertices.push({lon:p.lon, lat:p.lat, atributos:{}}));
+    }
+  }
+  return {atributosImovel, vertices};
+}
+// ---- Escrita de Shapefile binário (.shp/.shx/.dbf/.prj) ----
+// Não existe biblioteca de ESCRITA de shapefile carregada no app (shp.js só lê), então os
+// arquivos são montados byte a byte aqui, seguindo a especificação ESRI. O cabeçalho do
+// .shp/.shx mistura big-endian e little-endian de propósito — é uma peculiaridade antiga do
+// formato, não um erro deste código.
+const SHP_PRJ_WGS84 = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+function shpEscreverCabecalho(view, fileLenBytes, shapeType, bbox){
+  view.setInt32(0, 9994, false); // file code
+  view.setInt32(24, fileLenBytes/2, false); // file length em words de 16 bits
+  view.setInt32(28, 1000, true); // version
+  view.setInt32(32, shapeType, true);
+  view.setFloat64(36, bbox[0], true); view.setFloat64(44, bbox[1], true);
+  view.setFloat64(52, bbox[2], true); view.setFloat64(60, bbox[3], true);
+  view.setFloat64(68, 0, true); view.setFloat64(76, 0, true);
+  view.setFloat64(84, 0, true); view.setFloat64(92, 0, true);
+}
+function shpBBoxDePontos(pontos){
+  let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;
+  pontos.forEach(p=>{ if(p.lon<xmin)xmin=p.lon; if(p.lon>xmax)xmax=p.lon; if(p.lat<ymin)ymin=p.lat; if(p.lat>ymax)ymax=p.lat; });
+  return [xmin,ymin,xmax,ymax];
+}
+function construirShapefilePontos(pontos){
+  const numRecords = pontos.length;
+  const contentBytes = 4+8+8; // shape type + x + y
+  const recordTotalBytes = 8 + contentBytes;
+  const shpFileBytes = 100 + numRecords*recordTotalBytes;
+  const shxFileBytes = 100 + numRecords*8;
+  const shpBuf = new ArrayBuffer(shpFileBytes), shxBuf = new ArrayBuffer(shxFileBytes);
+  const shpView = new DataView(shpBuf), shxView = new DataView(shxBuf);
+  const bbox = shpBBoxDePontos(pontos);
+  shpEscreverCabecalho(shpView, shpFileBytes, 1, bbox);
+  shpEscreverCabecalho(shxView, shxFileBytes, 1, bbox);
+  let offset = 100;
+  pontos.forEach((p,i)=>{
+    shpView.setInt32(offset, i+1, false);
+    shpView.setInt32(offset+4, contentBytes/2, false);
+    shpView.setInt32(offset+8, 1, true);
+    shpView.setFloat64(offset+12, p.lon, true);
+    shpView.setFloat64(offset+20, p.lat, true);
+    shxView.setInt32(100+i*8, offset/2, false);
+    shxView.setInt32(100+i*8+4, contentBytes/2, false);
+    offset += recordTotalBytes;
+  });
+  return {shp:shpBuf, shx:shxBuf};
+}
+function construirShapefilePoligono(pontosAnel){
+  const anel = pontosAnel.concat([pontosAnel[0]]);
+  // O shapefile exige que o anel externo do polígono esteja em sentido horário — a mesma
+  // convenção de sinal usada em reorderNorteHorario (área "positiva" = sentido anti-horário).
+  let signedArea = 0;
+  for(let i=0;i<anel.length-1;i++){ signedArea += anel[i].lon*anel[i+1].lat - anel[i+1].lon*anel[i].lat; }
+  const anelHorario = signedArea > 0 ? anel.slice().reverse() : anel;
+  const numPoints = anelHorario.length, numParts = 1;
+  const contentBytes = 4+32+4+4 + 4*numParts + 16*numPoints;
+  const recordTotalBytes = 8 + contentBytes;
+  const shpFileBytes = 100 + recordTotalBytes, shxFileBytes = 100 + 8;
+  const shpBuf = new ArrayBuffer(shpFileBytes), shxBuf = new ArrayBuffer(shxFileBytes);
+  const shpView = new DataView(shpBuf), shxView = new DataView(shxBuf);
+  const bbox = shpBBoxDePontos(anelHorario);
+  shpEscreverCabecalho(shpView, shpFileBytes, 5, bbox);
+  shpEscreverCabecalho(shxView, shxFileBytes, 5, bbox);
+  shpView.setInt32(100, 1, false);
+  shpView.setInt32(104, contentBytes/2, false);
+  let c = 108;
+  shpView.setInt32(c, 5, true); c+=4;
+  shpView.setFloat64(c, bbox[0], true); c+=8; shpView.setFloat64(c, bbox[1], true); c+=8;
+  shpView.setFloat64(c, bbox[2], true); c+=8; shpView.setFloat64(c, bbox[3], true); c+=8;
+  shpView.setInt32(c, numParts, true); c+=4;
+  shpView.setInt32(c, numPoints, true); c+=4;
+  shpView.setInt32(c, 0, true); c+=4;
+  anelHorario.forEach(p=>{ shpView.setFloat64(c, p.lon, true); c+=8; shpView.setFloat64(c, p.lat, true); c+=8; });
+  shxView.setInt32(100, 50, false);
+  shxView.setInt32(104, contentBytes/2, false);
+  return {shp:shpBuf, shx:shxBuf};
+}
+// Monta um .dbf (dBase III) genérico a partir de uma lista de definições de campo
+// ({dbf, tipo:'C'|'N', tamanho}) e uma lista de registros (objetos indexados pelo nome do campo
+// .dbf). Acentos são removidos (o dBase é ASCII de largura fixa) — o mesmo dado, sem essa
+// limitação, também vai preenchido no KML.
+function construirDBF(campos, registros){
+  const numFields = campos.length;
+  const headerBytes = 32 + numFields*32 + 1;
+  const recordBytes = 1 + campos.reduce((s,c)=>s+c.tamanho,0);
+  const fileBytes = headerBytes + registros.length*recordBytes + 1;
+  const buf = new ArrayBuffer(fileBytes);
+  const view = new DataView(buf), bytes = new Uint8Array(buf);
+  const hoje = new Date();
+  view.setUint8(0, 0x03);
+  view.setUint8(1, Math.max(0, hoje.getFullYear()-1900));
+  view.setUint8(2, hoje.getMonth()+1);
+  view.setUint8(3, hoje.getDate());
+  view.setUint32(4, registros.length, true);
+  view.setUint16(8, headerBytes, true);
+  view.setUint16(10, recordBytes, true);
+  let pos = 32;
+  campos.forEach(c=>{
+    const nomeBytes = new TextEncoder().encode(c.dbf.slice(0,10));
+    for(let i=0;i<11;i++) bytes[pos+i] = i<nomeBytes.length ? nomeBytes[i] : 0;
+    bytes[pos+11] = c.tipo.charCodeAt(0);
+    bytes[pos+16] = c.tamanho;
+    bytes[pos+17] = 0;
+    pos += 32;
+  });
+  bytes[pos] = 0x0D; pos += 1;
+  registros.forEach(reg=>{
+    bytes[pos] = 0x20; pos += 1;
+    campos.forEach(c=>{
+      let v = reg[c.dbf];
+      v = (v==null?'':String(v)).normalize('NFD').replace(/[̀-ͯ]/g,'');
+      const txt = new TextEncoder().encode(v).slice(0, c.tamanho);
+      if(c.tipo==='N'){
+        // Numérico: alinhado à direita, preenchido com espaços à esquerda
+        for(let i=0;i<c.tamanho;i++) bytes[pos+i] = 0x20;
+        for(let i=0;i<txt.length;i++) bytes[pos+c.tamanho-txt.length+i] = txt[i];
+      } else {
+        for(let i=0;i<c.tamanho;i++) bytes[pos+i] = i<txt.length ? txt[i] : 0x20;
+      }
+      pos += c.tamanho;
+    });
+  });
+  bytes[fileBytes-1] = 0x1A;
+  return buf;
+}
+function gerarLeiaMeModelo(){
+  const linhasCampo = campos => campos.map(c=>`  - ${c.kml}  (Shapefile: ${c.dbf})  —  ${c.ajuda}`).join('\n');
+  return `MODELO DE IMPORTAÇÃO — MapGEO
+================================
+
+Este pacote traz o MESMO levantamento-exemplo em dois formatos, prontos para editar num
+programa de GIS (QGIS, ArcGIS, etc.) e depois reimportar no MapGEO:
+
+  1) modelo_importacao_mapgeo.kml — um KML com duas pastas:
+       "Imóvel (polígono)": 1 polígono com todos os dados do imóvel, do proprietário e do
+       responsável técnico (em ExtendedData).
+       "Marcos (vértices)": 1 ponto para cada vértice do perímetro, com o tipo, a ordem e o
+       confrontante daquele trecho.
+
+  2) shapefile_imovel_poligono/ e shapefile_marcos_vertices/ — as mesmas duas camadas acima em
+     Shapefile (.shp/.shx/.dbf/.prj), com os mesmos dados nos campos do .dbf (nomes de campo
+     abreviados por causa do limite de 10 caracteres do formato Shapefile).
+
+Edite QUALQUER um dos dois formatos (não precisa editar os dois) e importe de volta no MapGEO
+pela aba "Imóveis", botão "Importar modelo preenchido" — o app lê todos os atributos
+automaticamente e cadastra o imóvel, o proprietário, o responsável técnico e todos os marcos,
+sem precisar digitar nada de novo.
+
+O arquivo já vem com um EXEMPLO preenchido — apague/substitua os valores de exemplo pelos
+dados reais do levantamento (e ajuste a geometria do polígono/pontos para as coordenadas reais).
+
+CAMPOS DO IMÓVEL
+${linhasCampo(MODELO_CAMPOS_IMOVEL)}
+
+CAMPOS DO PROPRIETÁRIO
+${linhasCampo(MODELO_CAMPOS_PROPRIETARIO)}
+  Dica: preencha o CPF/CNPJ (Proprietario_CPF_CNPJ) — se esse proprietário já estiver
+  cadastrado no MapGEO, ele será reconhecido pelo documento e não será duplicado numa nova
+  importação.
+
+CAMPOS DO RESPONSÁVEL TÉCNICO
+${linhasCampo(MODELO_CAMPOS_TECNICO)}
+  Dica: preencha o número do registro (Tecnico_Numero_Registro) ou o código INCRA — se esse
+  responsável técnico já estiver cadastrado, ele será reconhecido e não será duplicado numa
+  nova importação.
+
+CAMPOS DE CADA MARCO (VÉRTICE)
+${linhasCampo(MODELO_CAMPOS_MARCO)}
+  Valores válidos de "Marco_Tipo": M, P, V ou B.
+
+OBSERVAÇÕES
+  - A ordem dos vértices no perímetro não precisa começar em nenhum ponto específico nem
+    seguir um sentido específico — o MapGEO reordena automaticamente a partir do ponto mais ao
+    norte e no sentido horário ao importar. Use o campo "Marco_Ordem" só para manter os
+    vértices na sequência correta ao redor do imóvel.
+  - Área, perímetro e zona UTM são recalculados automaticamente pelo MapGEO a partir das
+    coordenadas — não é necessário preenchê-los.
+  - Se já houver um imóvel selecionado/aberto no MapGEO no momento da importação, os marcos
+    dele serão SUBSTITUÍDOS pelos do arquivo (o app avisa antes de substituir).
+`;
+}
+async function gerarPacoteModeloImportacao(){
+  if(typeof JSZip === 'undefined'){
+    try{ await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }catch(e){ /* segue para o erro abaixo */ }
+    if(typeof JSZip === 'undefined') throw new Error('Biblioteca de compactação (JSZip) não carregou — verifique sua conexão com a internet e recarregue a página.');
+  }
+  const dados = montarExemploModelo();
+  const zip = new JSZip();
+  zip.file('modelo_importacao_mapgeo.kml', gerarModeloKML(dados));
+
+  const registroImovel = {};
+  MODELO_CAMPOS_IMOVEL.forEach(c=>registroImovel[c.dbf]=dados.imovel[c.chave]);
+  MODELO_CAMPOS_PROPRIETARIO.forEach(c=>registroImovel[c.dbf]=dados.proprietario[c.chave]);
+  MODELO_CAMPOS_TECNICO.forEach(c=>registroImovel[c.dbf]=dados.tecnico[c.chave]);
+  const campoDbfImovel = [].concat(MODELO_CAMPOS_IMOVEL, MODELO_CAMPOS_PROPRIETARIO, MODELO_CAMPOS_TECNICO);
+  const poli = construirShapefilePoligono(dados.pontos.map(p=>({lon:p.lon,lat:p.lat})));
+  const dbfPoli = construirDBF(campoDbfImovel, [registroImovel]);
+  zip.file('shapefile_imovel_poligono/imovel_poligono.shp', poli.shp);
+  zip.file('shapefile_imovel_poligono/imovel_poligono.shx', poli.shx);
+  zip.file('shapefile_imovel_poligono/imovel_poligono.dbf', dbfPoli);
+  zip.file('shapefile_imovel_poligono/imovel_poligono.prj', SHP_PRJ_WGS84);
+
+  const registrosMarcos = dados.pontos.map(p=>{ const r={}; MODELO_CAMPOS_MARCO.forEach(c=>r[c.dbf]=p[c.chave]); return r; });
+  const pts = construirShapefilePontos(dados.pontos.map(p=>({lon:p.lon,lat:p.lat})));
+  const dbfPts = construirDBF(MODELO_CAMPOS_MARCO, registrosMarcos);
+  zip.file('shapefile_marcos_vertices/marcos_vertices.shp', pts.shp);
+  zip.file('shapefile_marcos_vertices/marcos_vertices.shx', pts.shx);
+  zip.file('shapefile_marcos_vertices/marcos_vertices.dbf', dbfPts);
+  zip.file('shapefile_marcos_vertices/marcos_vertices.prj', SHP_PRJ_WGS84);
+
+  zip.file('LEIA-ME.txt', gerarLeiaMeModelo());
+  return await zip.generateAsync({type:'blob'});
+}
+// Lê um .zip que pode conter uma OU mais camadas de shapefile (grupos de .shp/.dbf/.prj com
+// nomes de base diferentes) — usado para reimportar o modelo de duas camadas (polígono do
+// imóvel + pontos dos marcos), mas também funciona com um .zip de shapefile "simples".
+async function extrairCamadasDeShapefileZip(file){
+  await garantirLibShapefile();
+  if(typeof JSZip === 'undefined') throw new Error('Biblioteca de leitura de .zip não carregou — verifique sua conexão com a internet e recarregue a página.');
+  const buffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(buffer);
+  const arquivos = Object.values(zip.files).filter(f=>!f.dir);
+  const shpEntries = arquivos.filter(f=>/\.shp$/i.test(f.name));
+  if(!shpEntries.length) throw new Error('Nenhum arquivo .shp encontrado dentro do .zip enviado.');
+  const baseDe = nome => nome.replace(/\.[^./\\]+$/,'').toLowerCase();
+  const camadas = [];
+  for(const shpEntry of shpEntries){
+    const base = baseDe(shpEntry.name);
+    const dbfEntry = arquivos.find(f=>baseDe(f.name)===base && /\.dbf$/i.test(f.name));
+    const prjEntry = arquivos.find(f=>baseDe(f.name)===base && /\.prj$/i.test(f.name));
+    const shpBuf = await shpEntry.async('arraybuffer');
+    const prjText = prjEntry ? await prjEntry.async('text') : null;
+    let geometrias;
+    try{ geometrias = shp.parseShp(shpBuf, prjText); }catch(e){ continue; }
+    let features;
+    if(dbfEntry){
+      const dbfBuf = await dbfEntry.async('arraybuffer');
+      let propriedades;
+      try{ propriedades = shp.parseDbf(dbfBuf); }catch(e){ propriedades = geometrias.map(()=>({})); }
+      const combinado = shp.combine([geometrias, propriedades]);
+      features = combinado.features || combinado;
+    } else {
+      features = geometrias.map(g=>({type:'Feature', geometry:g, properties:{}}));
+    }
+    camadas.push({nomeBase: base, features});
+  }
+  if(!camadas.length) throw new Error('Não foi possível interpretar nenhuma camada de shapefile dentro do .zip.');
+  return camadas;
+}
+// Separa, entre todas as camadas lidas, qual feature é o polígono do imóvel e quais são os
+// pontos dos marcos (podem estar espalhados em mais de uma camada — não importa a ordem).
+function classificarCamadasModelo(camadas){
+  let poligono = null;
+  const pontos = [];
+  camadas.forEach(c=>c.features.forEach(f=>{
+    if(!f.geometry) return;
+    if(!poligono && (f.geometry.type==='Polygon'||f.geometry.type==='MultiPolygon')) poligono = f;
+    else if(f.geometry.type==='Point') pontos.push(f);
+  }));
+  return {poligono, pontosFeatures: pontos};
+}
+// Normaliza os dados brutos (vindos do KML ou do Shapefile) no formato usado por
+// importarModeloCompleto — usa pegarValorCampo (busca tolerante por nome de campo) pra aceitar
+// tanto os nomes do KML quanto as versões abreviadas do .dbf, e tolerar pequenas variações.
+function normalizarModeloImportado({atributosImovel, vertices}){
+  const extrair = campos => { const o={}; campos.forEach(c=>{ const v=pegarValorCampo(atributosImovel, c); if(v) o[c.chave]=v; }); return o; };
+  const imovel = extrair(MODELO_CAMPOS_IMOVEL);
+  const proprietario = extrair(MODELO_CAMPOS_PROPRIETARIO);
+  const tecnico = extrair(MODELO_CAMPOS_TECNICO);
+  const [campoOrdem, campoTipo, campoConfr, campoCod] = MODELO_CAMPOS_MARCO;
+  let pontos = vertices.map((v,i)=>{
+    const ordemStr = pegarValorCampo(v.atributos, campoOrdem);
+    const ordem = ordemStr!=='' && !isNaN(parseInt(ordemStr,10)) ? parseInt(ordemStr,10) : (i+1);
+    return {
+      lon: v.lon, lat: v.lat, ordem,
+      tipo: normalizarTipoMarco(pegarValorCampo(v.atributos, campoTipo)),
+      confrontante: pegarValorCampo(v.atributos, campoConfr),
+      codigoSigef: pegarValorCampo(v.atributos, campoCod),
+    };
+  });
+  pontos.sort((a,b)=>a.ordem-b.ordem);
+  return {imovel, proprietario, tecnico, pontos};
+}
+// Aplica o modelo normalizado: cria/reconhece proprietário e responsável técnico (evitando
+// duplicar cadastros já existentes), importa os marcos (reaproveitando importarPontosParaImovel,
+// já com tipo/confrontante/código por vértice) e preenche os demais campos do imóvel.
+async function importarModeloCompleto(normalizado, opts){
+  opts = opts || {};
+  const {imovel, proprietario, tecnico, pontos} = normalizado;
+  if(pontos.length < 3){ showToast('São necessários ao menos 3 vértices (marcos) no arquivo para importar.'); return; }
+
+  let proprietarioId = '';
+  if(Object.keys(proprietario).length){
+    const docLimpo = proprietario.doc ? proprietario.doc.replace(/\D/g,'') : '';
+    let existente = docLimpo ? state.proprietarios.find(p=>p.doc && p.doc.replace(/\D/g,'')===docLimpo) : null;
+    if(existente){
+      Object.keys(proprietario).forEach(k=>{ if(!existente[k]) existente[k]=proprietario[k]; });
+      proprietarioId = existente.id;
+    } else {
+      const novo = Object.assign({id: uid(), nome:'', nacionalidade:'', doc:'', rg:'', estadoCivil:'', profissao:'', email:'', telefone:'', municipio:'', uf:'', endereco:''}, proprietario);
+      state.proprietarios.push(novo);
+      proprietarioId = novo.id;
+    }
+    await save('proprietarios'); renderProp(); refreshSelects();
+  }
+
+  let tecnicoId = '';
+  if(Object.keys(tecnico).length){
+    let existente = null;
+    if(tecnico.codigoIncra) existente = state.tecnicos.find(t=>t.codigoIncra && t.codigoIncra.toUpperCase()===tecnico.codigoIncra.toUpperCase());
+    if(!existente && tecnico.registroNumero) existente = state.tecnicos.find(t=>t.registroNumero && t.registroNumero===tecnico.registroNumero);
+    if(existente){
+      Object.keys(tecnico).forEach(k=>{ if(!existente[k]) existente[k]=tecnico[k]; });
+      tecnicoId = existente.id;
+    } else {
+      const novo = Object.assign({id: uid(), nome:'', titulo:'', registroTipo:'', registroNumero:'', registros:[], codigoIncra:'', empresa:'', email:'', telefone:'', municipio:'', uf:''}, tecnico);
+      novo.registros = novo.registroNumero ? [{tipo:novo.registroTipo||'CREA', numero:novo.registroNumero}] : [];
+      state.tecnicos.push(novo);
+      tecnicoId = novo.id;
+    }
+    await save('tecnicos'); renderTec(); refreshSelects();
+  }
+
+  const metadadosPorPonto = pontos.map(p=>({tipo:p.tipo, confrontante:p.confrontante, codigoSigef:p.codigoSigef}));
+  await importarPontosParaImovel(pontos.map(p=>({lon:p.lon, lat:p.lat})), {
+    nomeSugerido: imovel.nome || opts.nomeSugerido,
+    origemLabel: opts.origemLabel || 'modelo preenchido',
+    metadadosPorPonto,
+  });
+
+  const imId = document.getElementById('imo-id').value;
+  const im = state.imoveis.find(x=>x.id===imId);
+  if(im){
+    Object.keys(imovel).forEach(k=>{ if(k!=='nome' && imovel[k]) im[k]=imovel[k]; });
+    if(proprietarioId) im.proprietarioId = proprietarioId;
+    if(tecnicoId) im.tecnicoId = tecnicoId;
+    await save('imoveis');
+    if(editing.imo===imId){
+      const campoMap = {matricula:'imo-matricula', municipio:'imo-municipio', uf:'imo-uf', comarca:'imo-comarca',
+        artTipo:'imo-art-tipo', art:'imo-art', datum:'imo-datum', codigoIncra:'imo-codigo-incra',
+        leiDecreto:'imo-lei-decreto', parcelaSigef:'imo-parcela-sigef', parcelaSigefSituacao:'imo-parcela-sigef-situacao',
+        sigefDataCertificacao:'imo-sigef-data-cert', sigefResponsavelTecnico:'imo-sigef-resp-tecnico',
+        simcar:'imo-simcar', simcarSituacao:'imo-simcar-situacao'};
+      Object.keys(campoMap).forEach(k=>{ if(imovel[k]!=null){ const el=document.getElementById(campoMap[k]); if(el) el.value = im[k]||''; } });
+      const selProp = document.getElementById('imo-proprietario'); if(selProp && proprietarioId) selProp.value = proprietarioId;
+      const selTec = document.getElementById('imo-tecnico'); if(selTec && tecnicoId) selTec.value = tecnicoId;
+    }
+    renderImo();
+  }
+  showToast('Modelo importado: imóvel, proprietário, responsável técnico e marcos cadastrados automaticamente.');
+}
 function nomeImovelDoArquivo(fileName){
   if(!fileName) return '';
   const semExtensao = fileName.replace(/\.[^./\\]+$/,'');
@@ -5789,8 +6309,13 @@ async function importarPontosParaImovel(points, opts){
   const zone = primeiraUtm.zone;
   const novos = points.map((p,i)=>{
     const utm = lonLatToUTM(p.lon, p.lat);
+    // metadadosPorPonto (opcional): usado pela importação do "modelo completo" (KML/Shapefile
+    // preenchido pelo usuário num GIS), que já traz tipo/confrontante/código por vértice —
+    // quando ausente, mantém o comportamento de sempre (marco tipo "V", sem confrontante).
+    const meta = (opts.metadadosPorPonto && opts.metadadosPorPonto[i]) || {};
     return {
-      id: uid(), imovelId: imId, tipo:'V', ordem:i+1, confrontante:'', confrontanteImovelId:null, codigoSigef:'',
+      id: uid(), imovelId: imId, tipo: meta.tipo || 'V', ordem:i+1,
+      confrontante: meta.confrontante || '', confrontanteImovelId:null, codigoSigef: meta.codigoSigef || '',
       implantado:false, numeroCatalogo:null, codigoCompleto:null,
       coordE: Math.round(utm.easting*1000)/1000,
       coordN: Math.round(utm.northing*1000)/1000,
@@ -5937,6 +6462,69 @@ document.getElementById('btn-import-shp-imo').addEventListener('click', async ()
   }catch(e){
     console.error('Erro ao importar Shapefile:', e);
     showToast('Erro ao importar Shapefile: '+e.message);
+  }
+});
+
+document.getElementById('btn-baixar-modelo-importacao').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btn-baixar-modelo-importacao');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando modelo...';
+  try{
+    const blob = await gerarPacoteModeloImportacao();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'modelo_importacao_mapgeo.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 10000);
+    showToast('Modelo baixado! Edite no QGIS/ArcGIS (KML ou Shapefile, com o exemplo já preenchido) e importe de volta pelo campo abaixo.');
+  }catch(e){
+    console.error('Erro ao gerar modelo de importação:', e);
+    showToast('Erro ao gerar modelo: '+e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+});
+document.getElementById('btn-import-modelo').addEventListener('click', async ()=>{
+  const fileInput = document.getElementById('modelo-file-imo');
+  const file = fileInput.files[0];
+  if(!file){ showToast('Escolha o arquivo do modelo preenchido (.kml, .kmz ou .zip do shapefile).'); return; }
+  try{
+    let atributosImovel = {}, vertices = [];
+    if(/\.zip$/i.test(file.name)){
+      let kmlDentro = null;
+      if(typeof JSZip === 'undefined'){ try{ await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }catch(e){ /* segue sem KML embutido */ } }
+      if(typeof JSZip !== 'undefined'){
+        const buffer = await file.arrayBuffer();
+        const zipTeste = await JSZip.loadAsync(buffer.slice(0));
+        const kmlEntry = Object.values(zipTeste.files).find(f=>!f.dir && /\.kml$/i.test(f.name));
+        if(kmlEntry) kmlDentro = await kmlEntry.async('text');
+      }
+      if(kmlDentro){
+        const r = parseKMLModelo(kmlDentro);
+        atributosImovel = r.atributosImovel; vertices = r.vertices;
+      } else {
+        const camadas = await extrairCamadasDeShapefileZip(file);
+        const {poligono, pontosFeatures} = classificarCamadasModelo(camadas);
+        atributosImovel = poligono ? (poligono.properties||{}) : {};
+        vertices = pontosFeatures.map(f=>({lon:f.geometry.coordinates[0], lat:f.geometry.coordinates[1], atributos: f.properties||{}}));
+        if(!vertices.length && poligono){
+          let ring = poligono.geometry.type==='Polygon' ? poligono.geometry.coordinates[0] : poligono.geometry.coordinates[0][0];
+          vertices = ring.map(c=>({lon:c[0], lat:c[1], atributos:{}}));
+        }
+      }
+    } else {
+      const isKmz = /\.kmz$/i.test(file.name);
+      const text = isKmz ? await extrairKMLdeKMZ(file) : await file.text();
+      const r = parseKMLModelo(text);
+      atributosImovel = r.atributosImovel; vertices = r.vertices;
+    }
+    if(!vertices.length){ showToast('Não foi possível encontrar os vértices (marcos) no arquivo enviado.'); return; }
+    const normalizado = normalizarModeloImportado({atributosImovel, vertices});
+    await importarModeloCompleto(normalizado, {nomeSugerido: file.name, origemLabel:'modelo preenchido'});
+    fileInput.value='';
+  }catch(e){
+    console.error('Erro ao importar modelo:', e);
+    showToast('Erro ao importar modelo: '+e.message);
   }
 });
 
