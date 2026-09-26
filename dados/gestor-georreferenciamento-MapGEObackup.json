@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T04:48:55.907Z",
+  "exportadoEm": "2026-09-26T04:50:31.725Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -335,15 +335,17 @@
       "comarca": "Cuiaba",
       "proprietarioId": "muhviy71a3kkq",
       "tecnicoId": "muhvqhwk2bblh",
+      "artTipo": "TRT",
+      "art": "0123456789",
       "datum": "SIRGAS2000",
       "perimetro": "1144.23",
       "utmZona": "21S",
-      "artTipo": "TRT",
-      "art": "0123456789",
       "codigoIncra": "123132321231",
+      "leiDecreto": "",
       "parcelaSigef": "jkjkjkjkjkjkjoijçdsajdijçfkasf",
       "parcelaSigefSituacao": "Certificado",
       "sigefDataCertificacao": "2026-09-26",
+      "sigefResponsavelTecnico": "",
       "simcar": "MT00000/2026",
       "simcarSituacao": "Ativo"
     }
