@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-26.5 — Popup de reposicionar rótulos (DXF → PDF): adicionado campo de grau exato (digite o ângulo e aperte Aplicar ou Enter), igual ao da aba Implantação de Marco</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-26.7 — DXF → PDF: Seta norte agora tem 3 estilos selecionáveis (seta simples, rosa dos ventos e bússola), todos desenhados sempre dentro do painel na AREA_DESENHO</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1639,6 +1639,64 @@ svg.leaflet-image-layer.leaflet-interactive path {
               <input type="checkbox" id="dxfpdf-quadro-moldura">
               Moldura no quadro de coordenadas
             </label>
+            <div class="dxfpdf-row">
+              <label>Escala gráfica</label>
+              <select id="dxfpdf-escala-canto" style="display:none;">
+                <option value="" selected>Nenhuma</option>
+                <option value="sup-dir">Canto superior direito</option>
+                <option value="sup-esq">Canto superior esquerdo</option>
+                <option value="inf-dir">Canto inferior direito</option>
+                <option value="inf-esq">Canto inferior esquerdo</option>
+                <option value="inf-centro">Centralizado embaixo</option>
+              </select>
+              <div class="dxfpdf-cantoWrap">
+                <div class="dxfpdf-cantoGrid" id="dxfpdf-escala-canto-grid">
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="sup-esq" style="top:4px; left:4px;" title="Canto superior esquerdo"></button>
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="sup-dir" style="top:4px; right:4px;" title="Canto superior direito"></button>
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="inf-esq" style="bottom:4px; left:4px;" title="Canto inferior esquerdo"></button>
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="inf-centro" style="bottom:4px; left:23px;" title="Centralizado embaixo"></button>
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="inf-dir" style="bottom:4px; right:4px;" title="Canto inferior direito"></button>
+                </div>
+                <button type="button" class="dxfpdf-cantoNenhum ativo" id="dxfpdf-escala-canto-nenhum">Nenhuma</button>
+              </div>
+            </div>
+            <div class="dxfpdf-row" id="dxfpdf-escala-tam-row" style="display:none">
+              <label>Tamanho da escala</label>
+              <input type="number" id="dxfpdf-escala-tam" value="35" min="15" max="80" step="1">
+              <span style="font-size:0.75rem; color:var(--chalk-dim);">% da AREA_DESENHO</span>
+            </div>
+            <div class="dxfpdf-row">
+              <label>Seta norte</label>
+              <select id="dxfpdf-norte-canto" style="display:none;">
+                <option value="" selected>Nenhuma</option>
+                <option value="sup-dir">Canto superior direito</option>
+                <option value="sup-esq">Canto superior esquerdo</option>
+                <option value="inf-dir">Canto inferior direito</option>
+                <option value="inf-esq">Canto inferior esquerdo</option>
+              </select>
+              <div class="dxfpdf-cantoWrap">
+                <div class="dxfpdf-cantoGrid" id="dxfpdf-norte-canto-grid">
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="sup-esq" style="top:4px; left:4px;" title="Canto superior esquerdo"></button>
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="sup-dir" style="top:4px; right:4px;" title="Canto superior direito"></button>
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="inf-esq" style="bottom:4px; left:4px;" title="Canto inferior esquerdo"></button>
+                  <button type="button" class="dxfpdf-cantoBtn" data-canto="inf-dir" style="bottom:4px; right:4px;" title="Canto inferior direito"></button>
+                </div>
+                <button type="button" class="dxfpdf-cantoNenhum ativo" id="dxfpdf-norte-canto-nenhum">Nenhuma</button>
+              </div>
+            </div>
+            <div class="dxfpdf-row" id="dxfpdf-norte-tam-row" style="display:none">
+              <label>Tamanho da seta norte</label>
+              <input type="number" id="dxfpdf-norte-tam" value="12" min="6" max="30" step="1">
+              <span style="font-size:0.75rem; color:var(--chalk-dim);">% da AREA_DESENHO</span>
+            </div>
+            <div class="dxfpdf-row" id="dxfpdf-norte-estilo-row" style="display:none">
+              <label>Estilo da seta norte</label>
+              <select id="dxfpdf-norte-estilo">
+                <option value="seta" selected>Seta simples</option>
+                <option value="rosa8">Rosa dos ventos (8 pontas)</option>
+                <option value="bussola">Bússola (cruz cardinal)</option>
+              </select>
+            </div>
             <label class="dxfpdf-layerRow" style="margin-top:4px;">
               <input type="checkbox" id="dxfpdf-mostrar-info-imovel" checked>
               Mostrar informações do imóvel no centro do polígono
@@ -9516,6 +9574,14 @@ function exportPDF(scene, sheet, filename) {
     if (quadroColInputs.some(el => !el)) return null;
     return quadroColInputs.map(el => parseFloat(el.value) || 0);
   }
+  const escalaGraficaCantoSelect = $('#dxfpdf-escala-canto');
+  const escalaGraficaTamInput = $('#dxfpdf-escala-tam');
+  const escalaGraficaTamRow = $('#dxfpdf-escala-tam-row');
+  const setaNorteCantoSelect = $('#dxfpdf-norte-canto');
+  const setaNorteTamInput = $('#dxfpdf-norte-tam');
+  const setaNorteTamRow = $('#dxfpdf-norte-tam-row');
+  const setaNorteEstiloSelect = $('#dxfpdf-norte-estilo');
+  const setaNorteEstiloRow = $('#dxfpdf-norte-estilo-row');
   const quadroMolduraCheck = $('#dxfpdf-quadro-moldura');
   const mostrarInfoImovelCheck = $('#dxfpdf-mostrar-info-imovel');
   const quadroLarguraManualCheck = $('#dxfpdf-quadro-largura-manual');
@@ -9707,7 +9773,7 @@ function exportPDF(scene, sheet, filename) {
     return segmentos;
   }
 
-  function dxfpdfPlotDesenho(s, r, lista, modo, formatoCoord, zh, escalaManual, gamma, imovel, orientacaoCanto, orientacaoTamPct, quadroCanto, quadroTamPct, quadroLargurasColunas, quadroComMoldura, quadroAjusteManual, orientacaoComMoldura, quadroColunasVisiveis, quadroNumBlocos, mostrarInfoImovel, offsetManualX, offsetManualY) {
+  function dxfpdfPlotDesenho(s, r, lista, modo, formatoCoord, zh, escalaManual, gamma, imovel, orientacaoCanto, orientacaoTamPct, quadroCanto, quadroTamPct, quadroLargurasColunas, quadroComMoldura, quadroAjusteManual, orientacaoComMoldura, quadroColunasVisiveis, quadroNumBlocos, mostrarInfoImovel, offsetManualX, offsetManualY, escalaGraficaCanto, escalaGraficaTamPct, setaNorteCanto, setaNorteTamPct, setaNorteEstilo) {
     modo = modo || 'malha'; // 'malha' (grid completo) ou 'marcador' (só os marcos, sem grid)
     formatoCoord = formatoCoord || 'utm'; // 'utm' (E,N em metros), 'dms' (GG MM SS,ssss) ou 'dec' (graus decimais)
 
@@ -9851,6 +9917,51 @@ function exportPDF(scene, sheet, filename) {
       dxfpdfPlotQuadroCoordenadas(s, regQuadroCanto, lista, formatoCoord, zh, quadroLargurasColunas, quadroComMoldura, quadroAjusteManual, quadroColunasVisiveis, numBlocos);
     }
 
+    // Escala gráfica num canto da própria AREA_DESENHO — MESMA lógica de alinhamento/margem
+    // (margemCanto fixa de 1mm, zona de exclusão pra recortar grid/polígono por baixo) usada
+    // pelo quadro de coordenadas acima. Altura é fixa (definida pelo conteúdo: título + barra +
+    // rótulos); a largura vem da % pedida, limitada ao espaço disponível na AREA_DESENHO.
+    if (escalaGraficaCanto) {
+      const margemCanto = 1;
+      const fsTituloEsc = 3.0, fsLabelEsc = 2.3, barHEsc = 2.4;
+      const ehConteudo = (fsTituloEsc * 1.1 + 2) + barHEsc + fsLabelEsc * 1.35 + 1;
+      const fracaoEsc = (escalaGraficaTamPct || 35) / 100;
+      let ew = rw * fracaoEsc;
+      const ewMax = rw - margemCanto * 2;
+      if (ew > ewMax) ew = ewMax;
+      let eh = ehConteudo;
+      const ehMax = rh - margemCanto * 2;
+      if (eh > ehMax) eh = ehMax;
+      let ex0, ey0;
+      if (escalaGraficaCanto === 'sup-dir') { ex0 = r.maxX - margemCanto - ew; ey0 = r.maxY - margemCanto - eh; }
+      else if (escalaGraficaCanto === 'sup-esq') { ex0 = r.minX + margemCanto; ey0 = r.maxY - margemCanto - eh; }
+      else if (escalaGraficaCanto === 'inf-dir') { ex0 = r.maxX - margemCanto - ew; ey0 = r.minY + margemCanto; }
+      else if (escalaGraficaCanto === 'inf-centro') { ex0 = r.minX + (rw - ew) / 2; ey0 = r.minY + margemCanto; }
+      else { ex0 = r.minX + margemCanto; ey0 = r.minY + margemCanto; } // inf-esq
+      const regEscalaCanto = { minX: ex0, minY: ey0, maxX: ex0 + ew, maxY: ey0 + eh };
+      zonasExclusao.push(regEscalaCanto);
+      dxfpdfPlotEscalaGrafica(s, regEscalaCanto, esc);
+    }
+
+    // Seta norte num canto da própria AREA_DESENHO — mesma lógica de alinhamento. Painel
+    // aproximadamente quadrado (largura = altura), tamanho vindo da % pedida.
+    if (setaNorteCanto) {
+      const margemCanto = 1;
+      const fracaoNorte = (setaNorteTamPct || 12) / 100;
+      let nw = rw * fracaoNorte;
+      const nwMax = Math.min(rw, rh) - margemCanto * 2;
+      if (nw > nwMax) nw = nwMax;
+      const nh = nw;
+      let nx0, ny0;
+      if (setaNorteCanto === 'sup-dir') { nx0 = r.maxX - margemCanto - nw; ny0 = r.maxY - margemCanto - nh; }
+      else if (setaNorteCanto === 'sup-esq') { nx0 = r.minX + margemCanto; ny0 = r.maxY - margemCanto - nh; }
+      else if (setaNorteCanto === 'inf-dir') { nx0 = r.maxX - margemCanto - nw; ny0 = r.minY + margemCanto; }
+      else { nx0 = r.minX + margemCanto; ny0 = r.minY + margemCanto; } // inf-esq
+      const regSetaNorte = { minX: nx0, minY: ny0, maxX: nx0 + nw, maxY: ny0 + nh };
+      zonasExclusao.push(regSetaNorte);
+      dxfpdfPlotSetaNorte(s, regSetaNorte, setaNorteEstilo);
+    }
+
     // Grid de coordenadas UTM (E/N) de fundo — sempre a 2mm da borda da própria AREA_DESENHO,
     // cobrindo o retângulo inteiro (não só a extensão do polígono do imóvel), com espaçamento
     // "redondo" conforme a escala. Só é desenhado no modo 'malha'.
@@ -9897,10 +10008,13 @@ function exportPDF(scene, sheet, filename) {
         const gx = toX(ge);
         let texto = 'E ' + fmtNum(ge, 0);
         if (usaGeo) { try { texto = formatarGeo(utmParaLatLon(ge, centerNGeo, zh.zona, zh.sul).lon); } catch (e) {} }
-        // Se o quadro de coordenadas estiver ocupando um canto de BAIXO, esses rótulos (que
-        // ficam perto da borda inferior) ficariam por baixo da tabela — nesse caso eles sobem
-        // pra borda de cima em vez de ficarem embaixo.
-        if (quadroCanto === 'inf-esq' || quadroCanto === 'inf-dir' || quadroCanto === 'inf-centro') {
+        // Se o quadro de coordenadas (ou a escala gráfica/seta norte) estiver ocupando um canto
+        // de BAIXO, esses rótulos (que ficam perto da borda inferior) ficariam por baixo do
+        // painel — nesse caso eles sobem pra borda de cima em vez de ficarem embaixo.
+        const algumPainelEmbaixo = ['inf-esq', 'inf-dir', 'inf-centro'].includes(quadroCanto)
+          || ['inf-esq', 'inf-dir', 'inf-centro'].includes(escalaGraficaCanto)
+          || ['inf-esq', 'inf-dir'].includes(setaNorteCanto);
+        if (algumPainelEmbaixo) {
           if (dentroDeAlgumaZona(gx, gy1 - gFs * 0.6)) return;
           s.texts.push({ x: gx, y: gy1 - gFs * 0.6, size: gFs, rotation: 90, anchor: 'end', baseline: 'alphabetic', color: '#7A8894', content: texto });
         } else {
@@ -10165,6 +10279,141 @@ function exportPDF(scene, sheet, filename) {
       bx0 = cx - w / 2; bx1 = cx + w / 2; by0 = cy - h / 2; by1 = cy + h / 2;
     }
     s.images.push({ dataUrl, minX: bx0, minY: by0, maxX: bx1, maxY: by1 });
+  }
+
+  // Arredonda um valor (metros) PARA BAIXO para o maior "número redondo" (1, 2 ou 5 × uma
+  // potência de 10) que não ultrapasse o valor pedido — usado pela escala gráfica, pra garantir
+  // que a barra nunca estoure a largura disponível no painel.
+  function dxfpdfNumeroRedondoParaBaixo(v) {
+    if (!(v > 0)) return 0;
+    const exp = Math.floor(Math.log10(v));
+    const base = Math.pow(10, exp);
+    let melhor = base;
+    [1, 2, 5].forEach(p => { const c = p * base; if (c <= v) melhor = c; });
+    return melhor;
+  }
+
+  // ---------- Plotagem: escala gráfica (barra com trechos alternados preto/branco) num canto
+  // da própria AREA_DESENHO — mesma lógica de alinhamento/margem/zona-de-exclusão do quadro de
+  // coordenadas (ver bloco "escalaGraficaCanto" em dxfpdfPlotDesenho). esc = mm de folha por
+  // metro real (a mesma escala 1:N usada no resto da planta), pra dimensionar a barra certa.
+  function dxfpdfPlotEscalaGrafica(s, r, esc) {
+    const rw = r.maxX - r.minX, rh = r.maxY - r.minY;
+    const cx = r.minX + rw / 2;
+    const fsTitulo = 3.0, fsLabel = 2.3;
+    const barH = Math.min(2.4, Math.max(rh * 0.3, 1));
+    const cor = '#2B2417';
+    s.fillpolys.push({ pts: [{ x: r.minX, y: r.minY }, { x: r.maxX, y: r.minY }, { x: r.maxX, y: r.maxY }, { x: r.minX, y: r.maxY }], color: '#FFFFFF' });
+    let y = r.maxY - fsTitulo * 1.1;
+    s.texts.push({ x: cx, y, size: fsTitulo, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: cor, content: 'ESCALA GRÁFICA', bold: true });
+    y -= 2;
+    const barTopo = y, barBase = y - barH;
+    // Margem lateral pra a barra não colar nas bordas do painel — os rótulos das pontas (0 e o
+    // valor final) ficam centrados nos próprios cantos da barra, então essa folga evita que eles
+    // sejam cortados pela borda do painel.
+    const margemLat = Math.min(4, rw * 0.06);
+    const larguraUtil = Math.max(rw - margemLat * 2, rw * 0.5);
+    const metrosMax = larguraUtil / (esc || 1);
+    const segmentoM = dxfpdfNumeroRedondoParaBaixo(metrosMax / 4) || 1;
+    const totalM = segmentoM * 4;
+    const larguraBarraMm = totalM * esc;
+    const x0 = cx - larguraBarraMm / 2;
+    const segW = larguraBarraMm / 4;
+    for (let i = 0; i < 4; i++) {
+      const xa = x0 + i * segW, xb = xa + segW;
+      s.fillpolys.push({ pts: [{ x: xa, y: barBase }, { x: xb, y: barBase }, { x: xb, y: barTopo }, { x: xa, y: barTopo }], color: (i % 2 === 0) ? cor : '#FFFFFF', stroke: cor, lw: 0.2 });
+    }
+    for (let i = 0; i <= 4; i++) {
+      const xm = x0 + i * segW;
+      const valor = segmentoM * i;
+      const texto = (i === 4) ? (fmtNum(valor, 0) + ' m') : fmtNum(valor, 0);
+      const anchor = (i === 0) ? 'start' : ((i === 4) ? 'end' : 'middle');
+      s.texts.push({ x: xm, y: barBase - fsLabel * 1.1, size: fsLabel, rotation: 0, anchor, baseline: 'alphabetic', color: cor, content: texto });
+    }
+  }
+
+  // ---------- Plotagem: seta norte num canto da própria AREA_DESENHO — mesma lógica de
+  // alinhamento do quadro de coordenadas/escala gráfica. Painel aproximadamente quadrado.
+  // Suporta 3 estilos (escolhidos em #dxfpdf-norte-estilo), todos desenhados a partir de um
+  // "viewBox" fixo 0..160 (mesmas coordenadas dos rascunhos aprovados com o usuário) que é
+  // remapeado pro retângulo real do painel via dxfpdfSetaNorteMapa — isso garante que o desenho
+  // inteiro (seja qual for o estilo) fica sempre contido dentro do painel, e portanto dentro da
+  // AREA_DESENHO, não importa o tamanho (%) escolhido. ----------
+  function dxfpdfSetaNorteMapa(r) {
+    const rw = r.maxX - r.minX, rh = r.maxY - r.minY;
+    // svgY cresce pra baixo (igual SVG comum); aqui já inverte pro Y-cima da cena.
+    return function (svgX, svgY) { return { x: r.minX + (svgX / 160) * rw, y: r.maxY - (svgY / 160) * rh }; };
+  }
+
+  function dxfpdfPlotSetaNorte(s, r, estilo) {
+    const cor = '#2B2417';
+    s.fillpolys.push({ pts: [{ x: r.minX, y: r.minY }, { x: r.maxX, y: r.minY }, { x: r.maxX, y: r.maxY }, { x: r.minX, y: r.maxY }], color: '#FFFFFF' });
+    const P = dxfpdfSetaNorteMapa(r);
+    const rw = r.maxX - r.minX, rh = r.maxY - r.minY;
+    const escala = Math.min(rw, rh) / 160; // converte tamanhos de fonte/traço do viewBox (base 160) pro tamanho real do painel
+    if (estilo === 'rosa8') dxfpdfDesenharSetaNorteRosa8(s, P, escala, cor);
+    else if (estilo === 'bussola') dxfpdfDesenharSetaNorteBussola(s, P, escala, cor);
+    else dxfpdfDesenharSetaNorteSimples(s, P, escala, cor);
+  }
+
+  // Estilo "Seta simples": pino fino apontando pro Norte da Quadrícula (mesmo eixo Y do grid).
+  function dxfpdfDesenharSetaNorteSimples(s, P, escala, cor) {
+    const pts = [P(80, 65), P(96, 116), P(84, 116), P(84, 150), P(76, 150), P(76, 116), P(64, 116)];
+    s.fillpolys.push({ pts, color: cor });
+    const nPos = P(80, 30);
+    s.texts.push({ x: nPos.x, y: nPos.y, size: 8 * escala, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: cor, content: 'N', bold: true });
+  }
+
+  // Estilo "Rosa dos ventos": estrela de 8 pontas em pinwheel preto/branco, sem anel externo —
+  // só as pontas soltas e um pivô central discreto (pontinho, não círculo grande).
+  function dxfpdfDesenharSetaNorteRosa8(s, P, escala, cor) {
+    const cxSvg = 80, cySvg = 90;
+    const spikes = 8, tipRadii = [54, 30], baseR = 8, halfWidths = [12, 9];
+    const step = 360 / spikes;
+    function polarSvg(angDeg, r) { const rad = angDeg * Math.PI / 180; return { x: cxSvg + r * Math.sin(rad), y: cySvg - r * Math.cos(rad) }; }
+    for (let i = 0; i < spikes; i++) {
+      const angle = i * step;
+      const tipR = tipRadii[i % tipRadii.length];
+      const hw = halfWidths[i % halfWidths.length];
+      const tipSvg = polarSvg(angle, tipR), bASvg = polarSvg(angle - hw, baseR), bBSvg = polarSvg(angle + hw, baseR);
+      const dark = (i % 2 === 0);
+      const pts = [P(cxSvg, cySvg), P(bASvg.x, bASvg.y), P(tipSvg.x, tipSvg.y), P(bBSvg.x, bBSvg.y)];
+      s.fillpolys.push({ pts, color: dark ? cor : '#FFFFFF', stroke: cor, lw: dark ? 0 : 0.15 });
+    }
+    const pivot = P(cxSvg, cySvg);
+    s.circles.push({ cx: pivot.x, cy: pivot.y, r: 0.9 * escala, color: cor, lw: 0, fill: cor });
+    const nTipSvg = polarSvg(0, tipRadii[0] + 16);
+    const nPos = P(nTipSvg.x, nTipSvg.y);
+    s.texts.push({ x: nPos.x, y: nPos.y, size: 6.5 * escala, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: cor, content: 'N', bold: true });
+  }
+
+  // Estilo "Bússola": cruz cardinal sem anéis, seta em N (preenchida) e S (vazada), com 4
+  // pontinhos marcando as diagonais (NE/SE/SW/NW) e as 4 letras N/S/E/W.
+  function dxfpdfDesenharSetaNorteBussola(s, P, escala, cor) {
+    const cxSvg = 80, cySvg = 88, R = 46;
+    function polarSvg(angDeg, r) { const rad = angDeg * Math.PI / 180; return { x: cxSvg + r * Math.sin(rad), y: cySvg - r * Math.cos(rad) }; }
+    const pN = P(cxSvg, cySvg - R), pS = P(cxSvg, cySvg + R), pE = P(cxSvg + R, cySvg), pW = P(cxSvg - R, cySvg);
+    s.lines.push({ x1: pN.x, y1: pN.y, x2: pS.x, y2: pS.y, color: cor, lw: 0.15 });
+    s.lines.push({ x1: pW.x, y1: pW.y, x2: pE.x, y2: pE.y, color: cor, lw: 0.15 });
+    [45, 135, 225, 315].forEach(a => {
+      const p = polarSvg(a, R * 0.86);
+      const pp = P(p.x, p.y);
+      s.circles.push({ cx: pp.x, cy: pp.y, r: 0.5 * escala, color: cor, lw: 0, fill: cor });
+    });
+    const nTip = polarSvg(0, R - 4), nA = polarSvg(-12, 14), nB = polarSvg(12, 14);
+    s.fillpolys.push({ pts: [P(nTip.x, nTip.y), P(nA.x, nA.y), P(nB.x, nB.y)], color: cor });
+    const sTip = polarSvg(180, R - 4), sA = polarSvg(168, 14), sB = polarSvg(192, 14);
+    s.fillpolys.push({ pts: [P(sTip.x, sTip.y), P(sA.x, sA.y), P(sB.x, sB.y)], color: '#FFFFFF', stroke: cor, lw: 0.15 });
+    const centro = P(cxSvg, cySvg);
+    s.circles.push({ cx: centro.x, cy: centro.y, r: 0.55 * escala, color: cor, lw: 0, fill: cor });
+    const nLbl = P(cxSvg, cySvg - R - 14);
+    s.texts.push({ x: nLbl.x, y: nLbl.y, size: 6.5 * escala, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: cor, content: 'N', bold: true });
+    const sLbl = P(cxSvg, cySvg + R + 18);
+    s.texts.push({ x: sLbl.x, y: sLbl.y, size: 4 * escala, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: '#666666', content: 'S' });
+    const eLbl = P(cxSvg + R + 14, cySvg + 4);
+    s.texts.push({ x: eLbl.x, y: eLbl.y, size: 4 * escala, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: '#666666', content: 'E' });
+    const wLbl = P(cxSvg - R - 14, cySvg + 4);
+    s.texts.push({ x: wLbl.x, y: wLbl.y, size: 4 * escala, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: '#666666', content: 'W' });
   }
 
   // Altura de conteúdo do painel de Orientação, em mm, com as fontes fixas (3,5mm título / 2mm
@@ -10595,7 +10844,12 @@ function exportPDF(scene, sheet, filename) {
       const orientacaoTamPct = orientacaoTamInput ? parseFloat(orientacaoTamInput.value) || 18 : 18;
       const quadroCanto = quadroCantoSelect ? quadroCantoSelect.value : '';
       const quadroTamPct = quadroTamInput ? parseFloat(quadroTamInput.value) || 35 : 35;
-      escalaN = dxfpdfPlotDesenho(s, regDesenho, lista, modoDesenho, formatoCoord, zh, escalaManual, gamma, imovel, orientacaoCanto, orientacaoTamPct, quadroCanto, quadroTamPct, larguraColunasQuadro(), !!(quadroMolduraCheck && quadroMolduraCheck.checked), !!(quadroLarguraManualCheck && quadroLarguraManualCheck.checked), !!(orientacaoMolduraCheck && orientacaoMolduraCheck.checked), colunasVisiveisQuadro(), quadroNumColunasInput ? parseInt(quadroNumColunasInput.value, 10) || 1 : 1, !!(mostrarInfoImovelCheck && mostrarInfoImovelCheck.checked), DXFPDF_DESENHO_OFFSET.x, DXFPDF_DESENHO_OFFSET.y);
+      const escalaGraficaCanto = escalaGraficaCantoSelect ? escalaGraficaCantoSelect.value : '';
+      const escalaGraficaTamPct = escalaGraficaTamInput ? parseFloat(escalaGraficaTamInput.value) || 35 : 35;
+      const setaNorteCanto = setaNorteCantoSelect ? setaNorteCantoSelect.value : '';
+      const setaNorteTamPct = setaNorteTamInput ? parseFloat(setaNorteTamInput.value) || 12 : 12;
+      const setaNorteEstilo = setaNorteEstiloSelect ? setaNorteEstiloSelect.value : 'seta';
+      escalaN = dxfpdfPlotDesenho(s, regDesenho, lista, modoDesenho, formatoCoord, zh, escalaManual, gamma, imovel, orientacaoCanto, orientacaoTamPct, quadroCanto, quadroTamPct, larguraColunasQuadro(), !!(quadroMolduraCheck && quadroMolduraCheck.checked), !!(quadroLarguraManualCheck && quadroLarguraManualCheck.checked), !!(orientacaoMolduraCheck && orientacaoMolduraCheck.checked), colunasVisiveisQuadro(), quadroNumColunasInput ? parseInt(quadroNumColunasInput.value, 10) || 1 : 1, !!(mostrarInfoImovelCheck && mostrarInfoImovelCheck.checked), DXFPDF_DESENHO_OFFSET.x, DXFPDF_DESENHO_OFFSET.y, escalaGraficaCanto, escalaGraficaTamPct, setaNorteCanto, setaNorteTamPct, setaNorteEstilo);
     }
     if (regSituacao && temLista && ligada('AREA_SITUACAO')) dxfpdfPlotSituacao(s, regSituacao, lista, imId);
     if (regLogo && state.config && state.config.logoDataUrl && ligada('AREA_LOGO')) dxfpdfPlotLogo(s, regLogo, state.config.logoDataUrl, logoAspect);
@@ -10760,6 +11014,18 @@ function exportPDF(scene, sheet, filename) {
   quadroColInputs.forEach(el => { if (el) el.addEventListener('input', refreshPreview); });
   quadroShowChecks.forEach(el => { if (el) el.addEventListener('change', refreshPreview); });
   if (quadroNumColunasInput) quadroNumColunasInput.addEventListener('input', refreshPreview);
+  if (escalaGraficaCantoSelect) escalaGraficaCantoSelect.addEventListener('change', () => {
+    if (escalaGraficaTamRow) escalaGraficaTamRow.style.display = escalaGraficaCantoSelect.value ? 'flex' : 'none';
+    refreshPreview();
+  });
+  if (escalaGraficaTamInput) escalaGraficaTamInput.addEventListener('input', refreshPreview);
+  if (setaNorteCantoSelect) setaNorteCantoSelect.addEventListener('change', () => {
+    if (setaNorteTamRow) setaNorteTamRow.style.display = setaNorteCantoSelect.value ? 'flex' : 'none';
+    if (setaNorteEstiloRow) setaNorteEstiloRow.style.display = setaNorteCantoSelect.value ? 'flex' : 'none';
+    refreshPreview();
+  });
+  if (setaNorteTamInput) setaNorteTamInput.addEventListener('input', refreshPreview);
+  if (setaNorteEstiloSelect) setaNorteEstiloSelect.addEventListener('change', refreshPreview);
 
   // Conecta a grade visual de cantos (esboço do usuário: quadradinhos clicáveis em vez de
   // menu de texto) ao select escondido correspondente — clicar num quadradinho seta o
@@ -10789,6 +11055,8 @@ function exportPDF(scene, sheet, filename) {
   }
   wireCantoGrid('dxfpdf-orientacao-canto-grid', 'dxfpdf-orientacao-canto-nenhum', orientacaoCantoSelect);
   wireCantoGrid('dxfpdf-quadro-canto-grid', 'dxfpdf-quadro-canto-nenhum', quadroCantoSelect);
+  wireCantoGrid('dxfpdf-escala-canto-grid', 'dxfpdf-escala-canto-nenhum', escalaGraficaCantoSelect);
+  wireCantoGrid('dxfpdf-norte-canto-grid', 'dxfpdf-norte-canto-nenhum', setaNorteCantoSelect);
   if (quadroMolduraCheck) quadroMolduraCheck.addEventListener('change', refreshPreview);
   if (quadroLarguraManualCheck) quadroLarguraManualCheck.addEventListener('change', () => {
     if (quadroColWrap) quadroColWrap.style.display = quadroLarguraManualCheck.checked ? 'block' : 'none';
