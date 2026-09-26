@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-25.1 — Novo: gera um modelo de importação (KML + Shapefile, com exemplo preenchido) com todos os campos do imóvel/proprietário/técnico/marcos; ao reimportar, cadastra tudo automaticamente</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-26.5 — Popup de reposicionar rótulos (DXF → PDF): adicionado campo de grau exato (digite o ângulo e aperte Aplicar ou Enter), igual ao da aba Implantação de Marco</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1312,9 +1312,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
     </div>
 
 
-    <div class="card">
+    <div class="card" id="card-reposicionar-rotulos">
       <h2>Reposicionar rótulos (marcos e confrontantes)</h2>
-      <div class="note" style="margin-top:0;">Clique em um rótulo (código do marco M/P/V/B, ou nome do confrontante) para selecioná-lo — ele fica destacado em <span style="color:#C89B3C;">dourado</span>. <strong>Arraste o rótulo</strong> para movê-lo (clique e segure, arraste até o local desejado e solte). Use também: <strong>Girar ↻ / ↺</strong> (passos de 15°) ou digite o <strong>grau exato</strong> (negativo = anti-horário, sem sinal = horário). Os botões <strong>Copiar/Colar</strong> repetem o mesmo ajuste em outro rótulo já existente. Atalhos de teclado: com um rótulo selecionado, aperte <strong>Ctrl+C</strong> para copiá-lo; posicione o cursor onde quiser e aperte <strong>Ctrl+V</strong> — se houver um rótulo ali, o ajuste é aplicado nele; se o local estiver vazio, é criada uma <strong>duplicata do texto</strong> naquele ponto (continua vinculada ao mesmo marco/confrontante — editar o dado original atualiza todas as cópias), com rotação alinhada ao lado do polígono mais próximo do cursor. Selecione uma duplicata e aperte <strong>Delete</strong> para removê-la. O ajuste é salvo por marco e as duplicatas também aparecem nas plantas impressas em mm. <strong>Zoom:</strong> role a roda do mouse sobre o desenho (ou use os botões abaixo) para se aproximar dos rótulos apertados e conseguir ler/arrastar cada um com precisão; <strong>arraste o fundo do desenho</strong> (fora de qualquer rótulo) para navegar pela área ampliada.</div>
+      <div class="note" style="margin-top:0;">Clique em um rótulo (código do marco M/P/V/B, ou nome do confrontante) para selecioná-lo — ele fica destacado em <span style="color:#C89B3C;">dourado</span>. <strong>Arraste o rótulo</strong> para movê-lo (clique e segure, arraste até o local desejado e solte). Use também: <strong>Girar ↻ / ↺</strong> (passos de 15°) ou digite o <strong>grau exato</strong> (negativo = anti-horário, sem sinal = horário). Os botões <strong>Copiar/Colar</strong> repetem o mesmo ajuste em outro rótulo já existente. Atalhos de teclado: com um rótulo selecionado, aperte <strong>Ctrl+C</strong> para copiá-lo; posicione o cursor onde quiser e aperte <strong>Ctrl+V</strong> — se houver um rótulo ali, o ajuste é aplicado nele; se o local estiver vazio, é criada uma <strong>duplicata do texto</strong> naquele ponto (continua vinculada ao mesmo marco/confrontante — editar o dado original atualiza todas as cópias), com rotação alinhada ao lado do polígono mais próximo do cursor. Selecione uma duplicata e aperte <strong>Delete</strong> para removê-la. O ajuste é salvo por marco (funciona em qualquer planta/PDF gerado depois, deste ou de outro imóvel que reaproveite os mesmos marcos) e as duplicatas também aparecem nas plantas impressas em mm. <strong>Zoom:</strong> role a roda do mouse sobre o desenho (ou use os botões abaixo) para se aproximar dos rótulos apertados e conseguir ler/arrastar cada um com precisão; <strong>arraste o fundo do desenho</strong> (fora de qualquer rótulo) para navegar pela área ampliada.</div>
       <div class="row-end" style="margin-bottom:6px;">
         <button type="button" class="btn btn-ghost" id="btn-rotulo-zoom-out" title="Afastar">− Zoom</button>
         <button type="button" class="btn btn-ghost" id="btn-rotulo-zoom-in" title="Aproximar">+ Zoom</button>
@@ -1338,6 +1338,35 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div id="rotulo-clipboard-preview" class="note">Nada copiado ainda.</div>
     </div>
   </section>
+
+  <!-- Janela (popup) NATIVA de reposicionamento de rótulos do Conversor DXF -> PDF. Ao contrário
+       da aba "Implantação de Marco" (SVG genérico e decorativo), este popup clona o próprio SVG
+       já renderizado na pré-visualização do DXF -> PDF (mesmas fontes monoespaçadas, grade,
+       tabela de coordenadas, quadro de situação etc.) e só recorta um viewBox de zoom sobre a
+       área clicada — o que se vê aqui é pixel a pixel o que sai na planta/PDF final. -->
+  <div id="rlbl-popup-overlay" style="display:none; position:fixed; inset:0; background:rgba(10,14,20,0.75); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+    <div id="rlbl-popup-box" style="background:var(--navy,#16324A); border:1px solid var(--brass); border-radius:10px; max-width:860px; width:100%; max-height:94vh; overflow:auto; padding:16px; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+      <button type="button" id="rlbl-fechar" class="btn btn-ghost btn-sm" style="position:absolute; top:10px; right:10px;">✕ Fechar</button>
+      <h2 style="margin-top:0; padding-right:90px;">Reposicionar rótulo (vista real da planta)</h2>
+      <div class="note" style="margin-top:0;">Esta é a mesma renderização exata usada na planta/PDF — arraste o rótulo destacado em <span style="color:#C89B3C;">dourado</span> até a posição correta. Role a roda do mouse (ou use os botões de zoom) para aproximar; arraste o fundo (fora do rótulo) para navegar. O ajuste é salvo por marco e vale para qualquer planta/PDF gerado depois.</div>
+      <div class="row-end" style="margin-bottom:6px;">
+        <button type="button" class="btn btn-ghost" id="rlbl-zoom-out" title="Afastar">− Zoom</button>
+        <button type="button" class="btn btn-ghost" id="rlbl-zoom-in" title="Aproximar">+ Zoom</button>
+      </div>
+      <div id="rlbl-popup-svg-container" style="width:100%; height:480px; background:#fff; border:1px solid var(--brass); border-radius:6px; overflow:hidden; touch-action:none;"></div>
+      <div id="rlbl-popup-info" class="note">Nenhum rótulo selecionado.</div>
+      <div class="row-end" style="flex-wrap:wrap; gap:8px; align-items:center;">
+        <button type="button" class="btn btn-ghost" id="rlbl-girar-antihorario">↺ Girar anti-horário</button>
+        <button type="button" class="btn btn-ghost" id="rlbl-girar-horario">↻ Girar horário</button>
+        <span style="display:flex; align-items:center; gap:6px;">
+          <label for="rlbl-grau-input" style="font-size:12px; color:var(--chalk-dim);" title="Negativo = anti-horário. Sem sinal (positivo) = horário.">Grau exato:</label>
+          <input type="number" id="rlbl-grau-input" step="1" style="width:72px;" placeholder="0" disabled title="Negativo = anti-horário. Sem sinal (positivo) = horário.">
+          <button type="button" class="btn btn-ghost" id="rlbl-aplicar-grau">Aplicar</button>
+        </span>
+        <button type="button" class="btn btn-ghost" id="rlbl-redefinir">Redefinir este rótulo</button>
+      </div>
+    </div>
+  </div>
 
   <!-- BANCO DE MARCOS -->
   <section class="panel" id="panel-banco-marcos">
@@ -1706,7 +1735,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
         <div>
           <label>Pré-visualização <button type="button" class="btn btn-sm btn-ghost" id="dxfpdf-reset-posicao" style="margin-left:8px;">Repor posição do polígono</button></label>
-          <div class="note" style="margin-top:0; margin-bottom:8px;">Rótulos de vértice/confrontante sobrepostos são reposicionados automaticamente; se algum ainda não ficar bom, ajuste-o na aba "Implantação de Marco" → Reposicionar rótulos — o ajuste aparece aqui também. Para reposicionar o polígono dentro da AREA_DESENHO, clique sobre ele na pré-visualização e arraste com o mouse (ou o dedo, no toque); use "Repor posição" para voltar à centralização automática.</div>
+          <div class="note" style="margin-top:0; margin-bottom:8px;">Rótulos de vértice/confrontante (e o bloco de dados do imóvel no centro do polígono) sobrepostos são reposicionados automaticamente. Se algum ainda não ficar bom, <strong>clique diretamente nele aqui na pré-visualização</strong> — abre uma janela com zoom mostrando a MESMA renderização exata da planta (fontes, grade, tabela de coordenadas — nada de estilo simplificado), onde dá pra arrastar/girar até a posição certa; o ajuste é salvo (por marco, ou pelo imóvel no caso do bloco central) e vale para qualquer planta/PDF gerado depois. Para reposicionar o polígono inteiro dentro da AREA_DESENHO, clique num ponto vazio do desenho (fora de qualquer rótulo) e arraste com o mouse (ou o dedo, no toque); use "Repor posição" para voltar à centralização automática.</div>
           <div id="dxfpdf-previewOuter">
             <div id="dxfpdf-previewWrap" style="touch-action:none;"><div class="dxfpdf-empty">Nenhum arquivo carregado ainda.</div></div>
           </div>
@@ -7497,7 +7526,7 @@ function gerarPlantaTopoGeo(imovel, prop, tec, lista){
   const artTxt = imovel.art || null;
   const artLabel = (imovel.artTipo||'ART')+' Nº';
   const linhasRt = [
-    ['RESPONSÁVEL TÉCNICO', tec? tec.nome.toUpperCase() : '—'],
+    ['RESPONSÁVEL TÉCNICO', tec? (tec.nome||'—').toUpperCase() : '—'],
     ['REGISTRO', tecReg || '—'],
     [artLabel, artTxt || 'NÃO EMITIDO'],
     ['CÓD. CREDENCIADO INCRA', tec? (tec.codigoIncra||'—') : '—'],
@@ -7708,7 +7737,7 @@ function gerarPlantaDxfLiteral(imovel, prop, tec, lista){
   });
 
   // ===== Textos literais do DXF (com substituição dinâmica onde havia placeholder) =====
-  out += `<text x="546.866" y="234.196" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="3.03" fill="#2B2417">${escXml((tec? tec.nome.toUpperCase() : 'NOME DO RESPONSÁVEL TÉCNICO'))}</text>`;
+  out += `<text x="546.866" y="234.196" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="3.03" fill="#2B2417">${escXml((tec && tec.nome? tec.nome.toUpperCase() : 'NOME DO RESPONSÁVEL TÉCNICO'))}</text>`;
   out += '<text x="524.029" y="232.844" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.321" fill="#2B2417">' + "____________________________" + '</text>';
   out += '<text x="427.3" y="149.212" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="1.857" fill="#2B2417">' + "TÍTULO DA PLANTA" + '</text>';
   out += '<text x="506.821" y="216.766" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.785" fill="#2B2417">' + "ASSINATURAS" + '</text>';
@@ -7720,7 +7749,7 @@ function gerarPlantaDxfLiteral(imovel, prop, tec, lista){
   out += '<text x="449.761" y="161.219" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.321" fill="#2B2417">' + "GEORREFERENCIADO AO SISTEMA GEODÉSICO BRASILEIRO" + '</text>';
   out += '<text x="428.349" y="156.141" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="4.332" fill="#2B2417">' + "L E V A N T A M E N T O   P L A N I M É T R I C O" + '</text>';
   out += '<text x="467.186" y="178.593" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.298" fill="#2B2417">' + "REGULARIZAÇÃO FUNDIÁRIA RURAL" + '</text>';
-  out += `<text x="467.757" y="193.807" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.298" fill="#2B2417">${escXml((prop? prop.nome.toUpperCase() : 'NOME DO INTERESSADO'))}</text>`;
+  out += `<text x="467.757" y="193.807" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.298" fill="#2B2417">${escXml((prop && prop.nome? prop.nome.toUpperCase() : 'NOME DO INTERESSADO'))}</text>`;
   out += `<text x="467.614" y="186.331" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.298" fill="#2B2417">${escXml((imovel.nome? imovel.nome.toUpperCase() : 'NOME DO IMÓVEL'))}</text>`;
   out += `<text x="468.384" y="207.516" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.298" fill="#2B2417">${escXml(hoje)}</text>`;
   out += '<text x="428.48" y="207.144" text-anchor="start" font-family="IBM Plex Mono, monospace" font-size="2.298" fill="#2B2417">' + "DATA:" + '</text>';
@@ -7934,14 +7963,14 @@ function tokensLayoutExterno(imovel, prop, tec, lista){
   return {
     // Conjunto genérico (nomes livres, pensado para qualquer layout)
     '{{IMOVEL}}': (imovel.nome||'—').toUpperCase(),
-    '{{INTERESSADO}}': prop? prop.nome.toUpperCase() : '—',
-    '{{PROPRIETARIO}}': prop? prop.nome.toUpperCase() : '—',
+    '{{INTERESSADO}}': prop && prop.nome? prop.nome.toUpperCase() : '—',
+    '{{PROPRIETARIO}}': prop && prop.nome? prop.nome.toUpperCase() : '—',
     '{{MUNICIPIO}}': (imovel.municipio||'—').toUpperCase(),
     '{{UF}}': imovel.uf||'—',
     '{{DATA}}': hoje,
     '{{AREA_HA}}': fmtNum(areaHa,4)+' ha',
     '{{PERIMETRO}}': fmtNum(perimetroTotal,2)+' m',
-    '{{RESPONSAVEL_TECNICO}}': tec? tec.nome.toUpperCase(): '—',
+    '{{RESPONSAVEL_TECNICO}}': tec && tec.nome? tec.nome.toUpperCase(): '—',
     '{{REGISTRO}}': tecReg || '—',
     '{{ART}}': imovel.art ? imovel.art : 'NÃO EMITIDO',
     '{{ART_TIPO}}': imovel.artTipo || 'ART',
@@ -7957,7 +7986,7 @@ function tokensLayoutExterno(imovel, prop, tec, lista){
     '{{INCRA_COD}}': imovel.codigoIncra || '—',
     '{{PERIMETRO_M}}': fmtNum(perimetroTotal,2)+' m',
     '{{COD_CRED}}': tec? (tec.codigoIncra||'—') : '—',
-    '{{RESP_TECNICO}}': tec? tec.nome.toUpperCase(): '—',
+    '{{RESP_TECNICO}}': tec && tec.nome? tec.nome.toUpperCase(): '—',
     '{{TITULO}}': (tec && tec.titulo && tec.titulo.trim()) ? tec.titulo.trim() : '—',
     '{{CONSELHO}}': tec? (tec.registroTipo||'—') : '—',
     '{{CREA_REGISTRO}}': tecReg || '—',
@@ -9239,15 +9268,16 @@ function buildSVG(scene, sheet) {
   parts.push(`<svg viewBox="0 0 ${W} ${H}" width="${W}mm" height="${H}mm" xmlns="http://www.w3.org/2000/svg">`);
   parts.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="white"/>`);
 
-  parts.push('<g>');
-  scene.fillpolys.forEach(fp => {
+  const fillpolySVG = (fp) => {
     const pts = fp.pts.map(pt => flip(pt.x, pt.y).map(v => v.toFixed(3)).join(',')).join(' ');
-    if (fp.stroke) {
-      parts.push(`<polygon points="${pts}" fill="${fp.color}" stroke="${fp.stroke}" stroke-width="${(fp.lw || 0.25).toFixed(3)}"/>`);
-    } else {
-      parts.push(`<polygon points="${pts}" fill="${fp.color}" stroke="none"/>`);
-    }
-  });
+    const opacityAttr = (fp.opacity != null) ? ` fill-opacity="${fp.opacity}"` : '';
+    return fp.stroke
+      ? `<polygon points="${pts}" fill="${fp.color}"${opacityAttr} stroke="${fp.stroke}" stroke-width="${(fp.lw || 0.25).toFixed(3)}"/>`
+      : `<polygon points="${pts}" fill="${fp.color}"${opacityAttr} stroke="none"/>`;
+  };
+
+  parts.push('<g>');
+  scene.fillpolys.forEach(fp => parts.push(fillpolySVG(fp)));
   parts.push('</g>');
 
   parts.push('<g>');
@@ -9256,6 +9286,12 @@ function buildSVG(scene, sheet) {
     const iw = img.maxX - img.minX, ih = img.maxY - img.minY;
     parts.push(`<image href="${img.dataUrl}" x="${ix.toFixed(3)}" y="${iy.toFixed(3)}" width="${iw.toFixed(3)}" height="${ih.toFixed(3)}" preserveAspectRatio="xMidYMid meet"/>`);
   });
+  parts.push('</g>');
+
+  // fillpolysOverImages: preenchimentos desenhados DEPOIS das imagens (ex.: contorno
+  // semitransparente do imóvel por cima da imagem de satélite) — ver dxfpdfAugmentScene.
+  parts.push('<g>');
+  (scene.fillpolysOverImages || []).forEach(fp => parts.push(fillpolySVG(fp)));
   parts.push('</g>');
 
   parts.push('<g fill="none">');
@@ -9289,7 +9325,11 @@ function buildSVG(scene, sheet) {
     const esc = t.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const haloAttr = t.halo ? ` paint-order="stroke" stroke="${t.haloColor || '#ffffff'}" stroke-width="${(t.size * (t.haloScale != null ? t.haloScale : 0.28)).toFixed(3)}" stroke-linejoin="round"` : '';
     const boldAttr = t.bold ? ' font-weight="bold"' : '';
-    parts.push(`<text x="${x.toFixed(3)}" y="${y.toFixed(3)}" font-size="${t.size.toFixed(3)}" text-anchor="${t.anchor}" dominant-baseline="${dom}" fill="${t.color}"${haloAttr}${boldAttr}${rotAttr}>${esc}</text>`);
+    // Rótulos de marco/confrontante (t.rot) ficam clicáveis na PRÉ-VISUALIZAÇÃO em tela — um
+    // clique abre o popup de reposicionamento já focado neste rótulo (ver dxfpdfAbrirPopupRotulo
+    // mais abaixo). Não afeta a exportação em PDF, que usa exportPDF() separadamente.
+    const rotAttrData = t.rot ? ` data-rot-tipo="${t.rot.tipo}" data-rot-id="${t.rot.id}" style="cursor:pointer;"` : '';
+    parts.push(`<text x="${x.toFixed(3)}" y="${y.toFixed(3)}" font-size="${t.size.toFixed(3)}" text-anchor="${t.anchor}" dominant-baseline="${dom}" fill="${t.color}"${haloAttr}${boldAttr}${rotAttr}${rotAttrData}>${esc}</text>`);
   });
   parts.push('</g>');
   parts.push('</svg>');
@@ -9312,7 +9352,7 @@ function exportPDF(scene, sheet, filename) {
   doc.setLineCap('round');
   doc.setLineJoin('round');
 
-  scene.fillpolys.forEach(fp => {
+  const drawFillPoly = (fp) => {
     if (!fp.pts || fp.pts.length < 3) return;
     const pts = fp.pts.map(p => flip(p.x, p.y));
     doc.setFillColor(fp.color);
@@ -9322,8 +9362,20 @@ function exportPDF(scene, sheet, filename) {
     for (let i = 1; i < pts.length; i++) {
       deltas.push([pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]]);
     }
-    doc.lines(deltas, pts[0][0], pts[0][1], [1, 1], fp.stroke ? 'FD' : 'F', true);
-  });
+    // fp.opacity (0-1): preenchimento semitransparente (ex.: polígono do imóvel por cima da
+    // imagem de satélite na Planta de Situação) — usa o estado gráfico do jsPDF só para este
+    // polígono, sem afetar a opacidade de nada desenhado antes/depois.
+    if (fp.opacity != null && fp.opacity < 1) {
+      doc.saveGraphicsState();
+      doc.setGState(new doc.GState({ opacity: fp.opacity }));
+      doc.lines(deltas, pts[0][0], pts[0][1], [1, 1], fp.stroke ? 'FD' : 'F', true);
+      doc.restoreGraphicsState();
+    } else {
+      doc.lines(deltas, pts[0][0], pts[0][1], [1, 1], fp.stroke ? 'FD' : 'F', true);
+    }
+  };
+
+  scene.fillpolys.forEach(drawFillPoly);
 
   (scene.images || []).forEach(img => {
     try {
@@ -9333,6 +9385,10 @@ function exportPDF(scene, sheet, filename) {
       doc.addImage(img.dataUrl, fmt, ix, iy, iw, ih);
     } catch (err) { /* logo/satélite em formato não suportado pelo jsPDF: ignora silenciosamente na exportação */ }
   });
+
+  // fillpolysOverImages: preenchimentos desenhados DEPOIS das imagens (ex.: contorno
+  // semitransparente do imóvel por cima da imagem de satélite) — ver dxfpdfAugmentScene.
+  (scene.fillpolysOverImages || []).forEach(drawFillPoly);
 
   scene.lines.forEach(l => {
     const [x1, y1] = flip(l.x1, l.y1), [x2, y2] = flip(l.x2, l.y2);
@@ -9430,6 +9486,9 @@ function exportPDF(scene, sheet, filename) {
   const dropZone = $('#dxfpdf-dropZone');
   const layerList = $('#dxfpdf-layerList');
   const previewWrap = $('#dxfpdf-previewWrap');
+  // Escala (mm de cena por metro real) da última renderização — usada pelo popup nativo de
+  // reposicionamento de rótulos para converter um arrasto em pixels/mm de volta para metros.
+  let RLBL_ESC = 1;
   const warningsBox = $('#dxfpdf-warnings');
   const infoBox = $('#dxfpdf-fileInfo');
   const btnGenerate = $('#dxfpdf-btnGenerate');
@@ -9678,6 +9737,7 @@ function exportPDF(scene, sheet, filename) {
       try { N = escalaAmigavel(spanE, spanN, areaUtilW, areaUtilH, 0.1); } catch (e) { N = null; }
     }
     const esc = N ? (1000 / N) : Math.min(areaUtilW / spanE, areaUtilH / spanN);
+    RLBL_ESC = esc;
     const geomW = spanE * esc, geomH = spanN * esc;
     // offsetManualX/Y (mm, em coordenadas de cena Y-para-cima) — deslocamento acumulado pelo
     // usuário arrastando o polígono com o mouse dentro da AREA_DESENHO (ver dxfpdfSetupDrag).
@@ -9924,7 +9984,10 @@ function exportPDF(scene, sheet, filename) {
       if (Math.hypot(it.x - it.xAuto, it.y - it.yAuto) > 0.6) {
         s.lines.push({ x1: it.x0, y1: it.y0, x2: it.x, y2: it.y, color: '#B5A98A', lw: 0.15 });
       }
-      s.texts.push({ x: it.x, y: it.y, size: FS_ROTULO, rotation: it.ang, anchor: it.anchor, baseline: 'alphabetic', color: '#2B2417', content: it.texto, halo: true });
+      // rot: identifica este texto como o rótulo de código de um marco específico — usado só
+      // pela pré-visualização em tela (buildSVG) pra deixar o rótulo clicável e abrir o popup de
+      // reposicionamento; a exportação em PDF (exportPDF) ignora esse campo.
+      s.texts.push({ x: it.x, y: it.y, size: FS_ROTULO, rotation: it.ang, anchor: it.anchor, baseline: 'alphabetic', color: '#2B2417', content: it.texto, halo: true, rot: { tipo: 'marco', id: it.m.id } });
     });
 
     const obstaculosMarco = itensMarco.map(it => ({ x: it.x, y: it.y, anchor: it.anchor, w: it.w, h: it.h, movel: false })).concat(obstaculosPaineis);
@@ -9951,7 +10014,9 @@ function exportPDF(scene, sheet, filename) {
       linhas.forEach((linha, idx) => {
         const off = ((linhas.length - 1) / 2 - idx) * alturaLinha;
         const lx = it.x + perpX * off, ly = it.y + perpY * off;
-        s.texts.push({ x: lx, y: ly, size: FS_CONF, rotation: it.ang, anchor: it.anchor, baseline: 'alphabetic', color: '#3E4A2C', content: linha, halo: true });
+        // rot: mesma ideia do rótulo de marco acima, identificando de qual trecho/confrontante
+        // este texto é (qualquer uma das linhas abre o mesmo popup, focado no mesmo confrontante).
+        s.texts.push({ x: lx, y: ly, size: FS_CONF, rotation: it.ang, anchor: it.anchor, baseline: 'alphabetic', color: '#3E4A2C', content: linha, halo: true, rot: { tipo: 'conf', id: it.g.owner.id } });
       });
     });
     // Bloco de informações do imóvel no centro do polígono: Imóvel, Matrícula/Comarca,
@@ -10002,20 +10067,35 @@ function exportPDF(scene, sheet, filename) {
           cxInfo = pts.reduce((a, p) => a + p.x, 0) / pts.length;
           cyInfo = pts.reduce((a, p) => a + p.y, 0) / pts.length;
         }
+        // Ajuste manual do usuário (arrastado/girado no popup "Reposicionar rótulo" do Conversor
+        // DXF -> PDF — ver imovel.infoImovelOffE/N e infoImovelAng), na mesma unidade (metros
+        // reais) e convenção E/N usada pelos rótulos de marco/confrontante.
+        cxInfo += (imovel.infoImovelOffE || 0) * esc;
+        cyInfo += (imovel.infoImovelOffN || 0) * esc;
         const fsInfo = 2.5;
         const alturaLinhaInfo = fsInfo * 1.35;
+        const anguloInfoRad = (imovel.infoImovelAng || 0) * Math.PI / 180;
+        // Direção do texto (baseline) e perpendicular (empilhamento das linhas) — com ângulo 0
+        // isso se reduz exatamente ao layout horizontal original (dirX=1,dirY=0,perpX=0,perpY=1).
+        const dirXInfo = Math.cos(anguloInfoRad), dirYInfo = Math.sin(anguloInfoRad);
+        const perpXInfo = -Math.sin(anguloInfoRad), perpYInfo = Math.cos(anguloInfoRad);
         // Bloco CENTRALIZADO no polígono: acha a linha mais larga (estimativa por nº de
-        // caracteres, mesma fórmula usada nos rótulos de confrontante) e desloca o x de partida
-        // meia largura pra esquerda — assim o bloco como um todo fica centrado no centróide,
-        // mas as linhas dentro dele continuam com o mesmo início (alinhadas à esquerda entre si).
+        // caracteres, mesma fórmula usada nos rótulos de confrontante) e desloca o início meia
+        // largura pra trás (na direção do texto) — assim o bloco como um todo fica centrado no
+        // centróide (ajustado), mas as linhas dentro dele continuam alinhadas à esquerda entre si.
         const maiorLinhaInfo = linhasInfo.reduce((a, b) => b.length > a.length ? b : a, '');
         const larguraBlocoInfo = maiorLinhaInfo.length * fsInfo * 0.62;
-        const xInicioInfo = cxInfo - larguraBlocoInfo / 2;
+        const xInicioInfo = cxInfo - dirXInfo * (larguraBlocoInfo / 2);
+        const yInicioInfo = cyInfo - dirYInfo * (larguraBlocoInfo / 2);
         // Y da cena cresce pra cima (convenção "Y-cima" deste pipeline) — pra "Imóvel" (idx 0)
-        // ficar visualmente NO TOPO do bloco, ele precisa do MAIOR y, não do menor.
+        // ficar visualmente NO TOPO do bloco, ele precisa do MAIOR deslocamento na perpendicular.
         linhasInfo.forEach((linha, idx) => {
           const off = ((linhasInfo.length - 1) / 2 - idx) * alturaLinhaInfo;
-          s.texts.push({ x: xInicioInfo, y: cyInfo + off, size: fsInfo, rotation: 0, anchor: 'start', baseline: 'alphabetic', color: '#2B2417', content: linha, halo: true });
+          const lx = xInicioInfo + perpXInfo * off, ly = yInicioInfo + perpYInfo * off;
+          // rot: identifica este texto como o bloco de informações do imóvel — clicável na
+          // pré-visualização em tela pra abrir o popup nativo de reposicionamento, igual aos
+          // rótulos de marco/confrontante (ver dxfpdfAbrirPopupRotuloNativo mais abaixo).
+          s.texts.push({ x: lx, y: ly, size: fsInfo, rotation: imovel.infoImovelAng || 0, anchor: 'start', baseline: 'alphabetic', color: '#2B2417', content: linha, halo: true, rot: { tipo: 'infoImovel', id: imovel.id } });
         });
       }
     }
@@ -10044,6 +10124,12 @@ function exportPDF(scene, sheet, filename) {
       const toY = n => r.minY + (n - baseN) * esc;
       s.images.push({ dataUrl: sat.dataUrl, minX: r.minX, minY: r.minY, maxX: r.maxX, maxY: r.maxY });
       const pts = lista.map(m => ({ x: toX(m.coordE), y: toY(m.coordN) }));
+      // Preenchimento semitransparente do polígono do imóvel por cima da imagem de satélite —
+      // sem isso, ficava só o contorno vermelho, difícil de perceber a área real do imóvel de
+      // relance (mesma cor do contorno, só com opacidade, pra continuar vendo a imagem por baixo).
+      // Vai em fillpolysOverImages (não em fillpolys) porque fillpolys é desenhado ANTES das
+      // imagens — aqui a imagem de satélite já precisa estar no lugar antes do preenchimento.
+      s.fillpolysOverImages.push({ pts, color: '#E53935', opacity: 0.28 });
       for (let i = 0; i < pts.length; i++) {
         const p1 = pts[i], p2 = pts[(i + 1) % pts.length];
         s.lines.push({ x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, color: '#E53935', lw: 0.7 });
@@ -10456,6 +10542,10 @@ function exportPDF(scene, sheet, filename) {
     const s = {
       lines: scene.lines.slice(), polylines: scene.polylines.slice(), circles: scene.circles.slice(),
       texts: scene.texts.map(t => Object.assign({}, t)), fillpolys: scene.fillpolys.slice(), images: (scene.images || []).slice(),
+      // fillpolysOverImages: preenchimentos (normalmente semitransparentes) desenhados DEPOIS das
+      // imagens (logo/satélite) — ex.: o contorno preenchido do imóvel por cima da imagem de
+      // satélite na Planta de Situação, que senão ficaria escondido atrás da imagem.
+      fillpolysOverImages: (scene.fillpolysOverImages || []).slice(),
       layers: scene.layers, bbox: scene.bbox, hdrExt: scene.hdrExt, unitFactor: scene.unitFactor, warnings: scene.warnings
     };
     const imId = imovelSelect ? imovelSelect.value : '';
@@ -10829,6 +10919,277 @@ function exportPDF(scene, sheet, filename) {
   fileInput.addEventListener('change', () => { DXFPDF_DESENHO_OFFSET = { x: 0, y: 0 }; });
   dropZone.addEventListener('drop', () => { DXFPDF_DESENHO_OFFSET = { x: 0, y: 0 }; });
   if (imovelSelect) imovelSelect.addEventListener('change', () => { DXFPDF_DESENHO_OFFSET = { x: 0, y: 0 }; });
+
+  // ---------- Clique num rótulo (código de marco / confrontante) na pré-visualização: abre o
+  // popup NATIVO de reposicionamento (ver bloco abaixo) já focado nele. Delegado no previewWrap
+  // (que não é recriado a cada refreshPreview, só seu innerHTML) pra funcionar após redesenhos.
+  previewWrap.addEventListener('click', (evt) => {
+    const alvo = evt.target.closest ? evt.target.closest('[data-rot-id]') : null;
+    if (!alvo) return;
+    const tipo = alvo.getAttribute('data-rot-tipo');
+    const rid = alvo.getAttribute('data-rot-id');
+    if (!tipo || !rid) return;
+    evt.stopPropagation();
+    dxfpdfAbrirPopupRotuloNativo(tipo, rid);
+  });
+
+  // ---------- Popup NATIVO "Reposicionar rótulo" ----------
+  // Diferente da ferramenta genérica da aba "Implantação de Marco" (um SVG simples e decorativo,
+  // sem nenhuma relação visual com a planta final), este popup CLONA o próprio <svg> já
+  // renderizado nesta pré-visualização — mesmas fontes monoespaçadas, grade, tabela de
+  // coordenadas, quadro de situação, tudo — e só recorta um viewBox de zoom ao redor do rótulo
+  // clicado. O que aparece aqui é, pixel a pixel, a mesma planta/PDF que será gerada, só que
+  // ampliada; não existe nenhum outro "modo de desenho" ou estilo paralelo.
+  // Campos persistidos (deslocamento em metros reais + rotação em graus) por tipo de rótulo —
+  // usados de forma genérica pelo popup (arrastar/girar/redefinir) em vez de repetir a lógica
+  // pra cada tipo. 'infoImovel' é o bloco de dados do imóvel no centro do polígono.
+  const RLBL_CAMPOS = {
+    marco: { offE: 'rotOffE', offN: 'rotOffN', ang: 'rotAngM' },
+    conf: { offE: 'rotOffConfE', offN: 'rotOffConfN', ang: 'rotAngConf' },
+    infoImovel: { offE: 'infoImovelOffE', offN: 'infoImovelOffN', ang: 'infoImovelAng' },
+  };
+  function dxfpdfObterAlvoRotulo(tipo, id) {
+    if (tipo === 'infoImovel') return state.imoveis.find(im => im.id === id) || null;
+    return state.marcos.find(mm => mm.id === id) || null;
+  }
+  function dxfpdfChaveSalvarRotulo(tipo) {
+    return tipo === 'infoImovel' ? 'imoveis' : 'marcos';
+  }
+
+  let RLBL_SELECIONADO = null; // { tipo, id } do rótulo em foco no popup
+  let RLBL_VIEW = null;        // { x, y, w, h } viewBox do SVG clonado (mm, mesmo espaço "de tela" do buildSVG)
+  let RLBL_DRAG = null;        // { tipo, id, elementos:[{el, base}], startUser:{x,y}, moved }
+  let RLBL_PAN = null;         // { startUser:{x,y}, viewInicial }
+
+  const rlblOverlay = document.getElementById('rlbl-popup-overlay');
+  const rlblSvgContainer = document.getElementById('rlbl-popup-svg-container');
+  const rlblInfo = document.getElementById('rlbl-popup-info');
+  const rlblFechar = document.getElementById('rlbl-fechar');
+  const rlblZoomIn = document.getElementById('rlbl-zoom-in');
+  const rlblZoomOut = document.getElementById('rlbl-zoom-out');
+  const rlblGirarHor = document.getElementById('rlbl-girar-horario');
+  const rlblGirarAnti = document.getElementById('rlbl-girar-antihorario');
+  const rlblRedefinir = document.getElementById('rlbl-redefinir');
+
+  function dxfpdfAbrirPopupRotuloNativo(tipo, id) {
+    const svgAtual = previewWrap.querySelector('svg');
+    if (!svgAtual || !rlblOverlay) return;
+    const alvo = svgAtual.querySelector(`[data-rot-tipo="${tipo}"][data-rot-id="${id}"]`);
+    if (!alvo) return;
+    RLBL_SELECIONADO = { tipo, id };
+    const x = parseFloat(alvo.getAttribute('x')) || 0;
+    const y = parseFloat(alvo.getAttribute('y')) || 0;
+    // Janela de zoom (90x60mm) centrada no rótulo clicado — pequena o bastante pra ler/arrastar
+    // com precisão, grande o bastante pra ver o contexto (linha do polígono, rótulos vizinhos).
+    RLBL_VIEW = { x: x - 45, y: y - 30, w: 90, h: 60 };
+    rlblOverlay.style.display = 'flex';
+    dxfpdfRenderPopupRotulo();
+  }
+
+  function dxfpdfRenderPopupRotulo() {
+    if (!RLBL_VIEW || !rlblSvgContainer) return;
+    const svgAtual = previewWrap.querySelector('svg');
+    if (!svgAtual) return;
+    const clone = svgAtual.cloneNode(true);
+    clone.removeAttribute('width');
+    clone.removeAttribute('height');
+    clone.style.width = '100%';
+    clone.style.height = '100%';
+    clone.style.display = 'block';
+    clone.style.cursor = 'grab';
+    clone.setAttribute('viewBox', `${RLBL_VIEW.x} ${RLBL_VIEW.y} ${RLBL_VIEW.w} ${RLBL_VIEW.h}`);
+    // Destaca em dourado todos os elementos do rótulo selecionado (uma etiqueta de confrontante
+    // com várias linhas gera vários <text>, todos com o mesmo data-rot-tipo/data-rot-id).
+    let m = null;
+    if (RLBL_SELECIONADO) {
+      clone.querySelectorAll(`[data-rot-tipo="${RLBL_SELECIONADO.tipo}"][data-rot-id="${RLBL_SELECIONADO.id}"]`).forEach(el => {
+        el.setAttribute('fill', '#C89B3C');
+      });
+      m = dxfpdfObterAlvoRotulo(RLBL_SELECIONADO.tipo, RLBL_SELECIONADO.id);
+    }
+    rlblSvgContainer.innerHTML = '';
+    rlblSvgContainer.appendChild(clone);
+    dxfpdfLigarEventosPopupRotulo(clone);
+    if (m) {
+      let rotDesc;
+      if (RLBL_SELECIONADO.tipo === 'marco') rotDesc = 'código do marco ' + (m.codigoCompleto || m.tipo || '');
+      else if (RLBL_SELECIONADO.tipo === 'conf') rotDesc = 'confrontante — ' + (m.confrontante || '');
+      else rotDesc = 'bloco de informações do imóvel — ' + (m.nome || '');
+      rlblInfo.textContent = `Rótulo selecionado: ${rotDesc}. Arraste-o para reposicionar; clique em outro rótulo aqui dentro pra focar nele; arraste o fundo pra navegar.`;
+    } else if (rlblInfo) {
+      rlblInfo.textContent = 'Nenhum rótulo selecionado — clique em um rótulo aqui dentro.';
+    }
+    dxfpdfAtualizarCampoGrauPopup(m);
+  }
+
+  // Campo de grau exato: mostra/edita o ângulo ABSOLUTO do rótulo selecionado no popup (mesma
+  // convenção do campo equivalente na aba "Implantação de Marco": sem sinal/positivo = sentido
+  // horário, negativo = anti-horário).
+  const rlblGrauInput = document.getElementById('rlbl-grau-input');
+  const rlblAplicarGrau = document.getElementById('rlbl-aplicar-grau');
+  function dxfpdfAtualizarCampoGrauPopup(alvo) {
+    if (!rlblGrauInput) return;
+    const campos = RLBL_SELECIONADO ? RLBL_CAMPOS[RLBL_SELECIONADO.tipo] : null;
+    if (!alvo || !campos) { rlblGrauInput.value = ''; rlblGrauInput.disabled = true; return; }
+    rlblGrauInput.disabled = false;
+    rlblGrauInput.value = alvo[campos.ang] || 0;
+  }
+  function dxfpdfAplicarGrauExatoPopup() {
+    if (!RLBL_SELECIONADO) { if (typeof showToast === 'function') showToast('Selecione um rótulo primeiro, clicando nele no desenho.'); return; }
+    const val = parseFloat(String(rlblGrauInput.value || '0').replace(',', '.'));
+    if (isNaN(val)) { if (typeof showToast === 'function') showToast('Digite um valor numérico de grau válido (negativo = anti-horário, sem sinal = horário).'); return; }
+    const m = dxfpdfObterAlvoRotulo(RLBL_SELECIONADO.tipo, RLBL_SELECIONADO.id);
+    const campos = RLBL_CAMPOS[RLBL_SELECIONADO.tipo];
+    if (!m || !campos) return;
+    m[campos.ang] = val;
+    save(dxfpdfChaveSalvarRotulo(RLBL_SELECIONADO.tipo)).then(() => {
+      refreshPreview();
+      dxfpdfRenderPopupRotulo();
+      if (typeof showToast === 'function') showToast(`Rotação definida em ${val}° (${val < 0 ? 'anti-horário' : 'horário'}).`);
+    });
+  }
+
+  function dxfpdfLigarEventosPopupRotulo(svgEl) {
+    svgEl.addEventListener('mousedown', dxfpdfPopupDragStart);
+    svgEl.addEventListener('touchstart', dxfpdfPopupDragStart, { passive: false });
+    svgEl.addEventListener('wheel', dxfpdfPopupWheel, { passive: false });
+  }
+
+  function dxfpdfPopupDragStart(evt) {
+    const svgEl = evt.currentTarget;
+    const userPt = dxfpdfSvgPointFromEvent(svgEl, evt);
+    if (!userPt) return;
+    evt.preventDefault();
+    const alvo = evt.target.closest ? evt.target.closest('[data-rot-id]') : null;
+    if (alvo) {
+      const tipo = alvo.getAttribute('data-rot-tipo');
+      const id = alvo.getAttribute('data-rot-id');
+      const elementos = Array.from(svgEl.querySelectorAll(`[data-rot-tipo="${tipo}"][data-rot-id="${id}"]`))
+        .map(el => ({ el, base: el.getAttribute('transform') || '' }));
+      RLBL_DRAG = { tipo, id, elementos, startUser: userPt, moved: false };
+      RLBL_PAN = null;
+    } else {
+      // Clique fora de qualquer rótulo: arrasta o fundo (pan) pra navegar dentro do zoom.
+      RLBL_DRAG = null;
+      RLBL_PAN = { startUser: userPt, viewInicial: { ...RLBL_VIEW } };
+    }
+    svgEl.style.cursor = 'grabbing';
+    const mover = (ev2) => dxfpdfPopupDragMove(svgEl, ev2);
+    const soltar = (ev2) => {
+      window.removeEventListener('mousemove', mover);
+      window.removeEventListener('touchmove', mover);
+      window.removeEventListener('mouseup', soltar);
+      window.removeEventListener('touchend', soltar);
+      dxfpdfPopupDragEnd(svgEl);
+    };
+    window.addEventListener('mousemove', mover);
+    window.addEventListener('touchmove', mover, { passive: false });
+    window.addEventListener('mouseup', soltar);
+    window.addEventListener('touchend', soltar);
+  }
+
+  function dxfpdfPopupDragMove(svgEl, evt) {
+    const userPt = dxfpdfSvgPointFromEvent(svgEl, evt);
+    if (!userPt) return;
+    evt.preventDefault();
+    if (RLBL_DRAG) {
+      const dx = userPt.x - RLBL_DRAG.startUser.x, dy = userPt.y - RLBL_DRAG.startUser.y;
+      if (Math.hypot(dx, dy) > 0.15) RLBL_DRAG.moved = true;
+      RLBL_DRAG.elementos.forEach(({ el, base }) => {
+        el.setAttribute('transform', `translate(${dx.toFixed(3)},${dy.toFixed(3)}) ${base}`);
+      });
+    } else if (RLBL_PAN) {
+      const dx = userPt.x - RLBL_PAN.startUser.x, dy = userPt.y - RLBL_PAN.startUser.y;
+      RLBL_VIEW = { ...RLBL_PAN.viewInicial, x: RLBL_PAN.viewInicial.x - dx, y: RLBL_PAN.viewInicial.y - dy };
+      svgEl.setAttribute('viewBox', `${RLBL_VIEW.x} ${RLBL_VIEW.y} ${RLBL_VIEW.w} ${RLBL_VIEW.h}`);
+    }
+  }
+
+  function dxfpdfPopupDragEnd(svgEl) {
+    svgEl.style.cursor = 'grab';
+    if (RLBL_DRAG) {
+      const drag = RLBL_DRAG; RLBL_DRAG = null;
+      if (!drag.moved) {
+        // Só um clique (sem arrastar): troca o rótulo em foco do popup, sem fechar.
+        RLBL_SELECIONADO = { tipo: drag.tipo, id: drag.id };
+        dxfpdfRenderPopupRotulo();
+        return;
+      }
+      const m = dxfpdfObterAlvoRotulo(drag.tipo, drag.id);
+      const campos = RLBL_CAMPOS[drag.tipo];
+      if (m && campos) {
+        // O SVG clonado usa o MESMO espaço de coordenadas "de tela" (mm, Y para baixo) do
+        // buildSVG — dx acompanha o eixo Leste normalmente; dy é invertido porque a cena usa Y
+        // crescendo pra cima enquanto a tela usa Y crescendo pra baixo (mesma conversão de
+        // dxfpdfDragMove, acima). RLBL_ESC é mm por metro (capturado em dxfpdfPlotDesenho).
+        const lastEl = drag.elementos[0] && drag.elementos[0].el;
+        const transformAtual = lastEl ? lastEl.getAttribute('transform') || '' : '';
+        const mtd = /translate\(([-0-9.]+),([-0-9.]+)\)/.exec(transformAtual);
+        const dxMm = mtd ? parseFloat(mtd[1]) : 0;
+        const dyMm = mtd ? parseFloat(mtd[2]) : 0;
+        const dE = dxMm / (RLBL_ESC || 1);
+        const dN = -dyMm / (RLBL_ESC || 1);
+        m[campos.offE] = (m[campos.offE] || 0) + dE;
+        m[campos.offN] = (m[campos.offN] || 0) + dN;
+        save(dxfpdfChaveSalvarRotulo(drag.tipo)).then(() => {
+          refreshPreview();
+          dxfpdfRenderPopupRotulo();
+        });
+      }
+      return;
+    }
+    RLBL_PAN = null;
+  }
+
+  function dxfpdfPopupZoom(fator) {
+    if (!RLBL_VIEW) return;
+    const cx = RLBL_VIEW.x + RLBL_VIEW.w / 2, cy = RLBL_VIEW.y + RLBL_VIEW.h / 2;
+    const w = Math.max(12, Math.min(400, RLBL_VIEW.w * fator));
+    const h = Math.max(8, Math.min(280, RLBL_VIEW.h * fator));
+    RLBL_VIEW = { x: cx - w / 2, y: cy - h / 2, w, h };
+    const svgEl = rlblSvgContainer.querySelector('svg');
+    if (svgEl) svgEl.setAttribute('viewBox', `${RLBL_VIEW.x} ${RLBL_VIEW.y} ${RLBL_VIEW.w} ${RLBL_VIEW.h}`);
+  }
+
+  function dxfpdfPopupWheel(evt) {
+    evt.preventDefault();
+    dxfpdfPopupZoom(evt.deltaY > 0 ? 1.15 : 1 / 1.15);
+  }
+
+  function dxfpdfGirarSelecionadoPopup(passo) {
+    if (!RLBL_SELECIONADO) return;
+    const m = dxfpdfObterAlvoRotulo(RLBL_SELECIONADO.tipo, RLBL_SELECIONADO.id);
+    const campos = RLBL_CAMPOS[RLBL_SELECIONADO.tipo];
+    if (!m || !campos) return;
+    m[campos.ang] = (m[campos.ang] || 0) + passo;
+    save(dxfpdfChaveSalvarRotulo(RLBL_SELECIONADO.tipo)).then(() => { refreshPreview(); dxfpdfRenderPopupRotulo(); });
+  }
+
+  function dxfpdfRedefinirSelecionadoPopup() {
+    if (!RLBL_SELECIONADO) return;
+    const m = dxfpdfObterAlvoRotulo(RLBL_SELECIONADO.tipo, RLBL_SELECIONADO.id);
+    const campos = RLBL_CAMPOS[RLBL_SELECIONADO.tipo];
+    if (!m || !campos) return;
+    m[campos.offE] = 0; m[campos.offN] = 0; m[campos.ang] = 0;
+    save(dxfpdfChaveSalvarRotulo(RLBL_SELECIONADO.tipo)).then(() => { refreshPreview(); dxfpdfRenderPopupRotulo(); });
+  }
+
+  function dxfpdfFecharPopupRotulo() {
+    if (rlblOverlay) rlblOverlay.style.display = 'none';
+    RLBL_SELECIONADO = null;
+    RLBL_DRAG = null;
+    RLBL_PAN = null;
+  }
+
+  if (rlblFechar) rlblFechar.addEventListener('click', dxfpdfFecharPopupRotulo);
+  if (rlblOverlay) rlblOverlay.addEventListener('click', (ev) => { if (ev.target === rlblOverlay) dxfpdfFecharPopupRotulo(); });
+  if (rlblZoomIn) rlblZoomIn.addEventListener('click', () => dxfpdfPopupZoom(1 / 1.3));
+  if (rlblZoomOut) rlblZoomOut.addEventListener('click', () => dxfpdfPopupZoom(1.3));
+  if (rlblGirarHor) rlblGirarHor.addEventListener('click', () => dxfpdfGirarSelecionadoPopup(15));
+  if (rlblGirarAnti) rlblGirarAnti.addEventListener('click', () => dxfpdfGirarSelecionadoPopup(-15));
+  if (rlblRedefinir) rlblRedefinir.addEventListener('click', dxfpdfRedefinirSelecionadoPopup);
+  if (rlblAplicarGrau) rlblAplicarGrau.addEventListener('click', dxfpdfAplicarGrauExatoPopup);
+  if (rlblGrauInput) rlblGrauInput.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); dxfpdfAplicarGrauExatoPopup(); } });
 })();
 
 </script>
