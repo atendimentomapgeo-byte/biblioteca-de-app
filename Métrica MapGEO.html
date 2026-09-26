@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-26.7 — DXF → PDF: Seta norte agora tem 3 estilos selecionáveis (seta simples, rosa dos ventos e bússola), todos desenhados sempre dentro do painel na AREA_DESENHO</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-26.12 — DXF → PDF: painel de Orientação no modo "Nenhuma (usar camada)" com 3 linhas de espaço em branco no topo do quadro antes do conteúdo começar (sem título), sempre cabendo em até 72,5mm de altura</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -10429,13 +10429,10 @@ function exportPDF(scene, sheet, filename) {
   // ---------- Plotagem: AREA_ORIENTACAO — quadro com os 3 nortes (magnético/verdadeiro/quadrícula),
   // convergência meridiana e declinação magnética, calculados a partir do vértice mais ao norte
   // do imóvel (o de maior coordenada N da lista de marcos). ----------
-  function dxfpdfPlotOrientacao(s, r, imovel, lista, comMoldura, formatoCoord) {
+  function dxfpdfPlotOrientacao(s, r, imovel, lista, comMoldura, formatoCoord, alturaMax, mostrarTitulo) {
+    if (mostrarTitulo == null) mostrarTitulo = true;
     const rw = r.maxX - r.minX, rh = r.maxY - r.minY;
     const cx = r.minX + rw / 2;
-    // Tamanhos fixos, a pedido: título com 3,5mm, todo o resto (linhas de dados, rótulos
-    // NQ/NV/NM, fórmulas c/d/ad) com 2mm — não depende mais do tamanho do painel.
-    const fsTituloOrient = 3.5;
-    const fs = 2.5;
     const cor = '#2B2417';
 
     // Fundo branco do painel inteiro — as linhas do grid/polígono que passariam por baixo já
@@ -10454,14 +10451,38 @@ function exportPDF(scene, sheet, filename) {
     }
     const codigoVertice = vNorte.codigo || `nº ${lista.indexOf(vNorte) + 1}`;
 
+    // Tamanhos "de referência" do painel (título 3,5mm / resto 2,5mm, a pedido) — quando o
+    // conteúdo não cabe na altura disponível (rh, ou alturaMax quando informado — usado no modo
+    // "Nenhuma (usar camada)" pra garantir uma margem de segurança dentro do bloco real do DXF),
+    // tudo (fontes + comprimento do diagrama das setas) é reduzido na mesma proporção, mantendo
+    // as proporções entre título/dados/diagrama em vez de simplesmente estourar o quadro.
+    const comMC = (formatoCoord || 'utm') === 'utm' && zona;
+    const nLinhasCabecalho = 4 + (comMC ? 1 : 0) + 1; // Convergência/Elipsoide/Latitude/Longitude [+MC/Fuso] + Data
+    const comprimento0 = Math.min(rw * 0.38, 26);
+    const fsTitulo0 = 3.5, fs0 = 2.5;
+    // Sem título (modo "Nenhuma/usar camada", a pedido): 3 linhas de espaço em branco no topo
+    // (mesma altura de linha usada nos dados) e o conteúdo já começa em seguida — sem título nem
+    // centralização, alinhado ao topo do quadro.
+    const topo0 = mostrarTitulo ? (fsTitulo0 * 1.4 + fs0 * 2.4) : (fs0 * 1.5 * 3);
+    const alturaNecessaria = topo0 + fs0 * (nLinhasCabecalho * 1.5 + 0.6) + comprimento0 * 1.24 + fs0 * 1.6 + fs0 * 3 * 1.3 + fs0 * 1.2;
+    const tetoAltura = (alturaMax != null) ? Math.min(rh, alturaMax) : rh;
+    const escalaAjuste = alturaNecessaria > tetoAltura ? tetoAltura / alturaNecessaria : 1;
+    const fsTituloOrient = fsTitulo0 * escalaAjuste;
+    const fs = fs0 * escalaAjuste;
+
     // ----- cabeçalho de texto -----
     // OBS: o fonte padrão do jsPDF (Helvetica/WinAnsi) não tem os glifos gregos φ/λ nem o ★ —
     // ele trunca o codepoint Unicode pro byte baixo (φ=U+03C6 vira 0xC6="Æ", λ=U+03BB vira
     // 0xBB="»"), corrompendo o texto e o espaçamento. Por isso usamos só texto Latin-1 aqui;
     // a estrela do NV é desenhada como vetor mais abaixo, não como caractere.
-    let y = r.maxY - fsTituloOrient * 1.4;
-    s.texts.push({ x: cx, y, size: fsTituloOrient, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: cor, content: 'Orientação', bold: true });
-    y -= fs * 2.4;
+    let y = r.maxY;
+    if (mostrarTitulo) {
+      y -= fsTituloOrient * 1.4;
+      s.texts.push({ x: cx, y, size: fsTituloOrient, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: cor, content: 'Orientação', bold: true });
+      y -= fs * 2.4;
+    } else {
+      y -= fs * 1.5 * 3;
+    }
     const linha = (txt) => {
       s.texts.push({ x: cx, y, size: fs, rotation: 0, anchor: 'middle', baseline: 'alphabetic', color: cor, content: txt });
       y -= fs * 1.5;
@@ -10485,7 +10506,7 @@ function exportPDF(scene, sheet, filename) {
     // O rótulo de cada seta (NV/NQ/NM) fica um pouco ALÉM da ponta da seta (a 1,22x o
     // comprimento) — por isso o espaço reservado entre o cabeçalho e o topo do diagrama
     // precisa sobrar o suficiente pra esse rótulo não invadir o texto do cabeçalho.
-    const comprimento = Math.min(rw * 0.38, 26);
+    const comprimento = comprimento0 * escalaAjuste;
     const diagTopoY = y - fs * 0.6 - comprimento * 0.24;
     const diagBaseY = diagTopoY - comprimento;
     const origemX = cx, origemY = diagBaseY;
@@ -10854,7 +10875,12 @@ function exportPDF(scene, sheet, filename) {
     if (regSituacao && temLista && ligada('AREA_SITUACAO')) dxfpdfPlotSituacao(s, regSituacao, lista, imId);
     if (regLogo && state.config && state.config.logoDataUrl && ligada('AREA_LOGO')) dxfpdfPlotLogo(s, regLogo, state.config.logoDataUrl, logoAspect);
     if (regAssinatura && tec && ligada('AREA_ASSINATURA')) dxfpdfPlotAssinatura(s, regAssinatura, tec);
-    if (regOrientacao && temLista && ligada('AREA_ORIENTACAO') && !(orientacaoCantoSelect && orientacaoCantoSelect.value)) dxfpdfPlotOrientacao(s, regOrientacao, imovel, lista, !!(orientacaoMolduraCheck && orientacaoMolduraCheck.checked), formatoCoord);
+    // Modo "Nenhuma (usar camada)": desenha no bloco real AREA_ORIENTACAO do próprio DXF, cujo
+    // tamanho é fixo (não se adapta ao conteúdo como no modo "canto"). Por isso aqui é passada uma
+    // altura máxima de 72,5mm — abaixo da altura real do bloco típico (~75mm) pra sempre sobrar
+    // uma margem de segurança — e dxfpdfPlotOrientacao reduz fontes/diagrama proporcionalmente
+    // se o conteúdo não couber nesse limite.
+    if (regOrientacao && temLista && ligada('AREA_ORIENTACAO') && !(orientacaoCantoSelect && orientacaoCantoSelect.value)) dxfpdfPlotOrientacao(s, regOrientacao, imovel, lista, !!(orientacaoMolduraCheck && orientacaoMolduraCheck.checked), formatoCoord, 72.5, false);
     if (regQuadro && temLista && ligada('AREA_COORDENADAS') && !(quadroCantoSelect && quadroCantoSelect.value)) dxfpdfPlotQuadroCoordenadas(s, regQuadro, lista, formatoCoord, zh, larguraColunasQuadro(), !!(quadroMolduraCheck && quadroMolduraCheck.checked), !!(quadroLarguraManualCheck && quadroLarguraManualCheck.checked), colunasVisiveisQuadro(), quadroNumColunasInput ? parseInt(quadroNumColunasInput.value, 10) || 1 : 1);
 
     // Substitui as TAGs do DXF pelos dados reais do imóvel selecionado no MapGEO — tanto no
