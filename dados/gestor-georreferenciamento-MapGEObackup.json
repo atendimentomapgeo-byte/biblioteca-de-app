@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T04:18:45.819Z",
+  "exportadoEm": "2026-09-26T04:36:28.537Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -100,7 +100,7 @@
           "numero": "03501377142"
         }
       ],
-      "codigoIncra": "",
+      "codigoIncra": "GFDF",
       "empresa": "Map GEO",
       "email": "fagner.agri@gmail.com",
       "telefone": "65 99902-0867",
@@ -300,6 +300,22 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": ""
+    },
+    {
+      "id": "muhwdklc6nrlu",
+      "nome": "Fazenda Modelo",
+      "matricula": "12.345",
+      "area": "8.0656",
+      "municipio": "Cuiaba",
+      "uf": "MT",
+      "comarca": "Cuiaba",
+      "proprietarioId": "muhviy71a3kkq",
+      "tecnicoId": "muhvqhwk2bblh",
+      "datum": "SIRGAS2000",
+      "perimetro": "1144.23",
+      "utmZona": "21S",
+      "artTipo": "TRT",
+      "art": "0123456789"
     }
   ],
   "marcos": [
@@ -1317,6 +1333,76 @@
     {
       "id": "muhvqslmzbicf",
       "imovelId": "muhviy7dvgxij",
+      "tipo": "M",
+      "ordem": 5,
+      "confrontante": "sasas",
+      "confrontanteImovelId": null,
+      "codigoSigef": "fgbr",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 596727.397,
+      "coordN": 8276631.368
+    },
+    {
+      "id": "muhwdklhfo10s",
+      "imovelId": "muhwdklc6nrlu",
+      "tipo": "B",
+      "ordem": 1,
+      "confrontante": "sasas",
+      "confrontanteImovelId": null,
+      "codigoSigef": "fgbr",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 596814.672,
+      "coordN": 8276984.995
+    },
+    {
+      "id": "muhwdklhau15f",
+      "imovelId": "muhwdklc6nrlu",
+      "tipo": "M",
+      "ordem": 2,
+      "confrontante": "sasas",
+      "confrontanteImovelId": null,
+      "codigoSigef": "fgbr",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 596943.057,
+      "coordN": 8276918.077
+    },
+    {
+      "id": "muhwdklhg1q9y",
+      "imovelId": "muhwdklc6nrlu",
+      "tipo": "P",
+      "ordem": 3,
+      "confrontante": "sasas",
+      "confrontanteImovelId": null,
+      "codigoSigef": "fgbr",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 597028.177,
+      "coordN": 8276762.842
+    },
+    {
+      "id": "muhwdklhohzmz",
+      "imovelId": "muhwdklc6nrlu",
+      "tipo": "V",
+      "ordem": 4,
+      "confrontante": "sasas",
+      "confrontanteImovelId": null,
+      "codigoSigef": "fgbr",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null,
+      "coordE": 596920.018,
+      "coordN": 8276542.053
+    },
+    {
+      "id": "muhwdklhknni4",
+      "imovelId": "muhwdklc6nrlu",
       "tipo": "M",
       "ordem": 5,
       "confrontante": "sasas",
