@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T16:58:57.461Z",
+  "exportadoEm": "2026-09-26T17:01:53.184Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -132,8 +132,9 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": "",
-      "infoImovelOffE": 179.34999999999997,
-      "infoImovelOffN": -171.825
+      "infoImovelOffE": 142.05999999999997,
+      "infoImovelOffN": -80.78999999999999,
+      "infoImovelAng": 37
     },
     {
       "id": "mud93vdrk068q",
@@ -356,7 +357,7 @@
     {
       "id": "mud8pxpkkuw65",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 15,
       "confrontante": "Fazenda Terra Roxa - Lote nº 414",
       "confrontanteImovelId": "mud95j71y7nh3",
@@ -377,7 +378,7 @@
     {
       "id": "mud8pxpknnlq4",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 1,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -398,7 +399,7 @@
     {
       "id": "mud8pxpkseylk",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 2,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -419,7 +420,7 @@
     {
       "id": "mud8pxpkpvdpj",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 3,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -440,7 +441,7 @@
     {
       "id": "mud8pxpk56lbt",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 4,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -461,7 +462,7 @@
     {
       "id": "mud8pxpkvxqgz",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 5,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -482,7 +483,7 @@
     {
       "id": "mud8pxpk5jtmy",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 6,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -503,7 +504,7 @@
     {
       "id": "mud8pxpk902rw",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 7,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -524,7 +525,7 @@
     {
       "id": "mud8pxpkqywx0",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 8,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -545,7 +546,7 @@
     {
       "id": "mud8pxpklulay",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 9,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -566,7 +567,7 @@
     {
       "id": "mud8pxpksomu6",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 10,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -587,7 +588,7 @@
     {
       "id": "mud8pxpk0gxlt",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 11,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -608,7 +609,7 @@
     {
       "id": "mud8pxpkfigp1",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 12,
       "confrontante": "Lote nº 412",
       "confrontanteImovelId": "mud99cbx736lj",
@@ -629,7 +630,7 @@
     {
       "id": "mud8pxpkz84nf",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 13,
       "confrontante": "Fazenda Chão de Estrelas - Lote nº 450",
       "confrontanteImovelId": "mud93vdrk068q",
@@ -650,7 +651,7 @@
     {
       "id": "mud8pxpkvqoe7",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "V",
+      "tipo": "P",
       "ordem": 14,
       "confrontante": "Estrada A",
       "confrontanteImovelId": "mud9imu6418s4",
