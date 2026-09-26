@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T15:12:27.016Z",
+  "exportadoEm": "2026-09-26T15:14:30.163Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -132,8 +132,8 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": "",
-      "infoImovelOffE": 45.15,
-      "infoImovelOffN": 26.97,
+      "infoImovelOffE": -75.42599999999999,
+      "infoImovelOffN": 72.54599999999999,
       "infoImovelAng": 37
     },
     {
@@ -368,8 +368,8 @@
       "coordE": 511726.783,
       "coordN": 8754958.796,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -55.06499999999999,
-      "rotOffConfN": -62.16499999999999,
+      "rotOffConfE": -52.55699999999999,
+      "rotOffConfN": -59.15299999999999,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
