@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T13:56:02.909Z",
+  "exportadoEm": "2026-09-26T13:57:04.714Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -365,8 +365,12 @@
       "coordE": 511726.783,
       "coordN": 8754958.796,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": 21.871035078061364,
-      "rotOffConfN": 102.38469120813608
+      "rotOffConfE": -110.4386899215235,
+      "rotOffConfN": 161.50176008017178,
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpknnlq4",
@@ -382,8 +386,12 @@
       "coordE": 512797.756,
       "coordN": 8755743.364,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": 75.67308545497445,
-      "rotOffConfN": 35.27912315158222
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkseylk",
@@ -398,7 +406,13 @@
       "codigoCompleto": null,
       "coordE": 512799.37,
       "coordN": 8755742.415,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkpvdpj",
@@ -413,7 +427,13 @@
       "codigoCompleto": null,
       "coordE": 512819.858,
       "coordN": 8755728.446,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpk56lbt",
@@ -428,7 +448,13 @@
       "codigoCompleto": null,
       "coordE": 512839.068,
       "coordN": 8755716.29,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkvxqgz",
@@ -443,7 +469,13 @@
       "codigoCompleto": null,
       "coordE": 512852.754,
       "coordN": 8755704.949,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpk5jtmy",
@@ -458,7 +490,13 @@
       "codigoCompleto": null,
       "coordE": 512863.671,
       "coordN": 8755686.664,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpk902rw",
@@ -473,7 +511,13 @@
       "codigoCompleto": null,
       "coordE": 512872.923,
       "coordN": 8755669.412,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkqywx0",
@@ -488,7 +532,13 @@
       "codigoCompleto": null,
       "coordE": 512880.016,
       "coordN": 8755647.163,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpklulay",
@@ -503,7 +553,13 @@
       "codigoCompleto": null,
       "coordE": 512889.97,
       "coordN": 8755628.433,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpksomu6",
@@ -518,7 +574,13 @@
       "codigoCompleto": null,
       "coordE": 512910.205,
       "coordN": 8755613.684,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpk0gxlt",
@@ -533,7 +595,13 @@
       "codigoCompleto": null,
       "coordE": 512933.712,
       "coordN": 8755602.499,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkfigp1",
@@ -549,8 +617,12 @@
       "coordE": 512958.09,
       "coordN": 8755589.855,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": 197.65685782853458,
-      "rotOffConfN": -236.85044624966807
+      "rotOffConfE": 200.47221214839016,
+      "rotOffConfN": -20.101071458242025,
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkz84nf",
@@ -566,8 +638,12 @@
       "coordE": 511849.469,
       "coordN": 8754800.87,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": 174.5235984829564,
-      "rotOffConfN": -218.8505892632025
+      "rotOffConfE": 267.4070694408103,
+      "rotOffConfN": -390.5465121064879,
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkvqoe7",
@@ -583,8 +659,12 @@
       "coordE": 511750.554,
       "coordN": 8754928.276,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -105.48934088843785,
-      "rotOffConfN": 126.86651401329547
+      "rotOffConfE": 0,
+      "rotOffConfN": 0,
+      "rotOffE": 0,
+      "rotOffN": 0,
+      "rotAngM": 0,
+      "rotAngConf": 0
     },
     {
       "id": "mud93vdtcn6d8",
