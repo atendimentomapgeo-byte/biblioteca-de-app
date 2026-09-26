@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T21:22:41.308Z",
+  "exportadoEm": "2026-09-26T21:23:48.699Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -1192,14 +1192,17 @@
       "imovelId": "mud99cbx736lj",
       "tipo": "V",
       "ordem": 15,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Lote nº 413",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 511849.469,
-      "coordN": 8754800.87
+      "coordN": 8754800.87,
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": -43.144,
+      "rotOffConfN": -24.08
     },
     {
       "id": "mud99cc0jh0q8",
@@ -1396,7 +1399,9 @@
       "codigoCompleto": null,
       "coordE": 511972.727,
       "coordN": 8754642.287,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": -84.624,
+      "rotOffConfN": 89.76
     },
     {
       "id": "muhwln97tu2j9",
