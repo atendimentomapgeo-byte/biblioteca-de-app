@@ -17,32 +17,51 @@
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/mobile.css" />
 <script>
-  // Corrige um bug conhecido do WebKit/iOS: ao abrir como app instalado na
-  // Tela de Início (modo standalone), "100%"/"100vh" às vezes são calculados
-  // com base num viewport que não existe mais nesse modo, deixando uma faixa
-  // vazia no rodapé. O CSS já usa 100dvh (altura dinâmica nativa do
-  // navegador) como solução principal — isso sozinho já resolve em iOS
-  // moderno (15.4+), que é a esmagadora maioria dos aparelhos reais, porque
-  // o próprio Safari mantém o dvh sincronizado automaticamente com teclado,
-  // barra de endereço, áreas seguras etc.
+  // Corrige um bug real e bem documentado do WebKit/iOS: quando o app é
+  // aberto "frio" (recém aberto pela Tela de Início, em modo standalone), a
+  // unidade CSS 100dvh às vezes fica presa num valor calculado ANTES do
+  // WebKit terminar de redimensionar a janela pro tamanho final de tela
+  // cheia — e só se corrige quando algum evento real de mudança de viewport
+  // acontece, como girar a tela. É exatamente por isso que girar o celular
+  // e voltar "resolvia" a faixa preta: isso força o WebKit a recalcular.
   //
-  // O app ocupa a tela usando position:fixed + inset:0 no #app.
-  // Evitamos usar uma altura calculada por 100dvh para o contêiner principal,
-  // porque algumas versões do WebKit em PWA/standalone podem devolver um
-  // viewport dinâmico menor que a área realmente disponível, deixando uma
-  // faixa vazia no rodapé. A variável --fg-vh fica somente como fallback para
-  // componentes legados que ainda precisem de uma altura dinâmica.
+  // A correção definitiva é calcular a altura em JS (window.innerHeight /
+  // visualViewport.height), que NÃO tem esse atraso — e usar esse valor
+  // sempre, não só como fallback pra navegador antigo. Reforçamos com
+  // algumas reconferências nos primeiros instantes depois do carregamento
+  // e sempre que o app volta a ficar visível, simulando o mesmo gatilho que
+  // girar a tela provocava, sem precisar que o usuário gire nada.
   (function () {
+    function alturaAtual() {
+      return (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    }
     function ajustarAlturaReal() {
-      const altura = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-      if (altura > 0) document.documentElement.style.setProperty('--fg-vh', altura + 'px');
+      document.documentElement.style.setProperty('--fg-vh', alturaAtual() + 'px');
+      // Avisa o mapa (Leaflet) de que a altura real pode ter mudado, pra ele
+      // medir de novo e redesenhar do tamanho certo — sem isso, o mapa fica
+      // preso no tamanho errado que mediu no primeiro instante, mesmo depois
+      // do #app já estar com a altura corrigida (CSS e o mapa são medidos
+      // de formas independentes). Evento próprio (não "resize") pra não
+      // entrar em loop com os listeners de resize já existentes.
+      window.dispatchEvent(new CustomEvent('fg-viewport-changed'));
     }
     ajustarAlturaReal();
-    window.addEventListener('resize', ajustarAlturaReal, { passive: true });
-    window.addEventListener('orientationchange', ajustarAlturaReal, { passive: true });
+    window.addEventListener('resize', ajustarAlturaReal);
+    window.addEventListener('orientationchange', ajustarAlturaReal);
+    window.addEventListener('pageshow', ajustarAlturaReal);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') ajustarAlturaReal();
+    });
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', ajustarAlturaReal, { passive: true });
+      window.visualViewport.addEventListener('resize', ajustarAlturaReal);
+      window.visualViewport.addEventListener('scroll', ajustarAlturaReal);
     }
+    // Reconfere algumas vezes logo após abrir "frio": é exatamente nessa
+    // janela de tempo que o WebKit termina de assumir o tamanho final da
+    // tela cheia no modo standalone.
+    [50, 150, 300, 600, 1000, 1800].forEach(function (ms) {
+      setTimeout(ajustarAlturaReal, ms);
+    });
   })();
 </script>
 </head>
@@ -197,6 +216,19 @@
       <div class="fg-sheet-body">
         <button class="fg-btn primary" id="btn-new-project">➕ Novo Projeto</button>
         <div id="projects-list" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= ESCOLHA DO TIPO DE MEDIÇÃO ======================= -->
+  <div class="fg-overlay center" id="overlay-measure-choice" hidden>
+    <div class="fg-sheet">
+      <div class="fg-sheet-header"><h2>O que medir?</h2><button class="fg-close-btn" data-close="overlay-measure-choice">✕</button></div>
+      <div class="fg-sheet-body">
+        <div class="fg-actionsheet-list">
+          <button class="fg-action-item" id="measure-choice-distance"><span class="fg-action-icon">📏</span>Distância</button>
+          <button class="fg-action-item" id="measure-choice-area"><span class="fg-action-icon">📐</span>Área</button>
+        </div>
       </div>
     </div>
   </div>
@@ -365,8 +397,10 @@
 <script src="js/database.js"></script>
 <script src="js/coordinates.js"></script>
 <script src="js/gps.js"></script>
+<script src="js/declination.js"></script>
 <script src="js/compass.js"></script>
 <script src="js/map.js"></script>
+<script src="js/edgecolor.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/points.js"></script>
 <script src="js/tracks.js"></script>

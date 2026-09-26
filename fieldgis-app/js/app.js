@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v61';
+  const APP_BUILD_VERSION = 'v62';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -74,6 +74,7 @@
     MapModule.toggleGrid(settings.map.showGrid, settings.coords.datum);
     MapModule.setCompassRoseOpacity(settings.map.compassRoseOpacity ?? 0.6);
     MapModule.onCursorMove(() => {}); // reservado para exibir coordenada do cursor (desktop)
+    if (window.EdgeColor) window.EdgeColor.init(); // cor dinâmica da faixa reservada do Home Indicator (ver js/edgecolor.js)
 
     Offline.init();
     Offline.requestPersistentStorage();

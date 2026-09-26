@@ -12,7 +12,7 @@
  * de rede. O Service Worker cuida apenas dos arquivos do próprio aplicativo.
  */
 
-const CACHE_NAME = 'fieldgis-cache-v61';
+const CACHE_NAME = 'fieldgis-cache-v62';
 const TILES_CACHE_NAME = 'fieldgis-tiles-v1';
 const TILES_CACHE_MAX_ENTRADAS = 6000; // limite aproximado para não estourar o armazenamento do navegador
 
@@ -47,6 +47,7 @@ const APP_SHELL = [
   './js/declination.js',
   './js/compass.js',
   './js/map.js',
+  './js/edgecolor.js',
   './js/camera.js',
   './js/points.js',
   './js/tracks.js',
@@ -116,6 +117,23 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = event.request.url;
+
+  // Sonda de cor da borda inferior (ver js/edgecolor.js): pede o MESMO tile,
+  // mas com CORS de verdade (mode:'cors'), sem passar pelo cache normal de
+  // tiles — uma resposta 'opaque' (do modo no-cors abaixo) não pode ser lida
+  // em canvas (getImageData lança SecurityError), então essa sonda específica
+  // precisa da resposta 'cors' de verdade. Não é guardada em cache (é só uma
+  // leitura pontual) e não interfere em nada no carregamento normal do mapa —
+  // se o servidor do tile não permitir CORS, essa busca falha sozinha e
+  // js/edgecolor.js cai no fallback dele, sem quebrar mais nada.
+  if (ehRequisicaoDeTile(url) && url.includes('fgsample=1')) {
+    event.respondWith(
+      fetch(event.request.url, { mode: 'cors' }).catch(
+        () => new Response('', { status: 504, statusText: 'Amostra de cor indisponível (CORS ou offline).' })
+      )
+    );
+    return;
+  }
 
   // Tiles de mapa (OSM, Esri, etc.): cache-first, salvando em cache dedicado.
   // Funciona mesmo entre domínios diferentes — usamos { mode: 'no-cors' } para
