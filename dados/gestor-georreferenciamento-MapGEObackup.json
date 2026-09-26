@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-26T13:54:58.045Z",
+  "exportadoEm": "2026-09-26T13:56:02.909Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -365,8 +365,8 @@
       "coordE": 511726.783,
       "coordN": 8754958.796,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -163.92060886473172,
-      "rotOffConfN": -759.0331318447035
+      "rotOffConfE": 21.871035078061364,
+      "rotOffConfN": 102.38469120813608
     },
     {
       "id": "mud8pxpknnlq4",
@@ -381,7 +381,9 @@
       "codigoCompleto": null,
       "coordE": 512797.756,
       "coordN": 8755743.364,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": 75.67308545497445,
+      "rotOffConfN": 35.27912315158222
     },
     {
       "id": "mud8pxpkseylk",
@@ -546,7 +548,9 @@
       "codigoCompleto": null,
       "coordE": 512958.09,
       "coordN": 8755589.855,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": 197.65685782853458,
+      "rotOffConfN": -236.85044624966807
     },
     {
       "id": "mud8pxpkz84nf",
@@ -561,7 +565,9 @@
       "codigoCompleto": null,
       "coordE": 511849.469,
       "coordN": 8754800.87,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": 174.5235984829564,
+      "rotOffConfN": -218.8505892632025
     },
     {
       "id": "mud8pxpkvqoe7",
@@ -576,7 +582,9 @@
       "codigoCompleto": null,
       "coordE": 511750.554,
       "coordN": 8754928.276,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": -105.48934088843785,
+      "rotOffConfN": 126.86651401329547
     },
     {
       "id": "mud93vdtcn6d8",
