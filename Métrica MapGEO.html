@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-26.13 — DXF → PDF: imóveis confrontantes cadastrados agora são plotados automaticamente (linha fina e clara), só a parte dentro de um buffer de contexto ao redor do imóvel principal, sem afetar a escala do desenho</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-27.14 — Carta de Anuência: agora é possível cadastrar Rio ou Estrada como confrontante; nesses casos quem assina é o confrontante subsequente ao rio/estrada (não o acidente em si), com texto da carta ajustado</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1901,11 +1901,22 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <div class="field"><label>até</label><select id="confrontante-intervalo-ate"></select></div>
           <div class="field"><button type="button" class="btn btn-ghost" id="btn-confrontante-intervalo" style="width:100%;">Selecionar intervalo</button></div>
         </div>
+        <div class="grid g3">
+          <div class="field"><label>Tipo de confrontante</label>
+            <select id="confrontante-tipo-acidente">
+              <option value="">Confrontante direto (padrão)</option>
+              <option value="rio">Rio / curso d'água</option>
+              <option value="estrada">Estrada / via pública</option>
+            </select>
+          </div>
+          <div class="field" id="confrontante-acidente-nome-field" style="display:none;"><label>Nome do rio/estrada</label><input id="confrontante-acidente-nome-input" placeholder="Ex.: Rio das Pedras / Estrada Municipal MT-235"></div>
+        </div>
+        <div class="note" id="confrontante-acidente-ajuda" style="display:none; margin-top:0;">Um rio ou uma estrada não tem "dono" pra assinar a Carta de Anuência — por isso, no campo abaixo, escolha (ou digite) o proprietário do imóvel <strong>subsequente</strong> a ele (do outro lado), que é quem deve reconhecer os limites e assinar.</div>
         <div class="grid">
-          <div class="field"><label>Imóvel confrontante</label>
+          <div class="field"><label id="confrontante-select-label">Imóvel confrontante</label>
             <select id="confrontante-select"><option value="">Selecione um imóvel já cadastrado…</option><option value="__outro__">Outro (digitar manualmente)</option></select>
           </div>
-          <div class="field" id="confrontante-manual-field" style="display:none;"><label>Nome do confrontante</label><input id="confrontante-manual-input" placeholder="Nome de quem não está cadastrado como imóvel"></div>
+          <div class="field" id="confrontante-manual-field" style="display:none;"><label id="confrontante-manual-label">Nome do confrontante</label><input id="confrontante-manual-input" placeholder="Nome de quem não está cadastrado como imóvel"></div>
         </div>
         <div class="field"><label>Observação (opcional)</label><input id="confrontante-observacao-input" placeholder="Ex.: divisa por cerca de arame, conforme acordo verbal..."></div>
         <div class="row-end">
@@ -4611,6 +4622,13 @@ window.toggleConfrontanteVertice = function(marcoId){
 document.getElementById('confrontante-select').addEventListener('change', e=>{
   document.getElementById('confrontante-manual-field').style.display = e.target.value==='__outro__' ? 'block' : 'none';
 });
+document.getElementById('confrontante-tipo-acidente').addEventListener('change', e=>{
+  const ehAcidente = !!e.target.value;
+  document.getElementById('confrontante-acidente-nome-field').style.display = ehAcidente ? 'block' : 'none';
+  document.getElementById('confrontante-acidente-ajuda').style.display = ehAcidente ? 'block' : 'none';
+  document.getElementById('confrontante-select-label').textContent = ehAcidente ? 'Quem assina (confrontante subsequente)' : 'Imóvel confrontante';
+  document.getElementById('confrontante-manual-label').textContent = ehAcidente ? 'Nome de quem assina' : 'Nome do confrontante';
+});
 document.getElementById('btn-limpar-selecao-confrontante').addEventListener('click', ()=>{
   confrontanteSelecionados.clear();
   confrontanteVerticeInicio = null;
@@ -4649,7 +4667,7 @@ document.getElementById('btn-remover-confrontante').addEventListener('click', as
   if(!confirm(`Remover o confrontante de ${qtd} lado(s) selecionado(s)?`)) return;
   confrontanteSelecionados.forEach(marcoId=>{
     const m = state.marcos.find(x=>x.id===marcoId);
-    if(m){ m.confrontante = ''; m.confrontanteImovelId = null; m.confrontanteOrigem = ''; }
+    if(m){ m.confrontante = ''; m.confrontanteImovelId = null; m.confrontanteOrigem = ''; m.confrontanteTipo = ''; m.confrontanteAssinanteNome = ''; }
   });
   await save('marcos');
   confrontanteSelecionados.clear();
@@ -4660,27 +4678,43 @@ document.getElementById('btn-remover-confrontante').addEventListener('click', as
 });
 document.getElementById('btn-atribuir-confrontante').addEventListener('click', async ()=>{
   if(!confrontanteSelecionados.size){ showToast('Selecione ao menos um lado do polígono.'); return; }
+  // tipoAcidente: '' (confrontante direto, comportamento de sempre) | 'rio' | 'estrada' — nesses
+  // dois últimos casos não existe um "dono" do rio/estrada pra assinar a Carta de Anuência, então
+  // o campo "Imóvel confrontante"/"Outro" abaixo passa a significar "quem assina" (o confrontante
+  // SUBSEQUENTE, do outro lado do acidente), não o nome exibido nas tabelas/planta.
+  const tipoAcidente = document.getElementById('confrontante-tipo-acidente').value;
   const selVal = document.getElementById('confrontante-select').value;
-  let nome, confrontanteImovelId;
+  let nomeAssinante, confrontanteImovelId;
   if(selVal==='__outro__'){
-    nome = document.getElementById('confrontante-manual-input').value.trim();
+    nomeAssinante = document.getElementById('confrontante-manual-input').value.trim();
     confrontanteImovelId = null;
   } else {
     const imC = state.imoveis.find(im=>im.id===selVal);
-    nome = imC ? imC.nome : '';
+    nomeAssinante = imC ? imC.nome : '';
     confrontanteImovelId = imC ? imC.id : null;
   }
-  if(!nome){ showToast('Escolha um imóvel cadastrado ou digite o nome do confrontante.'); return; }
+  let nomeExibicao = nomeAssinante;
+  let assinanteManual = '';
+  if(tipoAcidente){
+    nomeExibicao = document.getElementById('confrontante-acidente-nome-input').value.trim();
+    if(!nomeExibicao){ showToast('Digite o nome do rio ou da estrada.'); return; }
+    if(!confrontanteImovelId) assinanteManual = nomeAssinante; // guarda "quem assina" quando não está cadastrado como imóvel
+    if(!confrontanteImovelId && !assinanteManual){ showToast('Escolha o imóvel cadastrado ou digite o nome de quem deve assinar (confrontante subsequente).'); return; }
+  } else if(!nomeExibicao){
+    showToast('Escolha um imóvel cadastrado ou digite o nome do confrontante.'); return;
+  }
   const idsSelecionados = Array.from(confrontanteSelecionados);
-  if(!confirmarSobrescritaConfrontante(idsSelecionados, nome)){ showToast('Atribuição cancelada — confrontante existente mantido.'); return; }
+  if(!confirmarSobrescritaConfrontante(idsSelecionados, nomeExibicao)){ showToast('Atribuição cancelada — confrontante existente mantido.'); return; }
   const observacaoEl = document.getElementById('confrontante-observacao-input');
   const observacao = observacaoEl ? observacaoEl.value.trim() : '';
   const qtd = confrontanteSelecionados.size;
   confrontanteSelecionados.forEach(marcoId=>{
     const m = state.marcos.find(x=>x.id===marcoId);
     if(m){
-      m.confrontante = nome;
+      m.confrontante = nomeExibicao;
       m.confrontanteImovelId = confrontanteImovelId;
+      m.confrontanteTipo = tipoAcidente || '';
+      m.confrontanteAssinanteNome = assinanteManual || '';
       m.confrontanteOrigem = confrontanteImovelId ? 'cadastro' : 'manual';
       if(observacao) m.confrontanteObservacao = observacao;
     }
@@ -4690,10 +4724,16 @@ document.getElementById('btn-atribuir-confrontante').addEventListener('click', a
   document.getElementById('confrontante-select').value='';
   document.getElementById('confrontante-manual-input').value='';
   document.getElementById('confrontante-manual-field').style.display='none';
+  document.getElementById('confrontante-tipo-acidente').value='';
+  document.getElementById('confrontante-acidente-nome-input').value='';
+  document.getElementById('confrontante-acidente-nome-field').style.display='none';
+  document.getElementById('confrontante-acidente-ajuda').style.display='none';
+  document.getElementById('confrontante-select-label').textContent='Imóvel confrontante';
+  document.getElementById('confrontante-manual-label').textContent='Nome do confrontante';
   if(observacaoEl) observacaoEl.value='';
   renderMarcos();
   if(typeof renderConfrontantesHub==='function') renderConfrontantesHub();
-  showToast(`Confrontante "${nome}" atribuído a ${qtd} lado(s).`);
+  showToast(`Confrontante "${nomeExibicao}" atribuído a ${qtd} lado(s).`);
 });
 
 // ---------- CONSULTAR CONFRONTANTES NO SIGEF (malha de parcelas certificadas do INCRA) ----------
@@ -6929,7 +6969,10 @@ function agruparConfrontantes(lista){
     if(atual && atual.nome===m.confrontante && atual.imovelId===(m.confrontanteImovelId||null)){
       atual.marcos.push(m);
     } else {
-      atual = {nome:m.confrontante, imovelId:m.confrontanteImovelId||null, marcos:[m]};
+      // tipo: '' (confrontante direto) | 'rio' | 'estrada' — quando presente, `nome` é o nome do
+      // acidente (ex.: "Rio das Pedras") e `assinanteNome` guarda quem deve assinar a Carta de
+      // Anuência quando esse "quem assina" não está cadastrado como imóvel (imovelId nulo).
+      atual = {nome:m.confrontante, imovelId:m.confrontanteImovelId||null, tipo:m.confrontanteTipo||'', assinanteNome:m.confrontanteAssinanteNome||'', marcos:[m]};
       grupos.push(atual);
     }
   });
@@ -7077,9 +7120,32 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
   grupos.forEach(g=>{
     const imC = g.imovelId ? state.imoveis.find(im=>im.id===g.imovelId) : null;
     const propC = imC ? state.proprietarios.find(pr=>pr.id===imC.proprietarioId) : null;
-    const nomeAssinante = propC && propC.nome ? propC.nome : g.nome;
+    // Confrontante direto (tipo=''): quem assina é o dono do imóvel confrontante (g.nome).
+    // Rio/estrada (tipo='rio'|'estrada'): g.nome é o nome do acidente (ex.: "Rio das Pedras"), que
+    // não tem dono — quem assina é o confrontante SUBSEQUENTE a ele, guardado em imC/propC (se
+    // cadastrado) ou em g.assinanteNome (se digitado manualmente).
+    const ehAcidente = g.tipo === 'rio' || g.tipo === 'estrada';
+    const nomeAssinante = propC && propC.nome ? propC.nome : (ehAcidente ? (g.assinanteNome || '(confrontante subsequente não informado)') : g.nome);
     const docAssinante = propC && propC.doc ? propC.doc : null;
     const nomeImovelConfrontante = imC ? imC.nome : null;
+    const rotuloAcidente = g.tipo === 'rio' ? 'Rio' : (g.tipo === 'estrada' ? 'Estrada' : null);
+    const rotuloAcidenteMin = g.tipo === 'rio' ? "curso d'água" : (g.tipo === 'estrada' ? 'via pública' : null);
+    const contracaoAoAcidente = g.tipo === 'rio' ? 'ao' : 'à'; // "subsequente ao Rio" / "subsequente à Estrada"
+    const peloAcidente = g.tipo === 'rio' ? 'pelo' : 'pela'; // "constituídos pelo Rio" / "constituídos pela Estrada"
+
+    // Qualificação de quem assina: confrontante direto assina "na qualidade de proprietário do
+    // imóvel X"; no caso de rio/estrada, quem assina não é dono do acidente geográfico, e sim o
+    // confrontante subsequente a ele — o texto deixa isso explícito.
+    const qualificacaoAssinante = ehAcidente
+      ? `na qualidade de proprietário(a)/possuidor(a) do imóvel${nomeImovelConfrontante? ` denominado <strong>${escXml(nomeImovelConfrontante)}</strong>`:''}, confrontante subsequente ${contracaoAoAcidente} ${rotuloAcidenteMin} denominado(a) <strong>${escXml(g.nome)}</strong>, que separa o meu imóvel do imóvel <strong>${escXml(imovel.nome)}</strong>`
+      : `na qualidade de proprietário(a)/possuidor(a) do imóvel denominado <strong>${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}</strong>`;
+    // Trecho que menciona o acidente geográfico como o próprio limite entre os imóveis, quando aplicável.
+    const constituidoPeloAcidente = ehAcidente ? `, sendo tais limites constituídos ${peloAcidente} ${rotuloAcidenteMin} <strong>${escXml(g.nome)}</strong>,` : ',';
+    // Linha de identificação na assinatura: confrontante direto identifica o imóvel confrontante;
+    // rio/estrada identifica o acidente e, quando cadastrado, também o imóvel do confrontante subsequente.
+    const linhaAssinaturaConfrontante = ehAcidente
+      ? `Confrontante subsequente ${contracaoAoAcidente} ${rotuloAcidente} ${escXml(g.nome)}${nomeImovelConfrontante? ` (imóvel: ${escXml(nomeImovelConfrontante)})` : ''}`
+      : `Confrontante do Imóvel: ${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}`;
 
     const tecTitulo = (tec && tec.titulo && tec.titulo.trim()) ? tec.titulo.trim() : 'profissional habilitado';
     const tecRegistro = tec && tec.registroTipo && tec.registroNumero ? `${tec.registroTipo} Nº ${tec.registroNumero}` : '(registro não informado)';
@@ -7105,16 +7171,16 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
     out += `<div class="anuencia-carta">
       ${cabecalhoLogo}
       <div class="anuencia-titulo">CARTA DE ANUÊNCIA E RECONHECIMENTO DE LIMITES</div>
-      <p>Eu, <strong>${escXml(nomeAssinante)}</strong>${docAssinante? `, portador(a) do CPF/CNPJ ${escXml(docAssinante)}`:''}, declaro para os devidos fins, na qualidade de proprietário(a)/possuidor(a) do imóvel denominado <strong>${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}</strong>:</p>
+      <p>Eu, <strong>${escXml(nomeAssinante)}</strong>${docAssinante? `, portador(a) do CPF/CNPJ ${escXml(docAssinante)}`:''}, declaro para os devidos fins, ${qualificacaoAssinante}:</p>
       <p>Que ESTOU DE ACORDO com a demarcação, o levantamento topográfico e o reconhecimento dos limites divisórios executados pelo(a) ${escXml(tecTitulo)}, senhor(a) ${escXml(tec?tec.nome:'(responsável técnico não informado)')}, ${escXml(tecRegistro)}, credenciado(a) junto ao INCRA sob o código ${escXml(tecCodigoIncra)}.</p>
-      <p>Declaro, ainda, que os limites entre o meu imóvel e a propriedade denominada <strong>${escXml(imovel.nome)}</strong>, de propriedade de ${escXml(prop?prop.nome:'(proprietário não informado)')}, foram devidamente conferidos in loco. Concordo com a exatidão dos vértices e coordenadas abaixo descritos, não havendo contestação, litígio ou sobreposição de áreas entre as propriedades:</p>
+      <p>Declaro, ainda, que os limites entre o meu imóvel e a propriedade denominada <strong>${escXml(imovel.nome)}</strong>, de propriedade de ${escXml(prop?prop.nome:'(proprietário não informado)')}${constituidoPeloAcidente} foram devidamente conferidos in loco. Concordo com a exatidão dos vértices e coordenadas abaixo descritos, não havendo contestação, litígio ou sobreposição de áreas entre as propriedades:</p>
       ${tabela}
       <p>Por fim, autorizo o registro e a certificação do referido memorial descritivo no SIGEF (Sistema de Gestão Fundiária do Incra) e a posterior retificação/atualização no Cartório de Registro de Imóveis competente.</p>
       <p style="margin-top:24px;">${escXml(localData)}</p>
       <div class="anuencia-assinatura">
         <div class="linha"></div>
         <div><strong>${escXml(nomeAssinante)}</strong></div>
-        <div>Confrontante do Imóvel: ${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}</div>
+        <div>${linhaAssinaturaConfrontante}</div>
       </div>
       <div class="anuencia-croqui-titulo">CROQUI DE LOCALIZAÇÃO</div>
       ${gerarCroquiConfrontante(lista, g.marcos, g.nome)}
