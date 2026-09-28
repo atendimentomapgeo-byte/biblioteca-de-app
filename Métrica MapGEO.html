@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-26.12 — DXF → PDF: painel de Orientação no modo "Nenhuma (usar camada)" com 3 linhas de espaço em branco no topo do quadro antes do conteúdo começar (sem título), sempre cabendo em até 72,5mm de altura</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-28.19 — Planilha SIGEF: coordenadas Geográficas (E/Long e N/Lat) no padrão GG MM SS,sss sem sinal de menos (SIGEF assume Sul/Oeste por padrão)</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -940,6 +940,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <button data-tab="doc-memorial" data-group="ferramentas">Memorial</button>
   <button data-tab="doc-anuencia" data-group="ferramentas">Anuência</button>
   <button data-tab="doc-planta" data-group="ferramentas">Planta</button>
+  <button data-tab="doc-sigef" data-group="ferramentas">SIGEF</button>
   <button data-tab="configuracoes" data-group="configuracoes">Backup e Configurações</button>
 </nav>
 
@@ -1105,6 +1106,18 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <div></div>
         </div>
         <div class="grid g3">
+          <div class="field"><label>Situação Registral (planilha do SIGEF)</label>
+            <select id="imo-situacao-registral">
+              <option value="">— (usar padrão "Imóvel Registrado" ao gerar a planilha)</option>
+              <option value="Imóvel Registrado">Imóvel Registrado</option>
+              <option value="Área Titulada não Registrada">Área Titulada não Registrada</option>
+              <option value="Área não Titulada">Área não Titulada</option>
+            </select>
+          </div>
+          <div class="field"><label>Código do cartório (CNS)</label><input id="imo-cns" placeholder="Código Nacional de Serventias do cartório de registro"></div>
+          <div></div>
+        </div>
+        <div class="grid g3">
           <div class="field"><label>Responsável técnico (declarado no SIGEF)</label><input id="imo-sigef-resp-tecnico" placeholder="Nome do responsável técnico que certificou a parcela"></div>
           <div class="field"><label>Data de certificação (SIGEF)</label><input id="imo-sigef-data-cert" placeholder="Ex.: 15/01/2020"></div>
           <div></div>
@@ -1262,6 +1275,52 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <input id="marco-status-implantacao" readonly>
         </div>
         <div class="note">O código oficial (padrão XXXX-Tipo-0000, onde XXXX é o código do responsável técnico credenciado no INCRA) só é atribuído quando o marco é implantado.</div>
+
+        <details id="marco-avancado-sigef" style="margin-top:14px; border:1px solid rgba(201,178,132,0.35); border-radius:8px; padding:6px 14px 14px;">
+          <summary style="cursor:pointer; font-weight:600; padding:8px 0;">Dados avançados do SIGEF (opcional)</summary>
+          <div class="note" style="margin-top:0;">Precisão (sigma) e altitude em metros. Preencha só o que você já apurou em campo/pós-processamento — o que ficar em branco aqui sai em branco também na planilha do SIGEF, pra completar depois.</div>
+          <div class="grid g4">
+            <div class="field"><label>Sigma Longitude/E (m)</label><input id="marco-sigma-e" type="number" step="0.001" min="0"></div>
+            <div class="field"><label>Sigma Latitude/N (m)</label><input id="marco-sigma-n" type="number" step="0.001" min="0"></div>
+            <div class="field"><label>Altitude elipsoidal — h (m)</label><input id="marco-altura-elipsoidal" type="number" step="0.001"></div>
+            <div class="field"><label>Sigma h (m)</label><input id="marco-sigma-h" type="number" step="0.001" min="0"></div>
+          </div>
+          <div class="grid g3">
+            <div class="field"><label>Método de posicionamento (GNSS)</label>
+              <select id="marco-metodo-posicionamento">
+                <option value="">—</option>
+                <optgroup label="PA — Posicionamento por satélite, método absoluto">
+                  <option value="PA1">PA1</option><option value="PA2">PA2</option><option value="PA3">PA3</option>
+                </optgroup>
+                <optgroup label="PB — Posicionamento por satélite, relativo estático">
+                  <option value="PB1">PB1</option><option value="PB2">PB2</option>
+                </optgroup>
+                <optgroup label="PG — Posicionamento por satélite, relativo semicinemático/RTK">
+                  <option value="PG1">PG1</option><option value="PG2">PG2</option><option value="PG3">PG3</option><option value="PG4">PG4</option><option value="PG5">PG5</option><option value="PG6">PG6</option><option value="PG7">PG7</option><option value="PG8">PG8</option><option value="PG9">PG9</option>
+                </optgroup>
+                <optgroup label="PS — Posicionamento por satélite, levantamento por rede">
+                  <option value="PS1">PS1</option><option value="PS2">PS2</option><option value="PS3">PS3</option><option value="PS4">PS4</option>
+                </optgroup>
+                <optgroup label="PT — Levantamento topográfico">
+                  <option value="PT1">PT1</option><option value="PT2">PT2</option><option value="PT3">PT3</option><option value="PT4">PT4</option><option value="PT5">PT5</option><option value="PT6">PT6</option><option value="PT7">PT7</option><option value="PT8">PT8</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="field"><label>Tipo de limite deste trecho (SIGEF)</label>
+              <select id="marco-tipo-limite">
+                <option value="">—</option>
+                <optgroup label="LA — Limite Artificial">
+                  <option value="LA1">LA1</option><option value="LA2">LA2</option><option value="LA3">LA3</option><option value="LA4">LA4</option><option value="LA5">LA5</option><option value="LA6">LA6</option><option value="LA7">LA7</option>
+                </optgroup>
+                <optgroup label="LN — Limite Natural">
+                  <option value="LN1">LN1</option><option value="LN2">LN2</option><option value="LN3">LN3</option><option value="LN4">LN4</option><option value="LN5">LN5</option><option value="LN6">LN6</option>
+                </optgroup>
+              </select>
+            </div>
+            <div></div>
+          </div>
+          <div class="note">Estes são os únicos códigos aceitos pela planilha do SIGEF — mas confirme sempre no Manual Técnico de Posicionamento do INCRA vigente qual número exato (dentro de cada grupo) corresponde ao método/limite real deste trecho; não adivinhe. Como referência geral, Rio/curso d'água costuma ser Limite Natural (LN) e Estrada costuma ser Limite Artificial (LA), mas o app não escolhe isso por você.</div>
+        </details>
         <div class="row-end">
           <button type="button" class="btn btn-ghost" id="marco-cancel" style="display:none;">Cancelar edição</button>
           <button type="submit" class="btn btn-primary" id="marco-submit">Salvar marco</button>
@@ -1528,6 +1587,33 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="note" id="doc-planta-vazio">Nenhuma planta gerada ainda — preencha os campos acima e clique em "Gerar documentos".</div>
       <div id="doc-planta" style="overflow:auto; background:#fff; padding:8px; display:none;"></div>
       <div class="note">Planta gerada automaticamente a partir das coordenadas, tipos e confrontantes cadastrados. O modelo padrão "A2 — Modelo TOPO GEO" reproduz a estrutura do layout de impressão A2 usado no QGIS (planta topográfica com grade, quadro de coordenadas e confrontações, norte/convergência meridiana, planta de situação esquemática, quadro assunto/imóvel/interessado, escala e bloco do responsável técnico/ART). A convergência meridiana é um valor aproximado calculado a partir da zona UTM e do centro do imóvel — informe a Zona UTM do imóvel (aba Imóveis) para que seja exibida. O mapa de situação é esquemático, sem base de imagem de satélite real. Revise sempre com o responsável técnico antes do uso oficial.</div>
+    </div>
+  </section>
+
+  <!-- PLANILHA SIGEF (.ods) -->
+  <section class="panel" id="panel-doc-sigef">
+    <div class="card">
+      <h2>Modelo oficial da planilha SIGEF (.ods)</h2>
+      <div class="note" style="margin-top:0;">Baixe o modelo mais atual no site do INCRA/SIGEF e envie aqui uma vez só — fica salvo neste navegador e é reaproveitado em toda geração seguinte, até você trocar por outra versão.</div>
+      <div class="grid g3">
+        <div class="field">
+          <label>Modelo da planilha (.ods)</label>
+          <input type="file" id="cfg-sigef-modelo-file" accept=".ods,application/vnd.oasis.opendocument.spreadsheet">
+          <div class="kml-info" id="cfg-sigef-modelo-info" style="display:none;">
+            <span id="cfg-sigef-modelo-nome" class="mono" style="font-size:0.78rem;"></span>
+            <button type="button" class="btn btn-sm btn-danger" id="cfg-sigef-modelo-remove">Remover modelo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Gerar planilha SIGEF preenchida</h2>
+      <div class="note" style="margin-top:0;">Preenche automaticamente vértices (código, coordenadas convertidas para Geográficas, exigidas pelo SIGEF), sequência do polígono, confrontantes (inclusive Rio/Estrada), nome/CPF-CNPJ do proprietário, denominação, matrícula, código INCRA/SNCR, CNS do cartório e situação registral do imóvel. Sigma de precisão, altitude elipsoidal (h), método de posicionamento GNSS e tipo de limite detalhado agora também podem ser preenchidos — em "Dados avançados do SIGEF (opcional)", no formulário de cada marco, na aba Marcos. O que ficar em branco lá sai em branco na planilha também, pra completar depois.</div>
+      <div class="grid g3">
+        <div class="field"><label>Imóvel</label><select id="doc-imovel-select-sigef" class="doc-select"></select></div>
+      </div>
+      <button class="btn btn-primary" id="btn-gerar-sigef">Gerar planilha SIGEF (.ods)</button>
+      <div class="note" id="doc-sigef-status">As coordenadas são sempre convertidas para Geográficas (o formato que o SIGEF exige) a partir da Zona UTM cadastrada no imóvel — revise sempre a planilha gerada com o responsável técnico antes de enviar ao SIGEF.</div>
     </div>
   </section>
 
@@ -1901,11 +1987,22 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <div class="field"><label>até</label><select id="confrontante-intervalo-ate"></select></div>
           <div class="field"><button type="button" class="btn btn-ghost" id="btn-confrontante-intervalo" style="width:100%;">Selecionar intervalo</button></div>
         </div>
+        <div class="grid g3">
+          <div class="field"><label>Tipo de confrontante</label>
+            <select id="confrontante-tipo-acidente">
+              <option value="">Confrontante direto (padrão)</option>
+              <option value="rio">Rio / curso d'água</option>
+              <option value="estrada">Estrada / via pública</option>
+            </select>
+          </div>
+          <div class="field" id="confrontante-acidente-nome-field" style="display:none;"><label>Nome do rio/estrada</label><input id="confrontante-acidente-nome-input" placeholder="Ex.: Rio das Pedras / Estrada Municipal MT-235"></div>
+        </div>
+        <div class="note" id="confrontante-acidente-ajuda" style="display:none; margin-top:0;">Um rio ou uma estrada não tem "dono" pra assinar a Carta de Anuência — por isso, no campo abaixo, escolha (ou digite) o proprietário do imóvel <strong>subsequente</strong> a ele (do outro lado), que é quem deve reconhecer os limites e assinar.</div>
         <div class="grid">
-          <div class="field"><label>Imóvel confrontante</label>
+          <div class="field"><label id="confrontante-select-label">Imóvel confrontante</label>
             <select id="confrontante-select"><option value="">Selecione um imóvel já cadastrado…</option><option value="__outro__">Outro (digitar manualmente)</option></select>
           </div>
-          <div class="field" id="confrontante-manual-field" style="display:none;"><label>Nome do confrontante</label><input id="confrontante-manual-input" placeholder="Nome de quem não está cadastrado como imóvel"></div>
+          <div class="field" id="confrontante-manual-field" style="display:none;"><label id="confrontante-manual-label">Nome do confrontante</label><input id="confrontante-manual-input" placeholder="Nome de quem não está cadastrado como imóvel"></div>
         </div>
         <div class="field"><label>Observação (opcional)</label><input id="confrontante-observacao-input" placeholder="Ex.: divisa por cerca de arame, conforme acordo verbal..."></div>
         <div class="row-end">
@@ -2678,6 +2775,14 @@ document.getElementById('btn-gh-testar').addEventListener('click', async ()=>{
 });
 document.getElementById('btn-gh-restaurar').addEventListener('click', ()=>restaurarDoGithub(true, false));
 
+function renderSigefModeloUI(){
+  const cfg = state.config || {};
+  const info = document.getElementById('cfg-sigef-modelo-info');
+  const nomeEl = document.getElementById('cfg-sigef-modelo-nome');
+  if(!info || !nomeEl) return;
+  if(cfg.sigefTemplateDataUrl){ nomeEl.textContent = cfg.sigefTemplateNome || 'modelo.ods'; info.style.display='flex'; }
+  else { info.style.display='none'; nomeEl.textContent=''; }
+}
 function renderConfigUI(){
   const cfg = state.config || {};
   const logoInfo = document.getElementById('cfg-logo-info');
@@ -2742,6 +2847,23 @@ document.getElementById('cfg-qr-remove').addEventListener('click', async ()=>{
   delete state.config.qrDataUrl;
   await save('config'); renderConfigUI();
   showToast('QR Code removido.');
+});
+document.getElementById('cfg-sigef-modelo-file').addEventListener('change', async e=>{
+  const file = e.target.files[0]; if(!file) return;
+  try{
+    if(!/\.ods$/i.test(file.name)){ showToast('Envie o arquivo .ods do modelo do SIGEF (não converta para outro formato).'); return; }
+    state.config.sigefTemplateDataUrl = await fileToDataUrl(file);
+    state.config.sigefTemplateNome = file.name;
+    await save('config'); renderSigefModeloUI();
+    showToast('Modelo do SIGEF salvo — será reaproveitado em toda geração seguinte.');
+  }catch(err){ showToast('Erro ao carregar o modelo do SIGEF.'); }
+  finally{ e.target.value=''; }
+});
+document.getElementById('cfg-sigef-modelo-remove').addEventListener('click', async ()=>{
+  delete state.config.sigefTemplateDataUrl;
+  delete state.config.sigefTemplateNome;
+  await save('config'); renderSigefModeloUI();
+  showToast('Modelo do SIGEF removido.');
 });
 let footerSaveTimer = null;
 document.getElementById('cfg-footer-text').addEventListener('input', e=>{
@@ -3087,7 +3209,7 @@ function refreshSelects(){
   document.getElementById('doc-imovel-select').innerHTML = imoOpts;
   // Memorial/Anuência/Planta viraram 3 abas com o mesmo gerador repetido — mantém as 3 opções de
   // imóvel e os outros 2 selects de config sincronizados com o valor já escolhido em qualquer um.
-  ['doc-imovel-select-anu','doc-imovel-select-planta'].forEach(id=>{
+  ['doc-imovel-select-anu','doc-imovel-select-planta','doc-imovel-select-sigef'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     const cur = el.value || document.getElementById('doc-imovel-select').value;
@@ -3195,6 +3317,8 @@ window.editImo = id=>{
   document.getElementById('imo-sigef-resp-tecnico').value=im.sigefResponsavelTecnico||'';
   document.getElementById('imo-simcar').value=im.simcar||'';
   document.getElementById('imo-simcar-situacao').value=im.simcarSituacao||'';
+  document.getElementById('imo-situacao-registral').value=im.situacaoRegistral||'';
+  document.getElementById('imo-cns').value=im.cns||'';
   document.getElementById('form-imo-title').textContent='Editar imóvel';
   document.getElementById('imo-submit').textContent='Atualizar imóvel';
   document.getElementById('imo-cancel').style.display='inline-block';
@@ -3246,6 +3370,8 @@ document.getElementById('form-imo').addEventListener('submit', async e=>{
     sigefResponsavelTecnico: document.getElementById('imo-sigef-resp-tecnico').value.trim(),
     simcar: document.getElementById('imo-simcar').value.trim(),
     simcarSituacao: document.getElementById('imo-simcar-situacao').value.trim(),
+    situacaoRegistral: document.getElementById('imo-situacao-registral').value,
+    cns: document.getElementById('imo-cns').value.trim(),
     kmlRaw: anterior? anterior.kmlRaw : undefined,
     kmlNomeArquivo: anterior? anterior.kmlNomeArquivo : undefined,
     // Preserva marcadores/dados de origem do SIGEF que não têm campo próprio no formulário —
@@ -4611,6 +4737,13 @@ window.toggleConfrontanteVertice = function(marcoId){
 document.getElementById('confrontante-select').addEventListener('change', e=>{
   document.getElementById('confrontante-manual-field').style.display = e.target.value==='__outro__' ? 'block' : 'none';
 });
+document.getElementById('confrontante-tipo-acidente').addEventListener('change', e=>{
+  const ehAcidente = !!e.target.value;
+  document.getElementById('confrontante-acidente-nome-field').style.display = ehAcidente ? 'block' : 'none';
+  document.getElementById('confrontante-acidente-ajuda').style.display = ehAcidente ? 'block' : 'none';
+  document.getElementById('confrontante-select-label').textContent = ehAcidente ? 'Quem assina (confrontante subsequente)' : 'Imóvel confrontante';
+  document.getElementById('confrontante-manual-label').textContent = ehAcidente ? 'Nome de quem assina' : 'Nome do confrontante';
+});
 document.getElementById('btn-limpar-selecao-confrontante').addEventListener('click', ()=>{
   confrontanteSelecionados.clear();
   confrontanteVerticeInicio = null;
@@ -4649,7 +4782,7 @@ document.getElementById('btn-remover-confrontante').addEventListener('click', as
   if(!confirm(`Remover o confrontante de ${qtd} lado(s) selecionado(s)?`)) return;
   confrontanteSelecionados.forEach(marcoId=>{
     const m = state.marcos.find(x=>x.id===marcoId);
-    if(m){ m.confrontante = ''; m.confrontanteImovelId = null; m.confrontanteOrigem = ''; }
+    if(m){ m.confrontante = ''; m.confrontanteImovelId = null; m.confrontanteOrigem = ''; m.confrontanteTipo = ''; m.confrontanteAssinanteNome = ''; }
   });
   await save('marcos');
   confrontanteSelecionados.clear();
@@ -4660,27 +4793,43 @@ document.getElementById('btn-remover-confrontante').addEventListener('click', as
 });
 document.getElementById('btn-atribuir-confrontante').addEventListener('click', async ()=>{
   if(!confrontanteSelecionados.size){ showToast('Selecione ao menos um lado do polígono.'); return; }
+  // tipoAcidente: '' (confrontante direto, comportamento de sempre) | 'rio' | 'estrada' — nesses
+  // dois últimos casos não existe um "dono" do rio/estrada pra assinar a Carta de Anuência, então
+  // o campo "Imóvel confrontante"/"Outro" abaixo passa a significar "quem assina" (o confrontante
+  // SUBSEQUENTE, do outro lado do acidente), não o nome exibido nas tabelas/planta.
+  const tipoAcidente = document.getElementById('confrontante-tipo-acidente').value;
   const selVal = document.getElementById('confrontante-select').value;
-  let nome, confrontanteImovelId;
+  let nomeAssinante, confrontanteImovelId;
   if(selVal==='__outro__'){
-    nome = document.getElementById('confrontante-manual-input').value.trim();
+    nomeAssinante = document.getElementById('confrontante-manual-input').value.trim();
     confrontanteImovelId = null;
   } else {
     const imC = state.imoveis.find(im=>im.id===selVal);
-    nome = imC ? imC.nome : '';
+    nomeAssinante = imC ? imC.nome : '';
     confrontanteImovelId = imC ? imC.id : null;
   }
-  if(!nome){ showToast('Escolha um imóvel cadastrado ou digite o nome do confrontante.'); return; }
+  let nomeExibicao = nomeAssinante;
+  let assinanteManual = '';
+  if(tipoAcidente){
+    nomeExibicao = document.getElementById('confrontante-acidente-nome-input').value.trim();
+    if(!nomeExibicao){ showToast('Digite o nome do rio ou da estrada.'); return; }
+    if(!confrontanteImovelId) assinanteManual = nomeAssinante; // guarda "quem assina" quando não está cadastrado como imóvel
+    if(!confrontanteImovelId && !assinanteManual){ showToast('Escolha o imóvel cadastrado ou digite o nome de quem deve assinar (confrontante subsequente).'); return; }
+  } else if(!nomeExibicao){
+    showToast('Escolha um imóvel cadastrado ou digite o nome do confrontante.'); return;
+  }
   const idsSelecionados = Array.from(confrontanteSelecionados);
-  if(!confirmarSobrescritaConfrontante(idsSelecionados, nome)){ showToast('Atribuição cancelada — confrontante existente mantido.'); return; }
+  if(!confirmarSobrescritaConfrontante(idsSelecionados, nomeExibicao)){ showToast('Atribuição cancelada — confrontante existente mantido.'); return; }
   const observacaoEl = document.getElementById('confrontante-observacao-input');
   const observacao = observacaoEl ? observacaoEl.value.trim() : '';
   const qtd = confrontanteSelecionados.size;
   confrontanteSelecionados.forEach(marcoId=>{
     const m = state.marcos.find(x=>x.id===marcoId);
     if(m){
-      m.confrontante = nome;
+      m.confrontante = nomeExibicao;
       m.confrontanteImovelId = confrontanteImovelId;
+      m.confrontanteTipo = tipoAcidente || '';
+      m.confrontanteAssinanteNome = assinanteManual || '';
       m.confrontanteOrigem = confrontanteImovelId ? 'cadastro' : 'manual';
       if(observacao) m.confrontanteObservacao = observacao;
     }
@@ -4690,10 +4839,16 @@ document.getElementById('btn-atribuir-confrontante').addEventListener('click', a
   document.getElementById('confrontante-select').value='';
   document.getElementById('confrontante-manual-input').value='';
   document.getElementById('confrontante-manual-field').style.display='none';
+  document.getElementById('confrontante-tipo-acidente').value='';
+  document.getElementById('confrontante-acidente-nome-input').value='';
+  document.getElementById('confrontante-acidente-nome-field').style.display='none';
+  document.getElementById('confrontante-acidente-ajuda').style.display='none';
+  document.getElementById('confrontante-select-label').textContent='Imóvel confrontante';
+  document.getElementById('confrontante-manual-label').textContent='Nome do confrontante';
   if(observacaoEl) observacaoEl.value='';
   renderMarcos();
   if(typeof renderConfrontantesHub==='function') renderConfrontantesHub();
-  showToast(`Confrontante "${nome}" atribuído a ${qtd} lado(s).`);
+  showToast(`Confrontante "${nomeExibicao}" atribuído a ${qtd} lado(s).`);
 });
 
 // ---------- CONSULTAR CONFRONTANTES NO SIGEF (malha de parcelas certificadas do INCRA) ----------
@@ -5462,6 +5617,12 @@ window.editMarco = id=>{
   document.getElementById('marco-confrontante').value=m.confrontante||'';
   document.getElementById('marco-e').value=m.coordE;
   document.getElementById('marco-n').value=m.coordN;
+  document.getElementById('marco-sigma-e').value = m.sigmaE!=null ? m.sigmaE : '';
+  document.getElementById('marco-sigma-n').value = m.sigmaN!=null ? m.sigmaN : '';
+  document.getElementById('marco-altura-elipsoidal').value = m.alturaElipsoidal!=null ? m.alturaElipsoidal : '';
+  document.getElementById('marco-sigma-h').value = m.sigmaH!=null ? m.sigmaH : '';
+  document.getElementById('marco-metodo-posicionamento').value = m.metodoPosicionamento||'';
+  document.getElementById('marco-tipo-limite').value = m.tipoLimite||'';
   const statusWrap = document.getElementById('marco-status-implantacao-wrap');
   const statusInput = document.getElementById('marco-status-implantacao');
   if(m.implantado){
@@ -5525,6 +5686,12 @@ document.getElementById('form-marco').addEventListener('submit', async e=>{
     confrontanteImovelId,
     coordE,
     coordN,
+    sigmaE: document.getElementById('marco-sigma-e').value!=='' ? Number(document.getElementById('marco-sigma-e').value) : null,
+    sigmaN: document.getElementById('marco-sigma-n').value!=='' ? Number(document.getElementById('marco-sigma-n').value) : null,
+    alturaElipsoidal: document.getElementById('marco-altura-elipsoidal').value!=='' ? Number(document.getElementById('marco-altura-elipsoidal').value) : null,
+    sigmaH: document.getElementById('marco-sigma-h').value!=='' ? Number(document.getElementById('marco-sigma-h').value) : null,
+    metodoPosicionamento: document.getElementById('marco-metodo-posicionamento').value || '',
+    tipoLimite: document.getElementById('marco-tipo-limite').value || '',
     implantado: marcoExistente ? !!marcoExistente.implantado : false,
     numeroCatalogo: marcoExistente ? (marcoExistente.numeroCatalogo||null) : null,
     codigoCompleto: marcoExistente ? (marcoExistente.codigoCompleto||null) : null,
@@ -5864,6 +6031,8 @@ const MODELO_CAMPOS_IMOVEL = [
   {chave:'sigefResponsavelTecnico', kml:'Imovel_Responsavel_Tecnico_SIGEF', dbf:'IM_RESPTS', tipo:'C', tamanho:100, exemplo:'', ajuda:'Responsável técnico conforme constava no SIGEF (texto livre).'},
   {chave:'simcar', kml:'Imovel_Codigo_CAR_SIMCAR', dbf:'IM_SIMCAR', tipo:'C', tamanho:30, exemplo:'', ajuda:'Código do CAR (Cadastro Ambiental Rural) no SIMCAR.'},
   {chave:'simcarSituacao', kml:'Imovel_Situacao_CAR', dbf:'IM_SITCAR', tipo:'C', tamanho:30, exemplo:'', ajuda:'Situação do CAR (ex.: Ativo, Pendente).'},
+  {chave:'situacaoRegistral', kml:'Imovel_Situacao_Registral', dbf:'IM_SITREG', tipo:'C', tamanho:40, exemplo:'', ajuda:'Situação registral para a planilha do SIGEF: "Imóvel Registrado", "Área Titulada não Registrada" ou "Área não Titulada".'},
+  {chave:'cns', kml:'Imovel_CNS_Cartorio', dbf:'IM_CNS', tipo:'C', tamanho:20, exemplo:'', ajuda:'Código do cartório (CNS) para a planilha do SIGEF.'},
 ];
 const MODELO_CAMPOS_PROPRIETARIO = [
   {chave:'nome', kml:'Proprietario_Nome', dbf:'PR_NOME', tipo:'C', tamanho:100, exemplo:'José da Silva', ajuda:'Nome completo do proprietário.'},
@@ -5895,6 +6064,12 @@ const MODELO_CAMPOS_MARCO = [
   {chave:'tipo', kml:'Marco_Tipo', dbf:'MC_TIPO', tipo:'C', tamanho:1, ajuda:'Tipo do marco: M = Marco, P = Rastreado não Materializado, V = Virtual, B = Base.'},
   {chave:'confrontante', kml:'Marco_Confrontante', dbf:'MC_CONFR', tipo:'C', tamanho:150, ajuda:'Nome do confrontante (vizinho) neste trecho do perímetro.'},
   {chave:'codigoSigef', kml:'Marco_Codigo_Campo', dbf:'MC_CODSIG', tipo:'C', tamanho:40, ajuda:'Código/anotação de campo (opcional).'},
+  {chave:'sigmaE', kml:'Marco_Sigma_E_Long', dbf:'MC_SIGE', tipo:'N', tamanho:10, decimais:3, exemplo:'', ajuda:'Precisão (sigma) da coordenada E/Longitude, em metros — opcional, campo da planilha do SIGEF.'},
+  {chave:'sigmaN', kml:'Marco_Sigma_N_Lat', dbf:'MC_SIGN', tipo:'N', tamanho:10, decimais:3, exemplo:'', ajuda:'Precisão (sigma) da coordenada N/Latitude, em metros — opcional, campo da planilha do SIGEF.'},
+  {chave:'alturaElipsoidal', kml:'Marco_Altura_Elipsoidal_h', dbf:'MC_ALTH', tipo:'N', tamanho:12, decimais:3, exemplo:'', ajuda:'Altitude elipsoidal (h), em metros — opcional, campo da planilha do SIGEF.'},
+  {chave:'sigmaH', kml:'Marco_Sigma_H', dbf:'MC_SIGH', tipo:'N', tamanho:10, decimais:3, exemplo:'', ajuda:'Precisão (sigma) da altitude elipsoidal, em metros — opcional, campo da planilha do SIGEF.'},
+  {chave:'metodoPosicionamento', kml:'Marco_Metodo_Posicionamento', dbf:'MC_METPOS', tipo:'C', tamanho:5, exemplo:'', ajuda:'Código do método de posicionamento GNSS da planilha do SIGEF (PA1-3, PB1-2, PG1-9, PS1-4 ou PT1-8) — opcional; confira o código exato no Manual Técnico de Posicionamento do INCRA vigente.'},
+  {chave:'tipoLimite', kml:'Marco_Tipo_Limite', dbf:'MC_TIPLIM', tipo:'C', tamanho:5, exemplo:'', ajuda:'Código do tipo de limite deste trecho na planilha do SIGEF (LA1-7 = Limite Artificial, LN1-6 = Limite Natural) — opcional; confira o código exato no Manual Técnico de Posicionamento do INCRA vigente.'},
 ];
 function pegarValorCampo(atributos, campoDef){
   return pegarAtributoSigef(atributos, [campoDef.kml, campoDef.dbf, campoDef.chave]);
@@ -5920,7 +6095,12 @@ function montarExemploModelo(){
     imovel: porChave(MODELO_CAMPOS_IMOVEL),
     proprietario: porChave(MODELO_CAMPOS_PROPRIETARIO),
     tecnico: porChave(MODELO_CAMPOS_TECNICO),
-    pontos: pontosExemplo.map((p,i)=>({lon:p.lon, lat:p.lat, ordem:i+1, tipo:p.tipo, confrontante:p.confrontante, codigoSigef:p.codigoSigef})),
+    pontos: pontosExemplo.map((p,i)=>({
+      lon:p.lon, lat:p.lat, ordem:i+1, tipo:p.tipo, confrontante:p.confrontante, codigoSigef:p.codigoSigef,
+      // Campos avançados do SIGEF: deixados em branco no exemplo — o nome do campo já aparece
+      // no KML/Shapefile pronto pra preencher, sem precisar inventar um número de exemplo.
+      sigmaE:'', sigmaN:'', alturaElipsoidal:'', sigmaH:'', metodoPosicionamento:'', tipoLimite:'',
+    })),
   };
 }
 function gerarModeloKML(dados){
@@ -6096,7 +6276,7 @@ function construirDBF(campos, registros){
     for(let i=0;i<11;i++) bytes[pos+i] = i<nomeBytes.length ? nomeBytes[i] : 0;
     bytes[pos+11] = c.tipo.charCodeAt(0);
     bytes[pos+16] = c.tamanho;
-    bytes[pos+17] = 0;
+    bytes[pos+17] = c.decimais || 0;
     pos += 32;
   });
   bytes[pos] = 0x0D; pos += 1;
@@ -6104,6 +6284,11 @@ function construirDBF(campos, registros){
     bytes[pos] = 0x20; pos += 1;
     campos.forEach(c=>{
       let v = reg[c.dbf];
+      // Campo numérico com casas decimais definidas: formata com largura fixa de decimais
+      // (ex.: 0.150) em vez do texto bruto — o byte de "decimal count" no cabeçalho do .dbf
+      // avisa leitores (QGIS, ArcGIS, nosso próprio parser) que o campo tem casas decimais, e
+      // sem esse formato fixo alguns leitores truncam o valor para inteiro na hora de ler.
+      if(c.tipo==='N' && c.decimais && v!=null && v!=='' && !isNaN(Number(v))) v = Number(v).toFixed(c.decimais);
       v = (v==null?'':String(v)).normalize('NFD').replace(/[̀-ͯ]/g,'');
       const txt = new TextEncoder().encode(v).slice(0, c.tamanho);
       if(c.tipo==='N'){
@@ -6263,7 +6448,21 @@ function normalizarModeloImportado({atributosImovel, vertices}){
   const imovel = extrair(MODELO_CAMPOS_IMOVEL);
   const proprietario = extrair(MODELO_CAMPOS_PROPRIETARIO);
   const tecnico = extrair(MODELO_CAMPOS_TECNICO);
-  const [campoOrdem, campoTipo, campoConfr, campoCod] = MODELO_CAMPOS_MARCO;
+  // Busca por "chave" (não por posição no array) — assim a ordem em MODELO_CAMPOS_MARCO pode
+  // mudar/crescer sem quebrar essa leitura.
+  const campoPorChave = chave => MODELO_CAMPOS_MARCO.find(c=>c.chave===chave);
+  const campoOrdem = campoPorChave('ordem'), campoTipo = campoPorChave('tipo'),
+    campoConfr = campoPorChave('confrontante'), campoCod = campoPorChave('codigoSigef'),
+    campoSigmaE = campoPorChave('sigmaE'), campoSigmaN = campoPorChave('sigmaN'),
+    campoAltura = campoPorChave('alturaElipsoidal'), campoSigmaH = campoPorChave('sigmaH'),
+    campoMetodo = campoPorChave('metodoPosicionamento'), campoTipoLimite = campoPorChave('tipoLimite');
+  // Aceita tanto ponto quanto vírgula decimal (comum em .dbf exportado com configuração regional
+  // brasileira) para os campos numéricos avançados do SIGEF.
+  const paraNumero = v => {
+    if(v==null || v==='') return null;
+    const n = Number(String(v).trim().replace(',', '.'));
+    return isNaN(n) ? null : n;
+  };
   let pontos = vertices.map((v,i)=>{
     const ordemStr = pegarValorCampo(v.atributos, campoOrdem);
     const ordem = ordemStr!=='' && !isNaN(parseInt(ordemStr,10)) ? parseInt(ordemStr,10) : (i+1);
@@ -6272,6 +6471,12 @@ function normalizarModeloImportado({atributosImovel, vertices}){
       tipo: normalizarTipoMarco(pegarValorCampo(v.atributos, campoTipo)),
       confrontante: pegarValorCampo(v.atributos, campoConfr),
       codigoSigef: pegarValorCampo(v.atributos, campoCod),
+      sigmaE: paraNumero(pegarValorCampo(v.atributos, campoSigmaE)),
+      sigmaN: paraNumero(pegarValorCampo(v.atributos, campoSigmaN)),
+      alturaElipsoidal: paraNumero(pegarValorCampo(v.atributos, campoAltura)),
+      sigmaH: paraNumero(pegarValorCampo(v.atributos, campoSigmaH)),
+      metodoPosicionamento: (pegarValorCampo(v.atributos, campoMetodo)||'').trim().toUpperCase(),
+      tipoLimite: (pegarValorCampo(v.atributos, campoTipoLimite)||'').trim().toUpperCase(),
     };
   });
   pontos.sort((a,b)=>a.ordem-b.ordem);
@@ -6317,7 +6522,11 @@ async function importarModeloCompleto(normalizado, opts){
     await save('tecnicos'); renderTec(); refreshSelects();
   }
 
-  const metadadosPorPonto = pontos.map(p=>({tipo:p.tipo, confrontante:p.confrontante, codigoSigef:p.codigoSigef}));
+  const metadadosPorPonto = pontos.map(p=>({
+    tipo:p.tipo, confrontante:p.confrontante, codigoSigef:p.codigoSigef,
+    sigmaE:p.sigmaE, sigmaN:p.sigmaN, alturaElipsoidal:p.alturaElipsoidal, sigmaH:p.sigmaH,
+    metodoPosicionamento:p.metodoPosicionamento, tipoLimite:p.tipoLimite,
+  }));
   await importarPontosParaImovel(pontos.map(p=>({lon:p.lon, lat:p.lat})), {
     nomeSugerido: imovel.nome || opts.nomeSugerido,
     origemLabel: opts.origemLabel || 'modelo preenchido',
@@ -6336,7 +6545,8 @@ async function importarModeloCompleto(normalizado, opts){
         artTipo:'imo-art-tipo', art:'imo-art', datum:'imo-datum', codigoIncra:'imo-codigo-incra',
         leiDecreto:'imo-lei-decreto', parcelaSigef:'imo-parcela-sigef', parcelaSigefSituacao:'imo-parcela-sigef-situacao',
         sigefDataCertificacao:'imo-sigef-data-cert', sigefResponsavelTecnico:'imo-sigef-resp-tecnico',
-        simcar:'imo-simcar', simcarSituacao:'imo-simcar-situacao'};
+        simcar:'imo-simcar', simcarSituacao:'imo-simcar-situacao',
+        situacaoRegistral:'imo-situacao-registral', cns:'imo-cns'};
       Object.keys(campoMap).forEach(k=>{ if(imovel[k]!=null){ const el=document.getElementById(campoMap[k]); if(el) el.value = im[k]||''; } });
       const selProp = document.getElementById('imo-proprietario'); if(selProp && proprietarioId) selProp.value = proprietarioId;
       const selTec = document.getElementById('imo-tecnico'); if(selTec && tecnicoId) selTec.value = tecnicoId;
@@ -6403,6 +6613,12 @@ async function importarPontosParaImovel(points, opts){
     return {
       id: uid(), imovelId: imId, tipo: meta.tipo || 'V', ordem:i+1,
       confrontante: meta.confrontante || '', confrontanteImovelId:null, codigoSigef: meta.codigoSigef || '',
+      sigmaE: meta.sigmaE!=null ? meta.sigmaE : null,
+      sigmaN: meta.sigmaN!=null ? meta.sigmaN : null,
+      alturaElipsoidal: meta.alturaElipsoidal!=null ? meta.alturaElipsoidal : null,
+      sigmaH: meta.sigmaH!=null ? meta.sigmaH : null,
+      metodoPosicionamento: meta.metodoPosicionamento || '',
+      tipoLimite: meta.tipoLimite || '',
       implantado:false, numeroCatalogo:null, codigoCompleto:null,
       coordE: Math.round(utm.easting*1000)/1000,
       coordN: Math.round(utm.northing*1000)/1000,
@@ -6929,7 +7145,10 @@ function agruparConfrontantes(lista){
     if(atual && atual.nome===m.confrontante && atual.imovelId===(m.confrontanteImovelId||null)){
       atual.marcos.push(m);
     } else {
-      atual = {nome:m.confrontante, imovelId:m.confrontanteImovelId||null, marcos:[m]};
+      // tipo: '' (confrontante direto) | 'rio' | 'estrada' — quando presente, `nome` é o nome do
+      // acidente (ex.: "Rio das Pedras") e `assinanteNome` guarda quem deve assinar a Carta de
+      // Anuência quando esse "quem assina" não está cadastrado como imóvel (imovelId nulo).
+      atual = {nome:m.confrontante, imovelId:m.confrontanteImovelId||null, tipo:m.confrontanteTipo||'', assinanteNome:m.confrontanteAssinanteNome||'', marcos:[m]};
       grupos.push(atual);
     }
   });
@@ -7077,9 +7296,32 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
   grupos.forEach(g=>{
     const imC = g.imovelId ? state.imoveis.find(im=>im.id===g.imovelId) : null;
     const propC = imC ? state.proprietarios.find(pr=>pr.id===imC.proprietarioId) : null;
-    const nomeAssinante = propC && propC.nome ? propC.nome : g.nome;
+    // Confrontante direto (tipo=''): quem assina é o dono do imóvel confrontante (g.nome).
+    // Rio/estrada (tipo='rio'|'estrada'): g.nome é o nome do acidente (ex.: "Rio das Pedras"), que
+    // não tem dono — quem assina é o confrontante SUBSEQUENTE a ele, guardado em imC/propC (se
+    // cadastrado) ou em g.assinanteNome (se digitado manualmente).
+    const ehAcidente = g.tipo === 'rio' || g.tipo === 'estrada';
+    const nomeAssinante = propC && propC.nome ? propC.nome : (ehAcidente ? (g.assinanteNome || '(confrontante subsequente não informado)') : g.nome);
     const docAssinante = propC && propC.doc ? propC.doc : null;
     const nomeImovelConfrontante = imC ? imC.nome : null;
+    const rotuloAcidente = g.tipo === 'rio' ? 'Rio' : (g.tipo === 'estrada' ? 'Estrada' : null);
+    const rotuloAcidenteMin = g.tipo === 'rio' ? "curso d'água" : (g.tipo === 'estrada' ? 'via pública' : null);
+    const contracaoAoAcidente = g.tipo === 'rio' ? 'ao' : 'à'; // "subsequente ao Rio" / "subsequente à Estrada"
+    const peloAcidente = g.tipo === 'rio' ? 'pelo' : 'pela'; // "constituídos pelo Rio" / "constituídos pela Estrada"
+
+    // Qualificação de quem assina: confrontante direto assina "na qualidade de proprietário do
+    // imóvel X"; no caso de rio/estrada, quem assina não é dono do acidente geográfico, e sim o
+    // confrontante subsequente a ele — o texto deixa isso explícito.
+    const qualificacaoAssinante = ehAcidente
+      ? `na qualidade de proprietário(a)/possuidor(a) do imóvel${nomeImovelConfrontante? ` denominado <strong>${escXml(nomeImovelConfrontante)}</strong>`:''}, confrontante subsequente ${contracaoAoAcidente} ${rotuloAcidenteMin} denominado(a) <strong>${escXml(g.nome)}</strong>, que separa o meu imóvel do imóvel <strong>${escXml(imovel.nome)}</strong>`
+      : `na qualidade de proprietário(a)/possuidor(a) do imóvel denominado <strong>${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}</strong>`;
+    // Trecho que menciona o acidente geográfico como o próprio limite entre os imóveis, quando aplicável.
+    const constituidoPeloAcidente = ehAcidente ? `, sendo tais limites constituídos ${peloAcidente} ${rotuloAcidenteMin} <strong>${escXml(g.nome)}</strong>,` : ',';
+    // Linha de identificação na assinatura: confrontante direto identifica o imóvel confrontante;
+    // rio/estrada identifica o acidente e, quando cadastrado, também o imóvel do confrontante subsequente.
+    const linhaAssinaturaConfrontante = ehAcidente
+      ? `Confrontante subsequente ${contracaoAoAcidente} ${rotuloAcidente} ${escXml(g.nome)}${nomeImovelConfrontante? ` (imóvel: ${escXml(nomeImovelConfrontante)})` : ''}`
+      : `Confrontante do Imóvel: ${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}`;
 
     const tecTitulo = (tec && tec.titulo && tec.titulo.trim()) ? tec.titulo.trim() : 'profissional habilitado';
     const tecRegistro = tec && tec.registroTipo && tec.registroNumero ? `${tec.registroTipo} Nº ${tec.registroNumero}` : '(registro não informado)';
@@ -7105,16 +7347,16 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
     out += `<div class="anuencia-carta">
       ${cabecalhoLogo}
       <div class="anuencia-titulo">CARTA DE ANUÊNCIA E RECONHECIMENTO DE LIMITES</div>
-      <p>Eu, <strong>${escXml(nomeAssinante)}</strong>${docAssinante? `, portador(a) do CPF/CNPJ ${escXml(docAssinante)}`:''}, declaro para os devidos fins, na qualidade de proprietário(a)/possuidor(a) do imóvel denominado <strong>${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}</strong>:</p>
+      <p>Eu, <strong>${escXml(nomeAssinante)}</strong>${docAssinante? `, portador(a) do CPF/CNPJ ${escXml(docAssinante)}`:''}, declaro para os devidos fins, ${qualificacaoAssinante}:</p>
       <p>Que ESTOU DE ACORDO com a demarcação, o levantamento topográfico e o reconhecimento dos limites divisórios executados pelo(a) ${escXml(tecTitulo)}, senhor(a) ${escXml(tec?tec.nome:'(responsável técnico não informado)')}, ${escXml(tecRegistro)}, credenciado(a) junto ao INCRA sob o código ${escXml(tecCodigoIncra)}.</p>
-      <p>Declaro, ainda, que os limites entre o meu imóvel e a propriedade denominada <strong>${escXml(imovel.nome)}</strong>, de propriedade de ${escXml(prop?prop.nome:'(proprietário não informado)')}, foram devidamente conferidos in loco. Concordo com a exatidão dos vértices e coordenadas abaixo descritos, não havendo contestação, litígio ou sobreposição de áreas entre as propriedades:</p>
+      <p>Declaro, ainda, que os limites entre o meu imóvel e a propriedade denominada <strong>${escXml(imovel.nome)}</strong>, de propriedade de ${escXml(prop?prop.nome:'(proprietário não informado)')}${constituidoPeloAcidente} foram devidamente conferidos in loco. Concordo com a exatidão dos vértices e coordenadas abaixo descritos, não havendo contestação, litígio ou sobreposição de áreas entre as propriedades:</p>
       ${tabela}
       <p>Por fim, autorizo o registro e a certificação do referido memorial descritivo no SIGEF (Sistema de Gestão Fundiária do Incra) e a posterior retificação/atualização no Cartório de Registro de Imóveis competente.</p>
       <p style="margin-top:24px;">${escXml(localData)}</p>
       <div class="anuencia-assinatura">
         <div class="linha"></div>
         <div><strong>${escXml(nomeAssinante)}</strong></div>
-        <div>Confrontante do Imóvel: ${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}</div>
+        <div>${linhaAssinaturaConfrontante}</div>
       </div>
       <div class="anuencia-croqui-titulo">CROQUI DE LOCALIZAÇÃO</div>
       ${gerarCroquiConfrontante(lista, g.marcos, g.nome)}
@@ -7123,6 +7365,283 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
   });
   return out;
 }
+
+// ---------- EXPORTAÇÃO: PLANILHA ELETRÔNICA DO SIGEF (.ods) ----------
+// Preenche a planilha oficial do SIGEF/INCRA escrevendo direto nas células do .ods (que por
+// dentro é um .zip com XML — usamos o mesmo JSZip já carregado para KML/Shapefile). Os menus
+// suspensos da planilha (Situação, Natureza da área etc.) são controles de formulário do
+// LibreOffice ligados a uma célula (form:linked-cell) só pra ajudar a digitação — o valor de
+// verdade sempre mora na própria célula, então escrever direto nela dá exatamente o mesmo
+// resultado de quem escolheu a opção no menu, sem precisar rodar nenhuma macro.
+// Testado com o modelo oficial 1.4 rc5. Se a INCRA mudar a estrutura da planilha num modelo
+// futuro, as buscas abaixo falham com uma mensagem clara (em vez de gerar um arquivo incorreto
+// silenciosamente) — nesse caso o modelo enviado em Configurações precisa ser atualizado aqui.
+function odsEscXml(str){
+  return String(str==null?'':str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function odsExtrairTabela(xml, nomeTabela){
+  const re = new RegExp('<table:table [^>]*table:name="'+nomeTabela+'"[^>]*>');
+  const m = re.exec(xml);
+  if(!m) throw new Error(`Aba "${nomeTabela}" não encontrada no modelo enviado — confira se é a planilha oficial do SIGEF (.ods), sem edições estruturais.`);
+  const start = m.index;
+  const end = xml.indexOf('</table:table>', start) + '</table:table>'.length;
+  if(end < start + '</table:table>'.length) throw new Error(`Aba "${nomeTabela}" malformada no modelo enviado.`);
+  return { start, end, xml: xml.slice(start, end) };
+}
+// Localiza a célula de rótulo com texto exato "rotulo" (ex.: "Nome:") e substitui o conteúdo da
+// célula seguinte (a de valor) — funciona tanto se ela já tinha conteúdo quanto se estava vazia
+// (auto-fechada, ex.: <table:table-cell .../>).
+function odsPatchValorAposRotulo(tabelaXml, rotulo, valor, opts){
+  opts = opts || {};
+  const marcador = `<text:p>${odsEscXml(rotulo)}</text:p>`;
+  const idxRotulo = tabelaXml.indexOf(marcador);
+  if(idxRotulo === -1){
+    if(opts.obrigatorio===false) return tabelaXml;
+    throw new Error(`Campo "${rotulo}" não encontrado no modelo do SIGEF enviado.`);
+  }
+  const idxFechaRotulo = tabelaXml.indexOf('</table:table-cell>', idxRotulo);
+  const inicioValor = idxFechaRotulo + '</table:table-cell>'.length;
+  const fimTagAbertura = tabelaXml.indexOf('>', inicioValor);
+  const autoFechada = tabelaXml[fimTagAbertura-1] === '/';
+  const textoEscapado = odsEscXml(valor);
+  if(autoFechada){
+    const atributos = tabelaXml.slice(inicioValor + '<table:table-cell'.length, fimTagAbertura-1);
+    const novaCelula = `<table:table-cell${atributos} office:value-type="string" calcext:value-type="string"><text:p>${textoEscapado}</text:p></table:table-cell>`;
+    return tabelaXml.slice(0, inicioValor) + novaCelula + tabelaXml.slice(fimTagAbertura+1);
+  }
+  const fimValor = tabelaXml.indexOf('</table:table-cell>', fimTagAbertura) + '</table:table-cell>'.length;
+  let atributos = tabelaXml.slice(inicioValor + '<table:table-cell'.length, fimTagAbertura);
+  if(!/office:value-type=/.test(atributos)) atributos += ' office:value-type="string" calcext:value-type="string"';
+  const novaCelula = `<table:table-cell${atributos}><text:p>${textoEscapado}</text:p></table:table-cell>`;
+  return tabelaXml.slice(0, inicioValor) + novaCelula + tabelaXml.slice(fimValor);
+}
+// Quebra o conteúdo de UMA linha (<table:table-row>...</table:table-row>, só o miolo) em grupos
+// de células, preservando o "table:number-columns-repeated" de cada grupo em vez de expandir —
+// assim uma linha com 1024 colunas continua leve mesmo depois de editada.
+function odsParseCelulas(innerXml){
+  const re = /<table:table-cell\b([^>]*?)(\/>|>([\s\S]*?)<\/table:table-cell>)/g;
+  const grupos = [];
+  let m;
+  while((m = re.exec(innerXml))){
+    let attrs = m[1];
+    const fechada = m[2] === '/>';
+    const conteudo = fechada ? '' : m[3];
+    const repMatch = attrs.match(/\s*table:number-columns-repeated="(\d+)"/);
+    const repetido = repMatch ? parseInt(repMatch[1],10) : 1;
+    attrs = attrs.replace(/\s*table:number-columns-repeated="\d+"/, '');
+    grupos.push({ attrs, conteudo, fechada, repetido });
+  }
+  return grupos;
+}
+function odsSerializarCelulas(grupos){
+  return grupos.map(g=>{
+    const attrsFinal = g.repetido>1 ? g.attrs + ` table:number-columns-repeated="${g.repetido}"` : g.attrs;
+    return g.fechada ? `<table:table-cell${attrsFinal}/>` : `<table:table-cell${attrsFinal}>${g.conteudo}</table:table-cell>`;
+  }).join('');
+}
+// Define o valor da coluna colIndex (0 = A, 1 = B, ...) dentro de um array de grupos de células,
+// dividindo o grupo correspondente em até 3 partes (antes/alvo/depois) só quando necessário.
+function odsDefinirColuna(grupos, colIndex, valor, opts){
+  opts = opts || {};
+  let col = 0;
+  for(let i=0;i<grupos.length;i++){
+    const g = grupos[i];
+    if(colIndex < col + g.repetido){
+      const offset = colIndex - col;
+      const novos = [];
+      if(offset>0) novos.push({ ...g, repetido: offset });
+      let attrsAlvo = g.attrs;
+      if(opts.numerico){
+        attrsAlvo = /office:value-type=/.test(attrsAlvo)
+          ? attrsAlvo.replace(/office:value-type="[^"]*"/, 'office:value-type="float"').replace(/calcext:value-type="[^"]*"/, 'calcext:value-type="float"')
+          : attrsAlvo + ' office:value-type="float" calcext:value-type="float"';
+        attrsAlvo += ` office:value="${opts.valorBruto}"`;
+      } else if(!/office:value-type=/.test(attrsAlvo)){
+        attrsAlvo += ' office:value-type="string" calcext:value-type="string"';
+      }
+      novos.push({ attrs: attrsAlvo, conteudo: `<text:p>${odsEscXml(valor)}</text:p>`, fechada:false, repetido:1 });
+      const depois = g.repetido - offset - 1;
+      if(depois>0) novos.push({ ...g, repetido: depois });
+      grupos.splice(i, 1, ...novos);
+      return;
+    }
+    col += g.repetido;
+  }
+  throw new Error('Coluna '+colIndex+' fora do intervalo da linha no modelo do SIGEF.');
+}
+function odsMontarLinha(attrsSemRepeat, inner, repetido){
+  const attrs = repetido>1 ? attrsSemRepeat + ` table:number-rows-repeated="${repetido}"` : attrsSemRepeat;
+  return `<table:table-row${attrs}>${inner}</table:table-row>`;
+}
+// A partir do fim da linha de cabeçalho da tabela de vértices ("...Descritivo"), consome linhas
+// (expandindo blocos de table:number-rows-repeated conforme necessário) até separar "quantidade"
+// linhas individuais prontas pra receber os dados de cada vértice, devolvendo o restante do bloco
+// intacto — sem tocar em nada além do necessário.
+function odsPrepararLinhasDeVertices(tabelaXml, quantidade){
+  const marcador = '<text:p>Descritivo</text:p>';
+  const idxCab = tabelaXml.indexOf(marcador);
+  if(idxCab===-1) throw new Error('Cabeçalho da tabela de vértices ("Descritivo") não encontrado no modelo do SIGEF enviado.');
+  const idxFimCabLinha = tabelaXml.indexOf('</table:table-row>', idxCab) + '</table:table-row>'.length;
+  let pos = idxFimCabLinha;
+  const linhasModelo = [];
+  let faltam = quantidade;
+  while(faltam > 0){
+    const m = /^<table:table-row([^>]*)>/.exec(tabelaXml.slice(pos));
+    if(!m) throw new Error('Não há linhas suficientes na tabela de vértices do modelo do SIGEF (imóvel com muitos vértices?).');
+    const fimTagAbertura = pos + m[0].length;
+    const fimLinha = tabelaXml.indexOf('</table:table-row>', fimTagAbertura) + '</table:table-row>'.length;
+    const attrs = m[1];
+    const inner = tabelaXml.slice(fimTagAbertura, fimLinha - '</table:table-row>'.length);
+    const repMatch = attrs.match(/table:number-rows-repeated="(\d+)"/);
+    const repetido = repMatch ? parseInt(repMatch[1],10) : 1;
+    const attrsSemRepeat = attrs.replace(/\s*table:number-rows-repeated="\d+"/, '');
+    const usar = Math.min(repetido, faltam);
+    for(let k=0;k<usar;k++) linhasModelo.push({ attrsSemRepeat, inner });
+    faltam -= usar;
+    const sobra = repetido - usar;
+    if(sobra > 0){
+      const linhaRestante = odsMontarLinha(attrsSemRepeat, inner, sobra);
+      return { antes: tabelaXml.slice(0, idxFimCabLinha), linhasModelo, depois: linhaRestante + tabelaXml.slice(fimLinha) };
+    }
+    pos = fimLinha;
+  }
+  return { antes: tabelaXml.slice(0, idxFimCabLinha), linhasModelo, depois: tabelaXml.slice(pos) };
+}
+// Formata uma coordenada geográfica decimal no padrão "GG MM SS,sss" exigido pelas colunas
+// E/Long e N/Lat da planilha do SIGEF: graus e minutos com 2 dígitos, segundos com 3 casas
+// decimais e vírgula (conforme o parâmetro "Dígitos decimais para Segundo(GMS)" já dentro do
+// próprio modelo oficial), sem símbolos de grau/minuto/segundo e sem letra de hemisfério (essas
+// colunas são texto puro, diferente do dmsGeo() usado nos relatórios em PDF). Sem sinal de menos:
+// o SIGEF é feito majoritariamente pro hemisfério Sul/Oeste e já assume isso quando a coordenada
+// vem sem sinal (o campo "Hemisfério:" da própria aba perimetro_1 é quem registra a exceção).
+function gmsSigef(decDeg){
+  const absV = Math.abs(decDeg);
+  let deg = Math.floor(absV);
+  const minFloat = (absV-deg)*60;
+  let min = Math.floor(minFloat);
+  let sec = Number(((minFloat-min)*60).toFixed(3));
+  // Propaga o "carry" se o arredondamento dos segundos estourar pra 60 (e dali pro minuto/grau).
+  if(sec >= 60){ sec = 0; min += 1; }
+  if(min >= 60){ min = 0; deg += 1; }
+  const secStr = sec.toFixed(3).padStart(6,'0').replace('.', ',');
+  return `${String(deg).padStart(2,'0')} ${String(min).padStart(2,'0')} ${secStr}`;
+}
+// Colunas da tabela de vértices (perimetro_1, a partir da linha de cabeçalho): 0=Vértice,
+// 1=E/Long, 2=Sigma long, 3=N/Lat, 4=Sigma lat, 5=h, 6=Sigma h, 7=Método Posicionamento,
+// 8=Tipo Limite, 9=CNS, 10=Matrícula, 11=Descritivo.
+function odsGerarLinhaVertice(linhaModelo, dados){
+  const grupos = odsParseCelulas(linhaModelo.inner);
+  odsDefinirColuna(grupos, 0, dados.codigo);
+  odsDefinirColuna(grupos, 1, gmsSigef(dados.lon));
+  if(dados.sigmaE!=null) odsDefinirColuna(grupos, 2, Number(dados.sigmaE).toFixed(2), { numerico:true, valorBruto: dados.sigmaE });
+  odsDefinirColuna(grupos, 3, gmsSigef(dados.lat));
+  if(dados.sigmaN!=null) odsDefinirColuna(grupos, 4, Number(dados.sigmaN).toFixed(2), { numerico:true, valorBruto: dados.sigmaN });
+  if(dados.h!=null) odsDefinirColuna(grupos, 5, Number(dados.h).toFixed(3), { numerico:true, valorBruto: dados.h });
+  if(dados.sigmaH!=null) odsDefinirColuna(grupos, 6, Number(dados.sigmaH).toFixed(2), { numerico:true, valorBruto: dados.sigmaH });
+  if(dados.metodoPosicionamento) odsDefinirColuna(grupos, 7, dados.metodoPosicionamento);
+  if(dados.tipoLimite) odsDefinirColuna(grupos, 8, dados.tipoLimite);
+  if(dados.matricula) odsDefinirColuna(grupos, 10, dados.matricula);
+  if(dados.descritivo) odsDefinirColuna(grupos, 11, dados.descritivo);
+  return odsMontarLinha(linhaModelo.attrsSemRepeat, odsSerializarCelulas(grupos), 1);
+}
+async function odsDataUrlParaArrayBuffer(dataUrl){
+  const resp = await fetch(dataUrl);
+  return await resp.arrayBuffer();
+}
+async function gerarPlanilhaSigefBlob(imovel, prop, lista){
+  const cfg = state.config || {};
+  if(!cfg.sigefTemplateDataUrl) throw new Error('Envie primeiro o modelo oficial da planilha do SIGEF (.ods) no campo acima.');
+  if(!lista.length) throw new Error('Este imóvel ainda não tem marcos cadastrados.');
+  if(typeof JSZip === 'undefined'){
+    try{ await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }catch(e){ /* segue para o erro abaixo */ }
+    if(typeof JSZip === 'undefined') throw new Error('Biblioteca de compactação (JSZip) não carregou — verifique sua conexão com a internet e recarregue a página.');
+  }
+  const {zona, sul} = inferirZonaHemisferio(imovel, lista);
+  if(!zona) throw new Error('Não foi possível identificar a Zona UTM do imóvel — preencha o campo "Zona UTM" no cadastro do imóvel (aba Imóveis) antes de gerar a planilha do SIGEF, que exige coordenadas Geográficas convertidas a partir da zona.');
+
+  const buffer = await odsDataUrlParaArrayBuffer(cfg.sigefTemplateDataUrl);
+  const zip = await JSZip.loadAsync(buffer);
+  const contentFile = zip.file('content.xml');
+  if(!contentFile) throw new Error('O arquivo enviado não parece ser uma planilha .ods válida (não tem content.xml dentro).');
+  let contentXml = await contentFile.async('string');
+
+  // ---- aba "identificacao" ----
+  {
+    const tbl = odsExtrairTabela(contentXml, 'identificacao');
+    let xml = tbl.xml;
+    if(prop){
+      xml = odsPatchValorAposRotulo(xml, 'Nome:', prop.nome||'');
+      if(prop.doc){
+        const digitos = prop.doc.replace(/\D/g,'');
+        xml = odsPatchValorAposRotulo(xml, 'Tipo pessoa:', digitos.length===14 ? 'Jurídica' : 'Física');
+        xml = odsPatchValorAposRotulo(xml, 'CPF:', prop.doc);
+      }
+    }
+    xml = odsPatchValorAposRotulo(xml, 'Denominação:', imovel.nome||'');
+    xml = odsPatchValorAposRotulo(xml, 'Situação:', imovel.situacaoRegistral || 'Imóvel Registrado');
+    xml = odsPatchValorAposRotulo(xml, 'Natureza da área:', 'Particular');
+    if(imovel.codigoIncra) xml = odsPatchValorAposRotulo(xml, 'Código do Imóvel(SNCR/INCRA):', imovel.codigoIncra);
+    if(imovel.cns) xml = odsPatchValorAposRotulo(xml, 'Código do cartório (CNS):', imovel.cns);
+    if(imovel.matricula) xml = odsPatchValorAposRotulo(xml, 'Matrícula:', imovel.matricula);
+    if(imovel.municipio) xml = odsPatchValorAposRotulo(xml, 'Município(s):', imovel.municipio + (imovel.uf ? ' - '+imovel.uf : ''));
+    contentXml = contentXml.slice(0, tbl.start) + xml + contentXml.slice(tbl.end);
+  }
+
+  // ---- aba "perimetro_1" (cabeçalho + tabela de vértices) ----
+  {
+    const tbl = odsExtrairTabela(contentXml, 'perimetro_1');
+    let xml = tbl.xml;
+    xml = odsPatchValorAposRotulo(xml, 'Tipo de Coordenada:', 'Geográfica');
+    xml = odsPatchValorAposRotulo(xml, 'Meridiano Central (°):', String(zona*6-183));
+    xml = odsPatchValorAposRotulo(xml, 'Hemisfério:', sul ? 'Sul' : 'Norte');
+
+    const { antes, linhasModelo, depois } = odsPrepararLinhasDeVertices(xml, lista.length);
+    const linhasXml = lista.map((m,i)=>{
+      const geo = utmParaLatLon(m.coordE, m.coordN, zona, sul);
+      const imC = m.confrontanteImovelId ? state.imoveis.find(im=>im.id===m.confrontanteImovelId) : null;
+      return odsGerarLinhaVertice(linhasModelo[i], {
+        codigo: m.codigo,
+        lon: geo.lon, lat: geo.lat,
+        sigmaE: m.sigmaE, sigmaN: m.sigmaN, h: m.alturaElipsoidal, sigmaH: m.sigmaH,
+        metodoPosicionamento: m.metodoPosicionamento, tipoLimite: m.tipoLimite,
+        descritivo: m.confrontante || '',
+        matricula: (imC && imC.matricula) ? imC.matricula : '',
+      });
+    }).join('');
+    xml = antes + linhasXml + depois;
+    contentXml = contentXml.slice(0, tbl.start) + xml + contentXml.slice(tbl.end);
+  }
+
+  zip.file('content.xml', contentXml);
+  return await zip.generateAsync({ type:'blob', mimeType:'application/vnd.oasis.opendocument.spreadsheet', compression:'DEFLATE', compressionOptions:{ level:6 } });
+}
+document.getElementById('btn-gerar-sigef').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btn-gerar-sigef');
+  const status = document.getElementById('doc-sigef-status');
+  const imId = document.getElementById('doc-imovel-select-sigef').value;
+  const imovel = state.imoveis.find(x=>x.id===imId);
+  if(!imovel){ showToast('Escolha um imóvel primeiro.'); return; }
+  const prop = state.proprietarios.find(p=>p.id===imovel.proprietarioId);
+  const lista = codigosPorTipo(marcosOrdenados(imId));
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando planilha...';
+  try{
+    const blob = await gerarPlanilhaSigefBlob(imovel, prop, lista);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sigef-${(imovel.nome||'imovel').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.ods`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 10000);
+    showToast('Planilha do SIGEF gerada! Revise em LibreOffice/Excel antes de enviar — alguns campos (sigma, h, método de posicionamento etc.) ainda precisam de preenchimento manual.');
+    if(status) status.textContent = 'Última planilha gerada com sucesso. Revise sempre com o responsável técnico antes de enviar ao SIGEF.';
+  }catch(err){
+    showToast('Erro ao gerar a planilha do SIGEF: '+(err.message||err));
+    if(status) status.textContent = 'Falha ao gerar: '+(err.message||err);
+  }finally{
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+});
+
 // ---------- PLANTA DO IMÓVEL GEORREFERENCIADO (A0 · A1 · A2 · A3 · A4) ----------
 const UF_NOMES = { AC:'Acre', AL:'Alagoas', AP:'Amapá', AM:'Amazonas', BA:'Bahia', CE:'Ceará', DF:'Distrito Federal', ES:'Espírito Santo', GO:'Goiás', MA:'Maranhão', MT:'Mato Grosso', MS:'Mato Grosso do Sul', MG:'Minas Gerais', PA:'Pará', PB:'Paraíba', PR:'Paraná', PE:'Pernambuco', PI:'Piauí', RJ:'Rio de Janeiro', RN:'Rio Grande do Norte', RS:'Rio Grande do Sul', RO:'Rondônia', RR:'Roraima', SC:'Santa Catarina', SP:'São Paulo', SE:'Sergipe', TO:'Tocantins' };
 const PAPEL_MM = {
@@ -8411,7 +8930,7 @@ async function aplicarBackupObjeto(parsed){
   if(!temAlgumaChave) return false;
   for(const k of BACKUP_KEYS){ state[k] = Array.isArray(parsed[k]) ? parsed[k] : []; await save(k); }
   if(parsed.config && typeof parsed.config==='object'){ state.config = parsed.config; await save('config'); }
-  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI();
+  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI(); renderSigefModeloUI();
   return true;
 }
 document.getElementById('btn-export').addEventListener('click', ()=>{
@@ -8465,7 +8984,7 @@ document.getElementById('input-import').addEventListener('change', e=>{
 // ---------- INIT ----------
 (async function init(){
   await loadAll();
-  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI();
+  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI(); renderSigefModeloUI();
   // Restaura o formato de coordenada salvo (Implantação de Marco + DXF → PDF ficam sincronizados)
   const fmtSalvo = state.config && state.config.coordFormatoPadrao;
   if(fmtSalvo){
@@ -9773,6 +10292,120 @@ function exportPDF(scene, sheet, filename) {
     return segmentos;
   }
 
+  // ---------- Geometria auxiliar: imóveis confrontantes (contexto ao redor do imóvel principal) ----------
+  // Fecho convexo (Andrew's monotone chain) de uma lista de pontos {x,y} — em coordenadas de
+  // cena (Y para cima), devolve os vértices em sentido ANTI-horário (CCW). Usado como base pro
+  // "buffer" de contexto ao redor do imóvel principal, em vez do contorno real (que pode ser
+  // côncavo) — mais simples e robusto de expandir sem gerar auto-interseção.
+  function dxfpdfFechoConvexo(pontos) {
+    const pts = pontos.slice().sort((a, b) => (a.x === b.x ? a.y - b.y : a.x - b.x));
+    const n = pts.length;
+    if (n < 3) return pts;
+    function cruz(o, a, b) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); }
+    const inf = [];
+    for (const p of pts) {
+      while (inf.length >= 2 && cruz(inf[inf.length - 2], inf[inf.length - 1], p) <= 0) inf.pop();
+      inf.push(p);
+    }
+    const sup = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const p = pts[i];
+      while (sup.length >= 2 && cruz(sup[sup.length - 2], sup[sup.length - 1], p) <= 0) sup.pop();
+      sup.push(p);
+    }
+    sup.pop(); inf.pop();
+    return inf.concat(sup);
+  }
+  // Interseção de duas retas, cada uma dada por um ponto + vetor direção — usado só internamente
+  // pelo deslocamento de polígono abaixo (arestas adjacentes deslocadas quase nunca são paralelas).
+  function dxfpdfInterseccaoRetas(x1, y1, dx1, dy1, x2, y2, dx2, dy2) {
+    const denom = dx1 * dy2 - dy1 * dx2;
+    if (Math.abs(denom) < 1e-9) return null;
+    const t = ((x2 - x1) * dy2 - (y2 - y1) * dx2) / denom;
+    return { x: x1 + dx1 * t, y: y1 + dy1 * t };
+  }
+  // Desloca (expande) um polígono CONVEXO (CCW) pra fora, perpendicularmente a cada aresta, pela
+  // distância `dist` (mesma unidade das coordenadas de entrada — aqui, mm de cena) — "buffer"
+  // com cantos em esquadria (mitro), sempre válido pra um polígono convexo (sem risco de
+  // auto-interseção, ao contrário de um polígono côncavo).
+  function dxfpdfDeslocarPoligonoConvexo(poly, dist) {
+    const n = poly.length;
+    if (n < 3) return poly.slice();
+    const linhas = [];
+    for (let i = 0; i < n; i++) {
+      const A = poly[i], B = poly[(i + 1) % n];
+      const ex = B.x - A.x, ey = B.y - A.y;
+      const len = Math.hypot(ex, ey) || 1;
+      const nx = ey / len, ny = -ex / len; // normal pra fora, num polígono CCW
+      linhas.push({ x: A.x + nx * dist, y: A.y + ny * dist, dx: ex, dy: ey });
+    }
+    const novos = [];
+    for (let i = 0; i < n; i++) {
+      const L0 = linhas[(i - 1 + n) % n], L1 = linhas[i];
+      const p = dxfpdfInterseccaoRetas(L0.x, L0.y, L0.dx, L0.dy, L1.x, L1.y, L1.dx, L1.dy);
+      novos.push(p || poly[i]);
+    }
+    return novos;
+  }
+  // Interseção do segmento (p1,p2) com a reta que passa por A,B — usado só pelo recorte
+  // Sutherland-Hodgman abaixo (sempre chamado sabendo que o segmento cruza essa reta).
+  function dxfpdfInterseccaoSegmentoReta(p1, p2, A, B) {
+    const dx1 = p2.x - p1.x, dy1 = p2.y - p1.y, dx2 = B.x - A.x, dy2 = B.y - A.y;
+    const denom = dx1 * dy2 - dy1 * dx2;
+    if (Math.abs(denom) < 1e-12) return p2;
+    const t = ((A.x - p1.x) * dy2 - (A.y - p1.y) * dx2) / denom;
+    return { x: p1.x + dx1 * t, y: p1.y + dy1 * t };
+  }
+  // Recorta um polígono (qualquer) pela interseção com um polígono CONVEXO (CCW) — algoritmo
+  // Sutherland-Hodgman clássico, aplicado uma aresta do "clipPoly" de cada vez. Usado pra
+  // garantir que o buffer de contexto nunca ultrapasse o retângulo da própria AREA_DESENHO.
+  function dxfpdfClipPoligonoPorConvexo(poly, clipPoly) {
+    let saida = poly;
+    const n = clipPoly.length;
+    for (let i = 0; i < n && saida.length; i++) {
+      const A = clipPoly[i], B = clipPoly[(i + 1) % n];
+      const entrada = saida;
+      saida = [];
+      for (let j = 0; j < entrada.length; j++) {
+        const cur = entrada[j], prev = entrada[(j - 1 + entrada.length) % entrada.length];
+        const dCur = (B.x - A.x) * (cur.y - A.y) - (B.y - A.y) * (cur.x - A.x);
+        const dPrev = (B.x - A.x) * (prev.y - A.y) - (B.y - A.y) * (prev.x - A.x);
+        const curDentro = dCur >= 0, prevDentro = dPrev >= 0;
+        if (curDentro) {
+          if (!prevDentro) saida.push(dxfpdfInterseccaoSegmentoReta(prev, cur, A, B));
+          saida.push(cur);
+        } else if (prevDentro) {
+          saida.push(dxfpdfInterseccaoSegmentoReta(prev, cur, A, B));
+        }
+      }
+    }
+    return saida;
+  }
+  // Recorta um SEGMENTO de reta pela interseção com um polígono CONVEXO (CCW) — variante do
+  // algoritmo de Cyrus-Beck: percorre cada aresta do polígono como um semiplano e vai
+  // restringindo o intervalo paramétrico [t0,t1] do segmento que fica do lado de dentro.
+  // Devolve null se o segmento cai inteiramente fora do polígono.
+  function dxfpdfRecortarSegmentoDentroDoConvexo(x1, y1, x2, y2, poly) {
+    let t0 = 0, t1 = 1;
+    const dx = x2 - x1, dy = y2 - y1;
+    const n = poly.length;
+    for (let i = 0; i < n; i++) {
+      const A = poly[i], B = poly[(i + 1) % n];
+      const ex = B.x - A.x, ey = B.y - A.y;
+      const d0 = ex * (y1 - A.y) - ey * (x1 - A.x);
+      const slope = ex * dy - ey * dx;
+      if (Math.abs(slope) < 1e-12) {
+        if (d0 < 0) return null; // paralelo à aresta e do lado de fora — descarta o segmento inteiro
+        continue;
+      }
+      const tCruza = -d0 / slope;
+      if (slope > 0) { if (tCruza > t0) t0 = tCruza; }
+      else { if (tCruza < t1) t1 = tCruza; }
+      if (t0 > t1) return null;
+    }
+    return { x1: x1 + dx * t0, y1: y1 + dy * t0, x2: x1 + dx * t1, y2: y1 + dy * t1 };
+  }
+
   function dxfpdfPlotDesenho(s, r, lista, modo, formatoCoord, zh, escalaManual, gamma, imovel, orientacaoCanto, orientacaoTamPct, quadroCanto, quadroTamPct, quadroLargurasColunas, quadroComMoldura, quadroAjusteManual, orientacaoComMoldura, quadroColunasVisiveis, quadroNumBlocos, mostrarInfoImovel, offsetManualX, offsetManualY, escalaGraficaCanto, escalaGraficaTamPct, setaNorteCanto, setaNorteTamPct, setaNorteEstilo) {
     modo = modo || 'malha'; // 'malha' (grid completo) ou 'marcador' (só os marcos, sem grid)
     formatoCoord = formatoCoord || 'utm'; // 'utm' (E,N em metros), 'dms' (GG MM SS,ssss) ou 'dec' (graus decimais)
@@ -10057,6 +10690,50 @@ function exportPDF(scene, sheet, filename) {
           });
         });
       }
+    })();
+
+    // Imóveis confrontantes (contexto): mostra parcialmente o contorno dos imóveis vizinhos já
+    // cadastrados no sistema (vinculados via marco.confrontanteImovelId), como uma linha bem fina
+    // e clara — só pra indicar visualmente a linha de divisa, sem precisar delimitar isso na mão.
+    // Não entram no cálculo da escala (essa já foi calculada só com os marcos do imóvel principal,
+    // acima) nem aparecem inteiros: só a parte contida num "buffer" de contexto ao redor do
+    // imóvel principal (fecho convexo dos seus vértices, expandido) é desenhada — o resto fica de
+    // fora. Esse buffer nunca ultrapassa o retângulo da própria AREA_DESENHO. Desenhado ANTES do
+    // contorno do imóvel principal (abaixo) de propósito: a divisa compartilhada com um vizinho é
+    // exatamente a mesma linha, e o contorno principal (mais escuro/grosso) precisa ficar por
+    // cima dela, não o contrário.
+    (function desenharImoveisConfrontantes() {
+      if (!imovel || pts.length < 3) return;
+      const idsVizinhos = [...new Set(lista.map(m => m.confrontanteImovelId).filter(id => id && id !== imovel.id))];
+      if (!idsVizinhos.length) return;
+
+      const fechoImovel = dxfpdfFechoConvexo(pts);
+      if (fechoImovel.length < 3) return;
+      // Margem do buffer: proporcional ao tamanho do próprio imóvel na folha (15% da maior
+      // dimensão plotada), com piso e teto em mm pra não ficar nem microscópica nem exagerada em
+      // imóveis muito pequenos/grandes.
+      const margemBuffer = Math.max(8, Math.min(40, Math.max(geomW, geomH) * 0.15));
+      let mascara = dxfpdfDeslocarPoligonoConvexo(fechoImovel, margemBuffer);
+      const retDesenho = [{ x: r.minX, y: r.minY }, { x: r.maxX, y: r.minY }, { x: r.maxX, y: r.maxY }, { x: r.minX, y: r.maxY }];
+      mascara = dxfpdfClipPoligonoPorConvexo(mascara, retDesenho);
+      if (mascara.length < 3) return;
+
+      // Cinza bem claro e neutro — deliberadamente diferente do azul-acinzentado do grid
+      // (#B9C4CC / #8FA0AC) pra não se misturar visualmente com ele, e mais fino que o contorno
+      // do imóvel principal (0,3mm).
+      const corConfrontante = '#ACA89E';
+      idsVizinhos.forEach(idViz => {
+        const imViz = state.imoveis.find(x => x.id === idViz);
+        if (!imViz) return;
+        const listaViz = marcosOrdenados(idViz);
+        if (listaViz.length < 3) return;
+        const ptsViz = listaViz.map(m => ({ x: toX(m.coordE), y: toY(m.coordN) }));
+        for (let i = 0; i < ptsViz.length; i++) {
+          const p1 = ptsViz[i], p2 = ptsViz[(i + 1) % ptsViz.length];
+          const seg = dxfpdfRecortarSegmentoDentroDoConvexo(p1.x, p1.y, p2.x, p2.y, mascara);
+          if (seg) pushLinhaRecortada(seg.x1, seg.y1, seg.x2, seg.y2, corConfrontante, 0.1);
+        }
+      });
     })();
 
     // AREA_DESENHO fica sem preenchimento — só o contorno.
