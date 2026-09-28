@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-27.14 — Carta de Anuência: agora é possível cadastrar Rio ou Estrada como confrontante; nesses casos quem assina é o confrontante subsequente ao rio/estrada (não o acidente em si), com texto da carta ajustado</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-27.15 — Nova aba "SIGEF": gera automaticamente a planilha eletrônica oficial do SIGEF/INCRA (.ods) preenchida com vértices, coordenadas convertidas para Geográficas, confrontantes e dados do imóvel/proprietário já cadastrados</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -940,6 +940,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <button data-tab="doc-memorial" data-group="ferramentas">Memorial</button>
   <button data-tab="doc-anuencia" data-group="ferramentas">Anuência</button>
   <button data-tab="doc-planta" data-group="ferramentas">Planta</button>
+  <button data-tab="doc-sigef" data-group="ferramentas">SIGEF</button>
   <button data-tab="configuracoes" data-group="configuracoes">Backup e Configurações</button>
 </nav>
 
@@ -1528,6 +1529,33 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="note" id="doc-planta-vazio">Nenhuma planta gerada ainda — preencha os campos acima e clique em "Gerar documentos".</div>
       <div id="doc-planta" style="overflow:auto; background:#fff; padding:8px; display:none;"></div>
       <div class="note">Planta gerada automaticamente a partir das coordenadas, tipos e confrontantes cadastrados. O modelo padrão "A2 — Modelo TOPO GEO" reproduz a estrutura do layout de impressão A2 usado no QGIS (planta topográfica com grade, quadro de coordenadas e confrontações, norte/convergência meridiana, planta de situação esquemática, quadro assunto/imóvel/interessado, escala e bloco do responsável técnico/ART). A convergência meridiana é um valor aproximado calculado a partir da zona UTM e do centro do imóvel — informe a Zona UTM do imóvel (aba Imóveis) para que seja exibida. O mapa de situação é esquemático, sem base de imagem de satélite real. Revise sempre com o responsável técnico antes do uso oficial.</div>
+    </div>
+  </section>
+
+  <!-- PLANILHA SIGEF (.ods) -->
+  <section class="panel" id="panel-doc-sigef">
+    <div class="card">
+      <h2>Modelo oficial da planilha SIGEF (.ods)</h2>
+      <div class="note" style="margin-top:0;">Baixe o modelo mais atual no site do INCRA/SIGEF e envie aqui uma vez só — fica salvo neste navegador e é reaproveitado em toda geração seguinte, até você trocar por outra versão.</div>
+      <div class="grid g3">
+        <div class="field">
+          <label>Modelo da planilha (.ods)</label>
+          <input type="file" id="cfg-sigef-modelo-file" accept=".ods,application/vnd.oasis.opendocument.spreadsheet">
+          <div class="kml-info" id="cfg-sigef-modelo-info" style="display:none;">
+            <span id="cfg-sigef-modelo-nome" class="mono" style="font-size:0.78rem;"></span>
+            <button type="button" class="btn btn-sm btn-danger" id="cfg-sigef-modelo-remove">Remover modelo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Gerar planilha SIGEF preenchida</h2>
+      <div class="note" style="margin-top:0;">Preenche automaticamente o que o cadastro já tem — vértices (código, coordenadas convertidas para Geográficas, exigidas pelo SIGEF), sequência do polígono e confrontantes (inclusive Rio/Estrada) — além de nome/CPF-CNPJ do proprietário, denominação, matrícula e código INCRA/SNCR do imóvel. Campos que o cadastro ainda não guarda (sigma de precisão, altitude elipsoidal h, método de posicionamento GNSS, código detalhado do tipo de limite, CNS do cartório, situação registral) ficam em branco ou no padrão do modelo — complete-os manualmente antes de enviar ao SIGEF.</div>
+      <div class="grid g3">
+        <div class="field"><label>Imóvel</label><select id="doc-imovel-select-sigef" class="doc-select"></select></div>
+      </div>
+      <button class="btn btn-primary" id="btn-gerar-sigef">Gerar planilha SIGEF (.ods)</button>
+      <div class="note" id="doc-sigef-status">As coordenadas são sempre convertidas para Geográficas (o formato que o SIGEF exige) a partir da Zona UTM cadastrada no imóvel — revise sempre a planilha gerada com o responsável técnico antes de enviar ao SIGEF.</div>
     </div>
   </section>
 
@@ -2689,6 +2717,14 @@ document.getElementById('btn-gh-testar').addEventListener('click', async ()=>{
 });
 document.getElementById('btn-gh-restaurar').addEventListener('click', ()=>restaurarDoGithub(true, false));
 
+function renderSigefModeloUI(){
+  const cfg = state.config || {};
+  const info = document.getElementById('cfg-sigef-modelo-info');
+  const nomeEl = document.getElementById('cfg-sigef-modelo-nome');
+  if(!info || !nomeEl) return;
+  if(cfg.sigefTemplateDataUrl){ nomeEl.textContent = cfg.sigefTemplateNome || 'modelo.ods'; info.style.display='flex'; }
+  else { info.style.display='none'; nomeEl.textContent=''; }
+}
 function renderConfigUI(){
   const cfg = state.config || {};
   const logoInfo = document.getElementById('cfg-logo-info');
@@ -2753,6 +2789,23 @@ document.getElementById('cfg-qr-remove').addEventListener('click', async ()=>{
   delete state.config.qrDataUrl;
   await save('config'); renderConfigUI();
   showToast('QR Code removido.');
+});
+document.getElementById('cfg-sigef-modelo-file').addEventListener('change', async e=>{
+  const file = e.target.files[0]; if(!file) return;
+  try{
+    if(!/\.ods$/i.test(file.name)){ showToast('Envie o arquivo .ods do modelo do SIGEF (não converta para outro formato).'); return; }
+    state.config.sigefTemplateDataUrl = await fileToDataUrl(file);
+    state.config.sigefTemplateNome = file.name;
+    await save('config'); renderSigefModeloUI();
+    showToast('Modelo do SIGEF salvo — será reaproveitado em toda geração seguinte.');
+  }catch(err){ showToast('Erro ao carregar o modelo do SIGEF.'); }
+  finally{ e.target.value=''; }
+});
+document.getElementById('cfg-sigef-modelo-remove').addEventListener('click', async ()=>{
+  delete state.config.sigefTemplateDataUrl;
+  delete state.config.sigefTemplateNome;
+  await save('config'); renderSigefModeloUI();
+  showToast('Modelo do SIGEF removido.');
 });
 let footerSaveTimer = null;
 document.getElementById('cfg-footer-text').addEventListener('input', e=>{
@@ -3098,7 +3151,7 @@ function refreshSelects(){
   document.getElementById('doc-imovel-select').innerHTML = imoOpts;
   // Memorial/Anuência/Planta viraram 3 abas com o mesmo gerador repetido — mantém as 3 opções de
   // imóvel e os outros 2 selects de config sincronizados com o valor já escolhido em qualquer um.
-  ['doc-imovel-select-anu','doc-imovel-select-planta'].forEach(id=>{
+  ['doc-imovel-select-anu','doc-imovel-select-planta','doc-imovel-select-sigef'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     const cur = el.value || document.getElementById('doc-imovel-select').value;
@@ -7189,6 +7242,255 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
   });
   return out;
 }
+
+// ---------- EXPORTAÇÃO: PLANILHA ELETRÔNICA DO SIGEF (.ods) ----------
+// Preenche a planilha oficial do SIGEF/INCRA escrevendo direto nas células do .ods (que por
+// dentro é um .zip com XML — usamos o mesmo JSZip já carregado para KML/Shapefile). Os menus
+// suspensos da planilha (Situação, Natureza da área etc.) são controles de formulário do
+// LibreOffice ligados a uma célula (form:linked-cell) só pra ajudar a digitação — o valor de
+// verdade sempre mora na própria célula, então escrever direto nela dá exatamente o mesmo
+// resultado de quem escolheu a opção no menu, sem precisar rodar nenhuma macro.
+// Testado com o modelo oficial 1.4 rc5. Se a INCRA mudar a estrutura da planilha num modelo
+// futuro, as buscas abaixo falham com uma mensagem clara (em vez de gerar um arquivo incorreto
+// silenciosamente) — nesse caso o modelo enviado em Configurações precisa ser atualizado aqui.
+function odsEscXml(str){
+  return String(str==null?'':str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function odsExtrairTabela(xml, nomeTabela){
+  const re = new RegExp('<table:table [^>]*table:name="'+nomeTabela+'"[^>]*>');
+  const m = re.exec(xml);
+  if(!m) throw new Error(`Aba "${nomeTabela}" não encontrada no modelo enviado — confira se é a planilha oficial do SIGEF (.ods), sem edições estruturais.`);
+  const start = m.index;
+  const end = xml.indexOf('</table:table>', start) + '</table:table>'.length;
+  if(end < start + '</table:table>'.length) throw new Error(`Aba "${nomeTabela}" malformada no modelo enviado.`);
+  return { start, end, xml: xml.slice(start, end) };
+}
+// Localiza a célula de rótulo com texto exato "rotulo" (ex.: "Nome:") e substitui o conteúdo da
+// célula seguinte (a de valor) — funciona tanto se ela já tinha conteúdo quanto se estava vazia
+// (auto-fechada, ex.: <table:table-cell .../>).
+function odsPatchValorAposRotulo(tabelaXml, rotulo, valor, opts){
+  opts = opts || {};
+  const marcador = `<text:p>${odsEscXml(rotulo)}</text:p>`;
+  const idxRotulo = tabelaXml.indexOf(marcador);
+  if(idxRotulo === -1){
+    if(opts.obrigatorio===false) return tabelaXml;
+    throw new Error(`Campo "${rotulo}" não encontrado no modelo do SIGEF enviado.`);
+  }
+  const idxFechaRotulo = tabelaXml.indexOf('</table:table-cell>', idxRotulo);
+  const inicioValor = idxFechaRotulo + '</table:table-cell>'.length;
+  const fimTagAbertura = tabelaXml.indexOf('>', inicioValor);
+  const autoFechada = tabelaXml[fimTagAbertura-1] === '/';
+  const textoEscapado = odsEscXml(valor);
+  if(autoFechada){
+    const atributos = tabelaXml.slice(inicioValor + '<table:table-cell'.length, fimTagAbertura-1);
+    const novaCelula = `<table:table-cell${atributos} office:value-type="string" calcext:value-type="string"><text:p>${textoEscapado}</text:p></table:table-cell>`;
+    return tabelaXml.slice(0, inicioValor) + novaCelula + tabelaXml.slice(fimTagAbertura+1);
+  }
+  const fimValor = tabelaXml.indexOf('</table:table-cell>', fimTagAbertura) + '</table:table-cell>'.length;
+  let atributos = tabelaXml.slice(inicioValor + '<table:table-cell'.length, fimTagAbertura);
+  if(!/office:value-type=/.test(atributos)) atributos += ' office:value-type="string" calcext:value-type="string"';
+  const novaCelula = `<table:table-cell${atributos}><text:p>${textoEscapado}</text:p></table:table-cell>`;
+  return tabelaXml.slice(0, inicioValor) + novaCelula + tabelaXml.slice(fimValor);
+}
+// Quebra o conteúdo de UMA linha (<table:table-row>...</table:table-row>, só o miolo) em grupos
+// de células, preservando o "table:number-columns-repeated" de cada grupo em vez de expandir —
+// assim uma linha com 1024 colunas continua leve mesmo depois de editada.
+function odsParseCelulas(innerXml){
+  const re = /<table:table-cell\b([^>]*?)(\/>|>([\s\S]*?)<\/table:table-cell>)/g;
+  const grupos = [];
+  let m;
+  while((m = re.exec(innerXml))){
+    let attrs = m[1];
+    const fechada = m[2] === '/>';
+    const conteudo = fechada ? '' : m[3];
+    const repMatch = attrs.match(/\s*table:number-columns-repeated="(\d+)"/);
+    const repetido = repMatch ? parseInt(repMatch[1],10) : 1;
+    attrs = attrs.replace(/\s*table:number-columns-repeated="\d+"/, '');
+    grupos.push({ attrs, conteudo, fechada, repetido });
+  }
+  return grupos;
+}
+function odsSerializarCelulas(grupos){
+  return grupos.map(g=>{
+    const attrsFinal = g.repetido>1 ? g.attrs + ` table:number-columns-repeated="${g.repetido}"` : g.attrs;
+    return g.fechada ? `<table:table-cell${attrsFinal}/>` : `<table:table-cell${attrsFinal}>${g.conteudo}</table:table-cell>`;
+  }).join('');
+}
+// Define o valor da coluna colIndex (0 = A, 1 = B, ...) dentro de um array de grupos de células,
+// dividindo o grupo correspondente em até 3 partes (antes/alvo/depois) só quando necessário.
+function odsDefinirColuna(grupos, colIndex, valor, opts){
+  opts = opts || {};
+  let col = 0;
+  for(let i=0;i<grupos.length;i++){
+    const g = grupos[i];
+    if(colIndex < col + g.repetido){
+      const offset = colIndex - col;
+      const novos = [];
+      if(offset>0) novos.push({ ...g, repetido: offset });
+      let attrsAlvo = g.attrs;
+      if(opts.numerico){
+        attrsAlvo = /office:value-type=/.test(attrsAlvo)
+          ? attrsAlvo.replace(/office:value-type="[^"]*"/, 'office:value-type="float"').replace(/calcext:value-type="[^"]*"/, 'calcext:value-type="float"')
+          : attrsAlvo + ' office:value-type="float" calcext:value-type="float"';
+        attrsAlvo += ` office:value="${opts.valorBruto}"`;
+      } else if(!/office:value-type=/.test(attrsAlvo)){
+        attrsAlvo += ' office:value-type="string" calcext:value-type="string"';
+      }
+      novos.push({ attrs: attrsAlvo, conteudo: `<text:p>${odsEscXml(valor)}</text:p>`, fechada:false, repetido:1 });
+      const depois = g.repetido - offset - 1;
+      if(depois>0) novos.push({ ...g, repetido: depois });
+      grupos.splice(i, 1, ...novos);
+      return;
+    }
+    col += g.repetido;
+  }
+  throw new Error('Coluna '+colIndex+' fora do intervalo da linha no modelo do SIGEF.');
+}
+function odsMontarLinha(attrsSemRepeat, inner, repetido){
+  const attrs = repetido>1 ? attrsSemRepeat + ` table:number-rows-repeated="${repetido}"` : attrsSemRepeat;
+  return `<table:table-row${attrs}>${inner}</table:table-row>`;
+}
+// A partir do fim da linha de cabeçalho da tabela de vértices ("...Descritivo"), consome linhas
+// (expandindo blocos de table:number-rows-repeated conforme necessário) até separar "quantidade"
+// linhas individuais prontas pra receber os dados de cada vértice, devolvendo o restante do bloco
+// intacto — sem tocar em nada além do necessário.
+function odsPrepararLinhasDeVertices(tabelaXml, quantidade){
+  const marcador = '<text:p>Descritivo</text:p>';
+  const idxCab = tabelaXml.indexOf(marcador);
+  if(idxCab===-1) throw new Error('Cabeçalho da tabela de vértices ("Descritivo") não encontrado no modelo do SIGEF enviado.');
+  const idxFimCabLinha = tabelaXml.indexOf('</table:table-row>', idxCab) + '</table:table-row>'.length;
+  let pos = idxFimCabLinha;
+  const linhasModelo = [];
+  let faltam = quantidade;
+  while(faltam > 0){
+    const m = /^<table:table-row([^>]*)>/.exec(tabelaXml.slice(pos));
+    if(!m) throw new Error('Não há linhas suficientes na tabela de vértices do modelo do SIGEF (imóvel com muitos vértices?).');
+    const fimTagAbertura = pos + m[0].length;
+    const fimLinha = tabelaXml.indexOf('</table:table-row>', fimTagAbertura) + '</table:table-row>'.length;
+    const attrs = m[1];
+    const inner = tabelaXml.slice(fimTagAbertura, fimLinha - '</table:table-row>'.length);
+    const repMatch = attrs.match(/table:number-rows-repeated="(\d+)"/);
+    const repetido = repMatch ? parseInt(repMatch[1],10) : 1;
+    const attrsSemRepeat = attrs.replace(/\s*table:number-rows-repeated="\d+"/, '');
+    const usar = Math.min(repetido, faltam);
+    for(let k=0;k<usar;k++) linhasModelo.push({ attrsSemRepeat, inner });
+    faltam -= usar;
+    const sobra = repetido - usar;
+    if(sobra > 0){
+      const linhaRestante = odsMontarLinha(attrsSemRepeat, inner, sobra);
+      return { antes: tabelaXml.slice(0, idxFimCabLinha), linhasModelo, depois: linhaRestante + tabelaXml.slice(fimLinha) };
+    }
+    pos = fimLinha;
+  }
+  return { antes: tabelaXml.slice(0, idxFimCabLinha), linhasModelo, depois: tabelaXml.slice(pos) };
+}
+// Colunas da tabela de vértices (perimetro_1, a partir da linha de cabeçalho): 0=Vértice,
+// 1=E/Long, 2=Sigma long, 3=N/Lat, 4=Sigma lat, 5=h, 6=Sigma h, 7=Método Posicionamento,
+// 8=Tipo Limite, 9=CNS, 10=Matrícula, 11=Descritivo.
+function odsGerarLinhaVertice(linhaModelo, dados){
+  const grupos = odsParseCelulas(linhaModelo.inner);
+  odsDefinirColuna(grupos, 0, dados.codigo);
+  odsDefinirColuna(grupos, 1, dados.lon.toFixed(7), { numerico:true, valorBruto: dados.lon });
+  odsDefinirColuna(grupos, 3, dados.lat.toFixed(7), { numerico:true, valorBruto: dados.lat });
+  if(dados.matricula) odsDefinirColuna(grupos, 10, dados.matricula);
+  if(dados.descritivo) odsDefinirColuna(grupos, 11, dados.descritivo);
+  return odsMontarLinha(linhaModelo.attrsSemRepeat, odsSerializarCelulas(grupos), 1);
+}
+async function odsDataUrlParaArrayBuffer(dataUrl){
+  const resp = await fetch(dataUrl);
+  return await resp.arrayBuffer();
+}
+async function gerarPlanilhaSigefBlob(imovel, prop, lista){
+  const cfg = state.config || {};
+  if(!cfg.sigefTemplateDataUrl) throw new Error('Envie primeiro o modelo oficial da planilha do SIGEF (.ods) no campo acima.');
+  if(!lista.length) throw new Error('Este imóvel ainda não tem marcos cadastrados.');
+  if(typeof JSZip === 'undefined'){
+    try{ await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }catch(e){ /* segue para o erro abaixo */ }
+    if(typeof JSZip === 'undefined') throw new Error('Biblioteca de compactação (JSZip) não carregou — verifique sua conexão com a internet e recarregue a página.');
+  }
+  const {zona, sul} = inferirZonaHemisferio(imovel, lista);
+  if(!zona) throw new Error('Não foi possível identificar a Zona UTM do imóvel — preencha o campo "Zona UTM" no cadastro do imóvel (aba Imóveis) antes de gerar a planilha do SIGEF, que exige coordenadas Geográficas convertidas a partir da zona.');
+
+  const buffer = await odsDataUrlParaArrayBuffer(cfg.sigefTemplateDataUrl);
+  const zip = await JSZip.loadAsync(buffer);
+  const contentFile = zip.file('content.xml');
+  if(!contentFile) throw new Error('O arquivo enviado não parece ser uma planilha .ods válida (não tem content.xml dentro).');
+  let contentXml = await contentFile.async('string');
+
+  // ---- aba "identificacao" ----
+  {
+    const tbl = odsExtrairTabela(contentXml, 'identificacao');
+    let xml = tbl.xml;
+    if(prop){
+      xml = odsPatchValorAposRotulo(xml, 'Nome:', prop.nome||'');
+      if(prop.doc){
+        const digitos = prop.doc.replace(/\D/g,'');
+        xml = odsPatchValorAposRotulo(xml, 'Tipo pessoa:', digitos.length===14 ? 'Jurídica' : 'Física');
+        xml = odsPatchValorAposRotulo(xml, 'CPF:', prop.doc);
+      }
+    }
+    xml = odsPatchValorAposRotulo(xml, 'Denominação:', imovel.nome||'');
+    xml = odsPatchValorAposRotulo(xml, 'Situação:', 'Imóvel Registrado');
+    xml = odsPatchValorAposRotulo(xml, 'Natureza da área:', 'Particular');
+    if(imovel.codigoIncra) xml = odsPatchValorAposRotulo(xml, 'Código do Imóvel(SNCR/INCRA):', imovel.codigoIncra);
+    if(imovel.matricula) xml = odsPatchValorAposRotulo(xml, 'Matrícula:', imovel.matricula);
+    if(imovel.municipio) xml = odsPatchValorAposRotulo(xml, 'Município(s):', imovel.municipio + (imovel.uf ? ' - '+imovel.uf : ''));
+    contentXml = contentXml.slice(0, tbl.start) + xml + contentXml.slice(tbl.end);
+  }
+
+  // ---- aba "perimetro_1" (cabeçalho + tabela de vértices) ----
+  {
+    const tbl = odsExtrairTabela(contentXml, 'perimetro_1');
+    let xml = tbl.xml;
+    xml = odsPatchValorAposRotulo(xml, 'Tipo de Coordenada:', 'Geográfica');
+    xml = odsPatchValorAposRotulo(xml, 'Meridiano Central (°):', String(zona*6-183));
+    xml = odsPatchValorAposRotulo(xml, 'Hemisfério:', sul ? 'Sul' : 'Norte');
+
+    const { antes, linhasModelo, depois } = odsPrepararLinhasDeVertices(xml, lista.length);
+    const linhasXml = lista.map((m,i)=>{
+      const geo = utmParaLatLon(m.coordE, m.coordN, zona, sul);
+      const imC = m.confrontanteImovelId ? state.imoveis.find(im=>im.id===m.confrontanteImovelId) : null;
+      return odsGerarLinhaVertice(linhasModelo[i], {
+        codigo: m.codigo,
+        lon: geo.lon, lat: geo.lat,
+        descritivo: m.confrontante || '',
+        matricula: (imC && imC.matricula) ? imC.matricula : '',
+      });
+    }).join('');
+    xml = antes + linhasXml + depois;
+    contentXml = contentXml.slice(0, tbl.start) + xml + contentXml.slice(tbl.end);
+  }
+
+  zip.file('content.xml', contentXml);
+  return await zip.generateAsync({ type:'blob', mimeType:'application/vnd.oasis.opendocument.spreadsheet', compression:'DEFLATE', compressionOptions:{ level:6 } });
+}
+document.getElementById('btn-gerar-sigef').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btn-gerar-sigef');
+  const status = document.getElementById('doc-sigef-status');
+  const imId = document.getElementById('doc-imovel-select-sigef').value;
+  const imovel = state.imoveis.find(x=>x.id===imId);
+  if(!imovel){ showToast('Escolha um imóvel primeiro.'); return; }
+  const prop = state.proprietarios.find(p=>p.id===imovel.proprietarioId);
+  const lista = codigosPorTipo(marcosOrdenados(imId));
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando planilha...';
+  try{
+    const blob = await gerarPlanilhaSigefBlob(imovel, prop, lista);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sigef-${(imovel.nome||'imovel').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.ods`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 10000);
+    showToast('Planilha do SIGEF gerada! Revise em LibreOffice/Excel antes de enviar — alguns campos (sigma, h, método de posicionamento etc.) ainda precisam de preenchimento manual.');
+    if(status) status.textContent = 'Última planilha gerada com sucesso. Revise sempre com o responsável técnico antes de enviar ao SIGEF.';
+  }catch(err){
+    showToast('Erro ao gerar a planilha do SIGEF: '+(err.message||err));
+    if(status) status.textContent = 'Falha ao gerar: '+(err.message||err);
+  }finally{
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+});
+
 // ---------- PLANTA DO IMÓVEL GEORREFERENCIADO (A0 · A1 · A2 · A3 · A4) ----------
 const UF_NOMES = { AC:'Acre', AL:'Alagoas', AP:'Amapá', AM:'Amazonas', BA:'Bahia', CE:'Ceará', DF:'Distrito Federal', ES:'Espírito Santo', GO:'Goiás', MA:'Maranhão', MT:'Mato Grosso', MS:'Mato Grosso do Sul', MG:'Minas Gerais', PA:'Pará', PB:'Paraíba', PR:'Paraná', PE:'Pernambuco', PI:'Piauí', RJ:'Rio de Janeiro', RN:'Rio Grande do Norte', RS:'Rio Grande do Sul', RO:'Rondônia', RR:'Roraima', SC:'Santa Catarina', SP:'São Paulo', SE:'Sergipe', TO:'Tocantins' };
 const PAPEL_MM = {
@@ -8477,7 +8779,7 @@ async function aplicarBackupObjeto(parsed){
   if(!temAlgumaChave) return false;
   for(const k of BACKUP_KEYS){ state[k] = Array.isArray(parsed[k]) ? parsed[k] : []; await save(k); }
   if(parsed.config && typeof parsed.config==='object'){ state.config = parsed.config; await save('config'); }
-  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI();
+  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI(); renderSigefModeloUI();
   return true;
 }
 document.getElementById('btn-export').addEventListener('click', ()=>{
@@ -8531,7 +8833,7 @@ document.getElementById('input-import').addEventListener('change', e=>{
 // ---------- INIT ----------
 (async function init(){
   await loadAll();
-  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI();
+  renderProp(); renderTiposRegistro(); refreshRegistroTipoSelects(); renderTec(); renderImo(); refreshSelects(); renderBancoMarcos(); renderConfigUI(); renderConfLabelConfigUI(); renderSigefModeloUI();
   // Restaura o formato de coordenada salvo (Implantação de Marco + DXF → PDF ficam sincronizados)
   const fmtSalvo = state.config && state.config.coordFormatoPadrao;
   if(fmtSalvo){
