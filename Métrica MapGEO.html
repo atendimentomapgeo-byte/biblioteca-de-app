@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-28.21 — Nova ferramenta na aba Marcos: "Aplicar dados avançados do SIGEF em vários marcos de uma vez" — escolha um intervalo (de/até) e aplique sigma, altitude elipsoidal, método de posicionamento e/ou tipo de limite a todos de uma vez, sem precisar editar marco por marco</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-29.25 — Planilha SIGEF: coordenadas Geográficas agora com espaço antes da letra de hemisfério ("57 00 00,000 W" / "09 57 03,766 S")</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -7536,7 +7536,18 @@ function odsPatchValorAposRotulo(tabelaXml, rotulo, valor, opts){
   const fimValor = tabelaXml.indexOf('</table:table-cell>', fimTagAbertura) + '</table:table-cell>'.length;
   let atributos = tabelaXml.slice(inicioValor + '<table:table-cell'.length, fimTagAbertura);
   if(!/office:value-type=/.test(atributos)) atributos += ' office:value-type="string" calcext:value-type="string"';
-  const novaCelula = `<table:table-cell${atributos}><text:p>${textoEscapado}</text:p></table:table-cell>`;
+  // O conteúdo atual da célula pode ter mais do que um <text:p> — em "Município(s):", por exemplo,
+  // o combobox do SIGEF é um <draw:control> ancorado NESSA célula (diferente da maioria dos outros
+  // campos, onde o control fica na célula do RÓTULO, que a gente nunca toca). Se a gente jogasse
+  // fora o conteúdo inteiro da célula pra colocar só o texto novo, esse controle visual desaparecia
+  // da planilha. Por isso: se já existe um <text:p>, só troca o texto dele; senão, acrescenta um
+  // <text:p> novo preservando o que já estava lá (o <draw:control>, se houver).
+  const inicioConteudo = fimTagAbertura + 1;
+  const conteudoAtual = tabelaXml.slice(inicioConteudo, fimValor - '</table:table-cell>'.length);
+  const novoConteudo = /<text:p[^>]*>[\s\S]*?<\/text:p>/.test(conteudoAtual)
+    ? conteudoAtual.replace(/<text:p[^>]*>[\s\S]*?<\/text:p>/, `<text:p>${textoEscapado}</text:p>`)
+    : conteudoAtual + `<text:p>${textoEscapado}</text:p>`;
+  const novaCelula = `<table:table-cell${atributos}>${novoConteudo}</table:table-cell>`;
   return tabelaXml.slice(0, inicioValor) + novaCelula + tabelaXml.slice(fimValor);
 }
 // Quebra o conteúdo de UMA linha (<table:table-row>...</table:table-row>, só o miolo) em grupos
@@ -7637,8 +7648,8 @@ function odsPrepararLinhasDeVertices(tabelaXml, quantidade){
 // próprio modelo oficial), sem símbolos de grau/minuto/segundo e sem letra de hemisfério (essas
 // colunas são texto puro, diferente do dmsGeo() usado nos relatórios em PDF). Sem sinal de menos:
 // o SIGEF é feito majoritariamente pro hemisfério Sul/Oeste e já assume isso quando a coordenada
-// vem sem sinal (o campo "Hemisfério:" da própria aba perimetro_1 é quem registra a exceção).
-function gmsSigef(decDeg){
+// vem com a letra de hemisfério (S/W) em vez de sinal de menos.
+function gmsSigef(decDeg, letraHemisferio){
   const absV = Math.abs(decDeg);
   let deg = Math.floor(absV);
   const minFloat = (absV-deg)*60;
@@ -7648,20 +7659,26 @@ function gmsSigef(decDeg){
   if(sec >= 60){ sec = 0; min += 1; }
   if(min >= 60){ min = 0; deg += 1; }
   const secStr = sec.toFixed(3).padStart(6,'0').replace('.', ',');
-  return `${String(deg).padStart(2,'0')} ${String(min).padStart(2,'0')} ${secStr}`;
+  return `${String(deg).padStart(2,'0')} ${String(min).padStart(2,'0')} ${secStr}${letraHemisferio? ' '+letraHemisferio : ''}`;
 }
+// As colunas E/Long até Sigma h (1 a 6) são todas formatadas como TEXTO puro no modelo oficial do
+// SIGEF (mesmo estilo de célula nas seis), então sigma e altitude elipsoidal também vão como texto
+// com vírgula decimal — igual às coordenadas — em vez de número com ponto, que é o padrão
+// brasileiro e evita depender do formato numérico configurado na célula (que pode reverter pra
+// ponto dependendo de como o LibreOffice/Excel do usuário está configurado).
+function numeroVirgula(valor, casas){ return Number(valor).toFixed(casas).replace('.', ','); }
 // Colunas da tabela de vértices (perimetro_1, a partir da linha de cabeçalho): 0=Vértice,
 // 1=E/Long, 2=Sigma long, 3=N/Lat, 4=Sigma lat, 5=h, 6=Sigma h, 7=Método Posicionamento,
 // 8=Tipo Limite, 9=CNS, 10=Matrícula, 11=Descritivo.
 function odsGerarLinhaVertice(linhaModelo, dados){
   const grupos = odsParseCelulas(linhaModelo.inner);
   odsDefinirColuna(grupos, 0, dados.codigo);
-  odsDefinirColuna(grupos, 1, gmsSigef(dados.lon));
-  if(dados.sigmaE!=null) odsDefinirColuna(grupos, 2, Number(dados.sigmaE).toFixed(2), { numerico:true, valorBruto: dados.sigmaE });
-  odsDefinirColuna(grupos, 3, gmsSigef(dados.lat));
-  if(dados.sigmaN!=null) odsDefinirColuna(grupos, 4, Number(dados.sigmaN).toFixed(2), { numerico:true, valorBruto: dados.sigmaN });
-  if(dados.h!=null) odsDefinirColuna(grupos, 5, Number(dados.h).toFixed(3), { numerico:true, valorBruto: dados.h });
-  if(dados.sigmaH!=null) odsDefinirColuna(grupos, 6, Number(dados.sigmaH).toFixed(2), { numerico:true, valorBruto: dados.sigmaH });
+  odsDefinirColuna(grupos, 1, gmsSigef(dados.lon, 'W'));
+  if(dados.sigmaE!=null) odsDefinirColuna(grupos, 2, numeroVirgula(dados.sigmaE, 2));
+  odsDefinirColuna(grupos, 3, gmsSigef(dados.lat, 'S'));
+  if(dados.sigmaN!=null) odsDefinirColuna(grupos, 4, numeroVirgula(dados.sigmaN, 2));
+  if(dados.h!=null) odsDefinirColuna(grupos, 5, numeroVirgula(dados.h, 3));
+  if(dados.sigmaH!=null) odsDefinirColuna(grupos, 6, numeroVirgula(dados.sigmaH, 2));
   if(dados.metodoPosicionamento) odsDefinirColuna(grupos, 7, dados.metodoPosicionamento);
   if(dados.tipoLimite) odsDefinirColuna(grupos, 8, dados.tipoLimite);
   if(dados.matricula) odsDefinirColuna(grupos, 10, dados.matricula);
@@ -7676,6 +7693,15 @@ async function gerarPlanilhaSigefBlob(imovel, prop, lista){
   const cfg = state.config || {};
   if(!cfg.sigefTemplateDataUrl) throw new Error('Envie primeiro o modelo oficial da planilha do SIGEF (.ods) no campo acima.');
   if(!lista.length) throw new Error('Este imóvel ainda não tem marcos cadastrados.');
+  // A coluna "Vértice" da planilha do SIGEF exige o código oficial no padrão CÓDIGO-TIPO-NÚMERO
+  // (ex.: ABC1234-M-0001), que só existe depois que o marco é "implantado" no Banco de Marcos
+  // (gerarCodigoCompleto). Antes disso, codigosPorTipo() usa um código provisório só interno do
+  // app (M1, P2...) — nunca deve ir pra planilha oficial, então bloqueia a geração até corrigir.
+  const semCodigoSigef = lista.filter(m => !(m.implantado && m.codigoCompleto));
+  if(semCodigoSigef.length){
+    const nomes = semCodigoSigef.map(m=>m.codigo).join(', ');
+    throw new Error(`Os marcos ${nomes} ainda não têm o código oficial do SIGEF (padrão CÓDIGO-TIPO-NÚMERO) — implante-os primeiro (aba Marcos → botão "Implantar marco(s)") e gere a planilha de novo.`);
+  }
   if(typeof JSZip === 'undefined'){
     try{ await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }catch(e){ /* segue para o erro abaixo */ }
     if(typeof JSZip === 'undefined') throw new Error('Biblioteca de compactação (JSZip) não carregou — verifique sua conexão com a internet e recarregue a página.');
@@ -7696,8 +7722,14 @@ async function gerarPlanilhaSigefBlob(imovel, prop, lista){
     if(prop){
       xml = odsPatchValorAposRotulo(xml, 'Nome:', prop.nome||'');
       if(prop.doc){
+        // Tipo pessoa é decidido automaticamente pela quantidade de dígitos do CPF/CNPJ (ignorando
+        // pontuação): 11 dígitos = CPF = Física, 14 dígitos = CNPJ = Jurídica. Se o documento não
+        // tiver nem 11 nem 14 dígitos (provável erro de digitação), não arriscamos um palpite —
+        // deixamos o campo como já estava no modelo, e o btn-gerar-sigef avisa o usuário disso.
         const digitos = prop.doc.replace(/\D/g,'');
-        xml = odsPatchValorAposRotulo(xml, 'Tipo pessoa:', digitos.length===14 ? 'Jurídica' : 'Física');
+        if(digitos.length===11 || digitos.length===14){
+          xml = odsPatchValorAposRotulo(xml, 'Tipo pessoa:', digitos.length===14 ? 'Jurídica' : 'Física');
+        }
         xml = odsPatchValorAposRotulo(xml, 'CPF:', prop.doc);
       }
     }
@@ -7707,7 +7739,10 @@ async function gerarPlanilhaSigefBlob(imovel, prop, lista){
     if(imovel.codigoIncra) xml = odsPatchValorAposRotulo(xml, 'Código do Imóvel(SNCR/INCRA):', imovel.codigoIncra);
     if(imovel.cns) xml = odsPatchValorAposRotulo(xml, 'Código do cartório (CNS):', imovel.cns);
     if(imovel.matricula) xml = odsPatchValorAposRotulo(xml, 'Matrícula:', imovel.matricula);
-    if(imovel.municipio) xml = odsPatchValorAposRotulo(xml, 'Município(s):', imovel.municipio + (imovel.uf ? ' - '+imovel.uf : ''));
+    // Formato exigido pela lista de municípios do próprio modelo do SIGEF: "Município-UF", sem
+    // espaços em volta do hífen (ex.: "Cuiabá-MT") — é assim que a planilha oficial lista as opções
+    // do combobox desse campo (aba parametros_controles), então precisa bater exatamente.
+    if(imovel.municipio) xml = odsPatchValorAposRotulo(xml, 'Município(s):', imovel.municipio + (imovel.uf ? '-'+imovel.uf : ''));
     contentXml = contentXml.slice(0, tbl.start) + xml + contentXml.slice(tbl.end);
   }
 
@@ -7756,8 +7791,21 @@ document.getElementById('btn-gerar-sigef').addEventListener('click', async ()=>{
     a.download = `sigef-${(imovel.nome||'imovel').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.ods`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href), 10000);
-    showToast('Planilha do SIGEF gerada! Revise em LibreOffice/Excel antes de enviar — alguns campos (sigma, h, método de posicionamento etc.) ainda precisam de preenchimento manual.');
-    if(status) status.textContent = 'Última planilha gerada com sucesso. Revise sempre com o responsável técnico antes de enviar ao SIGEF.';
+    // "Tipo pessoa" é preenchido sozinho pela quantidade de dígitos do CPF/CNPJ (11 = Física, 14 =
+    // Jurídica) — mas só dá pra fazer isso se houver proprietário vinculado com CPF/CNPJ válido;
+    // avisa explicitamente quando não for o caso, em vez de deixar o usuário adivinhar por que
+    // esse campo saiu em branco na planilha.
+    let avisoDetentor = '';
+    if(!prop){
+      avisoDetentor = ' Atenção: este imóvel não tem proprietário vinculado — os campos Nome, Tipo pessoa e CPF/CNPJ da planilha saíram em branco.';
+    } else if(!prop.doc || !prop.doc.trim()){
+      avisoDetentor = ' Atenção: o proprietário vinculado não tem CPF/CNPJ cadastrado — o campo "Tipo pessoa" não pôde ser preenchido automaticamente (cadastre o CPF/CNPJ na aba Proprietários e gere a planilha de novo).';
+    } else {
+      const digitos = prop.doc.replace(/\D/g,'');
+      if(digitos.length!==11 && digitos.length!==14) avisoDetentor = ' Atenção: o CPF/CNPJ cadastrado do proprietário não tem 11 nem 14 dígitos — confira se não há erro de digitação; o campo "Tipo pessoa" não foi preenchido automaticamente por segurança.';
+    }
+    showToast('Planilha do SIGEF gerada! Revise em LibreOffice/Excel antes de enviar — alguns campos (sigma, h, método de posicionamento etc.) ainda precisam de preenchimento manual.' + avisoDetentor);
+    if(status) status.textContent = 'Última planilha gerada com sucesso. Revise sempre com o responsável técnico antes de enviar ao SIGEF.' + avisoDetentor;
   }catch(err){
     showToast('Erro ao gerar a planilha do SIGEF: '+(err.message||err));
     if(status) status.textContent = 'Falha ao gerar: '+(err.message||err);
