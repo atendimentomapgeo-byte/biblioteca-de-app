@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-29T01:45:45.226Z",
+  "exportadoEm": "2026-09-29T01:47:04.289Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -47,44 +47,6 @@
       "empresa": "Caldas Assessoria Ambiental",
       "email": "atendimentocaldas@gmail.com",
       "telefone": "(65) 99644-2838",
-      "municipio": "Cuiabá",
-      "uf": "MT"
-    },
-    {
-      "id": "muh891fwfb6v3",
-      "nome": "Fagner de Brito Gomes Silva",
-      "titulo": "Téc. em Agrimensura",
-      "registroTipo": "CREA",
-      "registroNumero": "CFT03501377142",
-      "registros": [
-        {
-          "tipo": "CREA",
-          "numero": "CFT03501377142"
-        }
-      ],
-      "codigoIncra": "DFGF",
-      "empresa": "Map GEO Agrimensura",
-      "email": "fagner.agri@gmail.com",
-      "telefone": "(65) 99902-0867",
-      "municipio": "Cuiabá",
-      "uf": "MT"
-    },
-    {
-      "id": "muhviy79odjnu",
-      "nome": "Maria Souza",
-      "titulo": "Engenheira Agrimensora",
-      "registroTipo": "CREA",
-      "registroNumero": "000000/D-MT",
-      "registros": [
-        {
-          "tipo": "CREA",
-          "numero": "000000/D-MT"
-        }
-      ],
-      "codigoIncra": "",
-      "empresa": "",
-      "email": "",
-      "telefone": "",
       "municipio": "Cuiabá",
       "uf": "MT"
     },
@@ -254,7 +216,9 @@
       "sigefDataCertificacao": "",
       "sigefResponsavelTecnico": "",
       "simcar": "",
-      "simcarSituacao": ""
+      "simcarSituacao": "",
+      "situacaoRegistral": "",
+      "cns": ""
     },
     {
       "id": "mud9jka6nseb5",
