@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-29T01:59:55.586Z",
+  "exportadoEm": "2026-09-29T02:04:44.485Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -379,22 +379,21 @@
       "id": "mud8pxpknnlq4",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
+      "codigoSigef": "",
       "ordem": 1,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
-      "codigoSigef": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
       "coordE": 512797.756,
       "coordN": 8755743.364,
-      "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -22.24899999999999,
-      "rotOffConfN": 55.399,
-      "rotOffE": 0,
-      "rotOffN": 0,
-      "rotAngM": 0,
-      "rotAngConf": 13
+      "sigmaE": null,
+      "sigmaN": null,
+      "alturaElipsoidal": null,
+      "sigmaH": null,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1",
+      "implantado": false,
+      "numeroCatalogo": null,
+      "codigoCompleto": null
     },
     {
       "id": "mud8pxpkseylk",
@@ -674,14 +673,15 @@
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 1,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Lote nº 413",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 511750.554,
-      "coordN": 8754928.276
+      "coordN": 8754928.276,
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud93vdtxcx5r",
