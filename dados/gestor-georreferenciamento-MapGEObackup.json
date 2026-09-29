@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-29T02:14:12.571Z",
+  "exportadoEm": "2026-09-29T02:16:00.527Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -468,6 +468,45 @@
         "registro_data": "",
         "codigo_municipio": "5107941"
       }
+    },
+    {
+      "id": "mum1nekyhedk8",
+      "nome": "Fazenda São José - Parte 1",
+      "matricula": "720",
+      "area": "",
+      "municipio": "Tabaporã",
+      "uf": "MT",
+      "comarca": "",
+      "proprietarioId": "",
+      "tecnicoId": "",
+      "datum": "",
+      "perimetro": "",
+      "utmZona": "",
+      "codigoIncra": "9020981116945",
+      "leiDecreto": "",
+      "parcelaSigef": "3492643b-7a48-46b4-aead-d733650f9125",
+      "parcelaSigefSituacao": "CERTIFICADA",
+      "simcar": "",
+      "simcarSituacao": "",
+      "origemSigefImportado": true,
+      "sigefDataCertificacao": "2015-12-11",
+      "sigefResponsavelTecnico": "EFA — ART BR20200632371-MT",
+      "sigefAtributosBrutos": {
+        "boundedBy": "-11.291388 -56.917308\n        \t\t-11.282540 -56.910549",
+        "id": "325237",
+        "parcela_codigo": "3492643b-7a48-46b4-aead-d733650f9125",
+        "rt": "EFA",
+        "art": "BR20200632371-MT",
+        "situacao_informada": "REGISTRADA",
+        "codigo_imovel": "9020981116945",
+        "data_submissao": "2015-12-11",
+        "data_aprovacao": "2015-12-11",
+        "status": "CERTIFICADA",
+        "ltrim": "Fazenda São José - Parte 1",
+        "registro_matricula": "720",
+        "registro_data": "",
+        "codigo_municipio": "5107941"
+      }
     }
   ],
   "marcos": [
@@ -878,16 +917,16 @@
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 7,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Córrego Piau",
+      "confrontanteImovelId": "mum1nekyhedk8",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 509199.664,
       "coordN": 8752711.873,
-      "confrontanteOrigem": "",
-      "confrontanteTipo": "",
+      "confrontanteOrigem": "cadastro",
+      "confrontanteTipo": "rio",
       "confrontanteAssinanteNome": ""
     },
     {
@@ -895,16 +934,16 @@
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 8,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Córrego Piau",
+      "confrontanteImovelId": "mum1nekyhedk8",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 509132.555,
       "coordN": 8752792.172,
-      "confrontanteOrigem": "",
-      "confrontanteTipo": "",
+      "confrontanteOrigem": "cadastro",
+      "confrontanteTipo": "rio",
       "confrontanteAssinanteNome": ""
     },
     {
@@ -920,7 +959,7 @@
       "codigoCompleto": null,
       "coordE": 509022.488,
       "coordN": 8752802.755,
-      "confrontanteOrigem": "sigef",
+      "confrontanteOrigem": "cadastro",
       "confrontanteTipo": "",
       "confrontanteAssinanteNome": ""
     },
@@ -937,7 +976,7 @@
       "codigoCompleto": null,
       "coordE": 508931.471,
       "coordN": 8752790.055,
-      "confrontanteOrigem": "sigef",
+      "confrontanteOrigem": "cadastro",
       "confrontanteTipo": "",
       "confrontanteAssinanteNome": ""
     },
