@@ -909,7 +909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-28.19 — Planilha SIGEF: coordenadas Geográficas (E/Long e N/Lat) no padrão GG MM SS,sss sem sinal de menos (SIGEF assume Sul/Oeste por padrão)</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-28.21 — Nova ferramenta na aba Marcos: "Aplicar dados avançados do SIGEF em vários marcos de uma vez" — escolha um intervalo (de/até) e aplique sigma, altitude elipsoidal, método de posicionamento e/ou tipo de limite a todos de uma vez, sem precisar editar marco por marco</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1286,23 +1286,23 @@ svg.leaflet-image-layer.leaflet-interactive path {
             <div class="field"><label>Sigma h (m)</label><input id="marco-sigma-h" type="number" step="0.001" min="0"></div>
           </div>
           <div class="grid g3">
-            <div class="field"><label>Método de posicionamento (GNSS)</label>
+            <div class="field"><label>Método de posicionamento</label>
               <select id="marco-metodo-posicionamento">
                 <option value="">—</option>
-                <optgroup label="PA — Posicionamento por satélite, método absoluto">
-                  <option value="PA1">PA1</option><option value="PA2">PA2</option><option value="PA3">PA3</option>
+                <optgroup label="PA — Posicionamento por Geometria Analítica">
+                  <option value="PA1">PA1 — Paralela</option><option value="PA2">PA2 — Interseção de Retas</option><option value="PA3">PA3 — Projeção Técnica</option>
                 </optgroup>
-                <optgroup label="PB — Posicionamento por satélite, relativo estático">
-                  <option value="PB1">PB1</option><option value="PB2">PB2</option>
+                <optgroup label="PB — Base Cartográfica">
+                  <option value="PB1">PB1 — Base cartográfica com precisão conhecida</option><option value="PB2">PB2 — Base cartográfica sem precisão conhecida</option>
                 </optgroup>
-                <optgroup label="PG — Posicionamento por satélite, relativo semicinemático/RTK">
-                  <option value="PG1">PG1</option><option value="PG2">PG2</option><option value="PG3">PG3</option><option value="PG4">PG4</option><option value="PG5">PG5</option><option value="PG6">PG6</option><option value="PG7">PG7</option><option value="PG8">PG8</option><option value="PG9">PG9</option>
+                <optgroup label="PG — Posicionamento por GNSS (satélite)">
+                  <option value="PG1">PG1 — Relativo Estático</option><option value="PG2">PG2 — Relativo Estático-Rápido</option><option value="PG3">PG3 — Relativo Semicinemático (Stop and Go)</option><option value="PG4">PG4 — Relativo Cinemático</option><option value="PG5">PG5 — Relativo a partir do Código (C/A)</option><option value="PG6">PG6 — RTK Convencional</option><option value="PG7">PG7 — RTK em Rede</option><option value="PG8">PG8 — DGPS (Differential GPS)</option><option value="PG9">PG9 — Posicionamento por Ponto Preciso (PPP)</option>
                 </optgroup>
-                <optgroup label="PS — Posicionamento por satélite, levantamento por rede">
-                  <option value="PS1">PS1</option><option value="PS2">PS2</option><option value="PS3">PS3</option><option value="PS4">PS4</option>
+                <optgroup label="PS — Posicionamento por Sensoriamento Remoto">
+                  <option value="PS1">PS1 — Aerofotogrametria</option><option value="PS2">PS2 — Radar Aerotransportado</option><option value="PS3">PS3 — Laser Scanner Aerotransportado</option><option value="PS4">PS4 — Sensores Orbitais</option>
                 </optgroup>
-                <optgroup label="PT — Levantamento topográfico">
-                  <option value="PT1">PT1</option><option value="PT2">PT2</option><option value="PT3">PT3</option><option value="PT4">PT4</option><option value="PT5">PT5</option><option value="PT6">PT6</option><option value="PT7">PT7</option><option value="PT8">PT8</option>
+                <optgroup label="PT — Posicionamento por Topografia Clássica">
+                  <option value="PT1">PT1 — Poligonação</option><option value="PT2">PT2 — Triangulação</option><option value="PT3">PT3 — Trilateração</option><option value="PT4">PT4 — Triangulateração</option><option value="PT5">PT5 — Irradiação</option><option value="PT6">PT6 — Interseção Linear</option><option value="PT7">PT7 — Interseção Angular</option><option value="PT8">PT8 — Alinhamento</option>
                 </optgroup>
               </select>
             </div>
@@ -1310,16 +1310,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
               <select id="marco-tipo-limite">
                 <option value="">—</option>
                 <optgroup label="LA — Limite Artificial">
-                  <option value="LA1">LA1</option><option value="LA2">LA2</option><option value="LA3">LA3</option><option value="LA4">LA4</option><option value="LA5">LA5</option><option value="LA6">LA6</option><option value="LA7">LA7</option>
+                  <option value="LA1">LA1 — Cerca</option><option value="LA2">LA2 — Muro</option><option value="LA3">LA3 — Estrada</option><option value="LA4">LA4 — Vala</option><option value="LA5">LA5 — Canal</option><option value="LA6">LA6 — Linha ideal</option><option value="LA7">LA7 — Limite artificial não tipificado</option>
                 </optgroup>
                 <optgroup label="LN — Limite Natural">
-                  <option value="LN1">LN1</option><option value="LN2">LN2</option><option value="LN3">LN3</option><option value="LN4">LN4</option><option value="LN5">LN5</option><option value="LN6">LN6</option>
+                  <option value="LN1">LN1 — Corpo d'água ou curso d'água</option><option value="LN2">LN2 — Linha de cumeada</option><option value="LN3">LN3 — Grota</option><option value="LN4">LN4 — Crista de encosta</option><option value="LN5">LN5 — Pé de encosta</option><option value="LN6">LN6 — Limite natural não tipificado</option>
                 </optgroup>
               </select>
             </div>
             <div></div>
           </div>
-          <div class="note">Estes são os únicos códigos aceitos pela planilha do SIGEF — mas confirme sempre no Manual Técnico de Posicionamento do INCRA vigente qual número exato (dentro de cada grupo) corresponde ao método/limite real deste trecho; não adivinhe. Como referência geral, Rio/curso d'água costuma ser Limite Natural (LN) e Estrada costuma ser Limite Artificial (LA), mas o app não escolhe isso por você.</div>
+          <div class="note">Significados conforme o Manual Técnico de Posicionamento e o Manual Técnico de Limites e Confrontações do INCRA/SIGEF (vigentes). Ainda assim, confirme sempre no manual atualizado qual código específico corresponde ao método/limite real deste trecho — em caso de dúvida, não adivinhe. Como referência geral, Rio/curso d'água costuma ser Limite Natural (LN1) e Estrada costuma ser Limite Artificial (LA3), mas o app não escolhe isso por você.</div>
         </details>
         <div class="row-end">
           <button type="button" class="btn btn-ghost" id="marco-cancel" style="display:none;">Cancelar edição</button>
@@ -1337,6 +1337,61 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <button type="button" class="btn btn-primary" id="btn-implantar-marcos">Implantar marco(s)</button>
       </div>
     </div>
+
+    <details class="card">
+      <summary style="cursor:pointer; font-family:'Space Grotesk',sans-serif; color:var(--brass-light); font-weight:600; letter-spacing:0.03em;">Aplicar dados avançados do SIGEF em vários marcos de uma vez</summary>
+      <div style="margin-top:14px;">
+        <div class="note" style="margin-top:0;">Escolha o intervalo de marcos (na ordem do contorno, incluindo as duas pontas) e preencha só os campos que quer aplicar ao intervalo inteiro — deixe em branco os que não quer alterar, que eles ficam como já estavam em cada marco. Útil, por exemplo, quando um trecho inteiro foi levantado com o mesmo método/precisão, em vez de repetir marco por marco.</div>
+        <div class="grid g3" style="align-items:flex-end;">
+          <div class="field"><label>De</label><select id="sigef-lote-de"></select></div>
+          <div class="field"><label>Até</label><select id="sigef-lote-ate"></select></div>
+          <div></div>
+        </div>
+        <div class="grid g4">
+          <div class="field"><label>Sigma Longitude/E (m)</label><input id="sigef-lote-sigma-e" type="number" step="0.001" min="0"></div>
+          <div class="field"><label>Sigma Latitude/N (m)</label><input id="sigef-lote-sigma-n" type="number" step="0.001" min="0"></div>
+          <div class="field"><label>Altitude elipsoidal — h (m)</label><input id="sigef-lote-altura" type="number" step="0.001"></div>
+          <div class="field"><label>Sigma h (m)</label><input id="sigef-lote-sigma-h" type="number" step="0.001" min="0"></div>
+        </div>
+        <div class="grid g3">
+          <div class="field"><label>Método de posicionamento</label>
+            <select id="sigef-lote-metodo">
+              <option value="">— (não alterar)</option>
+              <optgroup label="PA — Posicionamento por Geometria Analítica">
+                <option value="PA1">PA1 — Paralela</option><option value="PA2">PA2 — Interseção de Retas</option><option value="PA3">PA3 — Projeção Técnica</option>
+              </optgroup>
+              <optgroup label="PB — Base Cartográfica">
+                <option value="PB1">PB1 — Base cartográfica com precisão conhecida</option><option value="PB2">PB2 — Base cartográfica sem precisão conhecida</option>
+              </optgroup>
+              <optgroup label="PG — Posicionamento por GNSS (satélite)">
+                <option value="PG1">PG1 — Relativo Estático</option><option value="PG2">PG2 — Relativo Estático-Rápido</option><option value="PG3">PG3 — Relativo Semicinemático (Stop and Go)</option><option value="PG4">PG4 — Relativo Cinemático</option><option value="PG5">PG5 — Relativo a partir do Código (C/A)</option><option value="PG6">PG6 — RTK Convencional</option><option value="PG7">PG7 — RTK em Rede</option><option value="PG8">PG8 — DGPS (Differential GPS)</option><option value="PG9">PG9 — Posicionamento por Ponto Preciso (PPP)</option>
+              </optgroup>
+              <optgroup label="PS — Posicionamento por Sensoriamento Remoto">
+                <option value="PS1">PS1 — Aerofotogrametria</option><option value="PS2">PS2 — Radar Aerotransportado</option><option value="PS3">PS3 — Laser Scanner Aerotransportado</option><option value="PS4">PS4 — Sensores Orbitais</option>
+              </optgroup>
+              <optgroup label="PT — Posicionamento por Topografia Clássica">
+                <option value="PT1">PT1 — Poligonação</option><option value="PT2">PT2 — Triangulação</option><option value="PT3">PT3 — Trilateração</option><option value="PT4">PT4 — Triangulateração</option><option value="PT5">PT5 — Irradiação</option><option value="PT6">PT6 — Interseção Linear</option><option value="PT7">PT7 — Interseção Angular</option><option value="PT8">PT8 — Alinhamento</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field"><label>Tipo de limite deste trecho</label>
+            <select id="sigef-lote-tipolimite">
+              <option value="">— (não alterar)</option>
+              <optgroup label="LA — Limite Artificial">
+                <option value="LA1">LA1 — Cerca</option><option value="LA2">LA2 — Muro</option><option value="LA3">LA3 — Estrada</option><option value="LA4">LA4 — Vala</option><option value="LA5">LA5 — Canal</option><option value="LA6">LA6 — Linha ideal</option><option value="LA7">LA7 — Limite artificial não tipificado</option>
+              </optgroup>
+              <optgroup label="LN — Limite Natural">
+                <option value="LN1">LN1 — Corpo d'água ou curso d'água</option><option value="LN2">LN2 — Linha de cumeada</option><option value="LN3">LN3 — Grota</option><option value="LN4">LN4 — Crista de encosta</option><option value="LN5">LN5 — Pé de encosta</option><option value="LN6">LN6 — Limite natural não tipificado</option>
+              </optgroup>
+            </select>
+          </div>
+          <div></div>
+        </div>
+        <div class="row-end">
+          <button type="button" class="btn btn-primary" id="btn-sigef-lote-aplicar">Aplicar ao intervalo selecionado</button>
+        </div>
+      </div>
+    </details>
 
     <div class="card">
       <h2 style="justify-content:space-between;">
@@ -4147,6 +4202,74 @@ function selecionarIntervaloConfrontante(idInicio, idFim, lista, acumular){
   }
   return true;
 }
+
+// ---------- Aplicar dados avançados do SIGEF (sigma/altura/método/tipo de limite) num intervalo
+// de marcos de uma vez, em vez de repetir marco por marco no formulário. ----------
+// Preenche os selects "de/até" dessa ferramenta com os marcos do imóvel atual, na mesma ordem do
+// contorno usada em todo o resto do app — mantém o valor já escolhido quando possível.
+function popularSelectsLoteSigef(lista){
+  const selDe = document.getElementById('sigef-lote-de');
+  const selAte = document.getElementById('sigef-lote-ate');
+  if(!selDe || !selAte) return;
+  const valDe = selDe.value, valAte = selAte.value;
+  const opts = lista.map(m=>`<option value="${m.id}">${escXml(m.codigo)}</option>`).join('');
+  selDe.innerHTML = opts; selAte.innerHTML = opts;
+  if(lista.some(m=>m.id===valDe)) selDe.value = valDe;
+  if(lista.some(m=>m.id===valAte)) selAte.value = valAte;
+}
+// Diferente de selecionarIntervaloConfrontante (que seleciona LADOS e por isso exclui o vértice
+// final), aqui cada item da lista é o próprio marco/vértice sendo editado — então idFim entra na
+// seleção. Permite dar a volta no polígono (idFim "antes" de idInicio nessa ordem).
+function selecionarIntervaloMarcos(idInicio, idFim, lista){
+  const startIdx = lista.findIndex(m=>m.id===idInicio);
+  const endIdx = lista.findIndex(m=>m.id===idFim);
+  if(startIdx===-1 || endIdx===-1) return null;
+  const ids = [];
+  let i = startIdx;
+  while(true){
+    ids.push(lista[i].id);
+    if(i===endIdx) break;
+    i = (i+1) % lista.length;
+  }
+  return ids;
+}
+document.getElementById('btn-sigef-lote-aplicar').addEventListener('click', async ()=>{
+  const selDe = document.getElementById('sigef-lote-de'), selAte = document.getElementById('sigef-lote-ate');
+  const idDe = selDe.value, idAte = selAte.value;
+  if(!idDe || !idAte){ showToast('Escolha os marcos "de" e "até".'); return; }
+  const imId = currentImovelId();
+  const lista = codigosPorTipo(marcosOrdenados(imId));
+  const ids = selecionarIntervaloMarcos(idDe, idAte, lista);
+  if(!ids){ showToast('Não foi possível selecionar esse intervalo.'); return; }
+
+  // Campo em branco = "não alterar" (mantém o que já estava em cada marco) — diferente do
+  // formulário de marco individual, onde deixar em branco/selecionado "—" limparia o valor.
+  const numOuNulo = id => { const v = document.getElementById(id).value; return v!=='' ? Number(v) : null; };
+  const sigmaE = numOuNulo('sigef-lote-sigma-e'), sigmaN = numOuNulo('sigef-lote-sigma-n');
+  const altura = numOuNulo('sigef-lote-altura'), sigmaH = numOuNulo('sigef-lote-sigma-h');
+  const metodo = document.getElementById('sigef-lote-metodo').value;
+  const tipoLimite = document.getElementById('sigef-lote-tipolimite').value;
+  if(sigmaE==null && sigmaN==null && altura==null && sigmaH==null && !metodo && !tipoLimite){
+    showToast('Preencha ao menos um campo para aplicar ao intervalo.'); return;
+  }
+  const codigoDe = selDe.selectedOptions[0].textContent, codigoAte = selAte.selectedOptions[0].textContent;
+  if(!confirm(`Aplicar os campos preenchidos a ${ids.length} marco(s) (de ${codigoDe} até ${codigoAte})?`)) return;
+
+  ids.forEach(id=>{
+    const m = state.marcos.find(x=>x.id===id);
+    if(!m) return;
+    if(sigmaE!=null) m.sigmaE = sigmaE;
+    if(sigmaN!=null) m.sigmaN = sigmaN;
+    if(altura!=null) m.alturaElipsoidal = altura;
+    if(sigmaH!=null) m.sigmaH = sigmaH;
+    if(metodo) m.metodoPosicionamento = metodo;
+    if(tipoLimite) m.tipoLimite = tipoLimite;
+  });
+  await save('marcos');
+  renderMarcos();
+  showToast(`Dados do SIGEF aplicados a ${ids.length} marco(s).`);
+});
+
 function renderConfrontantePoligono(){
   const container = document.getElementById('confrontante-svg-container');
   if(!container) return;
@@ -5507,6 +5630,7 @@ function renderMarcos(){
   const tb=document.querySelector('#table-marco tbody'); tb.innerHTML='';
   const lista = codigosPorTipo(marcosOrdenados(imId));
   document.getElementById('empty-marco').style.display = lista.length? 'none':'block';
+  if(typeof popularSelectsLoteSigef==='function') popularSelectsLoteSigef(lista);
   const imovel = state.imoveis.find(x=>x.id===imId) || {};
   const {zona, sul} = inferirZonaHemisferio(imovel, lista);
   const fmt = (typeof marcoCoordFormato!=='undefined') ? marcoCoordFormato : 'utm';
@@ -6068,8 +6192,8 @@ const MODELO_CAMPOS_MARCO = [
   {chave:'sigmaN', kml:'Marco_Sigma_N_Lat', dbf:'MC_SIGN', tipo:'N', tamanho:10, decimais:3, exemplo:'', ajuda:'Precisão (sigma) da coordenada N/Latitude, em metros — opcional, campo da planilha do SIGEF.'},
   {chave:'alturaElipsoidal', kml:'Marco_Altura_Elipsoidal_h', dbf:'MC_ALTH', tipo:'N', tamanho:12, decimais:3, exemplo:'', ajuda:'Altitude elipsoidal (h), em metros — opcional, campo da planilha do SIGEF.'},
   {chave:'sigmaH', kml:'Marco_Sigma_H', dbf:'MC_SIGH', tipo:'N', tamanho:10, decimais:3, exemplo:'', ajuda:'Precisão (sigma) da altitude elipsoidal, em metros — opcional, campo da planilha do SIGEF.'},
-  {chave:'metodoPosicionamento', kml:'Marco_Metodo_Posicionamento', dbf:'MC_METPOS', tipo:'C', tamanho:5, exemplo:'', ajuda:'Código do método de posicionamento GNSS da planilha do SIGEF (PA1-3, PB1-2, PG1-9, PS1-4 ou PT1-8) — opcional; confira o código exato no Manual Técnico de Posicionamento do INCRA vigente.'},
-  {chave:'tipoLimite', kml:'Marco_Tipo_Limite', dbf:'MC_TIPLIM', tipo:'C', tamanho:5, exemplo:'', ajuda:'Código do tipo de limite deste trecho na planilha do SIGEF (LA1-7 = Limite Artificial, LN1-6 = Limite Natural) — opcional; confira o código exato no Manual Técnico de Posicionamento do INCRA vigente.'},
+  {chave:'metodoPosicionamento', kml:'Marco_Metodo_Posicionamento', dbf:'MC_METPOS', tipo:'C', tamanho:5, exemplo:'', ajuda:'Código do método de posicionamento da planilha do SIGEF: PA1-3 (Geometria Analítica), PB1-2 (Base Cartográfica), PG1-9 (GNSS/satélite), PS1-4 (Sensoriamento Remoto) ou PT1-8 (Topografia Clássica) — opcional; confira o código exato no Manual Técnico de Posicionamento do INCRA vigente.'},
+  {chave:'tipoLimite', kml:'Marco_Tipo_Limite', dbf:'MC_TIPLIM', tipo:'C', tamanho:5, exemplo:'', ajuda:'Código do tipo de limite deste trecho na planilha do SIGEF (LA1-7 = Limite Artificial, LN1-6 = Limite Natural) — opcional; confira o código exato no Manual Técnico de Limites e Confrontações do INCRA vigente.'},
 ];
 function pegarValorCampo(atributos, campoDef){
   return pegarAtributoSigef(atributos, [campoDef.kml, campoDef.dbf, campoDef.chave]);
