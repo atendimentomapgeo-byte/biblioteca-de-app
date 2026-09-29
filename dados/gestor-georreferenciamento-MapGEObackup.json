@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-29T02:25:15.539Z",
+  "exportadoEm": "2026-09-29T02:26:33.732Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -858,43 +858,51 @@
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 3,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada A",
+      "confrontanteImovelId": "mud9imu6418s4",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 511972.727,
-      "coordN": 8754642.287
+      "coordN": 8754642.287,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud93vdtmhe8e",
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 4,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada A",
+      "confrontanteImovelId": "mud9imu6418s4",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 512120.425,
-      "coordN": 8754457.11
+      "coordN": 8754457.11,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud93vdt63o8d",
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 5,
-      "confrontante": "FAZENDA SÃO TIAGO - LOTE N° 451 - -",
-      "confrontanteImovelId": "mum1bzpsr31em",
+      "confrontante": "Estrada A",
+      "confrontanteImovelId": "mud9imu6418s4",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 512189.34,
       "coordN": 8754359.999,
-      "confrontanteOrigem": "sigef"
+      "confrontanteOrigem": "cadastro",
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": ""
     },
     {
       "id": "mud93vdtpq01b",
