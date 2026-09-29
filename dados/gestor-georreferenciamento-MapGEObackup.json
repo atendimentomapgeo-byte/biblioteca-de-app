@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-29T02:18:21.303Z",
+  "exportadoEm": "2026-09-29T02:20:47.535Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -132,9 +132,8 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": "",
-      "infoImovelOffE": 112.79599999999998,
-      "infoImovelOffN": -89.86999999999999,
-      "infoImovelAng": 37
+      "situacaoRegistral": "",
+      "cns": ""
     },
     {
       "id": "mud93vdrk068q",
@@ -1009,7 +1008,10 @@
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 508717.688,
-      "coordN": 8752889.538
+      "coordN": 8752889.538,
+      "confrontanteOrigem": "",
+      "confrontanteTipo": "",
+      "confrontanteAssinanteNome": ""
     },
     {
       "id": "mud95j745wpsb",
