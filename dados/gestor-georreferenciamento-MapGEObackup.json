@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-29T02:20:47.535Z",
+  "exportadoEm": "2026-09-29T02:25:15.539Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -909,7 +909,9 @@
       "codigoCompleto": null,
       "coordE": 512223.778,
       "coordN": 8754327.174,
-      "confrontanteOrigem": "sigef"
+      "confrontanteOrigem": "cadastro",
+      "confrontanteTipo": "",
+      "confrontanteAssinanteNome": ""
     },
     {
       "id": "mud93vdtpbmw4",
