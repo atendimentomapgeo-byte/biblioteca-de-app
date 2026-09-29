@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-29T02:16:00.527Z",
+  "exportadoEm": "2026-09-29T02:17:00.753Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -951,7 +951,7 @@
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 9,
-      "confrontante": "Fazenda São José - Parte 1",
+      "confrontante": "Córrego Piau",
       "confrontanteImovelId": "mum1m5vlimm04",
       "codigoSigef": "",
       "implantado": false,
@@ -960,7 +960,7 @@
       "coordE": 509022.488,
       "coordN": 8752802.755,
       "confrontanteOrigem": "cadastro",
-      "confrontanteTipo": "",
+      "confrontanteTipo": "rio",
       "confrontanteAssinanteNome": ""
     },
     {
@@ -968,7 +968,7 @@
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 10,
-      "confrontante": "Fazenda São José - Parte 1",
+      "confrontante": "Córrego Piau",
       "confrontanteImovelId": "mum1m5vlimm04",
       "codigoSigef": "",
       "implantado": false,
@@ -977,7 +977,7 @@
       "coordE": 508931.471,
       "coordN": 8752790.055,
       "confrontanteOrigem": "cadastro",
-      "confrontanteTipo": "",
+      "confrontanteTipo": "rio",
       "confrontanteAssinanteNome": ""
     },
     {
