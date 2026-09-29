@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-09-29T02:04:44.485Z",
+  "exportadoEm": "2026-09-29T02:06:17.909Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -351,6 +351,45 @@
       "sigefResponsavelTecnico": "",
       "simcar": "MT00000/2026",
       "simcarSituacao": "Ativo"
+    },
+    {
+      "id": "mum1bzpsr31em",
+      "nome": "FAZENDA SÃO TIAGO - LOTE N° 451 - -",
+      "matricula": "064287.2.0007667-30",
+      "area": "",
+      "municipio": "Tabaporã",
+      "uf": "MT",
+      "comarca": "",
+      "proprietarioId": "",
+      "tecnicoId": "",
+      "datum": "",
+      "perimetro": "",
+      "utmZona": "",
+      "codigoIncra": "9010750450715",
+      "leiDecreto": "",
+      "parcelaSigef": "a5cf249f-2cdf-42ec-8018-27d488a7f071",
+      "parcelaSigefSituacao": "REGISTRADA",
+      "simcar": "",
+      "simcarSituacao": "",
+      "origemSigefImportado": true,
+      "sigefDataCertificacao": "2025-11-27",
+      "sigefResponsavelTecnico": "RCIE — ART 1220250250190-MT",
+      "sigefAtributosBrutos": {
+        "boundedBy": "-11.285454 -56.914721\n        \t\t-11.268598 -56.879961",
+        "id": "106372676",
+        "parcela_codigo": "a5cf249f-2cdf-42ec-8018-27d488a7f071",
+        "rt": "RCIE",
+        "art": "1220250250190-MT",
+        "situacao_informada": "REGISTRADA",
+        "codigo_imovel": "9010750450715",
+        "data_submissao": "2025-11-27",
+        "data_aprovacao": "2025-11-27",
+        "status": "REGISTRADA",
+        "ltrim": "FAZENDA SÃO TIAGO - LOTE N° 451 - -",
+        "registro_matricula": "064287.2.0007667-30",
+        "registro_data": "2026-08-03",
+        "codigo_municipio": "5107941"
+      }
     }
   ],
   "marcos": [
@@ -688,14 +727,15 @@
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 2,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Lote nº 412",
+      "confrontanteImovelId": "mud99cbx736lj",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 511849.469,
-      "coordN": 8754800.87
+      "coordN": 8754800.87,
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mud93vdt8mczg",
@@ -730,28 +770,30 @@
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 5,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "FAZENDA SÃO TIAGO - LOTE N° 451 - -",
+      "confrontanteImovelId": "mum1bzpsr31em",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 512189.34,
-      "coordN": 8754359.999
+      "coordN": 8754359.999,
+      "confrontanteOrigem": "sigef"
     },
     {
       "id": "mud93vdtpq01b",
       "imovelId": "mud93vdrk068q",
       "tipo": "V",
       "ordem": 6,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "FAZENDA SÃO TIAGO - LOTE N° 451 - -",
+      "confrontanteImovelId": "mum1bzpsr31em",
       "codigoSigef": "",
       "implantado": false,
       "numeroCatalogo": null,
       "codigoCompleto": null,
       "coordE": 512223.778,
-      "coordN": 8754327.174
+      "coordN": 8754327.174,
+      "confrontanteOrigem": "sigef"
     },
     {
       "id": "mud93vdtpbmw4",
