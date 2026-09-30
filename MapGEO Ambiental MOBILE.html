@@ -534,6 +534,7 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
   }
   #btn-settings::before{content:'⚙';font-size:18px;}
   #btn-search-car::before{content:'🔍';font-size:18px;}
+  #btn-search-incra::before{content:'🔍';font-size:18px;}
   #btn-run-diagnostico::before{content:'▶';font-size:15px;}
 
   .app{
@@ -761,6 +762,7 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
     <span id="status-text" style="font-size:11.5px;color:var(--text-2);">Nenhum imóvel carregado</span>
     <button class="small" id="btn-settings" title="Configurações de conexão">⚙ Conexão</button>
     <button class="small" id="btn-search-car" title="Buscar imóvel por número de CAR (SEMA-MT)">🔍 Buscar CAR</button>
+    <button class="small" id="btn-search-incra" title="Buscar parcela/imóvel por código INCRA (SIGEF/SNCI)">🔍 Buscar Parcela</button>
     <button class="primary small" id="btn-run-diagnostico" title="Cruza o imóvel carregado com as 35 bases fundiárias e ambientais já confirmadas (INCRA/SIGEF, INTERMAT, SEMA‑MT, IBAMA, INPE)">▶ Análise Preliminar</button>
     <input type="file" id="file-input"
        accept=".kml,.kmz,.geojson,.json,.zip,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz,application/geo+json,application/json,application/zip"
@@ -783,6 +785,36 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
     <button id="btn-close-car-search" style="width:100%;margin-top:8px;">Fechar</button>
     <div id="car-search-status" style="font-size:11.5px;margin-top:10px;color:var(--text-2);"></div>
     <div id="car-search-results" style="margin-top:10px;max-height:280px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div id="incra-search-modal" class="modal hidden">
+  <div class="modal-card">
+    <h3>Buscar parcela/imóvel INCRA</h3>
+    <p class="modal-desc">Busca direto nas bases SIGEF e SNCI da INCRA via INTERMAT. O polígono encontrado vira automaticamente o imóvel em análise — clique num resultado pra carregar.</p>
+    <div class="field">
+      <label>Tipo de busca</label>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="secondary" id="btn-type-sigef" style="flex:1;border-radius:6px;padding:8px;font-size:13px;">SIGEF (georreferenciado)</button>
+        <button class="secondary" id="btn-type-snci" style="flex:1;border-radius:6px;padding:8px;font-size:13px;">SNCI (pré-SIGEF)</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:12px;">
+      <label id="incra-field-label">Código de parcela (SIGEF)</label>
+      <input type="text" id="input-incra-search" placeholder="Ex.: ABC123">
+    </div>
+    <div class="field" style="margin-top:8px;">
+      <label style="font-size:12px;color:var(--text-2);">
+        <input type="checkbox" id="check-incra-publico" style="margin-right:6px;">
+        Buscar também em propriedades públicas
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="primary" id="btn-do-incra-search" style="flex:1;">Buscar Parcela</button>
+    </div>
+    <button id="btn-close-incra-search" style="width:100%;margin-top:8px;">Fechar</button>
+    <div id="incra-search-status" style="font-size:11.5px;margin-top:10px;color:var(--text-2);"></div>
+    <div id="incra-search-results" style="margin-top:10px;max-height:280px;overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -2030,6 +2062,43 @@ const connectors = [
     layerId:7,
     async query(propertyFeature, forceRefresh){ return queryIntermatArcGis(INTERMAT_SERVICE_URL, this.layerId, propertyFeature, this.id, forceRefresh); }
   },
+  // ---------- FUNDIÁRIO — INCRA (dados federais via INTERMAT) ----------
+  {
+    id:'incra_intermat_snci_privado', group:'fundiario', category:'INCRA — Dados de Propriedades (INTERMAT)', name:'SNCI Privado (pré-SIGEF) — INCRA/INTERMAT',
+    source:'INCRA — Dados Fundiários (INTERMAT via ArcGIS REST)', type:'ArcGIS REST', status:'live',
+    layerId:1,
+    async query(propertyFeature, forceRefresh){ return queryIntermatArcGis(INCRA_INTERMAT_DADOS_URL, this.layerId, propertyFeature, this.id, forceRefresh); }
+  },
+  {
+    id:'incra_intermat_snci_publico', group:'fundiario', category:'INCRA — Dados de Propriedades (INTERMAT)', name:'SNCI Público (pré-SIGEF) — INCRA/INTERMAT',
+    source:'INCRA — Dados Fundiários (INTERMAT via ArcGIS REST)', type:'ArcGIS REST', status:'live',
+    layerId:2,
+    async query(propertyFeature, forceRefresh){ return queryIntermatArcGis(INCRA_INTERMAT_DADOS_URL, this.layerId, propertyFeature, this.id, forceRefresh); }
+  },
+  {
+    id:'incra_intermat_sigef_privado', group:'fundiario', category:'INCRA — Dados de Propriedades (INTERMAT)', name:'SIGEF Privado (georreferenciado) — INCRA/INTERMAT',
+    source:'INCRA — Dados Fundiários (INTERMAT via ArcGIS REST)', type:'ArcGIS REST', status:'live',
+    layerId:3,
+    async query(propertyFeature, forceRefresh){ return queryIntermatArcGis(INCRA_INTERMAT_DADOS_URL, this.layerId, propertyFeature, this.id, forceRefresh); }
+  },
+  {
+    id:'incra_intermat_sigef_publico', group:'fundiario', category:'INCRA — Dados de Propriedades (INTERMAT)', name:'SIGEF Público (georreferenciado) — INCRA/INTERMAT',
+    source:'INCRA — Dados Fundiários (INTERMAT via ArcGIS REST)', type:'ArcGIS REST', status:'live',
+    layerId:4,
+    async query(propertyFeature, forceRefresh){ return queryIntermatArcGis(INCRA_INTERMAT_DADOS_URL, this.layerId, propertyFeature, this.id, forceRefresh); }
+  },
+  {
+    id:'incra_intermat_arrecadacao', group:'fundiario', category:'INCRA — Dados de Propriedades (INTERMAT)', name:'Arrecadação — INCRA/INTERMAT',
+    source:'INCRA — Dados Fundiários (INTERMAT via ArcGIS REST)', type:'ArcGIS REST', status:'live',
+    layerId:5,
+    async query(propertyFeature, forceRefresh){ return queryIntermatArcGis(INCRA_INTERMAT_DADOS_URL, this.layerId, propertyFeature, this.id, forceRefresh); }
+  },
+  {
+    id:'incra_intermat_assentamento', group:'fundiario', category:'INCRA — Dados de Propriedades (INTERMAT)', name:'Assentamento — INCRA/INTERMAT',
+    source:'INCRA — Dados Fundiários (INTERMAT via ArcGIS REST)', type:'ArcGIS REST', status:'live',
+    layerId:6,
+    async query(propertyFeature, forceRefresh){ return queryIntermatArcGis(INCRA_INTERMAT_DADOS_URL, this.layerId, propertyFeature, this.id, forceRefresh); }
+  },
   // ---------- VEGETAÇÃO/RESERVA LEGAL — necessárias para o Diagnóstico CAR (Composição Ambiental) ----------
   {
     id:'sema_car_avn', group:'ambiental', category:'CAR / SIMCAR — Áreas', name:'Área de Vegetação Nativa - AVN',
@@ -2353,6 +2422,225 @@ document.getElementById('btn-do-car-search').addEventListener('click', async ()=
   }
 });
 
+/* ---------- INCRA Parcela/Imóvel Search Modal ---------- */
+// Função genérica para busca por atributo em camadas INCRA
+async function queryIncraByAttribute(serviceUrl, layerId, fieldName, fieldValue, connectorId, forceRefresh){
+  if(!forceRefresh){
+    const cacheKey = `${connectorId}|${fieldName}=${fieldValue}`;
+    const cached = cacheGet(cacheKey, null);
+    if(cached) return cached.geojson;
+  }
+
+  const hostname = (()=>{ try{ return new URL(serviceUrl).hostname; }catch(e){ return 'servidor ArcGIS'; } })();
+
+  const escapedValue = String(fieldValue).replace(/'/g, "''");
+  const whereClause = `${fieldName}='${escapedValue}'`;
+  const baseUrl = `${serviceUrl}/${layerId}/query?where=${encodeURIComponent(whereClause)}&outFields=*&outSR=4326&f=geojson`;
+  const url = settings.proxy ? settings.proxy + encodeURIComponent(baseUrl) : baseUrl;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), 20000);
+  let resp;
+  try{
+    resp = await fetch(url, { signal: controller.signal });
+  }catch(networkErr){
+    clearTimeout(timeoutId);
+    if(networkErr.name === 'AbortError'){
+      throw new Error(`Tempo esgotado consultando ${hostname}. Tente novamente em alguns instantes.`);
+    }
+    if(!settings.proxy){
+      throw new Error(`Não foi possível alcançar ${hostname} diretamente pelo navegador (provável bloqueio de CORS). Configure um proxy em "⚙ Conexão".`);
+    }
+    throw new Error(`Não foi possível alcançar o proxy configurado.`);
+  }
+  clearTimeout(timeoutId);
+
+  const rawText = await resp.text();
+  if(!resp.ok){
+    throw new Error(`O servidor ${hostname} retornou HTTP ${resp.status}. Resposta: ${rawText.slice(0,300)}`);
+  }
+
+  let gj;
+  try{
+    gj = JSON.parse(rawText);
+  }catch(parseErr){
+    throw new Error(`${hostname} não retornou JSON válido para a busca por ${fieldName}='${fieldValue}'.`);
+  }
+  if(gj.error){
+    throw new Error(`${hostname} recusou a consulta: ` + (gj.error.message || JSON.stringify(gj.error)));
+  }
+  if(!gj.features){
+    throw new Error(`Nenhuma parcela encontrada com ${fieldName}='${fieldValue}'`);
+  }
+
+  const cacheKey = `${connectorId}|${fieldName}=${fieldValue}`;
+  cacheSet(cacheKey, null, gj);
+  return gj;
+}
+
+// Helpers para busca SIGEF e SNCI
+async function buscaParcelaSigef(codigoParcela, privado=true){
+  const layerId = privado ? 3 : 4;
+  const tipo = privado ? 'privada' : 'pública';
+  const resultado = await queryIncraByAttribute(INCRA_INTERMAT_DADOS_URL, layerId, 'parcela_co', codigoParcela, `sigef_${tipo}_${codigoParcela}`);
+  console.log(`✅ ${resultado.features.length} parcela(s) SIGEF ${tipo} encontrada(s)`);
+  return resultado;
+}
+
+async function buscaImovelSnci(codImovel, privado=true){
+  const layerId = privado ? 1 : 2;
+  const tipo = privado ? 'privada' : 'pública';
+  const resultado = await queryIncraByAttribute(INCRA_INTERMAT_DADOS_URL, layerId, 'cod_imovel', codImovel, `snci_${tipo}_${codImovel}`);
+  console.log(`✅ ${resultado.features.length} imóvel(is) SNCI ${tipo} encontrado(s)`);
+  return resultado;
+}
+
+let incraSearchType = 'sigef';
+
+document.getElementById('btn-search-incra').addEventListener('click', ()=>{
+  incraSearchType = 'sigef';
+  document.getElementById('input-incra-search').value = '';
+  document.getElementById('incra-search-status').textContent = '';
+  document.getElementById('incra-search-results').innerHTML = '';
+  document.getElementById('check-incra-publico').checked = false;
+  updateIncraSearchUI();
+  document.getElementById('incra-search-modal').classList.remove('hidden');
+  document.getElementById('input-incra-search').focus();
+});
+
+document.getElementById('btn-close-incra-search').addEventListener('click', ()=>{
+  document.getElementById('incra-search-modal').classList.add('hidden');
+});
+
+document.getElementById('btn-type-sigef').addEventListener('click', ()=>{
+  incraSearchType = 'sigef';
+  updateIncraSearchUI();
+});
+
+document.getElementById('btn-type-snci').addEventListener('click', ()=>{
+  incraSearchType = 'snci';
+  updateIncraSearchUI();
+});
+
+function updateIncraSearchUI(){
+  const sigefBtn = document.getElementById('btn-type-sigef');
+  const snciBtn = document.getElementById('btn-type-snci');
+  const label = document.getElementById('incra-field-label');
+  const input = document.getElementById('input-incra-search');
+
+  if(incraSearchType === 'sigef'){
+    sigefBtn.classList.add('primary');
+    sigefBtn.classList.remove('secondary');
+    snciBtn.classList.remove('primary');
+    snciBtn.classList.add('secondary');
+    label.textContent = 'Código de parcela (SIGEF)';
+    input.placeholder = 'Ex.: ABC123';
+  }else{
+    snciBtn.classList.add('primary');
+    snciBtn.classList.remove('secondary');
+    sigefBtn.classList.remove('primary');
+    sigefBtn.classList.add('secondary');
+    label.textContent = 'Código de imóvel (SNCI)';
+    input.placeholder = 'Ex.: 1234567890123';
+  }
+}
+
+document.getElementById('input-incra-search').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('btn-do-incra-search').click();
+});
+
+document.getElementById('btn-do-incra-search').addEventListener('click', async ()=>{
+  const codigo = document.getElementById('input-incra-search').value.trim();
+  const buscaPublico = document.getElementById('check-incra-publico').checked;
+  const statusEl = document.getElementById('incra-search-status');
+  const resultsEl = document.getElementById('incra-search-results');
+
+  if(!codigo){
+    toast('Digite um código para buscar', 3000);
+    return;
+  }
+
+  resultsEl.innerHTML = '';
+  statusEl.textContent = '⏳ Buscando…';
+
+  try{
+    const allFeatures = [];
+
+    if(incraSearchType === 'sigef'){
+      statusEl.textContent = '⏳ Buscando em SIGEF privado…';
+      try{
+        const result1 = await buscaParcelaSigef(codigo, true);
+        if(result1.features) allFeatures.push(...result1.features);
+      }catch(e){
+        console.log('SIGEF privado:', e.message);
+      }
+
+      if(buscaPublico){
+        statusEl.textContent = '⏳ Buscando em SIGEF público…';
+        try{
+          const result2 = await buscaParcelaSigef(codigo, false);
+          if(result2.features) allFeatures.push(...result2.features);
+        }catch(e){
+          console.log('SIGEF público:', e.message);
+        }
+      }
+    }else{
+      statusEl.textContent = '⏳ Buscando em SNCI privado…';
+      try{
+        const result1 = await buscaImovelSnci(codigo, true);
+        if(result1.features) allFeatures.push(...result1.features);
+      }catch(e){
+        console.log('SNCI privado:', e.message);
+      }
+
+      if(buscaPublico){
+        statusEl.textContent = '⏳ Buscando em SNCI público…';
+        try{
+          const result2 = await buscaImovelSnci(codigo, false);
+          if(result2.features) allFeatures.push(...result2.features);
+        }catch(e){
+          console.log('SNCI público:', e.message);
+        }
+      }
+    }
+
+    if(allFeatures.length === 0){
+      statusEl.textContent = `❌ Nenhuma parcela encontrada com esse código.`;
+      return;
+    }
+
+    const tipoNome = incraSearchType === 'sigef' ? 'SIGEF' : 'SNCI';
+    statusEl.textContent = `✅ ${allFeatures.length} resultado(s) encontrado(s):`;
+
+    allFeatures.forEach((feat)=>{
+      const props = feat.properties || {};
+      let titulo, meta;
+
+      if(incraSearchType === 'sigef'){
+        titulo = props.parcela_co || props.codigo_imo || '(sem código)';
+        const situacao = props.situacao_i || '';
+        const registro = props.registro_m ? `Matrícula: ${props.registro_m}` : '';
+        meta = `${props.nome_area || ''}${situacao ? ' · ' + escapeHtml(String(situacao)) : ''}${registro ? '<br>' + escapeHtml(registro) : ''}`;
+      }else{
+        titulo = props.cod_imovel || props.num_proces || '(sem código)';
+        const numProcesso = props.num_proces ? `Processo: ${props.num_proces}` : '';
+        const nomeImovel = props.nome_imove ? escapeHtml(String(props.nome_imove)) : '';
+        meta = `${nomeImovel}${numProcesso ? '<br>' + escapeHtml(numProcesso) : ''}`;
+      }
+
+      appendPropertySearchResultRow(resultsEl, feat, {
+        titulo: titulo,
+        meta: meta,
+        sourceFormat: `${tipoNome} (busca automática)`,
+        filenameBase: titulo
+      });
+    });
+  }catch(err){
+    statusEl.textContent = '';
+    toast(err.message, 6000);
+  }
+});
+
 async function fetchSemaWfsOnce(layerName, bboxParam){
   const baseUrl = `https://geo.sema.mt.gov.br/geoserver/Geoportal/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=Geoportal:${layerName}&outputFormat=application/json&srsName=EPSG:4326&bbox=${bboxParam},EPSG:4326&authkey=${SEMA_AUTHKEY}`;
   const url = settings.proxy ? settings.proxy + encodeURIComponent(baseUrl) : baseUrl;
@@ -2486,6 +2774,7 @@ async function queryTerraBrasilisWfs(workspace, typeName, propertyFeature, conne
 /* ---------- INTERMAT — ArcGIS REST Server (intergeo.intermat.mt.gov.br) ---------- */
 const INTERMAT_SERVICE_URL = 'https://intergeo.intermat.mt.gov.br/server/rest/services/INTERGEO/Base_Cartografica/FeatureServer';
 const INTERMAT_TEMATICO_URL = 'https://intergeo.intermat.mt.gov.br/server/rest/services/mapas_tematicos/GP01/FeatureServer';
+const INCRA_INTERMAT_DADOS_URL = 'https://intergeo.intermat.mt.gov.br/server/rest/services/GovernoFederal/Dados_INCRA/MapServer';
 const IBAMA_EMBARGOS_URL = 'https://pamgia.ibama.gov.br/server/rest/services/01_Publicacoes_Bases/adm_embargos_ibama_a/MapServer';
 const IBAMA_EMPREENDIMENTO_URL = 'https://pamgia.ibama.gov.br/server/rest/services/SIGAGEO/tb_empreendimento_a/MapServer';
 const IBAMA_RPPN_URL = 'https://pamgia.ibama.gov.br/server/rest/services/Hosted/rppn_br/FeatureServer';
