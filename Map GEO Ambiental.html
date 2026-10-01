@@ -485,6 +485,10 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
   box-shadow:0 4px 14px -4px rgba(56,208,187,.5), inset 0 1px 0 rgba(255,255,255,.25);
 }
 .search-tab.active .st-ico{filter:none;opacity:1;transform:scale(1.1);}
+.base-update-info{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;background:var(--bg-0);font-size:11.5px;line-height:1.5;color:var(--text-1);}
+.base-update-info.hidden{display:none;}
+.base-update-info b{color:var(--text-0);}
+.base-update-info .bu-sub{display:block;font-size:10.5px;color:var(--text-2);}
 .search-hint{font-size:11px;color:var(--text-2);line-height:1.5;margin:8px 0 0;}
 
 /* print report */
@@ -872,6 +876,7 @@ details.layer-group .layer-group-body{padding:2px 13px 12px;border-top:1px solid
     </div>
     <button id="btn-close-car-search" style="width:100%;margin-top:8px;">Fechar</button>
     <div id="car-search-status" style="font-size:11.5px;margin-top:10px;color:var(--text-2);"></div>
+    <div id="base-update-info" class="base-update-info hidden"></div>
     <div id="car-search-results" style="margin-top:10px;max-height:280px;overflow-y:auto;"></div>
   </div>
 </div>
@@ -1113,7 +1118,7 @@ const state = {
 };
 
 // Versão do app — mostrada abaixo do título no cabeçalho. A cada alteração, incrementar aqui (V 1.0.01 → V 1.0.02 …).
-const APP_VERSION = 'V 1.0.01';
+const APP_VERSION = 'V 1.0.02';
 document.getElementById('app-version').textContent = APP_VERSION;
 
 const IBGE_UF_CODE = 51; // Mato Grosso
@@ -2625,6 +2630,83 @@ function montaCartaoBuscaIncra(tipo, feat, resultsEl){
   });
 }
 
+/* ---------- "Base atualizada até": data do último cadastro incluído na base consultada ----------
+   Roda junto com cada busca (CAR, SNCI, SIGEF) e mostra o quão atual é a base, independente do imóvel pesquisado.
+   - SNCI (camadas 1 e 2): maior data_certi.   - SIGEF (camadas 3 e 4): maior data_aprov (e o código dessa parcela).
+   - CAR: a SEMA-MT NÃO publica campo de data nas camadas CAR_ATP / MVW_REQUERIMENTO_ATP (confirmado em 01/10/2026),
+     então mostramos o último CAR protocolado (maior REQUERIMENTO_ID da base "em análise"), sem data. */
+const BASE_INFO_CFG = {
+  imovel:  { campoData:'data_certi', saida:'data_certi,cod_imovel,nome_imove', rotulo:'Certificação mais recente',  camadas:INCRA_BUSCA_CONFIG.imovel.camadas,  fonte:'SNCI (INCRA, cópia INTERMAT)',  codigo:'cod_imovel' },
+  parcela: { campoData:'data_aprov', saida:'data_aprov,parcela_co,nome_area', rotulo:'Aprovação mais recente', camadas:INCRA_BUSCA_CONFIG.parcela.camadas, fonte:'SIGEF (INCRA, cópia INTERMAT)', codigo:'parcela_co' }
+};
+const baseInfoCache = {};   // tipo -> {ts, html}  (10 min, só em memória)
+
+function attrCI(obj, nome){
+  if(!obj) return undefined;
+  const k = Object.keys(obj).find(x=> x.toLowerCase() === nome.toLowerCase());
+  return k === undefined ? undefined : obj[k];
+}
+async function fetchTextViaProxy(baseUrl, ms){
+  const url = settings.proxy ? settings.proxy + encodeURIComponent(baseUrl) : baseUrl;
+  const controller = new AbortController();
+  const t = setTimeout(()=>controller.abort(), ms || 20000);
+  try{
+    const resp = await fetch(url, { signal: controller.signal });
+    const txt = await resp.text();
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    return txt;
+  } finally { clearTimeout(t); }
+}
+async function ultimaDataCamadaIncra(camada, cfg){
+  const where = `${cfg.campoData} IS NOT NULL`;
+  const baseUrl = `${INTERMAT_INCRA_URL}/${camada.id}/query?where=${encodeURIComponent(where)}&outFields=${cfg.saida}&orderByFields=${encodeURIComponent(cfg.campoData + ' DESC')}&resultRecordCount=1&returnGeometry=false&f=json`;
+  const j = JSON.parse(await fetchTextViaProxy(baseUrl));
+  if(j.error) throw new Error(j.error.message || 'erro do servidor');
+  const a = j.features && j.features[0] ? j.features[0].attributes : null;
+  if(!a) return null;
+  const ms = Number(attrCI(a, cfg.campoData));
+  if(!isFinite(ms)) return null;
+  return { ms, origem: camada.origem, codigo: attrCI(a, cfg.codigo), nome: attrCI(a, cfg.saida.split(',')[2]) };
+}
+function fmtDataBaseBR(ms){
+  // datas do ArcGIS vêm à meia-noite UTC: UTC evita aparecer 1 dia antes no horário de MT (UTC-4)
+  return new Date(ms).toLocaleDateString('pt-BR', { timeZone:'UTC' });
+}
+async function montaInfoBase(tipo){
+  if(tipo === 'car'){
+    const baseUrl = `https://geo.sema.mt.gov.br/geoserver/Geoportal/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=Geoportal:MVW_REQUERIMENTO_ATP&outputFormat=application/json&count=1&sortBy=${encodeURIComponent('REQUERIMENTO_ID D')}&authkey=${SEMA_AUTHKEY}`;
+    const gj = JSON.parse(await fetchTextViaProxy(baseUrl));
+    const pr = gj.features && gj.features[0] ? gj.features[0].properties : null;
+    if(!pr) throw new Error('sem resultado');
+    const num = pr.NUMEROESTADUAL || pr.CODIGO_CAR_FEDERAL || '(sem número)';
+    return `<b>Último CAR protocolado na base SEMA-MT:</b> ${escapeHtml(String(num))}`
+      + `<span class="bu-sub">A SEMA-MT não publica a data de cadastro nessas camadas — o ano do número é a única referência.</span>`;
+  }
+  const cfg = BASE_INFO_CFG[tipo];
+  const res = await Promise.allSettled(cfg.camadas.map(c=> ultimaDataCamadaIncra(c, cfg)));
+  const oks = res.filter(r=> r.status === 'fulfilled' && r.value).map(r=> r.value);
+  if(!oks.length) throw new Error('sem resultado');
+  const top = oks.reduce((a,b)=> b.ms > a.ms ? b : a);
+  const parcial = res.some(r=> r.status === 'rejected') ? ' (uma das camadas não respondeu)' : '';
+  return `<b>Base atualizada até ${fmtDataBaseBR(top.ms)}</b> — ${cfg.rotulo.toLowerCase()} em ${escapeHtml(top.origem)}${parcial}`
+    + `<span class="bu-sub">Último registro: ${escapeHtml(String(top.codigo || '—'))}${top.nome ? ' · ' + escapeHtml(String(top.nome)) : ''} · ${cfg.fonte}</span>`;
+}
+async function atualizaInfoBase(tipo){
+  const box = document.getElementById('base-update-info');
+  const hit = baseInfoCache[tipo];
+  if(hit && Date.now() - hit.ts < 10*60*1000){ box.innerHTML = hit.html; box.classList.remove('hidden'); return; }
+  box.innerHTML = '⏳ Verificando a data do último cadastro da base…';
+  box.classList.remove('hidden');
+  try{
+    const html = await montaInfoBase(tipo);
+    baseInfoCache[tipo] = { ts: Date.now(), html };
+    if(modoBusca === tipo) box.innerHTML = html;   // não sobrescreve se o usuário já trocou de tipo
+  }catch(err){
+    // não atrapalha a busca principal; só avisa que não conseguiu
+    if(modoBusca === tipo) box.innerHTML = 'Não consegui verificar a data do último cadastro da base agora (' + escapeHtml(err.message) + ').';
+  }
+}
+
 async function executarBuscaIncra(tipo){
   const inputEl = document.getElementById('input-car-search');
   const statusEl = document.getElementById('car-search-status');
@@ -2674,6 +2756,7 @@ function setModoBusca(modo){
   inputEl.value = '';
   document.getElementById('car-search-status').textContent = '';
   document.getElementById('car-search-results').innerHTML = '';
+  document.getElementById('base-update-info').classList.add('hidden');
   inputEl.focus();
 }
 document.getElementById('search-tabs').addEventListener('click', e=>{
@@ -2718,6 +2801,7 @@ document.getElementById('input-car-search').addEventListener('keydown', e=>{
   if(e.key === 'Enter') document.getElementById('btn-do-car-search').click();
 });
 document.getElementById('btn-do-car-search').addEventListener('click', async ()=>{
+  atualizaInfoBase(modoBusca);   // em paralelo com a busca do imóvel
   if(modoBusca !== 'car'){ await executarBuscaIncra(modoBusca); return; }
   const numero = document.getElementById('input-car-search').value;
   const statusEl = document.getElementById('car-search-status');
