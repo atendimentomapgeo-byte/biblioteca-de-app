@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-01T03:32:45.717Z",
+  "exportadoEm": "2026-10-01T03:33:45.735Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -134,9 +134,9 @@
       "simcarSituacao": "",
       "situacaoRegistral": "",
       "cns": "",
-      "infoImovelOffE": 54.235000000000014,
-      "infoImovelOffN": -21.444999999999993,
-      "infoImovelAng": 30
+      "infoImovelOffE": 48.66000000000001,
+      "infoImovelOffN": 31.735000000000007,
+      "infoImovelAng": 37
     },
     {
       "id": "mud93vdrk068q",
@@ -556,7 +556,10 @@
       "tipoLimite": "LA1",
       "implantado": false,
       "numeroCatalogo": null,
-      "codigoCompleto": null
+      "codigoCompleto": null,
+      "rotOffConfE": 7.590000000000003,
+      "rotOffConfN": 134.10500000000002,
+      "rotAngConf": 15
     },
     {
       "id": "mud8pxpkseylk",
@@ -832,8 +835,8 @@
       "coordE": 512958.09,
       "coordN": 8755589.855,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -81.47100000000005,
-      "rotOffConfN": -58.75999999999996,
+      "rotOffConfE": -78.98100000000005,
+      "rotOffConfN": -57.099999999999966,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
@@ -858,8 +861,8 @@
       "coordE": 511849.469,
       "coordN": 8754800.87,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -55.224000000000004,
-      "rotOffConfN": 34.86899999999999,
+      "rotOffConfE": -65.12400000000001,
+      "rotOffConfN": 42.56899999999999,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
@@ -884,8 +887,8 @@
       "coordE": 511750.554,
       "coordN": 8754928.276,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -88.92399999999998,
-      "rotOffConfN": 74.87399999999998,
+      "rotOffConfE": -103.22399999999998,
+      "rotOffConfN": 92.47399999999998,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
