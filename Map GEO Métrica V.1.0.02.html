@@ -910,7 +910,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.32 — Correção: coluna CNS da tabela de vértices da planilha do SIGEF não estava sendo preenchida com o CNS do confrontante</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.33 — Correção: backup no GitHub agora se recupera sozinho do erro HTTP 409 (conflito de versão quando o arquivo muda entre a leitura e a gravação)</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -2689,7 +2689,9 @@ async function githubGravarArquivo(cfg, textoConteudo, shaAtual){
   if(!resp.ok){
     let detalhe = '';
     try{ detalhe = (await resp.json()).message || ''; }catch(e){}
-    throw new Error(`GitHub respondeu HTTP ${resp.status}${detalhe? ' — '+detalhe : ''}.`);
+    const erro = new Error(`GitHub respondeu HTTP ${resp.status}${detalhe? ' — '+detalhe : ''}.`);
+    erro.statusGithub = resp.status;
+    throw erro;
   }
   return await resp.json();
 }
@@ -2706,9 +2708,28 @@ async function salvarBackupNoGithub(mostrarToast){
   _githubSalvando = true;
   try{
     atualizarStatusGithub('Salvando no GitHub...');
-    const atual = await githubLerArquivo(githubCfg);
     const payload = { exportadoEm: new Date().toISOString(), ...state };
-    await githubGravarArquivo(githubCfg, JSON.stringify(payload, null, 2), atual.sha);
+    const textoPayload = JSON.stringify(payload, null, 2);
+    // HTTP 409 = o "sha" usado na gravação não bate mais com o do arquivo no GitHub: alguém (outro
+    // computador/aba, ou outra gravação deste mesmo escritório) salvou nesse meio-tempo. Em vez de
+    // simplesmente falhar, relê o sha mais atual do arquivo e tenta gravar de novo — como o conteúdo
+    // gravado é sempre o estado completo e atual deste navegador, repetir com o sha novo resolve o
+    // conflito sozinho na grande maioria dos casos, sem precisar que a pessoa clique em "Salvar" de novo.
+    let atual = await githubLerArquivo(githubCfg);
+    let tentativas = 0;
+    while(true){
+      try{
+        await githubGravarArquivo(githubCfg, textoPayload, atual.sha);
+        break;
+      }catch(e){
+        tentativas++;
+        if(e.statusGithub === 409 && tentativas <= 3){
+          atual = await githubLerArquivo(githubCfg);
+          continue;
+        }
+        throw e;
+      }
+    }
     atualizarStatusGithub(`Salvo no GitHub às ${new Date().toLocaleTimeString('pt-BR')} (${state.imoveis.length} imóvel(is)).`);
     if(mostrarToast) showToast('Dados salvos no GitHub.');
   }catch(e){
