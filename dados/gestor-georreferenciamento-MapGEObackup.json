@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-02T22:02:04.388Z",
+  "exportadoEm": "2026-10-02T22:04:02.729Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -124,7 +124,7 @@
       "datum": "SIRGAS2000",
       "perimetro": "3119.44",
       "utmZona": "21S",
-      "codigoIncra": "",
+      "codigoIncra": "111.111.111.111-1",
       "leiDecreto": "",
       "parcelaSigef": "",
       "parcelaSigefSituacao": "",
