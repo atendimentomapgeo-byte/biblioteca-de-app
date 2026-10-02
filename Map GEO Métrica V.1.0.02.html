@@ -910,7 +910,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.33 — Correção: backup no GitHub agora se recupera sozinho do erro HTTP 409 (conflito de versão quando o arquivo muda entre a leitura e a gravação)</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.34 — Proteção contra perda de alterações: aviso ao fechar a página com backup pendente, e salvamento imediato no GitHub após implantar marcos</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -2619,6 +2619,19 @@ const GITHUB_DEFAULT_PATH = 'dados/gestor-georreferenciamento-MapGEObackup.json'
 let githubCfg = null;
 let _debounceGithubTimer = null;
 let _githubSalvando = false;
+// Rastreia se há alguma alteração ainda não confirmada no GitHub: 'pendente' enquanto o debounce
+// está esperando pra gravar (ou uma gravação está em andamento), 'erro' se a última tentativa
+// falhou. Usado pelo aviso de "fechar a página" logo abaixo — sem isso, fechar a aba ou abrir uma
+// cópia nova do arquivo bem no meio dessa janela faz a última alteração parecer "perdida" (ela
+// continua salva neste navegador, só não chegou a ir pro backup compartilhado do GitHub).
+let _githubPendencia = null;
+window.addEventListener('beforeunload', function(e){
+  if(githubConfigValida(githubCfg) && _githubPendencia){
+    e.preventDefault();
+    e.returnValue = 'Há alterações que ainda não foram confirmadas no backup do GitHub. Se sair agora, elas podem não ser salvas lá (mas continuam salvas neste navegador).';
+    return e.returnValue;
+  }
+});
 
 function carregarGithubConfig(){
   try{ githubCfg = JSON.parse(localStorage.getItem(GITHUB_CFG_KEY)||'null'); }catch(e){ githubCfg = null; }
@@ -2698,6 +2711,7 @@ async function githubGravarArquivo(cfg, textoConteudo, shaAtual){
 function agendarSalvarNoGithub(){
   if(!githubConfigValida(githubCfg)) return;
   clearTimeout(_debounceGithubTimer);
+  _githubPendencia = 'pendente';
   // debounce maior que o da pasta local (2s): é uma chamada de rede de verdade, com custo e
   // limite de requisições da API do GitHub — não faz sentido gravar a cada tecla digitada.
   _debounceGithubTimer = setTimeout(()=>salvarBackupNoGithub(false), 2000);
@@ -2706,6 +2720,7 @@ async function salvarBackupNoGithub(mostrarToast){
   if(!githubConfigValida(githubCfg)) return;
   if(_githubSalvando){ agendarSalvarNoGithub(); return; } // evita duas gravações simultâneas brigando pelo mesmo sha
   _githubSalvando = true;
+  _githubPendencia = 'pendente';
   try{
     atualizarStatusGithub('Salvando no GitHub...');
     const payload = { exportadoEm: new Date().toISOString(), ...state };
@@ -2732,9 +2747,11 @@ async function salvarBackupNoGithub(mostrarToast){
     }
     atualizarStatusGithub(`Salvo no GitHub às ${new Date().toLocaleTimeString('pt-BR')} (${state.imoveis.length} imóvel(is)).`);
     if(mostrarToast) showToast('Dados salvos no GitHub.');
+    _githubPendencia = null;
   }catch(e){
     atualizarStatusGithub('Erro ao salvar no GitHub: '+(e.message||e), true);
     if(mostrarToast) showToast('Erro ao salvar no GitHub: '+(e.message||e));
+    _githubPendencia = 'erro';
   }finally{ _githubSalvando = false; }
 }
 async function restaurarDoGithub(mostrarToast, forcarMesmoComDados){
@@ -3901,6 +3918,16 @@ window.implantarMarcos = async function(){
   await save('marcos'); await save('marcosCatalogo');
   renderMarcos(); renderBancoMarcos();
   showToast(`${implantados} marco(s) implantado(s) e catalogado(s) no banco de dados.`);
+  // Implantar marco é uma ação irreversível (o código gerado fica permanentemente vinculado ao
+  // imóvel) — por isso, em vez de confiar só no salvamento em segundo plano (que espera 2s e, se
+  // falhar, só atualiza um texto pequeno na tela sem avisar ninguém), tenta gravar no GitHub
+  // imediatamente e com aviso visível (toast) se der algo errado, pra reduzir o risco de alguém
+  // fechar a aba ou abrir uma cópia nova do arquivo antes dessa alteração chegar no backup
+  // compartilhado do escritório.
+  if(githubConfigValida(githubCfg)){
+    clearTimeout(_debounceGithubTimer);
+    await salvarBackupNoGithub(true);
+  }
 };
 const bancoMarcosSelecionados = new Set(); // ids de state.marcosCatalogo marcados na tabela
 function renderBancoMarcos(){
