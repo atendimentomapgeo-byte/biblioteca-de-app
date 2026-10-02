@@ -910,7 +910,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.34 — Proteção contra perda de alterações: aviso ao fechar a página com backup pendente, e salvamento imediato no GitHub após implantar marcos</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.35 — Corrige armadilha real: colar o token do GitHub e sair do campo agora ativa o salvamento automático sozinho, sem precisar lembrar de clicar em "Salvar configuração"</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -2815,7 +2815,13 @@ async function restaurarDoGithub(mostrarToast, forcarMesmoComDados){
     if(mostrarToast) showToast('Erro ao restaurar do GitHub: '+(e.message||e));
   }
 }
-document.getElementById('btn-gh-salvar-config').addEventListener('click', async ()=>{
+// Extraído do clique do botão "Salvar configuração" pra poder ser chamado também automaticamente
+// (ver listener de 'blur' do campo de token logo abaixo) — resolve uma armadilha real que já
+// causou perda de trabalho: a pessoa cola o token no campo (ele fica com uma fileira de pontinhos,
+// parecendo "pronto"), mas esquece de clicar no botão, e o app continua gravando SÓ localmente sem
+// avisar com destaque nenhum — ela só descobre dias depois, quando abre uma cópia nova do arquivo
+// e o trabalho "sumiu" (na real nunca saiu do navegador antigo).
+async function salvarConfigGithubDoFormulario(origemAutomatica){
   const cfg = {
     owner: document.getElementById('gh-owner').value.trim(),
     repo: document.getElementById('gh-repo').value.trim(),
@@ -2823,10 +2829,16 @@ document.getElementById('btn-gh-salvar-config').addEventListener('click', async 
     path: document.getElementById('gh-path').value.trim(),
     token: document.getElementById('gh-token').value.trim(),
   };
-  if(!githubConfigValida(cfg)){ showToast('Preencha usuário, repositório, caminho do arquivo e token.'); return; }
+  if(!githubConfigValida(cfg)){
+    if(!origemAutomatica) showToast('Preencha usuário, repositório, caminho do arquivo e token.');
+    return;
+  }
+  // Se já está exatamente assim salvo e ativo, não repete a chamada de rede (evita todo "blur" do
+  // campo de token — inclusive sem ter mudado nada — disparar um salvamento/restauração de novo).
+  if(githubCfg && JSON.stringify(githubCfg)===JSON.stringify(cfg)) return;
   githubCfg = cfg;
   localStorage.setItem(GITHUB_CFG_KEY, JSON.stringify(cfg));
-  showToast('Configuração do GitHub salva.');
+  showToast(origemAutomatica ? 'Token detectado — ativando salvamento automático no GitHub...' : 'Configuração do GitHub salva.');
   // Ao salvar a configuração pela primeira vez, verifica se já existe um backup nesse arquivo
   // (mesma lógica de segurança da pasta local: nunca gravar por cima de um backup existente às
   // cegas) e decide restaurar ou gravar, igual ao fluxo de "escolher pasta".
@@ -2847,7 +2859,13 @@ document.getElementById('btn-gh-salvar-config').addEventListener('click', async 
     atualizarStatusGithub('Erro ao conectar no GitHub: '+(e.message||e), true);
     showToast('Configuração salva, mas houve erro ao conectar: '+(e.message||e));
   }
-});
+}
+document.getElementById('btn-gh-salvar-config').addEventListener('click', ()=>salvarConfigGithubDoFormulario(false));
+// Ativação automática: assim que a pessoa sai do campo de token (clica fora, dá Tab, ou cola e
+// clica em outro lugar) com um token presente e os outros campos já preenchidos (o que é o caso
+// comum, já que owner/repo/branch/path vêm pré-preenchidos com o padrão do escritório), salva e
+// ativa sozinho — sem depender de ela lembrar de clicar em "Salvar configuração".
+document.getElementById('gh-token').addEventListener('blur', ()=>{ salvarConfigGithubDoFormulario(true); });
 document.getElementById('btn-gh-testar').addEventListener('click', async ()=>{
   const cfg = {
     owner: document.getElementById('gh-owner').value.trim(),
