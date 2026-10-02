@@ -910,7 +910,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.35 — Corrige armadilha real: colar o token do GitHub e sair do campo agora ativa o salvamento automático sozinho, sem precisar lembrar de clicar em "Salvar configuração"</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.36 — Deixa a recuperação de conflitos (HTTP 409) do GitHub mais resistente: até 5 tentativas (antes 3), com pausa crescente entre elas e aviso visível de "tentando de novo" em vez de um erro seco</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -2732,13 +2732,21 @@ async function salvarBackupNoGithub(mostrarToast){
     // conflito sozinho na grande maioria dos casos, sem precisar que a pessoa clique em "Salvar" de novo.
     let atual = await githubLerArquivo(githubCfg);
     let tentativas = 0;
+    const MAX_TENTATIVAS_409 = 5;
     while(true){
       try{
         await githubGravarArquivo(githubCfg, textoPayload, atual.sha);
         break;
       }catch(e){
         tentativas++;
-        if(e.statusGithub === 409 && tentativas <= 3){
+        if(e.statusGithub === 409 && tentativas <= MAX_TENTATIVAS_409){
+          // Espera um pouco (com um pouco de aleatoriedade) antes de tentar de novo: se outra aba
+          // ou computador do escritório está salvando ao mesmo tempo, relendo e regravando na hora
+          // sem pausa nenhuma, duas gravações em loop apertado podem continuar se atropelando sha
+          // após sha. Um atraso pequeno e variável dá chance da outra gravação "terminar a vez" antes
+          // da próxima tentativa, bem mais eficaz que simplesmente tentar de novo imediatamente.
+          atualizarStatusGithub(`Conflito ao salvar no GitHub (provavelmente outra aba/computador salvando ao mesmo tempo) — tentando de novo (${tentativas}/${MAX_TENTATIVAS_409})...`);
+          await new Promise(r=>setTimeout(r, 400 + Math.random()*800 + tentativas*300));
           atual = await githubLerArquivo(githubCfg);
           continue;
         }
