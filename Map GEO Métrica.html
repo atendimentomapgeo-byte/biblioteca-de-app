@@ -185,6 +185,7 @@
   .anuencia-tabela td{padding:6px 8px; border:1px solid #e5ded0; text-align:center;}
   .anuencia-assinatura{margin-top:36px; text-align:center;}
   .anuencia-assinatura .linha{border-top:1px solid #2B2417; width:340px; margin:0 auto 4px;}
+  .anuencia-assinatura .info{font-size:0.78em; line-height:1.25; margin-top:1px;}
   .anuencia-croqui-titulo{text-align:center; font-family:'Space Grotesk',sans-serif; font-weight:700; margin:26px 0 10px;}
   .anuencia-footer{font-size:0.68rem; color:#8a8272; text-align:center; margin-top:20px; border-top:1px solid #e5ded0; padding-top:8px;}
   /* ---------- DXF -> PDF (conversor independente) ---------- */
@@ -909,7 +910,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-09-30.26 — Aplicativo renomeado para Map GEO Métrica</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.31 — Carta de Anuência: município e data alinhados à direita, igual ao Memorial Descritivo</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1564,7 +1565,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="note">Os textos gerados são minutas de apoio — revise sempre com o responsável técnico antes do uso oficial.</div>
     </div>
     <div class="card">
-      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1rem; color:var(--brass-light); margin:0 0 16px; display:flex; align-items:center; gap:8px;">Memorial Descritivo <span style="display:flex; gap:8px; margin-left:auto;"><button class="btn btn-sm btn-ghost" data-copy="doc-memorial">Copiar texto</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-memorial">Imprimir / salvar PDF</button></span></h3>
+      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1rem; color:var(--brass-light); margin:0 0 16px; display:flex; align-items:center; gap:8px;">Memorial Descritivo <span style="display:flex; gap:8px; margin-left:auto;"><button class="btn btn-sm btn-ghost" data-copy="doc-memorial">Copiar texto</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-memorial">Imprimir / salvar PDF</button><button class="btn btn-sm btn-ghost" id="btn-baixar-memorial-docx">Baixar Word (.docx)</button></span></h3>
       <div class="note" id="doc-memorial-vazio">Nenhum memorial gerado ainda — preencha os campos acima e clique em "Gerar documentos".</div>
       <div class="doc-output" id="doc-memorial"></div>
     </div>
@@ -1588,7 +1589,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="note">Os textos gerados são minutas de apoio — revise sempre com o responsável técnico antes do uso oficial.</div>
     </div>
     <div class="card">
-      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1rem; color:var(--brass-light); margin:0 0 16px; display:flex; align-items:center; gap:8px;">Carta(s) de Anuência e Reconhecimento de Limites <span style="display:flex; gap:8px; margin-left:auto;"><button class="btn btn-sm btn-ghost" data-copy="doc-anuencia">Copiar texto</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-anuencia">Imprimir / salvar PDF</button></span></h3>
+      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1rem; color:var(--brass-light); margin:0 0 16px; display:flex; align-items:center; gap:8px;">Carta(s) de Anuência e Reconhecimento de Limites <span style="display:flex; gap:8px; margin-left:auto;"><button class="btn btn-sm btn-ghost" data-copy="doc-anuencia">Copiar texto</button><button class="btn btn-sm btn-ghost" id="btn-imprimir-anuencia">Imprimir / salvar PDF</button><button class="btn btn-sm btn-ghost" id="btn-baixar-anuencia-docx">Baixar Word (.docx)</button></span></h3>
       <div class="note" id="doc-anuencia-vazio">Nenhuma carta gerada ainda — preencha os campos acima e clique em "Gerar documentos".</div>
       <div class="doc-output" id="doc-anuencia" style="background:#fff; white-space:normal; padding:16px; display:none;"></div>
     </div>
@@ -6963,6 +6964,40 @@ function dms(deg){
   const s = Math.round((mFloat-m)*60);
   return `${g}°${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"`;
 }
+// Formatação numérica no padrão brasileiro (milhar com ponto, decimal com vírgula) — usada no
+// memorial descritivo (área, perímetro, distâncias) pra bater com o padrão de laudos/memoriais
+// assinados pelo escritório (ex.: "3.195,71", "22,1133").
+function formatarNumeroBR(valor, casas){
+  const n = Number(valor);
+  if(!isFinite(n)) return String(valor==null?'':valor);
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+}
+// DMS "assinado" (mantém o sinal negativo, sem letra de hemisfério) — formato usado no TEXTO do
+// memorial descritivo pra longitude/latitude: ex. -56°52'52,6073". Diferente do dmsGeo() (usado na
+// tabela da Carta de Anuência), que usa letra de hemisfério (N/S/E/W) em vez do sinal.
+function dmsGeoAssinado(decDeg){
+  const sinal = decDeg < 0 ? '-' : '';
+  const absV = Math.abs(decDeg);
+  let deg = Math.floor(absV);
+  const minFloat = (absV-deg)*60;
+  let min = Math.floor(minFloat);
+  let sec = Number(((minFloat-min)*60).toFixed(4));
+  if(sec >= 60){ sec = 0; min += 1; }
+  if(min >= 60){ min = 0; deg += 1; }
+  const secStr = sec.toFixed(4).padStart(7,'0').replace('.', ',');
+  return `${sinal}${deg}°${String(min).padStart(2,'0')}'${secStr}"`;
+}
+// Azimute SEM segundos (só grau e minuto, minuto arredondado) — formato usado no texto corrido do
+// memorial descritivo (ex.: "117°52'"). A tabela da Carta de Anuência continua usando dmsAz(),
+// que tem segundos — não mexe nela.
+function dmsAzSemSegundos(deg){
+  let g = Math.floor(deg);
+  const mFloat = (deg-g)*60;
+  let m = Math.round(mFloat);
+  if(m>=60){ m=0; g+=1; }
+  if(g>=360) g-=360;
+  return `${g}°${String(m).padStart(2,'0')}'`;
+}
 function azimuteEDistancia(p1,p2){
   const dE = p2.coordE-p1.coordE, dN = p2.coordN-p1.coordN;
   let az = Math.atan2(dE,dN)*180/Math.PI;
@@ -6981,6 +7016,7 @@ function gerarMemorial(imovel, prop, tec, lista, coordFormato){
   if(lista.length<2) return { erro: 'Cadastre ao menos 2 marcos para gerar o memorial descritivo.' };
   coordFormato = coordFormato || 'utm';
   const {zona, sul} = inferirZonaHemisferio(imovel, lista);
+  const usarGeo = coordFormato==='geo' && !!zona;
   let perimetro=0;
   const segs = lista.map((p,i)=>{
     const next = lista[(i+1)%lista.length];
@@ -6993,34 +7029,62 @@ function gerarMemorial(imovel, prop, tec, lista, coordFormato){
   if(pendentes>0) avisos.push(`${pendentes} de ${lista.length} vértice(s) ainda não foi(ram) implantado(s) no banco de marcos — os códigos abaixo são provisórios até a implantação.`);
   if(coordFormato==='geo' && !zona) avisos.push(`Zona UTM do imóvel não identificada — coordenadas exibidas em UTM. Importe via KML ou preencha a zona em Imóveis para usar coordenadas geográficas.`);
 
+  // Layout dos campos de identificação segue o modelo de memorial assinado pelo escritório:
+  // Imóvel / Proprietário em linhas próprias, Município+Estado lado a lado, Matrícula(s) em linha
+  // própria, Área+Perímetro lado a lado (números no padrão BR), e Sistema de Referência por último.
+  // "par:true" em dois campos consecutivos faz montarMemorialHtml/construirBlocosMemorialDocx
+  // desenharem essa dupla lado a lado.
   const campos = [
-    { label:'Imóvel', valor: `${imovel.nome}${imovel.matricula? ' — matrícula '+imovel.matricula:''}` },
-    { label:'Município/UF', valor: `${imovel.municipio||'_____'}${imovel.uf? '/'+imovel.uf : ''}` },
-    { label:'Comarca', valor: imovel.comarca||'_____' },
-    { label:'Proprietário', valor: prop? prop.nome+(prop.doc?' — '+prop.doc:''):'_____' },
-    { label:'Área', valor: imovel.area? imovel.area+' ha':'_____' },
-    { label:'Perímetro calculado', valor: `${perimetro.toFixed(2)} m` },
-    { label:'Responsável técnico', valor: `${tec? tec.nome+' — '+(tec.registroTipo||'')+' '+(tec.registroNumero||''):'_____'}${imovel.art? ' — '+(imovel.artTipo||'ART')+' '+imovel.art:''}` },
-    { label:'Datum', valor: imovel.datum||'SIRGAS2000' },
+    { label:'Imóvel', valor: imovel.nome || '_____' },
+    { label:'Proprietário', valor: prop? prop.nome : '_____' },
+    { label:'Município', valor: imovel.municipio||'_____', par:true },
+    { label:'Estado', valor: imovel.uf||'_____', par:true },
+    { label:'Matrícula(s)', valor: imovel.matricula||'_____' },
+    { label:'Área (ha)', valor: (imovel.area!=null && imovel.area!=='') ? formatarNumeroBR(imovel.area,4) : '_____', par:true },
+    { label:'Perímetro (m)', valor: formatarNumeroBR(perimetro,2), par:true },
+    { label:'Sistema de Referência de Coordenadas', valor: imovel.datum||'SIRGAS2000' },
   ];
 
-  // No memorial descritivo, o tipo do marco não aparece mais entre parênteses, pra nenhum tipo
-  // (M, P, V ou B).
-  const rotuloTipoMemorial = tipo => '';
-
-  let corpo = `Inicia-se a descrição deste perímetro no marco ${lista[0].codigo}${rotuloTipoMemorial(lista[0].tipo)}, de coordenadas ${coordVerticeTexto(lista[0], coordFormato, zona, sul)}. `;
-  let ultimoConfrontante = null; // controla repetição: só menciona o confrontante quando ele mudar
-  segs.forEach((s,i)=>{
-    const confAtual = s.de.confrontante || '';
-    let prefixo = '';
-    if(confAtual !== ultimoConfrontante){
-      prefixo = (confAtual ? `confrontando com ${confAtual}` : 'confrontando com limite não especificado') + ', ';
-      ultimoConfrontante = confAtual;
+  function coordTextoVertice(m){
+    if(usarGeo){
+      const geo = utmParaLatLon(m.coordE, m.coordN, zona, sul);
+      return `longitude ${dmsGeoAssinado(geo.lon)} e latitude ${dmsGeoAssinado(geo.lat)}`;
     }
-    corpo += `Deste, segue ${prefixo}com azimute de ${dms(s.az)} e distância de ${s.dist.toFixed(2)} m, até o marco ${s.para.codigo}${rotuloTipoMemorial(s.para.tipo)}, de coordenadas ${coordVerticeTexto(s.para, coordFormato, zona, sul)}.\n`;
-  });
-  corpo += `\nFechando-se, assim, o perímetro descrito, totalizando ${perimetro.toFixed(2)} m, e a área de ${imovel.area||'_____'} ha, tudo conforme coordenadas obtidas em levantamento georreferenciado, sistema de referência ${imovel.datum||'SIRGAS2000'}.`;
-  return { avisos, campos, corpo };
+    return `E=${m.coordE} e N=${m.coordN}`;
+  }
+
+  // Texto corrido agrupado por confrontante: um único "deste, segue confrontando com X, com os
+  // seguintes azimutes e distâncias:" por trecho contínuo, seguido da lista de segmentos separados
+  // por ";" — em vez de repetir "Deste, segue..." a cada vértice (formato alinhado ao memorial
+  // descritivo assinado pelo escritório).
+  let corpo = `Inicia-se a descrição deste perímetro no vértice ${lista[0].codigo}, de coordenadas ${coordTextoVertice(lista[0])}`;
+  let i = 0;
+  while(i < segs.length){
+    const confAtual = segs[i].de.confrontante || 'limite não especificado';
+    corpo += `, deste, segue confrontando com ${confAtual}, com os seguintes azimutes e distâncias: `;
+    const partes = [];
+    while(i < segs.length && (segs[i].de.confrontante || 'limite não especificado') === confAtual){
+      const s = segs[i];
+      partes.push(`${dmsAzSemSegundos(s.az)} e ${formatarNumeroBR(s.dist,2)}m até o vértice ${s.para.codigo}, de coordenadas ${coordTextoVertice(s.para)}`);
+      i++;
+    }
+    corpo += partes.join('; ');
+  }
+  corpo += `, ponto inicial da descrição deste perímetro. Todas as coordenadas aqui descritas estão georreferenciadas ao Sistema Geodésico de Referência (SGR) ${imovel.datum||'SIRGAS2000'}. Todos os azimutes e distâncias, área e perímetro foram calculados no Sistema Geodésico Local (SGL) com origem no centroide e altitude média do imóvel.`;
+
+  const localData = `${imovel.municipio||'_______________'} - ${imovel.uf||'UF'}, ${dataPorExtenso(new Date())}.`;
+  const tecRegistro = (tec && tec.registroTipo && tec.registroNumero) ? `${tec.registroTipo} nº ${tec.registroNumero}` : '';
+  const artTexto = imovel.art ? `${imovel.artTipo||'ART'} nº ${imovel.art}` : '';
+
+  return {
+    avisos, campos, corpo, localData,
+    empresaCabecalho: (tec && tec.empresa) ? tec.empresa : '',
+    imovelNome: imovel ? imovel.nome : '',
+    propNome: prop ? prop.nome : '(proprietário não informado)',
+    tecNome: tec ? tec.nome : '(responsável técnico não informado)',
+    tecTitulo: (tec && tec.titulo && tec.titulo.trim()) ? tec.titulo.trim() : 'Responsável Técnico',
+    tecRegistro, artTexto,
+  };
 }
 // ---- conversão UTM -> geográfica (GRS80/SIRGAS2000), usada na tabela de coordenadas da carta ----
 const _UTM_a = 6378137.0, _UTM_f = 1/298.257222101, _UTM_k0 = 0.9996;
@@ -7444,11 +7508,11 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
     // Linha de identificação na assinatura: confrontante direto identifica o imóvel confrontante;
     // rio/estrada identifica o acidente e, quando cadastrado, também o imóvel do confrontante subsequente.
     const linhaAssinaturaConfrontante = ehAcidente
-      ? `Confrontante subsequente ${contracaoAoAcidente} ${rotuloAcidente} ${escXml(g.nome)}${nomeImovelConfrontante? ` (imóvel: ${escXml(nomeImovelConfrontante)})` : ''}`
-      : `Confrontante do Imóvel: ${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}`;
+      ? `Confrontante subsequente ${g.tipo==='rio'?'ao rio':'à estrada'} ${escXml(g.nome)}${nomeImovelConfrontante? ` (imóvel: ${escXml(nomeImovelConfrontante)})` : ''}`
+      : `Confrontante do imóvel: ${nomeImovelConfrontante? escXml(nomeImovelConfrontante) : '(imóvel do confrontante não informado)'}`;
 
     const tecTitulo = (tec && tec.titulo && tec.titulo.trim()) ? tec.titulo.trim() : 'profissional habilitado';
-    const tecRegistro = tec && tec.registroTipo && tec.registroNumero ? `${tec.registroTipo} Nº ${tec.registroNumero}` : '(registro não informado)';
+    const tecRegistro = tec && tec.registroTipo && tec.registroNumero ? `${tec.registroTipo} nº ${tec.registroNumero}` : '(registro não informado)';
     const tecCodigoIncra = (tec && tec.codigoIncra) ? tec.codigoIncra : '(código não informado)';
 
     let tabela = `<table class="anuencia-tabela"><caption>TABELA DE COORDENADAS</caption>
@@ -7466,7 +7530,7 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
       }
     });
     tabela += `</tbody></table>`;
-    if(coordFormato==='geo' && !zona) tabela = `<p class="note">Zona UTM do imóvel não identificada — exibindo coordenadas em UTM. Importe via KML ou preencha manualmente em Imóveis para usar coordenadas geográficas.</p>` + tabela;
+    if(coordFormato==='geo' && !zona) tabela = `<p class="note doc-aviso-tela">Zona UTM do imóvel não identificada — exibindo coordenadas em UTM. Importe via KML ou preencha manualmente em Imóveis para usar coordenadas geográficas.</p>` + tabela;
 
     out += `<div class="anuencia-carta">
       ${cabecalhoLogo}
@@ -7476,11 +7540,22 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
       <p>Declaro, ainda, que os limites entre o meu imóvel e a propriedade denominada <strong>${escXml(imovel.nome)}</strong>, de propriedade de ${escXml(prop?prop.nome:'(proprietário não informado)')}${constituidoPeloAcidente} foram devidamente conferidos in loco. Concordo com a exatidão dos vértices e coordenadas abaixo descritos, não havendo contestação, litígio ou sobreposição de áreas entre as propriedades:</p>
       ${tabela}
       <p>Por fim, autorizo o registro e a certificação do referido memorial descritivo no SIGEF (Sistema de Gestão Fundiária do Incra) e a posterior retificação/atualização no Cartório de Registro de Imóveis competente.</p>
-      <p style="margin-top:24px;">${escXml(localData)}</p>
+      <p style="margin-top:24px; text-align:right;">${escXml(localData)}</p>
       <div class="anuencia-assinatura">
         <div class="linha"></div>
-        <div><strong>${escXml(nomeAssinante)}</strong></div>
-        <div>${linhaAssinaturaConfrontante}</div>
+        <div><strong>${escXml(String(nomeAssinante||'').toUpperCase())}</strong></div>
+        <div class="info">${linhaAssinaturaConfrontante}</div>
+      </div>
+      <div class="anuencia-assinatura">
+        <div class="linha"></div>
+        <div><strong>${escXml(String(prop?prop.nome:'(proprietário não informado)').toUpperCase())}</strong></div>
+        <div class="info">Proprietário do imóvel: ${escXml(imovel.nome||'')}</div>
+      </div>
+      <div class="anuencia-assinatura">
+        <div class="linha"></div>
+        <div><strong>${escXml(String(tec?tec.nome:'(responsável técnico não informado)').toUpperCase())}</strong></div>
+        <div class="info">${escXml(tecTitulo)}</div>
+        <div class="info">${escXml(tecRegistro)}</div>
       </div>
       <div class="anuencia-croqui-titulo">CROQUI DE LOCALIZAÇÃO</div>
       ${gerarCroquiConfrontante(lista, g.marcos, g.nome)}
@@ -7488,6 +7563,377 @@ function gerarAnuencias(imovel, prop, tec, lista, coordFormato){
     </div>`;
   });
   return out;
+}
+
+// ---------- EXPORTAÇÃO: WORD (.docx) PARA MEMORIAL E CARTA DE ANUÊNCIA ----------
+// Gera um .docx real (Office Open XML), não um .doc "fingido" de HTML — monta o pacote ZIP com o
+// mesmo JSZip já usado pro SIGEF/KMZ. O modelo de dados é uma lista de "blocos" simples (parágrafo,
+// tabela, imagem, quebra de página) comum às duas ferramentas, convertidos aqui pra WordprocessingML.
+function pxParaEmu(px){ return Math.round(px * 9525); }
+function cmParaEmu(cm){ return Math.round(cm * 360000); }
+function docxRunXml(run){
+  const props = [];
+  if(run.bold) props.push('<w:b/>');
+  if(run.italic) props.push('<w:i/>');
+  if(run.underline) props.push('<w:u w:val="single"/>');
+  if(run.size) props.push(`<w:sz w:val="${run.size}"/>`);
+  const rPr = props.length ? `<w:rPr>${props.join('')}</w:rPr>` : '';
+  const linhas = String(run.text==null?'':run.text).split('\n');
+  const texto = linhas.map((linha,i)=>{
+    const comTabs = linha.split('\t').map(t=>`<w:t xml:space="preserve">${escXml(t)}</w:t>`).join('<w:tab/>');
+    return comTabs + (i<linhas.length-1 ? '<w:br/>' : '');
+  }).join('');
+  return `<w:r>${rPr}${texto}</w:r>`;
+}
+const DOCX_ALINHAMENTO = { left:'left', center:'center', right:'right', justify:'both' };
+function docxParagraphXml(p){
+  p = p || {};
+  const jc = p.align && DOCX_ALINHAMENTO[p.align] ? `<w:jc w:val="${DOCX_ALINHAMENTO[p.align]}"/>` : '';
+  const spacing = (p.spacingAfter!=null) ? `<w:spacing w:after="${p.spacingAfter}"/>` : '<w:spacing w:after="160"/>';
+  const pPr = `<w:pPr>${spacing}${jc}</w:pPr>`;
+  const runsXml = (p.runs||[]).map(docxRunXml).join('');
+  return `<w:p>${pPr}${runsXml}</w:p>`;
+}
+function docxTableXml(t){
+  const numCols = t.rows[0] ? t.rows[0].length : 1;
+  const gridCols = Array.from({length:numCols}).map(()=>'<w:gridCol/>').join('');
+  const bordas = `<w:tblBorders>
+    <w:top w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:left w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:right w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:insideH w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:insideV w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+  </w:tblBorders>`;
+  const linhas = t.rows.map((row, ri)=>{
+    const ehCabecalho = t.headerRowCount && ri < t.headerRowCount;
+    const celulas = row.map(c=>{
+      const texto = typeof c === 'string' ? c : (c.text||'');
+      const negrito = typeof c === 'object' ? !!c.bold : false;
+      const alinhamento = (typeof c === 'object' && c.align) ? c.align : 'center';
+      const p = docxParagraphXml({ align: alinhamento, spacingAfter: 0, runs:[{ text: texto, bold: negrito || ehCabecalho }] });
+      return `<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>${ehCabecalho?'<w:shd w:val="clear" w:color="auto" w:fill="EFEAD9"/>':''}</w:tcPr>${p}</w:tc>`;
+    }).join('');
+    return `<w:tr>${celulas}</w:tr>`;
+  }).join('');
+  return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/>${bordas}</w:tblPr><w:tblGrid>${gridCols}</w:tblGrid>${linhas}</w:tbl><w:p><w:pPr><w:spacing w:after="160"/></w:pPr></w:p>`;
+}
+function docxImageBlockXml(img, relId){
+  const maxWEmu = img.maxWidthEmu || cmParaEmu(9);
+  const maxHEmu = img.maxHeightEmu || null;
+  let emuW = pxParaEmu(img.w||300), emuH = pxParaEmu(img.h||200);
+  if(emuW > maxWEmu){ const s = maxWEmu/emuW; emuW = Math.round(emuW*s); emuH = Math.round(emuH*s); }
+  if(maxHEmu && emuH > maxHEmu){ const s = maxHEmu/emuH; emuW = Math.round(emuW*s); emuH = Math.round(emuH*s); }
+  const drawing = `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">
+    <wp:extent cx="${emuW}" cy="${emuH}"/>
+    <wp:docPr id="${relId}" name="Imagem${relId}"/>
+    <a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+      <pic:pic><pic:nvPicPr><pic:cNvPr id="${relId}" name="Imagem${relId}"/><pic:cNvPicPr/></pic:nvPicPr>
+        <pic:blipFill><a:blip r:embed="rId${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+        <pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+      </pic:pic>
+    </a:graphicData></a:graphic>
+  </wp:inline></w:drawing>`;
+  return `<w:p><w:pPr><w:jc w:val="${img.align||'center'}"/><w:spacing w:after="160"/></w:pPr><w:r>${drawing}</w:r></w:p>`;
+}
+function docxDataUrlParaBase64(dataUrl){
+  const virgula = dataUrl.indexOf(',');
+  return virgula===-1 ? dataUrl : dataUrl.slice(virgula+1);
+}
+function docxExtensaoDeDataUrl(dataUrl){
+  const m = /^data:image\/(png|jpeg|jpg)/i.exec(dataUrl);
+  if(!m) return 'png';
+  return m[1].toLowerCase()==='jpg' ? 'jpeg' : m[1].toLowerCase();
+}
+// Carrega um <img> a partir de um data: URL só pra descobrir as dimensões naturais (necessárias
+// pra calcular a proporção largura/altura corretamente dentro do .docx).
+function carregarDimensoesImagemDataUrl(dataUrl){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.onload = ()=> resolve({ w: img.naturalWidth||300, h: img.naturalHeight||200 });
+    img.onerror = ()=> resolve({ w: 300, h: 200 });
+    img.src = dataUrl;
+  });
+}
+// Rasteriza um trecho de SVG (string) em PNG (data URL) desenhando num <canvas> — usado pro croqui
+// de localização da Carta de Anuência, que é gerado como SVG vetorial na tela mas precisa virar
+// imagem de verdade pra entrar no .docx (não existe "SVG nativo" em WordprocessingML sem depender
+// de recursos avançados/pouco suportados).
+function rasterizarSvgParaPng(svgString, larguraPx, alturaPx){
+  return new Promise((resolve)=>{
+    const svgCompleto = svgString.replace('<svg ', `<svg xmlns="http://www.w3.org/2000/svg" width="${larguraPx}" height="${alturaPx}" `);
+    const svgBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgCompleto)));
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = larguraPx; canvas.height = alturaPx;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0,0,larguraPx,alturaPx);
+        ctx.drawImage(img, 0, 0, larguraPx, alturaPx);
+        resolve(canvas.toDataURL('image/png'));
+      }catch(e){ resolve(null); }
+    };
+    img.onerror = ()=> resolve(null);
+    img.src = svgBase64;
+  });
+}
+function docxContentTypesXml(temImagens){
+  const defaults = [
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+    '<Default Extension="xml" ContentType="application/xml"/>',
+  ];
+  if(temImagens){
+    defaults.push('<Default Extension="png" ContentType="image/png"/>');
+    defaults.push('<Default Extension="jpeg" ContentType="image/jpeg"/>');
+  }
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  ${defaults.join('\n  ')}
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+}
+function docxRelsRaizXml(){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+</Relationships>`;
+}
+function docxCorePropsXml(titulo){
+  const agora = new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>${escXml(titulo||'Documento')}</dc:title>
+  <dc:creator>Map GEO Métrica</dc:creator>
+  <dcterms:created xsi:type="dcterms:W3CDTF">${agora}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">${agora}</dcterms:modified>
+</cp:coreProperties>`;
+}
+function docxStylesXml(){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/></w:rPr></w:rPrDefault></w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+</w:styles>`;
+}
+function docxDocumentXml(bodyXml){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:body>${bodyXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body>
+</w:document>`;
+}
+function docxDocumentRelsXml(imagens){
+  const rels = imagens.map((img,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image${i+1}.${img.ext}"/>`).join('\n  ');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  ${rels}
+</Relationships>`;
+}
+// Converte a lista de blocos num .docx (Blob) de verdade. Cada bloco é um de:
+//   {tipo:'paragrafo', align, spacingAfter, runs:[{text,bold,italic}]}
+//   {tipo:'tabela', headerRowCount, rows:[[celula,...],...]}
+//   {tipo:'imagem', dataUrl, w, h, maxWidthEmu, maxHeightEmu, align}
+//   {tipo:'quebraPagina'}
+async function gerarDocxBlob(blocos, titulo){
+  if(typeof JSZip === 'undefined'){
+    try{ await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }catch(e){ /* segue pro erro abaixo */ }
+    if(typeof JSZip === 'undefined') throw new Error('Biblioteca de compactação (JSZip) não carregou — verifique sua conexão com a internet e recarregue a página.');
+  }
+  const imagens = [];
+  const partesBody = [];
+  for(const b of blocos){
+    if(b.tipo === 'paragrafo'){
+      partesBody.push(docxParagraphXml(b));
+    } else if(b.tipo === 'tabela'){
+      partesBody.push(docxTableXml(b));
+    } else if(b.tipo === 'quebraPagina'){
+      partesBody.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
+    } else if(b.tipo === 'imagem' && b.dataUrl){
+      const ext = docxExtensaoDeDataUrl(b.dataUrl);
+      imagens.push({ ext, base64: docxDataUrlParaBase64(b.dataUrl) });
+      partesBody.push(docxImageBlockXml(b, imagens.length));
+    }
+  }
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', docxContentTypesXml(imagens.length>0));
+  zip.file('_rels/.rels', docxRelsRaizXml());
+  zip.file('docProps/core.xml', docxCorePropsXml(titulo));
+  zip.file('word/styles.xml', docxStylesXml());
+  zip.file('word/document.xml', docxDocumentXml(partesBody.join('')));
+  if(imagens.length){
+    zip.file('word/_rels/document.xml.rels', docxDocumentRelsXml(imagens));
+    imagens.forEach((img,i)=> zip.file(`word/media/image${i+1}.${img.ext}`, img.base64, {base64:true}));
+  }
+  return zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+function baixarBlobComoArquivo(blob, nomeArquivo){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nomeArquivo;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+// ---- Memorial Descritivo -> blocos .docx (reaproveita o mesmo objeto de gerarMemorial) ----
+async function construirBlocosMemorialDocx(memorial){
+  const blocos = [];
+  const cfg = state.config || {};
+  if(cfg.logoDataUrl){
+    const dim = await carregarDimensoesImagemDataUrl(cfg.logoDataUrl);
+    blocos.push({ tipo:'imagem', dataUrl:cfg.logoDataUrl, w:dim.w, h:dim.h, maxHeightEmu: pxParaEmu(70), align:'center' });
+  }
+  if(memorial.empresaCabecalho){
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:80, runs:[{ text: memorial.empresaCabecalho, bold:true }] });
+  }
+  blocos.push({ tipo:'paragrafo', align:'center', runs:[{ text:'MEMORIAL DESCRITIVO', bold:true, underline:true, size:28 }] });
+  if(memorial.erro){
+    blocos.push({ tipo:'paragrafo', runs:[{ text: memorial.erro }] });
+    return blocos;
+  }
+  // Avisos de tela (ex.: zona UTM não identificada) não entram no Word — só na pré-visualização.
+  // Campos marcados "par:true" (dois consecutivos) viram UMA linha com os dois rótulos separados
+  // por tabulação — espelha o layout lado a lado do HTML/PDF (Município+Estado, Área+Perímetro).
+  for(let ci=0; ci<memorial.campos.length; ci++){
+    const c = memorial.campos[ci];
+    const c2 = memorial.campos[ci+1];
+    if(c.par && c2 && c2.par){
+      blocos.push({ tipo:'paragrafo', spacingAfter:40, runs:[
+        { text:c.label+': ', bold:true },{ text:c.valor+'\t\t' },
+        { text:c2.label+': ', bold:true },{ text:c2.valor },
+      ]});
+      ci++;
+    } else {
+      blocos.push({ tipo:'paragrafo', spacingAfter:40, runs:[{ text:c.label+': ', bold:true },{ text:c.valor }] });
+    }
+  }
+  blocos.push({ tipo:'paragrafo', align:'justify', runs:[{ text: memorial.corpo }] });
+  blocos.push({ tipo:'paragrafo', align:'right', spacingAfter:400, runs:[{ text: memorial.localData }] });
+  blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:'_______________________________________' }] });
+  blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:String(memorial.propNome||'').toUpperCase(), bold:true }] });
+  blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:40, runs:[{ text:'Proprietário do imóvel: '+(memorial.imovelNome||''), size:18 }] });
+  blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:'_______________________________________' }] });
+  blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:String(memorial.tecNome||'').toUpperCase(), bold:true }] });
+  blocos.push({ tipo:'paragrafo', align:'center', spacingAfter: memorial.tecRegistro||memorial.artTexto ? 0 : 40, runs:[{ text:memorial.tecTitulo, size:18 }] });
+  if(memorial.tecRegistro) blocos.push({ tipo:'paragrafo', align:'center', spacingAfter: memorial.artTexto ? 0 : 40, runs:[{ text:memorial.tecRegistro, size:18 }] });
+  if(memorial.artTexto) blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:40, runs:[{ text:memorial.artTexto, bold:true, size:18 }] });
+  if(cfg.footerText && cfg.footerText.trim()){
+    blocos.push({ tipo:'paragrafo', align:'center', runs:[{ text: cfg.footerText }] });
+  }
+  return blocos;
+}
+// ---- Carta de Anuência -> dados estruturados (espelha gerarAnuencias, sem tocar na função
+// original/testada) e depois -> blocos .docx. Mantém a mesma lógica de texto pra não divergir do
+// que já aparece na tela/PDF. ----
+function construirDadosAnuencias(imovel, prop, tec, lista, coordFormato){
+  coordFormato = coordFormato || 'geo';
+  const grupos = agruparConfrontantes(lista);
+  if(!grupos.length) return [];
+  const {zona, sul} = inferirZonaHemisferio(imovel, lista);
+  const usarGeo = coordFormato==='geo' && !!zona;
+  const localData = `${imovel.municipio||'_______________'} - ${imovel.uf||'UF'}, ${dataPorExtenso(new Date())}.`;
+  return grupos.map(g=>{
+    const imC = g.imovelId ? state.imoveis.find(im=>im.id===g.imovelId) : null;
+    const propC = imC ? state.proprietarios.find(pr=>pr.id===imC.proprietarioId) : null;
+    const ehAcidente = g.tipo === 'rio' || g.tipo === 'estrada';
+    const nomeAssinante = propC && propC.nome ? propC.nome : (ehAcidente ? (g.assinanteNome || '(confrontante subsequente não informado)') : g.nome);
+    const docAssinante = propC && propC.doc ? propC.doc : null;
+    const nomeImovelConfrontante = imC ? imC.nome : null;
+    const rotuloAcidente = g.tipo === 'rio' ? 'Rio' : (g.tipo === 'estrada' ? 'Estrada' : null);
+    const rotuloAcidenteMin = g.tipo === 'rio' ? "curso d'água" : (g.tipo === 'estrada' ? 'via pública' : null);
+    const contracaoAoAcidente = g.tipo === 'rio' ? 'ao' : 'à';
+    const peloAcidente = g.tipo === 'rio' ? 'pelo' : 'pela';
+    const qualificacaoAssinante = ehAcidente
+      ? `na qualidade de proprietário(a)/possuidor(a) do imóvel${nomeImovelConfrontante? ` denominado ${nomeImovelConfrontante}`:''}, confrontante subsequente ${contracaoAoAcidente} ${rotuloAcidenteMin} denominado(a) ${g.nome}, que separa o meu imóvel do imóvel ${imovel.nome}`
+      : `na qualidade de proprietário(a)/possuidor(a) do imóvel denominado ${nomeImovelConfrontante? nomeImovelConfrontante : '(imóvel do confrontante não informado)'}`;
+    const constituidoPeloAcidenteTexto = ehAcidente ? `, sendo tais limites constituídos ${peloAcidente} ${rotuloAcidenteMin} ${g.nome},` : ',';
+    const linhaAssinaturaConfrontante = ehAcidente
+      ? `Confrontante subsequente ${g.tipo==='rio'?'ao rio':'à estrada'} ${g.nome}${nomeImovelConfrontante? ` (imóvel: ${nomeImovelConfrontante})` : ''}`
+      : `Confrontante do imóvel: ${nomeImovelConfrontante? nomeImovelConfrontante : '(imóvel do confrontante não informado)'}`;
+    const tecTitulo = (tec && tec.titulo && tec.titulo.trim()) ? tec.titulo.trim() : 'profissional habilitado';
+    const tecNome = tec ? tec.nome : '(responsável técnico não informado)';
+    const tecRegistro = tec && tec.registroTipo && tec.registroNumero ? `${tec.registroTipo} nº ${tec.registroNumero}` : '(registro não informado)';
+    const tecCodigoIncra = (tec && tec.codigoIncra) ? tec.codigoIncra : '(código não informado)';
+    const zonaIndefinida = coordFormato==='geo' && !zona;
+    const linhasTabela = g.marcos.map((m,i)=>{
+      let col1, col2;
+      if(usarGeo){ const geo = utmParaLatLon(m.coordE, m.coordN, zona, sul); col1 = dmsGeo(geo.lon,false); col2 = dmsGeo(geo.lat,true); }
+      else { col1 = String(m.coordE); col2 = String(m.coordN); }
+      if(i < g.marcos.length-1){
+        const next = g.marcos[i+1];
+        const {az,dist} = azimuteEDistancia(m,next);
+        return [m.codigo, col1, col2, next.codigo, dmsAz(az), dist.toFixed(2)];
+      }
+      return [m.codigo, col1, col2, '-', '-', '-'];
+    });
+    return {
+      usarGeo, zonaIndefinida, nomeAssinante, docAssinante, qualificacaoAssinante,
+      tecTitulo, tecNome, tecRegistro, tecCodigoIncra,
+      imovelNome: imovel.nome, propNome: prop ? prop.nome : '(proprietário não informado)',
+      constituidoPeloAcidenteTexto, linhasTabela, localData, linhaAssinaturaConfrontante,
+      croquiSvg: gerarCroquiConfrontante(lista, g.marcos, g.nome),
+    };
+  });
+}
+async function construirBlocosAnuenciaDocx(dadosList){
+  const blocos = [];
+  const cfg = state.config || {};
+  let logoDim = null;
+  if(cfg.logoDataUrl) logoDim = await carregarDimensoesImagemDataUrl(cfg.logoDataUrl);
+  let qrDim = null;
+  if(cfg.qrDataUrl) qrDim = await carregarDimensoesImagemDataUrl(cfg.qrDataUrl);
+  for(let i=0;i<dadosList.length;i++){
+    const d = dadosList[i];
+    if(i>0) blocos.push({ tipo:'quebraPagina' });
+    if(cfg.logoDataUrl && logoDim) blocos.push({ tipo:'imagem', dataUrl:cfg.logoDataUrl, w:logoDim.w, h:logoDim.h, maxHeightEmu: pxParaEmu(60), align:'center' });
+    blocos.push({ tipo:'paragrafo', align:'center', runs:[{ text:'CARTA DE ANUÊNCIA E RECONHECIMENTO DE LIMITES', bold:true, size:26 }] });
+    blocos.push({ tipo:'paragrafo', align:'justify', runs:[
+      { text:'Eu, ' }, { text:d.nomeAssinante, bold:true },
+      { text: d.docAssinante ? `, portador(a) do CPF/CNPJ ${d.docAssinante}, ` : ', ' },
+      { text: d.qualificacaoAssinante + ':' },
+    ]});
+    blocos.push({ tipo:'paragrafo', align:'justify', runs:[
+      { text:`Que ESTOU DE ACORDO com a demarcação, o levantamento topográfico e o reconhecimento dos limites divisórios executados pelo(a) ${d.tecTitulo}, senhor(a) ${d.tecNome}, ${d.tecRegistro}, credenciado(a) junto ao INCRA sob o código ${d.tecCodigoIncra}.` },
+    ]});
+    blocos.push({ tipo:'paragrafo', align:'justify', runs:[
+      { text:'Declaro, ainda, que os limites entre o meu imóvel e a propriedade denominada ' },
+      { text:d.imovelNome, bold:true },
+      { text:`, de propriedade de ${d.propNome}${d.constituidoPeloAcidenteTexto} foram devidamente conferidos in loco. Concordo com a exatidão dos vértices e coordenadas abaixo descritos, não havendo contestação, litígio ou sobreposição de áreas entre as propriedades:` },
+    ]});
+    // Aviso de zona UTM não identificada não entra no Word — só na pré-visualização.
+    blocos.push({ tipo:'tabela', headerRowCount:1, rows:[
+      ['DE VÉRTICE', d.usarGeo?'LONGITUDE':'E (m)', d.usarGeo?'LATITUDE':'N (m)', 'PARA VÉRTICE', 'AZIMUTE', 'DISTÂNCIA (m)'],
+      ...d.linhasTabela,
+    ]});
+    blocos.push({ tipo:'paragrafo', align:'justify', runs:[
+      { text:'Por fim, autorizo o registro e a certificação do referido memorial descritivo no SIGEF (Sistema de Gestão Fundiária do Incra) e a posterior retificação/atualização no Cartório de Registro de Imóveis competente.' },
+    ]});
+    blocos.push({ tipo:'paragrafo', align:'right', spacingAfter:400, runs:[{ text:d.localData }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:'_______________________________________' }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:String(d.nomeAssinante||'').toUpperCase(), bold:true }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:40, runs:[{ text:d.linhaAssinaturaConfrontante, size:18 }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:'_______________________________________' }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:String(d.propNome||'').toUpperCase(), bold:true }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:40, runs:[{ text:'Proprietário do imóvel: '+(d.imovelNome||''), size:18 }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:'_______________________________________' }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:String(d.tecNome||'').toUpperCase(), bold:true }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:0, runs:[{ text:d.tecTitulo, size:18 }] });
+    blocos.push({ tipo:'paragrafo', align:'center', spacingAfter:40, runs:[{ text:d.tecRegistro, size:18 }] });
+    blocos.push({ tipo:'paragrafo', align:'center', runs:[{ text:'CROQUI DE LOCALIZAÇÃO', bold:true }] });
+    const pngCroqui = await rasterizarSvgParaPng(d.croquiSvg, 520, 380);
+    if(pngCroqui){
+      blocos.push({ tipo:'imagem', dataUrl: pngCroqui, w:520, h:380, maxWidthEmu: cmParaEmu(9), align:'center' });
+    }
+    if(cfg.qrDataUrl && qrDim){
+      blocos.push({ tipo:'imagem', dataUrl:cfg.qrDataUrl, w:qrDim.w, h:qrDim.h, maxWidthEmu: pxParaEmu(42), maxHeightEmu: pxParaEmu(42), align:'center' });
+    }
+    if(cfg.footerText && cfg.footerText.trim()){
+      blocos.push({ tipo:'paragrafo', align:'center', runs:[{ text: cfg.footerText }] });
+    }
+  }
+  return blocos;
 }
 
 // ---------- EXPORTAÇÃO: PLANILHA ELETRÔNICA DO SIGEF (.ods) ----------
@@ -8887,16 +9333,41 @@ function montarMemorialHtml(memorial){
     html += `<div>${escXml(memorial.erro)}</div>`;
     return html;
   }
-  html += `<div style="text-align:center; font-weight:700; font-size:1.05em; letter-spacing:0.06em; margin-bottom:16px;">MEMORIAL DESCRITIVO</div>`;
-  if(memorial.avisos && memorial.avisos.length){
-    html += memorial.avisos.map(a => `<div style="background:#F5EBC8; border:1px solid #D9C583; border-radius:4px; padding:7px 10px; margin-bottom:8px;"><b>Atenção:</b> ${escXml(a)}</div>`).join('');
+  if(memorial.empresaCabecalho){
+    html += `<div style="text-align:center; font-weight:700; margin-bottom:8px;">${escXml(memorial.empresaCabecalho)}</div>`;
   }
-  html += `<div style="display:grid; grid-template-columns:max-content 1fr; column-gap:14px; row-gap:3px; margin-bottom:18px;">`;
-  memorial.campos.forEach(c => {
-    html += `<div style="font-weight:700; white-space:nowrap;">${escXml(c.label)}:</div><div>${escXml(c.valor)}</div>`;
-  });
+  html += `<div style="text-align:center; font-weight:700; font-size:1.05em; letter-spacing:0.06em; margin-bottom:16px; text-decoration:underline;">MEMORIAL DESCRITIVO</div>`;
+  if(memorial.avisos && memorial.avisos.length){
+    html += memorial.avisos.map(a => `<div class="doc-aviso-tela" style="background:#F5EBC8; border:1px solid #D9C583; border-radius:4px; padding:7px 10px; margin-bottom:8px;"><b>Atenção:</b> ${escXml(a)}</div>`).join('');
+  }
+  // Campos marcados com "par:true" (dois consecutivos) desenham lado a lado — Município+Estado,
+  // Área+Perímetro — igual ao memorial assinado pelo escritório; os demais ficam em linha própria.
+  html += `<div style="margin-bottom:18px;">`;
+  for(let ci=0; ci<memorial.campos.length; ci++){
+    const c = memorial.campos[ci];
+    const c2 = memorial.campos[ci+1];
+    if(c.par && c2 && c2.par){
+      html += `<div style="display:flex; gap:28px; margin-bottom:4px;"><div><strong>${escXml(c.label)}:</strong> ${escXml(c.valor)}</div><div><strong>${escXml(c2.label)}:</strong> ${escXml(c2.valor)}</div></div>`;
+      ci++;
+    } else {
+      html += `<div style="margin-bottom:4px;"><strong>${escXml(c.label)}:</strong> ${escXml(c.valor)}</div>`;
+    }
+  }
   html += `</div>`;
   html += `<div id="doc-memorial-texto" style="white-space:pre-wrap; text-align:justify;">${escXml(memorial.corpo)}</div>`;
+  html += `<p style="margin-top:24px; text-align:right;">${escXml(memorial.localData)}</p>`;
+  html += `<div class="anuencia-assinatura" style="margin-top:36px;">
+    <div class="linha"></div>
+    <div><strong>${escXml(String(memorial.propNome||'').toUpperCase())}</strong></div>
+    <div class="info">Proprietário do imóvel: ${escXml(memorial.imovelNome||'')}</div>
+  </div>`;
+  html += `<div class="anuencia-assinatura" style="margin-top:36px;">
+    <div class="linha"></div>
+    <div><strong>${escXml(String(memorial.tecNome||'').toUpperCase())}</strong></div>
+    <div class="info">${escXml(memorial.tecTitulo)}</div>
+    ${memorial.tecRegistro ? `<div class="info">${escXml(memorial.tecRegistro)}</div>` : ''}
+    ${memorial.artTexto ? `<div class="info"><strong>${escXml(memorial.artTexto)}</strong></div>` : ''}
+  </div>`;
   if(rodapeConfig){
     html += `<div style="margin-top:18px; padding-top:10px; border-top:1px solid #d8cfb8;">${rodapeConfig}</div>`;
   }
@@ -9047,6 +9518,10 @@ document.getElementById('btn-imprimir-memorial').addEventListener('click', ()=>{
   win.document.write(`<!doctype html><html><head><title>Memorial Descritivo</title><meta charset="utf-8"><style>
     @page{ size:A4 portrait; margin:14mm; }
     body{ margin:0; padding:0; font-family:'IBM Plex Mono', monospace; background:#fff; color:#1a1a1a; font-size:0.82rem; line-height:1.6; }
+    .anuencia-assinatura{ margin-top:36px; text-align:center; }
+    .anuencia-assinatura .linha{ border-top:1px solid #2B2417; width:340px; margin:0 auto 4px; }
+    .anuencia-assinatura .info{ font-size:0.78em; line-height:1.25; margin-top:1px; }
+    .doc-aviso-tela{ display:none; }
   </style></head><body>${container.innerHTML}</body></html>`);
   win.document.close();
   win.onload = ()=>{ win.focus(); win.print(); };
@@ -9068,11 +9543,66 @@ document.getElementById('btn-imprimir-anuencia').addEventListener('click', ()=>{
     .anuencia-tabela td{ padding:6px 8px; border:1px solid #e5ded0; text-align:center; }
     .anuencia-assinatura{ margin-top:36px; text-align:center; }
     .anuencia-assinatura .linha{ border-top:1px solid #2B2417; width:340px; margin:0 auto 4px; }
+    .anuencia-assinatura .info{ font-size:0.78em; line-height:1.25; margin-top:1px; }
     .anuencia-croqui-titulo{ text-align:center; font-family:'Space Grotesk',sans-serif; font-weight:700; margin:26px 0 10px; }
     .anuencia-footer{ font-size:0.68rem; color:#8a8272; text-align:center; margin-top:20px; border-top:1px solid #e5ded0; padding-top:8px; }
+    .doc-aviso-tela{ display:none; }
   </style></head><body>${container.innerHTML}</body></html>`);
   win.document.close();
   win.onload = ()=>{ win.focus(); win.print(); };
+});
+document.getElementById('btn-baixar-memorial-docx').addEventListener('click', async ()=>{
+  const container = document.getElementById('doc-memorial');
+  if(!container || !container.innerHTML.trim()){ showToast('Gere os documentos primeiro.'); return; }
+  const btn = document.getElementById('btn-baixar-memorial-docx');
+  const imId = document.getElementById('doc-imovel-select').value;
+  const imovel = state.imoveis.find(x=>x.id===imId);
+  if(!imovel){ showToast('Selecione um imóvel.'); return; }
+  const prop = state.proprietarios.find(p=>p.id===imovel.proprietarioId);
+  const tec = state.tecnicos.find(t=>t.id===imovel.tecnicoId);
+  const lista = codigosPorTipo(marcosOrdenados(imId));
+  const coordFormato = document.getElementById('doc-coord-formato').value;
+  const txtOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando .docx…';
+  try{
+    const memorial = gerarMemorial(imovel, prop, tec, lista, coordFormato);
+    const blocos = await construirBlocosMemorialDocx(memorial);
+    const blob = await gerarDocxBlob(blocos, 'Memorial Descritivo — '+imovel.nome);
+    baixarBlobComoArquivo(blob, `memorial-descritivo-${(imovel.nome||'imovel').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.docx`);
+    showToast('Memorial descritivo baixado em Word (.docx)!');
+  }catch(e){
+    console.error(e);
+    showToast('Falha ao gerar o Word: '+e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = txtOriginal;
+  }
+});
+document.getElementById('btn-baixar-anuencia-docx').addEventListener('click', async ()=>{
+  const container = document.getElementById('doc-anuencia');
+  if(!container || !container.innerHTML.trim()){ showToast('Gere os documentos primeiro.'); return; }
+  const btn = document.getElementById('btn-baixar-anuencia-docx');
+  const imId = document.getElementById('doc-imovel-select-anu').value;
+  const imovel = state.imoveis.find(x=>x.id===imId);
+  if(!imovel){ showToast('Selecione um imóvel.'); return; }
+  const prop = state.proprietarios.find(p=>p.id===imovel.proprietarioId);
+  const tec = state.tecnicos.find(t=>t.id===imovel.tecnicoId);
+  const lista = codigosPorTipo(marcosOrdenados(imId));
+  const coordFormato = document.getElementById('doc-coord-formato-anu').value;
+  const txtOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando .docx…';
+  try{
+    const dadosList = construirDadosAnuencias(imovel, prop, tec, lista, coordFormato);
+    if(!dadosList.length){ showToast('Preencha o campo "confrontante" nos marcos para gerar as cartas de anuência.'); return; }
+    const blocos = await construirBlocosAnuenciaDocx(dadosList);
+    const blob = await gerarDocxBlob(blocos, 'Carta de Anuência — '+imovel.nome);
+    baixarBlobComoArquivo(blob, `carta-anuencia-${(imovel.nome||'imovel').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.docx`);
+    showToast('Carta(s) de anuência baixada(s) em Word (.docx)!');
+  }catch(e){
+    console.error(e);
+    showToast('Falha ao gerar o Word: '+e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = txtOriginal;
+  }
 });
 document.addEventListener('click', e=>{
   if(e.target.dataset && e.target.dataset.copy){
