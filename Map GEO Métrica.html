@@ -910,7 +910,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.31 — Carta de Anuência: município e data alinhados à direita, igual ao Memorial Descritivo</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-02.38 — Planilha do SIGEF: além de corrigir CPF e Município em branco na aba Identificação, agora o nome do município também é escrito na célula B17 (ao lado da célula do combobox); e Rio/Estrada/Posse não preenchem mais Matrícula/CNS indevidos na tabela de vértices</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -2619,6 +2619,19 @@ const GITHUB_DEFAULT_PATH = 'dados/gestor-georreferenciamento-MapGEObackup.json'
 let githubCfg = null;
 let _debounceGithubTimer = null;
 let _githubSalvando = false;
+// Rastreia se há alguma alteração ainda não confirmada no GitHub: 'pendente' enquanto o debounce
+// está esperando pra gravar (ou uma gravação está em andamento), 'erro' se a última tentativa
+// falhou. Usado pelo aviso de "fechar a página" logo abaixo — sem isso, fechar a aba ou abrir uma
+// cópia nova do arquivo bem no meio dessa janela faz a última alteração parecer "perdida" (ela
+// continua salva neste navegador, só não chegou a ir pro backup compartilhado do GitHub).
+let _githubPendencia = null;
+window.addEventListener('beforeunload', function(e){
+  if(githubConfigValida(githubCfg) && _githubPendencia){
+    e.preventDefault();
+    e.returnValue = 'Há alterações que ainda não foram confirmadas no backup do GitHub. Se sair agora, elas podem não ser salvas lá (mas continuam salvas neste navegador).';
+    return e.returnValue;
+  }
+});
 
 function carregarGithubConfig(){
   try{ githubCfg = JSON.parse(localStorage.getItem(GITHUB_CFG_KEY)||'null'); }catch(e){ githubCfg = null; }
@@ -2689,13 +2702,16 @@ async function githubGravarArquivo(cfg, textoConteudo, shaAtual){
   if(!resp.ok){
     let detalhe = '';
     try{ detalhe = (await resp.json()).message || ''; }catch(e){}
-    throw new Error(`GitHub respondeu HTTP ${resp.status}${detalhe? ' — '+detalhe : ''}.`);
+    const erro = new Error(`GitHub respondeu HTTP ${resp.status}${detalhe? ' — '+detalhe : ''}.`);
+    erro.statusGithub = resp.status;
+    throw erro;
   }
   return await resp.json();
 }
 function agendarSalvarNoGithub(){
   if(!githubConfigValida(githubCfg)) return;
   clearTimeout(_debounceGithubTimer);
+  _githubPendencia = 'pendente';
   // debounce maior que o da pasta local (2s): é uma chamada de rede de verdade, com custo e
   // limite de requisições da API do GitHub — não faz sentido gravar a cada tecla digitada.
   _debounceGithubTimer = setTimeout(()=>salvarBackupNoGithub(false), 2000);
@@ -2704,16 +2720,46 @@ async function salvarBackupNoGithub(mostrarToast){
   if(!githubConfigValida(githubCfg)) return;
   if(_githubSalvando){ agendarSalvarNoGithub(); return; } // evita duas gravações simultâneas brigando pelo mesmo sha
   _githubSalvando = true;
+  _githubPendencia = 'pendente';
   try{
     atualizarStatusGithub('Salvando no GitHub...');
-    const atual = await githubLerArquivo(githubCfg);
     const payload = { exportadoEm: new Date().toISOString(), ...state };
-    await githubGravarArquivo(githubCfg, JSON.stringify(payload, null, 2), atual.sha);
+    const textoPayload = JSON.stringify(payload, null, 2);
+    // HTTP 409 = o "sha" usado na gravação não bate mais com o do arquivo no GitHub: alguém (outro
+    // computador/aba, ou outra gravação deste mesmo escritório) salvou nesse meio-tempo. Em vez de
+    // simplesmente falhar, relê o sha mais atual do arquivo e tenta gravar de novo — como o conteúdo
+    // gravado é sempre o estado completo e atual deste navegador, repetir com o sha novo resolve o
+    // conflito sozinho na grande maioria dos casos, sem precisar que a pessoa clique em "Salvar" de novo.
+    let atual = await githubLerArquivo(githubCfg);
+    let tentativas = 0;
+    const MAX_TENTATIVAS_409 = 5;
+    while(true){
+      try{
+        await githubGravarArquivo(githubCfg, textoPayload, atual.sha);
+        break;
+      }catch(e){
+        tentativas++;
+        if(e.statusGithub === 409 && tentativas <= MAX_TENTATIVAS_409){
+          // Espera um pouco (com um pouco de aleatoriedade) antes de tentar de novo: se outra aba
+          // ou computador do escritório está salvando ao mesmo tempo, relendo e regravando na hora
+          // sem pausa nenhuma, duas gravações em loop apertado podem continuar se atropelando sha
+          // após sha. Um atraso pequeno e variável dá chance da outra gravação "terminar a vez" antes
+          // da próxima tentativa, bem mais eficaz que simplesmente tentar de novo imediatamente.
+          atualizarStatusGithub(`Conflito ao salvar no GitHub (provavelmente outra aba/computador salvando ao mesmo tempo) — tentando de novo (${tentativas}/${MAX_TENTATIVAS_409})...`);
+          await new Promise(r=>setTimeout(r, 400 + Math.random()*800 + tentativas*300));
+          atual = await githubLerArquivo(githubCfg);
+          continue;
+        }
+        throw e;
+      }
+    }
     atualizarStatusGithub(`Salvo no GitHub às ${new Date().toLocaleTimeString('pt-BR')} (${state.imoveis.length} imóvel(is)).`);
     if(mostrarToast) showToast('Dados salvos no GitHub.');
+    _githubPendencia = null;
   }catch(e){
     atualizarStatusGithub('Erro ao salvar no GitHub: '+(e.message||e), true);
     if(mostrarToast) showToast('Erro ao salvar no GitHub: '+(e.message||e));
+    _githubPendencia = 'erro';
   }finally{ _githubSalvando = false; }
 }
 async function restaurarDoGithub(mostrarToast, forcarMesmoComDados){
@@ -2777,7 +2823,13 @@ async function restaurarDoGithub(mostrarToast, forcarMesmoComDados){
     if(mostrarToast) showToast('Erro ao restaurar do GitHub: '+(e.message||e));
   }
 }
-document.getElementById('btn-gh-salvar-config').addEventListener('click', async ()=>{
+// Extraído do clique do botão "Salvar configuração" pra poder ser chamado também automaticamente
+// (ver listener de 'blur' do campo de token logo abaixo) — resolve uma armadilha real que já
+// causou perda de trabalho: a pessoa cola o token no campo (ele fica com uma fileira de pontinhos,
+// parecendo "pronto"), mas esquece de clicar no botão, e o app continua gravando SÓ localmente sem
+// avisar com destaque nenhum — ela só descobre dias depois, quando abre uma cópia nova do arquivo
+// e o trabalho "sumiu" (na real nunca saiu do navegador antigo).
+async function salvarConfigGithubDoFormulario(origemAutomatica){
   const cfg = {
     owner: document.getElementById('gh-owner').value.trim(),
     repo: document.getElementById('gh-repo').value.trim(),
@@ -2785,10 +2837,16 @@ document.getElementById('btn-gh-salvar-config').addEventListener('click', async 
     path: document.getElementById('gh-path').value.trim(),
     token: document.getElementById('gh-token').value.trim(),
   };
-  if(!githubConfigValida(cfg)){ showToast('Preencha usuário, repositório, caminho do arquivo e token.'); return; }
+  if(!githubConfigValida(cfg)){
+    if(!origemAutomatica) showToast('Preencha usuário, repositório, caminho do arquivo e token.');
+    return;
+  }
+  // Se já está exatamente assim salvo e ativo, não repete a chamada de rede (evita todo "blur" do
+  // campo de token — inclusive sem ter mudado nada — disparar um salvamento/restauração de novo).
+  if(githubCfg && JSON.stringify(githubCfg)===JSON.stringify(cfg)) return;
   githubCfg = cfg;
   localStorage.setItem(GITHUB_CFG_KEY, JSON.stringify(cfg));
-  showToast('Configuração do GitHub salva.');
+  showToast(origemAutomatica ? 'Token detectado — ativando salvamento automático no GitHub...' : 'Configuração do GitHub salva.');
   // Ao salvar a configuração pela primeira vez, verifica se já existe um backup nesse arquivo
   // (mesma lógica de segurança da pasta local: nunca gravar por cima de um backup existente às
   // cegas) e decide restaurar ou gravar, igual ao fluxo de "escolher pasta".
@@ -2809,7 +2867,13 @@ document.getElementById('btn-gh-salvar-config').addEventListener('click', async 
     atualizarStatusGithub('Erro ao conectar no GitHub: '+(e.message||e), true);
     showToast('Configuração salva, mas houve erro ao conectar: '+(e.message||e));
   }
-});
+}
+document.getElementById('btn-gh-salvar-config').addEventListener('click', ()=>salvarConfigGithubDoFormulario(false));
+// Ativação automática: assim que a pessoa sai do campo de token (clica fora, dá Tab, ou cola e
+// clica em outro lugar) com um token presente e os outros campos já preenchidos (o que é o caso
+// comum, já que owner/repo/branch/path vêm pré-preenchidos com o padrão do escritório), salva e
+// ativa sozinho — sem depender de ela lembrar de clicar em "Salvar configuração".
+document.getElementById('gh-token').addEventListener('blur', ()=>{ salvarConfigGithubDoFormulario(true); });
 document.getElementById('btn-gh-testar').addEventListener('click', async ()=>{
   const cfg = {
     owner: document.getElementById('gh-owner').value.trim(),
@@ -3880,6 +3944,16 @@ window.implantarMarcos = async function(){
   await save('marcos'); await save('marcosCatalogo');
   renderMarcos(); renderBancoMarcos();
   showToast(`${implantados} marco(s) implantado(s) e catalogado(s) no banco de dados.`);
+  // Implantar marco é uma ação irreversível (o código gerado fica permanentemente vinculado ao
+  // imóvel) — por isso, em vez de confiar só no salvamento em segundo plano (que espera 2s e, se
+  // falhar, só atualiza um texto pequeno na tela sem avisar ninguém), tenta gravar no GitHub
+  // imediatamente e com aviso visível (toast) se der algo errado, pra reduzir o risco de alguém
+  // fechar a aba ou abrir uma cópia nova do arquivo antes dessa alteração chegar no backup
+  // compartilhado do escritório.
+  if(githubConfigValida(githubCfg)){
+    clearTimeout(_debounceGithubTimer);
+    await salvarBackupNoGithub(true);
+  }
 };
 const bancoMarcosSelecionados = new Set(); // ids de state.marcosCatalogo marcados na tabela
 function renderBancoMarcos(){
@@ -7996,6 +8070,89 @@ function odsPatchValorAposRotulo(tabelaXml, rotulo, valor, opts){
   const novaCelula = `<table:table-cell${atributos}>${novoConteudo}</table:table-cell>`;
   return tabelaXml.slice(0, inicioValor) + novaCelula + tabelaXml.slice(fimValor);
 }
+// Acha o xml:id interno (ex.: "control6") de um controle de formulário embutido no modelo, a partir
+// do nome lógico dele (ex.: "cmbMunicipio") — os <draw:control> dentro das células só referenciam
+// esse xml:id, nunca o nome, então é preciso resolver um pra achar o outro.
+function odsAcharIdControlePorNome(xml, nomeControle){
+  const re = new RegExp(`<form:[a-z-]+\\s+[^>]*form:name="${nomeControle}"[^>]*>`);
+  const m = re.exec(xml);
+  if(!m) return null;
+  const idm = /xml:id="([^"]+)"/.exec(m[0]);
+  return idm ? idm[1] : null;
+}
+// Preenche a célula "dona" de um controle de formulário embutido (localizado por xml:id, ex.: o
+// combobox "Município(s):"), em vez da célula logo ao lado do rótulo. No modelo oficial do SIGEF
+// nem todo campo com controle fica assim — o combobox de Município, por exemplo, está ancorado na
+// LINHA DE BAIXO (a célula pra qual ele está vinculado via "linked-cell"), não ao lado do rótulo
+// "Município(s):" (essa célula ao lado tem só o botão "Adicionar Município", sem relação com o
+// valor exibido) — por isso usar odsPatchValorAposRotulo ali preenchia uma célula inofensiva, mas
+// errada, e o combobox continuava em branco pro usuário.
+function odsPatchCelulaDoControle(tabelaXml, idControle, valor){
+  const marcador = `draw:control="${idControle}"`;
+  const idxControle = tabelaXml.indexOf(marcador);
+  if(idxControle === -1) return tabelaXml;
+  const idxCelula = tabelaXml.lastIndexOf('<table:table-cell', idxControle);
+  if(idxCelula === -1) return tabelaXml;
+  const fimTagAbertura = tabelaXml.indexOf('>', idxCelula);
+  const fimCelula = tabelaXml.indexOf('</table:table-cell>', fimTagAbertura) + '</table:table-cell>'.length;
+  const inicioConteudo = fimTagAbertura + 1;
+  const conteudoAtual = tabelaXml.slice(inicioConteudo, fimCelula - '</table:table-cell>'.length);
+  const textoEscapado = odsEscXml(valor);
+  const novoConteudo = /<text:p[^>]*>[\s\S]*?<\/text:p>/.test(conteudoAtual)
+    ? conteudoAtual.replace(/<text:p[^>]*>[\s\S]*?<\/text:p>/, `<text:p>${textoEscapado}</text:p>`)
+    : conteudoAtual + `<text:p>${textoEscapado}</text:p>`;
+  let atributos = tabelaXml.slice(idxCelula + '<table:table-cell'.length, fimTagAbertura);
+  if(!/office:value-type=/.test(atributos)) atributos += ' office:value-type="string" calcext:value-type="string"';
+  const novaCelula = `<table:table-cell${atributos}>${novoConteudo}</table:table-cell>`;
+  return tabelaXml.slice(0, idxCelula) + novaCelula + tabelaXml.slice(fimCelula);
+}
+// Preenche também a célula seguinte à célula "dona" do controle (ex.: B17, logo depois da A17 onde
+// fica o combobox de Município) — pedido explícito do usuário, que precisa do nome do município
+// também nessa célula (o combobox cobre visualmente as duas, A17:B17, mas só grava em A17 por ser a
+// célula vinculada a ele).
+function odsPatchCelulaAposControle(tabelaXml, idControle, valor){
+  const marcador = `draw:control="${idControle}"`;
+  const idxControle = tabelaXml.indexOf(marcador);
+  if(idxControle === -1) return tabelaXml;
+  const fimCelulaControle = tabelaXml.indexOf('</table:table-cell>', idxControle) + '</table:table-cell>'.length;
+  if(fimCelulaControle < '</table:table-cell>'.length) return tabelaXml;
+  const fimTagAbertura = tabelaXml.indexOf('>', fimCelulaControle);
+  const autoFechada = tabelaXml[fimTagAbertura-1] === '/';
+  const textoEscapado = odsEscXml(valor);
+  if(autoFechada){
+    const atributos = tabelaXml.slice(fimCelulaControle + '<table:table-cell'.length, fimTagAbertura-1);
+    const novaCelula = `<table:table-cell${atributos} office:value-type="string" calcext:value-type="string"><text:p>${textoEscapado}</text:p></table:table-cell>`;
+    return tabelaXml.slice(0, fimCelulaControle) + novaCelula + tabelaXml.slice(fimTagAbertura+1);
+  }
+  const fimValor = tabelaXml.indexOf('</table:table-cell>', fimTagAbertura) + '</table:table-cell>'.length;
+  let atributos = tabelaXml.slice(fimCelulaControle + '<table:table-cell'.length, fimTagAbertura);
+  if(!/office:value-type=/.test(atributos)) atributos += ' office:value-type="string" calcext:value-type="string"';
+  const inicioConteudo = fimTagAbertura + 1;
+  const conteudoAtual = tabelaXml.slice(inicioConteudo, fimValor - '</table:table-cell>'.length);
+  const novoConteudo = /<text:p[^>]*>[\s\S]*?<\/text:p>/.test(conteudoAtual)
+    ? conteudoAtual.replace(/<text:p[^>]*>[\s\S]*?<\/text:p>/, `<text:p>${textoEscapado}</text:p>`)
+    : conteudoAtual + `<text:p>${textoEscapado}</text:p>`;
+  const novaCelula = `<table:table-cell${atributos}>${novoConteudo}</table:table-cell>`;
+  return tabelaXml.slice(0, fimCelulaControle) + novaCelula + tabelaXml.slice(fimValor);
+}
+// Define o "form:current-value" (o texto exibido) de um controle de formulário embutido, localizado
+// pelo nome lógico (ex.: "fieldCPF"). Alguns campos do modelo oficial do SIGEF são controles cujo
+// valor exibido só é atualizado a partir da célula por trás dele quando uma macro do próprio modelo
+// roda (ex.: ao clicar no campo) — com macros desabilitadas (comum, por segurança) ou abrindo o
+// arquivo em outro programa que não execute macro do LibreOffice Basic (ex.: Excel), isso nunca
+// acontece e o campo fica com a máscara em branco mesmo com o valor já salvo por trás. Definir o
+// atributo aqui garante que o valor apareça assim que o arquivo é aberto, em qualquer programa.
+function odsPatchValorControlePorNome(xml, nomeControle, valor){
+  const re = new RegExp(`(<form:[a-z-]+\\s+[^>]*form:name="${nomeControle}"[^>]*?)(/?>)`);
+  const m = re.exec(xml);
+  if(!m) return xml;
+  let tagAberta = m[1];
+  const textoEscapado = odsEscXml(valor);
+  tagAberta = /form:current-value="[^"]*"/.test(tagAberta)
+    ? tagAberta.replace(/form:current-value="[^"]*"/, `form:current-value="${textoEscapado}"`)
+    : tagAberta + ` form:current-value="${textoEscapado}"`;
+  return xml.slice(0, m.index) + tagAberta + m[2] + xml.slice(m.index + m[0].length);
+}
 // Quebra o conteúdo de UMA linha (<table:table-row>...</table:table-row>, só o miolo) em grupos
 // de células, preservando o "table:number-columns-repeated" de cada grupo em vez de expandir —
 // assim uma linha com 1024 colunas continua leve mesmo depois de editada.
@@ -8127,9 +8284,22 @@ function odsGerarLinhaVertice(linhaModelo, dados){
   if(dados.sigmaH!=null) odsDefinirColuna(grupos, 6, numeroVirgula(dados.sigmaH, 2));
   if(dados.metodoPosicionamento) odsDefinirColuna(grupos, 7, dados.metodoPosicionamento);
   if(dados.tipoLimite) odsDefinirColuna(grupos, 8, dados.tipoLimite);
+  if(dados.cns) odsDefinirColuna(grupos, 9, dados.cns);
   if(dados.matricula) odsDefinirColuna(grupos, 10, dados.matricula);
   if(dados.descritivo) odsDefinirColuna(grupos, 11, dados.descritivo);
   return odsMontarLinha(linhaModelo.attrsSemRepeat, odsSerializarCelulas(grupos), 1);
+}
+// "Rio"/"Estrada": o imóvel vinculado nesses casos é só "quem assina" a Carta de Anuência do lado
+// subsequente (o dono do outro lado do curso d'água/via) — não o "dono" do próprio rio/estrada, que
+// não existe. A Matrícula/CNS desse imóvel vinculado não tem nada a ver com aquele trecho de limite,
+// então nunca deveriam aparecer nessa linha de vértice. A mesma lacuna vale pra posse: "Posse",
+// "posse", "POSSE" (ou qualquer variação de maiúsculas/minúsculas) ou o campo Matrícula vazio também
+// não têm matrícula/CNS reais pra declarar — mesma regra, mesmo resultado em branco.
+function confrontanteSemRegistroFormal(m, imC){
+  if(m.confrontanteTipo === 'rio' || m.confrontanteTipo === 'estrada') return true;
+  const mat = ((imC && imC.matricula) || '').trim();
+  if(!mat || /^posse$/i.test(mat)) return true;
+  return false;
 }
 async function odsDataUrlParaArrayBuffer(dataUrl){
   const resp = await fetch(dataUrl);
@@ -8177,6 +8347,18 @@ async function gerarPlanilhaSigefBlob(imovel, prop, lista){
           xml = odsPatchValorAposRotulo(xml, 'Tipo pessoa:', digitos.length===14 ? 'Jurídica' : 'Física');
         }
         xml = odsPatchValorAposRotulo(xml, 'CPF:', prop.doc);
+        // O campo "CPF:" do modelo oficial tem, sobreposto à célula, um controle com máscara fixa
+        // (só cabe CPF — o modelo não tem campo de CNPJ separado) cujo valor exibido só é atualizado
+        // a partir da célula por uma macro do próprio modelo, disparada ao CLICAR no campo. Com
+        // macros desabilitadas (padrão comum, por segurança) ou abrindo em outro programa que não
+        // rode macro do LibreOffice Basic (ex.: Excel), isso nunca acontece — o campo aparecia em
+        // branco mesmo com o CPF já salvo por trás na célula. Por isso define também o valor exibido
+        // do controle diretamente, sem depender da macro (só quando é CPF mesmo, 11 dígitos — a
+        // máscara fixa do controle não comporta um CNPJ de 14).
+        if(digitos.length===11){
+          const cpfFormatado = `${digitos.slice(0,3)}.${digitos.slice(3,6)}.${digitos.slice(6,9)}-${digitos.slice(9,11)}`;
+          xml = odsPatchValorControlePorNome(xml, 'fieldCPF', cpfFormatado);
+        }
       }
     }
     xml = odsPatchValorAposRotulo(xml, 'Denominação:', imovel.nome||'');
@@ -8185,10 +8367,26 @@ async function gerarPlanilhaSigefBlob(imovel, prop, lista){
     if(imovel.codigoIncra) xml = odsPatchValorAposRotulo(xml, 'Código do Imóvel(SNCR/INCRA):', imovel.codigoIncra);
     if(imovel.cns) xml = odsPatchValorAposRotulo(xml, 'Código do cartório (CNS):', imovel.cns);
     if(imovel.matricula) xml = odsPatchValorAposRotulo(xml, 'Matrícula:', imovel.matricula);
-    // Formato exigido pela lista de municípios do próprio modelo do SIGEF: "Município-UF", sem
-    // espaços em volta do hífen (ex.: "Cuiabá-MT") — é assim que a planilha oficial lista as opções
-    // do combobox desse campo (aba parametros_controles), então precisa bater exatamente.
-    if(imovel.municipio) xml = odsPatchValorAposRotulo(xml, 'Município(s):', imovel.municipio + (imovel.uf ? '-'+imovel.uf : ''));
+    if(imovel.municipio){
+      // Formato exigido pela lista de municípios do próprio modelo do SIGEF: "Município-UF", sem
+      // espaços em volta do hífen (ex.: "Cuiabá-MT") — é assim que a planilha oficial lista as opções
+      // do combobox desse campo (aba parametros_controles), então precisa bater exatamente.
+      const valorMunicipio = imovel.municipio + (imovel.uf ? '-'+imovel.uf : '');
+      // O combobox "Município(s):" do modelo oficial está ancorado (vinculado por "linked-cell") na
+      // célula da LINHA DE BAIXO, não na célula ao lado do rótulo — essa célula ao lado tem só o
+      // botão "Adicionar Município", sem nenhuma relação com o valor exibido no combobox. Preencher
+      // a célula errada (como antes) não dava erro nenhum, só deixava o combobox sempre em branco
+      // pro usuário. Por isso localiza o controle pelo nome e preenche a célula que ele realmente usa.
+      const idComboMunicipio = odsAcharIdControlePorNome(xml, 'cmbMunicipio');
+      if(idComboMunicipio){
+        xml = odsPatchCelulaDoControle(xml, idComboMunicipio, valorMunicipio);
+        // Pedido explícito: a célula seguinte (B17), que o combobox cobre visualmente mas não está
+        // vinculada a ele, também recebe o nome do município.
+        xml = odsPatchCelulaAposControle(xml, idComboMunicipio, valorMunicipio);
+      } else {
+        xml = odsPatchValorAposRotulo(xml, 'Município(s):', valorMunicipio, {obrigatorio:false});
+      }
+    }
     contentXml = contentXml.slice(0, tbl.start) + xml + contentXml.slice(tbl.end);
   }
 
@@ -8204,13 +8402,15 @@ async function gerarPlanilhaSigefBlob(imovel, prop, lista){
     const linhasXml = lista.map((m,i)=>{
       const geo = utmParaLatLon(m.coordE, m.coordN, zona, sul);
       const imC = m.confrontanteImovelId ? state.imoveis.find(im=>im.id===m.confrontanteImovelId) : null;
+      const semRegistro = confrontanteSemRegistroFormal(m, imC);
       return odsGerarLinhaVertice(linhasModelo[i], {
         codigo: m.codigo,
         lon: geo.lon, lat: geo.lat,
         sigmaE: m.sigmaE, sigmaN: m.sigmaN, h: m.alturaElipsoidal, sigmaH: m.sigmaH,
         metodoPosicionamento: m.metodoPosicionamento, tipoLimite: m.tipoLimite,
         descritivo: m.confrontante || '',
-        matricula: (imC && imC.matricula) ? imC.matricula : '',
+        matricula: semRegistro ? '' : imC.matricula,
+        cns: semRegistro ? '' : ((imC && imC.cns) ? imC.cns : ''),
       });
     }).join('');
     xml = antes + linhasXml + depois;
