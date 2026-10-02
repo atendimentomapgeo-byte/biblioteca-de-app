@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-02T21:38:38.693Z",
+  "exportadoEm": "2026-10-02T21:40:19.470Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -157,7 +157,9 @@
       "sigefDataCertificacao": "",
       "sigefResponsavelTecnico": "",
       "simcar": "",
-      "simcarSituacao": ""
+      "simcarSituacao": "",
+      "situacaoRegistral": "Área Titulada não Registrada",
+      "cns": "069687"
     },
     {
       "id": "mud95j71y7nh3",
