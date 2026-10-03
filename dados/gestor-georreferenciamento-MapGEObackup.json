@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-03T17:09:56.224Z",
+  "exportadoEm": "2026-10-03T17:10:44.395Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -528,7 +528,13 @@
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
-      "rotAngConf": 0
+      "rotAngConf": 0,
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpknnlq4",
@@ -540,10 +546,10 @@
       "confrontanteImovelId": "muhwln9398rjj",
       "coordE": 512797.756,
       "coordN": 8755743.364,
-      "sigmaE": null,
-      "sigmaN": null,
-      "alturaElipsoidal": null,
-      "sigmaH": null,
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
       "metodoPosicionamento": "PG2",
       "tipoLimite": "LA1",
       "implantado": false,
@@ -574,7 +580,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpkpvdpj",
@@ -597,7 +609,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpk56lbt",
@@ -620,7 +638,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpkvxqgz",
@@ -644,7 +668,13 @@
       "rotAngConf": 0,
       "confrontanteObservacao": "",
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpk5jtmy",
@@ -667,7 +697,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpk902rw",
@@ -690,7 +726,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpkqywx0",
@@ -713,7 +755,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpklulay",
@@ -736,7 +784,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpksomu6",
@@ -759,7 +813,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpk0gxlt",
@@ -782,7 +842,13 @@
       "rotOffConfN": 0,
       "rotAngConf": 0,
       "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteAssinanteNome": "",
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpkfigp1",
@@ -803,7 +869,13 @@
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
-      "rotAngConf": 1.5
+      "rotAngConf": 1.5,
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpkz84nf",
@@ -824,7 +896,13 @@
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
-      "rotAngConf": 0
+      "rotAngConf": 0,
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud8pxpkvqoe7",
@@ -845,7 +923,13 @@
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
-      "rotAngConf": 0
+      "rotAngConf": 0,
+      "sigmaE": 0.02,
+      "sigmaN": 0.02,
+      "alturaElipsoidal": 210,
+      "sigmaH": 0.05,
+      "metodoPosicionamento": "PG2",
+      "tipoLimite": "LA1"
     },
     {
       "id": "mud93vdtcn6d8",
