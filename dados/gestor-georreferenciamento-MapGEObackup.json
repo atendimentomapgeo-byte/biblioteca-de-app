@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-03T18:21:02.910Z",
+  "exportadoEm": "2026-10-03T18:23:36.953Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -54,12 +54,12 @@
       "id": "muh891fwfb6v3",
       "nome": "Fagner de Brito Gomes Silva",
       "titulo": "Téc. em Agrimensura",
-      "registroTipo": "CREA",
-      "registroNumero": "CFT03501377142",
+      "registroTipo": "CFT",
+      "registroNumero": "03501377142",
       "registros": [
         {
-          "tipo": "CREA",
-          "numero": "CFT03501377142"
+          "tipo": "CFT",
+          "numero": "03501377142"
         }
       ],
       "codigoIncra": "DFGF",
@@ -71,17 +71,17 @@
     },
     {
       "id": "muhviy79odjnu",
-      "nome": "Maria Souza",
+      "nome": "Teste Responsável Téc",
       "titulo": "Engenheira Agrimensora",
       "registroTipo": "CREA",
-      "registroNumero": "000000/D-MT",
+      "registroNumero": "11122233344",
       "registros": [
         {
           "tipo": "CREA",
-          "numero": "000000/D-MT"
+          "numero": "11122233344"
         }
       ],
-      "codigoIncra": "",
+      "codigoIncra": "TXT",
       "empresa": "",
       "email": "",
       "telefone": "",
