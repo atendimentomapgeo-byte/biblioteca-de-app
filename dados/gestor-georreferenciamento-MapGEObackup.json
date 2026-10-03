@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-03T17:48:26.940Z",
+  "exportadoEm": "2026-10-03T18:21:02.910Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -86,25 +86,6 @@
       "email": "",
       "telefone": "",
       "municipio": "Cuiabá",
-      "uf": "MT"
-    },
-    {
-      "id": "muhvqhwk2bblh",
-      "nome": "Fagner de Brito Gomes Silva",
-      "titulo": "Téc. em Agrimensura",
-      "registroTipo": "CFT",
-      "registroNumero": "03501377142",
-      "registros": [
-        {
-          "tipo": "CFT",
-          "numero": "03501377142"
-        }
-      ],
-      "codigoIncra": "GFDF",
-      "empresa": "Map GEO",
-      "email": "fagner.agri@gmail.com",
-      "telefone": "65 99902-0867",
-      "municipio": "Cuiaba",
       "uf": "MT"
     }
   ],
@@ -536,8 +517,8 @@
       "tipo": "M",
       "codigoSigef": "",
       "ordem": 1,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "coordE": 512797.756,
       "coordN": 8755743.364,
       "sigmaE": null,
@@ -548,18 +529,15 @@
       "tipoLimite": "LA1",
       "implantado": true,
       "numeroCatalogo": 1,
-      "codigoCompleto": "GHH-M-0001",
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": "",
-      "confrontanteOrigem": "cadastro"
+      "codigoCompleto": "GHH-M-0001"
     },
     {
       "id": "mud8pxpkseylk",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 2,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 1,
@@ -572,17 +550,15 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkpvdpj",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 3,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 2,
@@ -595,17 +571,15 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpk56lbt",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 4,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 3,
@@ -618,41 +592,37 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkvxqgz",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 5,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "",
+      "confrontanteImovelId": null,
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 4,
       "codigoCompleto": "GHH-P-0004",
       "coordE": 512852.754,
       "coordN": 8755704.949,
-      "confrontanteOrigem": "cadastro",
+      "confrontanteOrigem": "",
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
       "rotAngConf": 0,
-      "confrontanteObservacao": "",
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "confrontanteObservacao": ""
     },
     {
       "id": "mud8pxpk5jtmy",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 6,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 5,
@@ -665,17 +635,15 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpk902rw",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 7,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 6,
@@ -688,17 +656,15 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkqywx0",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 8,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 7,
@@ -711,17 +677,15 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpklulay",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 9,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 8,
@@ -734,17 +698,15 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpksomu6",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 10,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 9,
@@ -757,17 +719,15 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpk0gxlt",
       "imovelId": "mud8pxpjq4r8c",
       "tipo": "P",
       "ordem": 11,
-      "confrontante": "Córrego Termil",
-      "confrontanteImovelId": "muhwln9398rjj",
+      "confrontante": "Corrego Termil",
+      "confrontanteImovelId": "mud9jka6nseb5",
       "codigoSigef": "",
       "implantado": true,
       "numeroCatalogo": 10,
@@ -780,9 +740,7 @@
       "rotAngM": 0,
       "rotOffConfE": 0,
       "rotOffConfN": 0,
-      "rotAngConf": 0,
-      "confrontanteTipo": "rio",
-      "confrontanteAssinanteNome": ""
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkfigp1",
@@ -1838,173 +1796,7 @@
     "CONFEA",
     "CFT"
   ],
-  "marcosCatalogo": [
-    {
-      "id": "musno6l1fdx1a",
-      "codigo": "GHH-M-0001",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "M",
-      "numero": 1,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpknnlq4",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l1ezi3h",
-      "codigo": "GHH-P-0001",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 1,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpkseylk",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l1z2ewx",
-      "codigo": "GHH-P-0002",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 2,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpkpvdpj",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l18ldt7",
-      "codigo": "GHH-P-0003",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 3,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpk56lbt",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l13t7fu",
-      "codigo": "GHH-P-0004",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 4,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpkvxqgz",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l1o7gdo",
-      "codigo": "GHH-P-0005",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 5,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpk5jtmy",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l127q42",
-      "codigo": "GHH-P-0006",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 6,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpk902rw",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l15qke2",
-      "codigo": "GHH-P-0007",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 7,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpkqywx0",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l1nu64q",
-      "codigo": "GHH-P-0008",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 8,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpklulay",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l15ipg1",
-      "codigo": "GHH-P-0009",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 9,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpksomu6",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l162wcv",
-      "codigo": "GHH-P-0010",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "P",
-      "numero": 10,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpk0gxlt",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l1ecqff",
-      "codigo": "GHH-M-0002",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "M",
-      "numero": 2,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpkfigp1",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l1q3c1r",
-      "codigo": "GHH-M-0003",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "M",
-      "numero": 3,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpkz84nf",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l1sp648",
-      "codigo": "GHH-M-0004",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "M",
-      "numero": 4,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpkvqoe7",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    },
-    {
-      "id": "musno6l1o14lt",
-      "codigo": "GHH-M-0005",
-      "tecnicoId": "mud8zucjrpduy",
-      "tipo": "M",
-      "numero": 5,
-      "imovelId": "mud8pxpjq4r8c",
-      "imovelNome": "Lote nº 413",
-      "marcoId": "mud8pxpkkuw65",
-      "dataImplantacao": "2026-10-03T17:18:12.565Z"
-    }
-  ],
+  "marcosCatalogo": [],
   "config": {
     "confMostrarMatricula": true,
     "confMostrarProprietario": true,
