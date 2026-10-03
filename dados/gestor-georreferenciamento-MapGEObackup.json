@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-03T16:42:23.292Z",
+  "exportadoEm": "2026-10-03T16:43:17.366Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -512,7 +512,7 @@
     {
       "id": "mud8pxpkkuw65",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 15,
       "confrontante": "Fazenda Terra Roxa - Lote nº 414",
       "confrontanteImovelId": "mud95j71y7nh3",
@@ -539,7 +539,7 @@
     {
       "id": "mud8pxpknnlq4",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "codigoSigef": "",
       "ordem": 1,
       "confrontante": "Córrego termil",
@@ -853,7 +853,7 @@
     {
       "id": "mud8pxpkfigp1",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 12,
       "confrontante": "Lote nº 412",
       "confrontanteImovelId": "mud99cbx736lj",
@@ -880,7 +880,7 @@
     {
       "id": "mud8pxpkz84nf",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 13,
       "confrontante": "Fazenda Chão de Estrelas - Lote nº 450",
       "confrontanteImovelId": "mud93vdrk068q",
@@ -907,7 +907,7 @@
     {
       "id": "mud8pxpkvqoe7",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 14,
       "confrontante": "Estrada A",
       "confrontanteImovelId": "mud9imu6418s4",
