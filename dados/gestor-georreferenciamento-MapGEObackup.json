@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-03T19:22:16.440Z",
+  "exportadoEm": "2026-10-03T19:23:34.099Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -532,7 +532,9 @@
       "tipoLimite": "LA1",
       "implantado": true,
       "numeroCatalogo": 1,
-      "codigoCompleto": "GHH-M-0001"
+      "codigoCompleto": "GHH-M-0001",
+      "rotOffConfE": 1.4599999999999937,
+      "rotOffConfN": 206.59999999999997
     },
     {
       "id": "mud8pxpkseylk",
@@ -636,9 +638,9 @@
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
-      "rotOffConfE": 0,
-      "rotOffConfN": 0,
-      "rotAngConf": 0
+      "rotOffConfE": -1.4549999999999903,
+      "rotOffConfN": 145.49499999999998,
+      "rotAngConf": 15
     },
     {
       "id": "mud8pxpk902rw",
@@ -759,8 +761,8 @@
       "coordE": 512958.09,
       "coordN": 8755589.855,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -153.36600000000004,
-      "rotOffConfN": 59.800000000000026,
+      "rotOffConfE": -162.77100000000004,
+      "rotOffConfN": 66.07000000000002,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
@@ -780,8 +782,8 @@
       "coordE": 511849.469,
       "coordN": 8754800.87,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -55.224000000000004,
-      "rotOffConfN": 34.86899999999999,
+      "rotOffConfE": -97.18900000000001,
+      "rotOffConfN": 15.793999999999993,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
@@ -801,8 +803,8 @@
       "coordE": 511750.554,
       "coordN": 8754928.276,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -132.79399999999998,
-      "rotOffConfN": 79.64399999999998,
+      "rotOffConfE": -149.009,
+      "rotOffConfN": 77.73399999999998,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
