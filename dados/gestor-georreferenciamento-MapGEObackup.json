@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-03T19:21:25.704Z",
+  "exportadoEm": "2026-10-03T19:22:16.440Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -115,8 +115,9 @@
       "simcarSituacao": "",
       "situacaoRegistral": "",
       "cns": "",
-      "infoImovelOffE": 71.28999999999999,
-      "infoImovelOffN": -70.195
+      "infoImovelOffE": 145.87499999999997,
+      "infoImovelOffN": -82.26000000000002,
+      "infoImovelAng": 36
     },
     {
       "id": "mud93vdrk068q",
@@ -800,8 +801,8 @@
       "coordE": 511750.554,
       "coordN": 8754928.276,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -88.92399999999998,
-      "rotOffConfN": 74.87399999999998,
+      "rotOffConfE": -132.79399999999998,
+      "rotOffConfN": 79.64399999999998,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
