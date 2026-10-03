@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-03T17:16:22.903Z",
+  "exportadoEm": "2026-10-03T17:17:15.378Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -553,7 +553,7 @@
     {
       "id": "mud8pxpkseylk",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 2,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -574,7 +574,7 @@
     {
       "id": "mud8pxpkpvdpj",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 3,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -595,7 +595,7 @@
     {
       "id": "mud8pxpk56lbt",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 4,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -616,7 +616,7 @@
     {
       "id": "mud8pxpkvxqgz",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 5,
       "confrontante": "",
       "confrontanteImovelId": null,
@@ -638,7 +638,7 @@
     {
       "id": "mud8pxpk5jtmy",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 6,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -659,7 +659,7 @@
     {
       "id": "mud8pxpk902rw",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 7,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -680,7 +680,7 @@
     {
       "id": "mud8pxpkqywx0",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 8,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -701,7 +701,7 @@
     {
       "id": "mud8pxpklulay",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 9,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -722,7 +722,7 @@
     {
       "id": "mud8pxpksomu6",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 10,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -743,7 +743,7 @@
     {
       "id": "mud8pxpk0gxlt",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "M",
+      "tipo": "P",
       "ordem": 11,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
