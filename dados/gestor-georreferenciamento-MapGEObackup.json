@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-03T17:15:21.972Z",
+  "exportadoEm": "2026-10-03T17:16:22.903Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -512,7 +512,7 @@
     {
       "id": "mud8pxpkkuw65",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 15,
       "confrontante": "Fazenda Terra Roxa - Lote nº 414",
       "confrontanteImovelId": "mud95j71y7nh3",
@@ -533,7 +533,7 @@
     {
       "id": "mud8pxpknnlq4",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "codigoSigef": "",
       "ordem": 1,
       "confrontante": "Corrego Termil",
@@ -553,7 +553,7 @@
     {
       "id": "mud8pxpkseylk",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 2,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -574,7 +574,7 @@
     {
       "id": "mud8pxpkpvdpj",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 3,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -595,7 +595,7 @@
     {
       "id": "mud8pxpk56lbt",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 4,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -616,7 +616,7 @@
     {
       "id": "mud8pxpkvxqgz",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 5,
       "confrontante": "",
       "confrontanteImovelId": null,
@@ -638,7 +638,7 @@
     {
       "id": "mud8pxpk5jtmy",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 6,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -659,7 +659,7 @@
     {
       "id": "mud8pxpk902rw",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 7,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -680,7 +680,7 @@
     {
       "id": "mud8pxpkqywx0",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 8,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -701,7 +701,7 @@
     {
       "id": "mud8pxpklulay",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 9,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -722,7 +722,7 @@
     {
       "id": "mud8pxpksomu6",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 10,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -743,7 +743,7 @@
     {
       "id": "mud8pxpk0gxlt",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 11,
       "confrontante": "Corrego Termil",
       "confrontanteImovelId": "mud9jka6nseb5",
@@ -764,7 +764,7 @@
     {
       "id": "mud8pxpkfigp1",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 12,
       "confrontante": "Lote nº 412",
       "confrontanteImovelId": "mud99cbx736lj",
@@ -785,7 +785,7 @@
     {
       "id": "mud8pxpkz84nf",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 13,
       "confrontante": "Fazenda Chão de Estrelas - Lote nº 450",
       "confrontanteImovelId": "mud93vdrk068q",
@@ -806,7 +806,7 @@
     {
       "id": "mud8pxpkvqoe7",
       "imovelId": "mud8pxpjq4r8c",
-      "tipo": "P",
+      "tipo": "M",
       "ordem": 14,
       "confrontante": "Estrada A",
       "confrontanteImovelId": "mud9imu6418s4",
