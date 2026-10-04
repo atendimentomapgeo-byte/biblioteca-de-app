@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-04T17:24:31.345Z",
+  "exportadoEm": "2026-10-04T17:25:29.890Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -497,13 +497,25 @@
       "matricula": "",
       "area": "0.2199",
       "municipio": "",
-      "uf": "",
-      "comarca": "",
-      "proprietarioId": "",
-      "tecnicoId": "",
+      "uf": "MT",
+      "comarca": "Cuiaba",
+      "proprietarioId": "muhviy71a3kkq",
+      "tecnicoId": "muh891fwfb6v3",
+      "artTipo": "TRT",
+      "art": "",
       "datum": "SIRGAS2000",
       "perimetro": "200.96",
-      "utmZona": "21S"
+      "utmZona": "21S",
+      "codigoIncra": "",
+      "leiDecreto": "",
+      "parcelaSigef": "",
+      "parcelaSigefSituacao": "",
+      "sigefDataCertificacao": "",
+      "sigefResponsavelTecnico": "",
+      "simcar": "",
+      "simcarSituacao": "",
+      "situacaoRegistral": "Imóvel Registrado",
+      "cns": ""
     }
   ],
   "marcos": [
