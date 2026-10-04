@@ -936,6 +936,19 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	border-right-color: #fff;
 	}
 
+/* Rótulos dos pontos no mapa CAD do Topcon: fundo escuro translúcido + texto claro, pra ficar
+   legível tanto sobre o preto padrão quanto sobre a imagem de satélite. */
+.topcon-cad-tooltip {
+	background-color: rgba(10,16,24,0.82);
+	border: 1px solid rgba(220,238,245,0.35);
+	color: #dceef5;
+	font-size: 11px;
+	padding: 2px 6px;
+	box-shadow: none;
+	}
+.topcon-cad-tooltip.leaflet-tooltip-top:before { border-top-color: rgba(10,16,24,0.82); }
+.topcon-cad-tooltip.leaflet-tooltip-bottom:before { border-bottom-color: rgba(10,16,24,0.82); }
+
 /* Printing */
 
 @media print {
@@ -956,7 +969,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-03.49 — A Elevação lida do relatório Topcon agora também é salva no marco (campo "Altitude elipsoidal — h"), junto com os sigmas — necessário para gerar a planilha .ods do SIGEF completa a partir de pontos importados do Topcon</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-04.52 — Tela CAD do Topcon agora usa um mapa real (fundo preto por padrão) com opção de ligar uma camada de satélite, ajudando a vetorizar o polígono sobre o terreno real</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1215,28 +1228,52 @@ svg.leaflet-image-layer.leaflet-interactive path {
     </div>
 
     <div class="card" id="card-topcon-cad" style="display:none;">
-      <h2>Desenhar o polígono (tela estilo CAD)</h2>
+      <h2>Desenhar o polígono (tela estilo CAD)<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup">
+        O <strong>Tipo de limite</strong> e o <strong>Método de posicionamento</strong> de cada ponto são opcionais, mas definem a precisão exigida pela 3ª Norma de Georreferenciamento do INCRA/SIGEF: Artificial ≤ 0,50 m, Natural ≤ 3,00 m, Inacessível ≤ 7,50 m (precisão posicional = raiz de Sigma N² + Sigma E²). Pontos com a precisão importada fora desse limite ficam destacados — isso é só um aviso, a importação não é bloqueada. O método mostrado é filtrado pelos que a norma permite para o tipo escolhido (ex.: PG5/PG8 só valem para limite Natural; só PS1-4 valem para limite Inacessível). Ao importar, "Artificial"/"Natural" preenchem o código genérico do marco (LA7/LN6, respectivamente) — refine depois para um código mais específico (ex.: LA3 — Estrada) se souber qual é; "Inacessível" não tem código correspondente no SIGEF e fica em branco.
+      </div></span></h2>
       <div class="note" id="topcon-cad-nota" style="margin-top:0;">Clique perto de um ponto e depois perto do próximo para ligá-los com uma linha — o clique sempre "gruda" no ponto mais próximo. Continue ligando os pontos na ordem do contorno do imóvel e feche o polígono ao final (clicando de volta no primeiro ponto ou no botão "Fechar polígono"). Edite nome/coordenadas na tabela ou exclua pontos que não fazem parte do limite (ex.: RN, apoio).</div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;">
+        <div class="field" style="margin-bottom:0;"><label>Tipo de limite (aplicar a todos)</label>
+          <select id="topcon-cad-tipo-todos">
+            <option value="">—</option>
+            <option value="Artificial">Artificial (≤ 0,50 m)</option>
+            <option value="Natural">Natural (≤ 3,00 m)</option>
+            <option value="Inacessivel">Inacessível (≤ 7,50 m)</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-aplicar-tipo-todos">Aplicar tipo a todos</button>
+        <div class="field" style="margin-bottom:0;"><label>Método (aplicar aos compatíveis)</label>
+          <select id="topcon-cad-metodo-todos"></select>
+        </div>
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-aplicar-metodo-todos">Aplicar método a todos</button>
+      </div>
       <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start;">
-        <div style="flex:1 1 320px; min-width:280px;">
-          <div style="max-height:300px; overflow:auto; border:1px solid rgba(220,238,245,0.14); border-radius:6px; margin-bottom:10px;">
-            <table style="width:100%; border-collapse:collapse; font-size:0.76rem;">
+        <div style="flex:2 1 460px; min-width:380px;">
+          <div style="max-height:320px; overflow:auto; border:1px solid rgba(220,238,245,0.14); border-radius:6px; margin-bottom:10px;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.68rem;">
               <thead>
                 <tr style="position:sticky; top:0; background:var(--navy); z-index:1;">
-                  <th style="padding:6px 8px; text-align:left;">Ponto</th>
-                  <th style="padding:6px 8px; text-align:right;">Norte</th>
-                  <th style="padding:6px 8px; text-align:right;">Leste</th>
-                  <th style="padding:6px 8px; text-align:right;">Elevação</th>
-                  <th style="padding:6px 4px;"></th>
+                  <th style="padding:5px 5px; text-align:left;">Ponto</th>
+                  <th style="padding:5px 3px; text-align:right;">Norte</th>
+                  <th style="padding:5px 3px; text-align:right;">Leste</th>
+                  <th style="padding:5px 3px; text-align:right;">Elevação</th>
+                  <th style="padding:5px 3px; text-align:left;">Tipo de limite</th>
+                  <th style="padding:5px 3px; text-align:left;">Método</th>
+                  <th style="padding:5px 6px; text-align:right;" title="Precisão posicional = raiz de Sigma N² + Sigma E², comparada ao máximo exigido pela 3ª Norma SIGEF/INCRA para o tipo de limite escolhido">Precisão</th>
+                  <th style="padding:5px 4px;"></th>
                 </tr>
               </thead>
               <tbody id="topcon-cad-tbody"></tbody>
             </table>
           </div>
-          <div id="topcon-cad-resumo" style="font-size:0.8rem; color:var(--chalk-dim); margin-bottom:8px;"></div>
+          <div id="topcon-cad-resumo" style="font-size:0.8rem; color:var(--chalk-dim); margin-bottom:4px;"></div>
+          <div id="topcon-cad-aviso-precisao" style="font-size:0.8rem; color:#E0C36B; margin-bottom:8px; display:none;"></div>
         </div>
         <div style="flex:1 1 360px; min-width:300px;">
-          <div id="topcon-cad-svg-wrap" style="background:#fff; border-radius:6px; padding:8px; margin-bottom:10px;"></div>
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--chalk-dim); margin-bottom:6px; cursor:pointer;">
+            <input type="checkbox" id="topcon-cad-satelite"> Mostrar imagem de satélite (ajuda a vetorizar sobre o terreno real)
+          </label>
+          <div id="topcon-cad-svg-wrap" style="background:#000; border-radius:6px; height:360px; margin-bottom:10px; cursor:crosshair;"></div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
             <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-desfazer">Desfazer último</button>
             <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-fechar">Fechar polígono</button>
@@ -7439,22 +7476,178 @@ async function lerXlsxComoLinhas(file){
   });
   return linhas;
 }
-let topconImportState = null; // { pontos:[{id,nome,norte,leste,elevacao,sigmaN,sigmaE,sigmaU,codigo}], zona, sul, nomeSugerido }
+// Precisão posicional máxima exigida pela 3ª Norma de Georreferenciamento do INCRA/SIGEF, por tipo
+// de limite — e o código genérico de "tipo de limite" do SIGEF que cada categoria preenche no marco
+// quando o levantamento não especifica a feição exata (LA7/LN6 = "não tipificado"; Inacessível não
+// tem código equivalente no SIGEF, então fica em branco).
+const TOPCON_TIPOS_LIMITE = [
+  {codigo:'Artificial', label:'Artificial', precisaoMax:0.50, tipoLimiteSigef:'LA7'},
+  {codigo:'Natural', label:'Natural', precisaoMax:3.00, tipoLimiteSigef:'LN6'},
+  {codigo:'Inacessivel', label:'Inacessível', precisaoMax:7.50, tipoLimiteSigef:''},
+];
+// Métodos de posicionamento do Manual Técnico de Posicionamento do INCRA (mesmos códigos usados no
+// cadastro manual de marco) — "tipos" lista em quais categorias de limite a norma permite usar cada
+// método (ex.: PG5/PG8 só valem para limite Natural; só PS1-4 valem para limite Inacessível).
+const TOPCON_METODOS = [
+  {codigo:'PA1', nome:'Paralela', tipos:['Artificial','Natural']},
+  {codigo:'PA2', nome:'Interseção de Retas', tipos:['Artificial','Natural']},
+  {codigo:'PA3', nome:'Projeção Técnica', tipos:['Artificial','Natural']},
+  {codigo:'PB1', nome:'Base cartográfica com precisão conhecida', tipos:['Artificial','Natural']},
+  {codigo:'PB2', nome:'Base cartográfica sem precisão conhecida', tipos:['Artificial','Natural']},
+  {codigo:'PG1', nome:'Relativo Estático', tipos:['Artificial','Natural']},
+  {codigo:'PG2', nome:'Relativo Estático-Rápido', tipos:['Artificial','Natural']},
+  {codigo:'PG3', nome:'Relativo Semicinemático (Stop and Go)', tipos:['Artificial','Natural']},
+  {codigo:'PG4', nome:'Relativo Cinemático', tipos:['Artificial','Natural']},
+  {codigo:'PG5', nome:'Relativo a partir do Código (C/A)', tipos:['Natural']},
+  {codigo:'PG6', nome:'RTK Convencional', tipos:['Artificial','Natural']},
+  {codigo:'PG7', nome:'RTK em Rede', tipos:['Artificial','Natural']},
+  {codigo:'PG8', nome:'DGPS (Differential GPS)', tipos:['Natural']},
+  {codigo:'PG9', nome:'Posicionamento por Ponto Preciso (PPP)', tipos:['Artificial','Natural']},
+  {codigo:'PT1', nome:'Poligonação', tipos:['Artificial','Natural']},
+  {codigo:'PT2', nome:'Triangulação', tipos:['Artificial','Natural']},
+  {codigo:'PT3', nome:'Trilateração', tipos:['Artificial','Natural']},
+  {codigo:'PT4', nome:'Triangulateração', tipos:['Artificial','Natural']},
+  {codigo:'PT5', nome:'Irradiação', tipos:['Artificial','Natural']},
+  {codigo:'PT6', nome:'Interseção Linear', tipos:['Artificial','Natural']},
+  {codigo:'PT7', nome:'Interseção Angular', tipos:['Artificial','Natural']},
+  {codigo:'PT8', nome:'Alinhamento', tipos:['Artificial','Natural']},
+  {codigo:'PS1', nome:'Aerofotogrametria', tipos:['Artificial','Natural','Inacessivel']},
+  {codigo:'PS2', nome:'Radar Aerotransportado', tipos:['Artificial','Natural','Inacessivel']},
+  {codigo:'PS3', nome:'Laser Scanner Aerotransportado', tipos:['Artificial','Natural','Inacessivel']},
+  {codigo:'PS4', nome:'Sensores Orbitais', tipos:['Artificial','Natural','Inacessivel']},
+];
+function topconMetodosParaTipo(tipo){
+  if(!tipo) return TOPCON_METODOS;
+  return TOPCON_METODOS.filter(m=>m.tipos.includes(tipo));
+}
+function topconOpcoesMetodoHtml(tipoSelecionado, metodoAtual){
+  let html = `<option value="">—</option>`;
+  topconMetodosParaTipo(tipoSelecionado).forEach(m=>{
+    html += `<option value="${m.codigo}" ${metodoAtual===m.codigo?'selected':''}>${m.codigo} — ${escXml(m.nome)}</option>`;
+  });
+  return html;
+}
+// Precisão posicional (planimétrica) estimada a partir dos sigmas importados — raiz de Sigma N² +
+// Sigma E², do jeito que a 3ª Norma SIGEF/INCRA avalia a precisão do limite (não entra o sigma
+// vertical/h, que é uma exigência separada). Retorna null quando não há sigma N/E suficientes.
+function topconPrecisaoPosicional(p){
+  if(p.sigmaN==null || isNaN(p.sigmaN) || p.sigmaE==null || isNaN(p.sigmaE)) return null;
+  return Math.sqrt(p.sigmaN*p.sigmaN + p.sigmaE*p.sigmaE);
+}
+let topconImportState = null; // { pontos:[{id,nome,norte,leste,elevacao,sigmaN,sigmaE,sigmaU,codigo,tipoLimite,metodoPosicionamento}], zona, sul, nomeSugerido }
 let topconCadState = null; // { caminho:[idsNaOrdemClicada], fechado:bool }
+// Mapa Leaflet usado na tela CAD de vetorização do Topcon: fundo preto por padrão (melhor contraste
+// pra vetorizar manualmente) com uma camada de satélite (Esri World Imagery) opcional, ligada pelo
+// usuário quando quiser se guiar pelo terreno real. Criado uma única vez por sessão de importação e
+// destruído ao cancelar/confirmar, pra evitar o erro "Map container is already initialized" do Leaflet.
+let _topconCadMapa = null;
+let _topconCadCamadaSatelite = null;
+let _topconCadCamadaPontos = null;
+let _topconCadCamadaLinha = null;
+let _topconCadAjustouView = false;
+let _topconCadMarcadoresPorId = {}; // id do ponto -> marcador Leaflet, pra atualizar só o rótulo ao digitar o nome sem recriar o mapa todo
+function destruirMapaTopconCad(){
+  if(_topconCadMapa){ _topconCadMapa.remove(); _topconCadMapa = null; }
+  _topconCadCamadaSatelite = null;
+  _topconCadCamadaPontos = null;
+  _topconCadCamadaLinha = null;
+  _topconCadAjustouView = false;
+  _topconCadMarcadoresPorId = {};
+}
+function garantirMapaTopconCad(){
+  if(_topconCadMapa) return _topconCadMapa;
+  _topconCadMapa = L.map('topcon-cad-svg-wrap', { zoomControl:true, attributionControl:false }).setView([-15.78, -55.5], 5);
+  _topconCadCamadaPontos = L.layerGroup().addTo(_topconCadMapa);
+  _topconCadCamadaLinha = L.layerGroup().addTo(_topconCadMapa);
+  const satCheckbox = document.getElementById('topcon-cad-satelite');
+  if(satCheckbox && satCheckbox.checked) ativarSateliteTopconCad(true);
+  _topconCadMapa.on('click', ev=>{
+    const pontos = topconImportState.pontos;
+    if(!pontos || !pontos.length || !topconCadState || topconCadState.fechado) return;
+    const cliquePx = _topconCadMapa.latLngToContainerPoint(ev.latlng);
+    let melhor = null, melhorDist = Infinity;
+    pontos.forEach(p=>{
+      if(p.lat==null || p.lon==null) return;
+      const d = _topconCadMapa.latLngToContainerPoint(L.latLng(p.lat, p.lon)).distanceTo(cliquePx);
+      if(d < melhorDist){ melhorDist = d; melhor = p; }
+    });
+    if(!melhor) return;
+    const ultimoId = topconCadState.caminho[topconCadState.caminho.length-1];
+    if(topconCadState.caminho.length>=3 && melhor.id===topconCadState.caminho[0]){
+      topconCadState.fechado = true;
+    } else if(melhor.id === ultimoId){
+      // clicou de novo no mesmo ponto — ignora
+    } else if(topconCadState.caminho.includes(melhor.id)){
+      showToast('Esse ponto já faz parte do contorno desenhado.');
+    } else {
+      topconCadState.caminho.push(melhor.id);
+    }
+    atualizarSvgTopconCad();
+  });
+  return _topconCadMapa;
+}
+function ativarSateliteTopconCad(ativo){
+  const mapa = garantirMapaTopconCad();
+  if(ativo && !_topconCadCamadaSatelite){
+    // Esri World Imagery: satélite gratuito, sem necessidade de conta/chave de API.
+    _topconCadCamadaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Imagens: Esri, Maxar, Earthstar Geographics',
+      maxZoom: 19,
+    }).addTo(mapa);
+  } else if(!ativo && _topconCadCamadaSatelite){
+    mapa.removeLayer(_topconCadCamadaSatelite);
+    _topconCadCamadaSatelite = null;
+  }
+}
+document.getElementById('topcon-cad-satelite').addEventListener('change', e=>{
+  ativarSateliteTopconCad(e.target.checked);
+});
 function topconPontoPorId(id){ return topconImportState.pontos.find(p=>p.id===id); }
 function renderTopconCadTabela(){
   const tbody = document.getElementById('topcon-cad-tbody');
-  tbody.innerHTML = topconImportState.pontos.map(p=>`
+  tbody.innerHTML = topconImportState.pontos.map(p=>{
+    const infoTipo = TOPCON_TIPOS_LIMITE.find(t=>t.codigo===p.tipoLimite);
+    const prec = topconPrecisaoPosicional(p);
+    let celulaPrecisao;
+    if(prec==null){
+      celulaPrecisao = `<span style="color:var(--chalk-dim);">—</span>`;
+    } else if(infoTipo){
+      const ok = prec <= infoTipo.precisaoMax;
+      celulaPrecisao = `<span style="color:${ok?'#A9BC85':'#E0866B'};" title="Máximo exigido para ${infoTipo.label}: ${infoTipo.precisaoMax.toFixed(2)} m">${prec.toFixed(3)} m ${ok?'✓':'⚠'}</span>`;
+    } else {
+      celulaPrecisao = `<span style="color:var(--chalk-dim);" title="Escolha o Tipo de limite para avaliar se atende a norma">${prec.toFixed(3)} m</span>`;
+    }
+    const estiloCampo = 'font-size:0.68rem; padding:4px 5px;';
+    return `
     <tr data-id="${p.id}">
-      <td style="padding:3px 6px;"><input type="text" class="topcon-cad-nome" data-id="${p.id}" value="${escXml(p.nome)}" style="width:72px;"></td>
-      <td style="padding:3px 4px;"><input type="number" step="any" class="topcon-cad-norte" data-id="${p.id}" value="${p.norte}" style="width:92px; text-align:right;"></td>
-      <td style="padding:3px 4px;"><input type="number" step="any" class="topcon-cad-leste" data-id="${p.id}" value="${p.leste}" style="width:92px; text-align:right;"></td>
-      <td style="padding:3px 4px;"><input type="number" step="any" class="topcon-cad-elevacao" data-id="${p.id}" value="${p.elevacao!=null && !isNaN(p.elevacao) ? p.elevacao : ''}" style="width:76px; text-align:right;"></td>
-      <td style="padding:3px 4px; text-align:center;"><button type="button" class="btn btn-sm btn-ghost topcon-cad-excluir" data-id="${p.id}" title="Excluir ponto" style="padding:2px 8px;">✕</button></td>
-    </tr>`).join('');
+      <td style="padding:3px 5px;"><input type="text" class="topcon-cad-nome" data-id="${p.id}" value="${escXml(p.nome)}" title="${escXml(p.nome)}" style="width:82px; ${estiloCampo}"></td>
+      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-norte" data-id="${p.id}" value="${p.norte}" style="width:88px; text-align:right; ${estiloCampo}"></td>
+      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-leste" data-id="${p.id}" value="${p.leste}" style="width:82px; text-align:right; ${estiloCampo}"></td>
+      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-elevacao" data-id="${p.id}" value="${p.elevacao!=null && !isNaN(p.elevacao) ? p.elevacao : ''}" style="width:62px; text-align:right; ${estiloCampo}"></td>
+      <td style="padding:3px 3px;">
+        <select class="topcon-cad-tipo" data-id="${p.id}" style="width:92px; ${estiloCampo}">
+          <option value="" ${!p.tipoLimite?'selected':''}>—</option>
+          ${TOPCON_TIPOS_LIMITE.map(t=>`<option value="${t.codigo}" ${p.tipoLimite===t.codigo?'selected':''}>${t.label}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:3px 3px;">
+        <select class="topcon-cad-metodo" data-id="${p.id}" style="width:132px; ${estiloCampo}">${topconOpcoesMetodoHtml(p.tipoLimite, p.metodoPosicionamento)}</select>
+      </td>
+      <td style="padding:3px 6px; text-align:right; white-space:nowrap; font-size:0.72rem;">${celulaPrecisao}</td>
+      <td style="padding:3px 4px; text-align:center;"><button type="button" class="btn btn-sm btn-ghost topcon-cad-excluir" data-id="${p.id}" title="Excluir ponto" style="padding:2px 7px; font-size:0.7rem;">✕</button></td>
+    </tr>`;
+  }).join('');
   tbody.querySelectorAll('.topcon-cad-nome').forEach(el=>el.addEventListener('input', e=>{
     const p = topconPontoPorId(Number(e.target.dataset.id)); if(p) p.nome = e.target.value;
-    atualizarSvgTopconCad();
+    // Atualiza só o texto do rótulo no mapa (sem recriar marcadores/linhas), pra digitar o nome
+    // não causar um "pisca" no mapa a cada letra digitada.
+    const marcador = p ? _topconCadMarcadoresPorId[p.id] : null;
+    if(marcador && topconCadState){
+      const ordem = topconCadState.caminho.indexOf(p.id);
+      marcador.setTooltipContent(`${escXml(p.nome)}${ordem>=0?` (${ordem+1})`:''}`);
+    } else {
+      atualizarSvgTopconCad();
+    }
   }));
   tbody.querySelectorAll('.topcon-cad-norte').forEach(el=>el.addEventListener('input', e=>{
     const p = topconPontoPorId(Number(e.target.dataset.id)); if(p){ const v=parseFloat(e.target.value); if(!isNaN(v)) p.norte=v; }
@@ -7468,6 +7661,20 @@ function renderTopconCadTabela(){
     const p = topconPontoPorId(Number(e.target.dataset.id));
     if(p){ const v=parseFloat(e.target.value); p.elevacao = e.target.value.trim()==='' ? null : (isNaN(v)?null:v); }
   }));
+  tbody.querySelectorAll('.topcon-cad-tipo').forEach(el=>el.addEventListener('change', e=>{
+    const p = topconPontoPorId(Number(e.target.dataset.id));
+    if(p){
+      p.tipoLimite = e.target.value;
+      const metodosValidos = topconMetodosParaTipo(p.tipoLimite);
+      if(p.metodoPosicionamento && p.tipoLimite && !metodosValidos.some(m=>m.codigo===p.metodoPosicionamento)){
+        p.metodoPosicionamento = '';
+      }
+    }
+    renderTopconCadTabela();
+  }));
+  tbody.querySelectorAll('.topcon-cad-metodo').forEach(el=>el.addEventListener('change', e=>{
+    const p = topconPontoPorId(Number(e.target.dataset.id)); if(p) p.metodoPosicionamento = e.target.value;
+  }));
   tbody.querySelectorAll('.topcon-cad-excluir').forEach(el=>el.addEventListener('click', e=>{
     const id = Number(e.target.dataset.id);
     if(topconImportState.pontos.length<=3){ showToast('É preciso manter ao menos 3 pontos para formar um polígono.'); return; }
@@ -7477,73 +7684,113 @@ function renderTopconCadTabela(){
     renderTopconCadTabela();
     atualizarSvgTopconCad();
   }));
+  atualizarAvisoPrecisaoTopcon();
+}
+function atualizarAvisoPrecisaoTopcon(){
+  const aviso = document.getElementById('topcon-cad-aviso-precisao');
+  const foraDoPadrao = topconImportState.pontos.filter(p=>{
+    const infoTipo = TOPCON_TIPOS_LIMITE.find(t=>t.codigo===p.tipoLimite);
+    const prec = topconPrecisaoPosicional(p);
+    return infoTipo && prec!=null && prec > infoTipo.precisaoMax;
+  });
+  if(foraDoPadrao.length){
+    aviso.style.display = 'block';
+    aviso.textContent = `⚠ ${foraDoPadrao.length} ponto(s) com precisão acima do exigido pela 3ª Norma SIGEF/INCRA para o tipo de limite escolhido: ${foraDoPadrao.map(p=>p.nome).join(', ')}. Isso não bloqueia a importação, mas vale revisar antes de gerar a planilha do SIGEF.`;
+  } else {
+    aviso.style.display = 'none';
+    aviso.textContent = '';
+  }
 }
 function atualizarSvgTopconCad(){
   const pontos = topconImportState.pontos;
   const resumo = document.getElementById('topcon-cad-resumo');
   const {caminho, fechado} = topconCadState;
   resumo.textContent = `${pontos.length} ponto(s) lido(s) do arquivo. ` + (caminho.length===0
-    ? 'Clique em dois pontos no desenho para começar a ligar o contorno.'
+    ? 'Clique em dois pontos no mapa para começar a ligar o contorno.'
     : `${caminho.length} vértice(s) no contorno desenhado${fechado ? ' (fechado)' : ' — ainda aberto'}.`);
   document.getElementById('btn-confirmar-topcon-cad').disabled = !(fechado && caminho.length>=3);
-  const W = 420, H = 360, PAD = 28;
-  const minE = Math.min(...pontos.map(p=>p.leste)), maxE = Math.max(...pontos.map(p=>p.leste));
-  const minN = Math.min(...pontos.map(p=>p.norte)), maxN = Math.max(...pontos.map(p=>p.norte));
-  const spanE = Math.max(maxE-minE, 0.001), spanN = Math.max(maxN-minN, 0.001);
-  const escala = Math.min((W-2*PAD)/spanE, (H-2*PAD)/spanN);
-  const offX = PAD + ((W-2*PAD) - spanE*escala)/2;
-  const offY = PAD + ((H-2*PAD) - spanN*escala)/2;
-  const px = p => offX + (p.leste-minE)*escala;
-  const py = p => H - (offY + (p.norte-minN)*escala); // Norte cresce para cima na tela
-  let svg = `<svg id="topcon-cad-svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; display:block; cursor:crosshair;">`;
+  const {zona, sul} = topconImportState;
+  pontos.forEach(p=>{
+    const ll = utmParaLatLon(p.leste, p.norte, zona, sul);
+    p.lat = ll.lat; p.lon = ll.lon;
+  });
+  const mapa = garantirMapaTopconCad();
+  // Ajusta o zoom/centro automaticamente só na primeira renderização da sessão — depois disso o
+  // usuário pode dar zoom/pan livremente sem o mapa "saltar" de volta a cada clique ou edição na tabela.
+  if(!_topconCadAjustouView && pontos.length){
+    mapa.fitBounds(L.latLngBounds(pontos.map(p=>[p.lat, p.lon])), {padding:[30,30]});
+    _topconCadAjustouView = true;
+  }
+  _topconCadCamadaPontos.clearLayers();
+  _topconCadCamadaLinha.clearLayers();
+  _topconCadMarcadoresPorId = {};
   if(caminho.length>=2){
-    const dPath = caminho.map((id,i)=>{
-      const p = topconPontoPorId(id); return `${i===0?'M':'L'} ${px(p).toFixed(1)} ${py(p).toFixed(1)}`;
-    }).join(' ') + (fechado ? ' Z' : '');
-    svg += `<path d="${dPath}" fill="${fechado?'rgba(26,140,180,0.12)':'none'}" stroke="#1a8cb4" stroke-width="2"/>`;
+    const latlngs = caminho.map(id=>{ const p = topconPontoPorId(id); return [p.lat, p.lon]; });
+    if(fechado){
+      L.polygon(latlngs, {color:'#1a8cb4', weight:2, fillColor:'#1a8cb4', fillOpacity:0.15}).addTo(_topconCadCamadaLinha);
+    } else {
+      L.polyline(latlngs, {color:'#1a8cb4', weight:2}).addTo(_topconCadCamadaLinha);
+    }
   }
   pontos.forEach(p=>{
     const noCaminho = caminho.includes(p.id);
     const ordem = caminho.indexOf(p.id);
-    svg += `<circle cx="${px(p).toFixed(1)}" cy="${py(p).toFixed(1)}" r="5" fill="${noCaminho?'#1a8cb4':'#f2a93b'}" stroke="#223" stroke-width="1"/>`;
-    svg += `<text x="${(px(p)+7).toFixed(1)}" y="${(py(p)-6).toFixed(1)}" font-size="10" fill="#223">${escXml(p.nome)}${ordem>=0?` (${ordem+1})`:''}</text>`;
-  });
-  svg += `</svg>`;
-  document.getElementById('topcon-cad-svg-wrap').innerHTML = svg;
-  const svgEl = document.getElementById('topcon-cad-svg');
-  svgEl.addEventListener('click', ev=>{
-    const rect = svgEl.getBoundingClientRect();
-    if(!rect.width) return;
-    const escalaTela = W / rect.width;
-    const cx = (ev.clientX - rect.left) * escalaTela;
-    const cy = (ev.clientY - rect.top) * escalaTela;
-    let melhor = null, melhorDist = Infinity;
-    pontos.forEach(p=>{
-      const d = Math.hypot(px(p)-cx, py(p)-cy);
-      if(d < melhorDist){ melhorDist = d; melhor = p; }
+    const marker = L.circleMarker([p.lat, p.lon], {
+      radius:6, color:'#223', weight:1, fillColor: noCaminho?'#1a8cb4':'#f2a93b', fillOpacity:1,
+    }).addTo(_topconCadCamadaPontos);
+    marker.bindTooltip(`${escXml(p.nome)}${ordem>=0?` (${ordem+1})`:''}`, {
+      permanent:true, direction:'top', offset:[0,-6], className:'topcon-cad-tooltip',
     });
-    if(!melhor || topconCadState.fechado) return;
-    const ultimoId = topconCadState.caminho[topconCadState.caminho.length-1];
-    if(topconCadState.caminho.length>=3 && melhor.id===topconCadState.caminho[0]){
-      topconCadState.fechado = true;
-    } else if(melhor.id === ultimoId){
-      // clicou de novo no mesmo ponto — ignora
-    } else if(topconCadState.caminho.includes(melhor.id)){
-      showToast('Esse ponto já faz parte do contorno desenhado.');
-    } else {
-      topconCadState.caminho.push(melhor.id);
-    }
-    atualizarSvgTopconCad();
+    _topconCadMarcadoresPorId[p.id] = marker;
   });
 }
 function abrirCadTopcon(){
-  topconImportState.pontos.forEach((p,i)=>{ p.id = i; });
+  topconImportState.pontos.forEach((p,i)=>{ p.id = i; p.tipoLimite = p.tipoLimite || ''; p.metodoPosicionamento = p.metodoPosicionamento || ''; });
   topconCadState = {caminho: [], fechado: false};
+  document.getElementById('topcon-cad-tipo-todos').value = '';
+  document.getElementById('topcon-cad-metodo-todos').innerHTML = `<option value="">Selecione…</option>` +
+    TOPCON_METODOS.map(m=>`<option value="${m.codigo}">${m.codigo} — ${escXml(m.nome)}</option>`).join('');
+  // Começa sempre com o mapa "limpo" (fundo preto, sem satélite) e o display:block ANTES de criar o
+  // mapa Leaflet: ele precisa medir um container já visível e com tamanho real pra se inicializar
+  // corretamente — criar antes disso deixa o mapa cinza/quebrado até o primeiro resize da janela.
+  destruirMapaTopconCad();
+  document.getElementById('topcon-cad-satelite').checked = false;
+  document.getElementById('card-topcon-cad').style.display = 'block';
   renderTopconCadTabela();
   atualizarSvgTopconCad();
-  document.getElementById('card-topcon-cad').style.display = 'block';
   document.getElementById('card-topcon-cad').scrollIntoView({behavior:'smooth', block:'center'});
 }
+document.getElementById('btn-topcon-cad-aplicar-tipo-todos').addEventListener('click', ()=>{
+  if(!topconImportState) return;
+  const tipo = document.getElementById('topcon-cad-tipo-todos').value;
+  topconImportState.pontos.forEach(p=>{
+    p.tipoLimite = tipo;
+    if(p.metodoPosicionamento && tipo){
+      const metodosValidos = topconMetodosParaTipo(tipo);
+      if(!metodosValidos.some(m=>m.codigo===p.metodoPosicionamento)) p.metodoPosicionamento = '';
+    }
+  });
+  renderTopconCadTabela();
+  const infoTipo = TOPCON_TIPOS_LIMITE.find(t=>t.codigo===tipo);
+  showToast(`Tipo de limite "${infoTipo?infoTipo.label:'—'}" aplicado a ${topconImportState.pontos.length} ponto(s).`);
+});
+document.getElementById('btn-topcon-cad-aplicar-metodo-todos').addEventListener('click', ()=>{
+  if(!topconImportState) return;
+  const metodo = document.getElementById('topcon-cad-metodo-todos').value;
+  if(!metodo){ showToast('Escolha um método para aplicar.'); return; }
+  const info = TOPCON_METODOS.find(m=>m.codigo===metodo);
+  let aplicados = 0, pulados = 0;
+  topconImportState.pontos.forEach(p=>{
+    if(!p.tipoLimite || (info && info.tipos.includes(p.tipoLimite))){
+      p.metodoPosicionamento = metodo;
+      aplicados++;
+    } else {
+      pulados++;
+    }
+  });
+  renderTopconCadTabela();
+  showToast(`Método ${metodo} aplicado a ${aplicados} ponto(s)` + (pulados ? ` — ${pulados} pulado(s) por não serem compatíveis com o tipo de limite já escolhido para eles.` : '.'));
+});
 document.getElementById('btn-gerar-modelo-topcon').addEventListener('click', ()=>{
   // Modelo de exemplo no formato real da coletora Topcon (Ponto,Norte,Leste,Elevação,Sigma_N,Sigma_E,Sigma_u),
   // com 4 vértices de limite (V1-V4) e um ponto de apoio (RN1) só pra ilustrar que o relatório real
@@ -7677,6 +7924,7 @@ document.getElementById('btn-topcon-cad-limpar').addEventListener('click', ()=>{
 document.getElementById('btn-cancelar-topcon-cad').addEventListener('click', ()=>{
   topconImportState = null;
   topconCadState = null;
+  destruirMapaTopconCad();
   document.getElementById('card-topcon-cad').style.display = 'none';
 });
 document.getElementById('btn-confirmar-topcon-cad').addEventListener('click', async ()=>{
@@ -7688,11 +7936,19 @@ document.getElementById('btn-confirmar-topcon-cad').addEventListener('click', as
   // Os sigmas e a elevação do relatório alimentam os mesmos campos avançados do SIGEF já usados
   // pelo cadastro manual de marco e pela importação do "modelo completo" — Sigma_u do Topcon
   // (precisão vertical) corresponde ao "Sigma h" do Map GEO, e a Elevação ao "Altitude elipsoidal
-  // (h)", necessários para gerar a planilha .ods do SIGEF com os dados completos.
-  const metadadosPorPonto = sequencia.map(p=>({
-    sigmaN: p.sigmaN, sigmaE: p.sigmaE, sigmaH: p.sigmaU, alturaElipsoidal: p.elevacao,
-  }));
+  // (h)", necessários para gerar a planilha .ods do SIGEF com os dados completos. O Tipo de limite
+  // escolhido na tela (Artificial/Natural) vira o código genérico do SIGEF (LA7/LN6) — refine depois
+  // marco a marco se souber a feição exata; Inacessível não tem código equivalente e fica em branco.
+  const metadadosPorPonto = sequencia.map(p=>{
+    const infoTipo = TOPCON_TIPOS_LIMITE.find(t=>t.codigo===p.tipoLimite);
+    return {
+      sigmaN: p.sigmaN, sigmaE: p.sigmaE, sigmaH: p.sigmaU, alturaElipsoidal: p.elevacao,
+      metodoPosicionamento: p.metodoPosicionamento || '',
+      tipoLimite: infoTipo ? (infoTipo.tipoLimiteSigef || '') : '',
+    };
+  });
   document.getElementById('card-topcon-cad').style.display = 'none';
+  destruirMapaTopconCad();
   await importarPontosParaImovel(pontosLonLat, {nomeSugerido, origemLabel:'relatório Topcon', metadadosPorPonto});
   topconImportState = null;
   topconCadState = null;
