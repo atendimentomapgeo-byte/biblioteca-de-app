@@ -956,7 +956,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-03.39 — Removido o texto "Número de tabelas" (redundante); transformado o texto explicativo de "Mostrar informações do imóvel no centro do polígono" em popup "?" (mesmo padrão usado no resto do app), deixando o painel "Outras opções" mais compacto</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-03.49 — A Elevação lida do relatório Topcon agora também é salva no marco (campo "Altitude elipsoidal — h"), junto com os sigmas — necessário para gerar a planilha .ods do SIGEF completa a partir de pontos importados do Topcon</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1146,6 +1146,106 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button type="button" class="btn btn-primary" id="btn-import-modelo" style="flex:1; min-width:0; padding:9px 6px; font-size:0.74rem; line-height:1.25; white-space:normal;">Importar modelo</button>
         </div>
       </div>
+
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h2>Importar relatório do Topcon (coordenadas)<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup">
+        Lê um relatório de coordenadas exportado da coletora/software Topcon em texto (.txt/.csv) ou planilha (.xlsx) — lista de pontos com nome, Norte, Leste, Elevação e, opcionalmente, as colunas de precisão (Desv. Padrão/Sigma N, E, u). Elevação e os sigmas, quando presentes, são salvos automaticamente nos campos avançados do marco (Altitude elipsoidal — h, Sigma N, Sigma E, Sigma h), os mesmos usados no cadastro manual e necessários para gerar a planilha .ods do SIGEF completa. Depois de ler o arquivo você confere/ajusta manualmente qual coluna é cada campo (o Map GEO já tenta adivinhar pelo nome do cabeçalho, quando existe) — útil quando o relatório vem em uma ordem diferente da esperada. No .txt/.csv aceita separador por vírgula, ponto e vírgula, tabulação ou espaços, com decimal em ponto ou vírgula.
+        As coordenadas precisam estar em UTM (metros) — selecione a zona UTM do levantamento antes de ler o arquivo.
+        Como o relatório normalmente traz também pontos de apoio/RN/detalhe, além dos vértices do limite, depois de mapear as colunas abre uma tela estilo CAD com todos os pontos plotados: você liga os pontos clicando neles, na ordem do contorno (o clique sempre gruda no ponto mais próximo), até fechar o polígono. Nome e coordenadas de cada ponto podem ser corrigidos na tabela ao lado, e pontos que não fazem parte do limite podem ser excluídos.
+      </div></span></h2>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+        <div class="field" style="margin-bottom:0; width:150px;">
+          <label>Zona UTM</label>
+          <select id="topcon-utm-zona">
+            <option value="">Selecione…</option>
+            <optgroup label="Hemisfério Sul (S) — maior parte do Brasil">
+              <option value="18S">18S</option>
+              <option value="19S">19S</option>
+              <option value="20S">20S</option>
+              <option value="21S">21S</option>
+              <option value="22S">22S</option>
+              <option value="23S">23S</option>
+              <option value="24S">24S</option>
+              <option value="25S">25S</option>
+            </optgroup>
+            <optgroup label="Hemisfério Norte (N) — AP/RR/norte do AM">
+              <option value="18N">18N</option>
+              <option value="19N">19N</option>
+              <option value="20N">20N</option>
+              <option value="21N">21N</option>
+              <option value="22N">22N</option>
+              <option value="23N">23N</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0; flex:1 1 260px; min-width:220px;">
+          <label>Arquivo do relatório (.txt/.csv/.xlsx)</label>
+          <input type="file" id="topcon-file-imo" accept=".txt,.csv,.xlsx,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*">
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-gerar-modelo-topcon" style="padding:9px 14px; font-size:0.78rem; white-space:nowrap;">Gerar modelo (.txt)</button>
+        <button type="button" class="btn btn-primary" id="btn-ler-topcon" style="padding:9px 14px; font-size:0.78rem; white-space:nowrap;">Ler relatório</button>
+      </div>
+    </div>
+
+    <div class="card" id="card-topcon-mapeamento" style="display:none;">
+      <h2>Mapear colunas do relatório Topcon</h2>
+      <div class="note" style="margin-top:0;">Confira se cada campo abaixo aponta para a coluna certa — o Map GEO já tenta adivinhar pelo cabeçalho do arquivo, quando existe — e ajuste o que precisar antes de continuar.</div>
+      <div style="max-height:180px; overflow:auto; border:1px solid rgba(220,238,245,0.14); border-radius:6px; margin-bottom:12px;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.74rem; white-space:nowrap;">
+          <thead><tr id="topcon-mapeamento-cabecalho"></tr></thead>
+          <tbody id="topcon-mapeamento-preview"></tbody>
+        </table>
+      </div>
+      <div class="grid g3">
+        <div class="field" style="margin-bottom:0;"><label>Nome/Ponto</label><select id="topcon-map-nome"></select></div>
+        <div class="field" style="margin-bottom:0;"><label>Norte</label><select id="topcon-map-norte"></select></div>
+        <div class="field" style="margin-bottom:0;"><label>Leste</label><select id="topcon-map-leste"></select></div>
+        <div class="field" style="margin-bottom:0;"><label>Elevação (opcional)</label><select id="topcon-map-elevacao"></select></div>
+        <div class="field" style="margin-bottom:0;"><label>Sigma Norte (opcional)</label><select id="topcon-map-sigma-n"></select></div>
+        <div class="field" style="margin-bottom:0;"><label>Sigma Leste (opcional)</label><select id="topcon-map-sigma-e"></select></div>
+        <div class="field" style="margin-bottom:0;"><label>Sigma Vertical/Up (opcional)</label><select id="topcon-map-sigma-u"></select></div>
+      </div>
+      <label class="dxfpdf-layerRow" style="margin-top:8px;"><input type="checkbox" id="topcon-map-ignorar-cabecalho"> A primeira linha é um cabeçalho (ignorar)</label>
+      <div style="margin-top:8px;">
+        <button class="btn btn-primary" id="btn-confirmar-topcon-mapeamento">Continuar</button>
+        <button class="btn btn-ghost" id="btn-cancelar-topcon-mapeamento">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="card" id="card-topcon-cad" style="display:none;">
+      <h2>Desenhar o polígono (tela estilo CAD)</h2>
+      <div class="note" id="topcon-cad-nota" style="margin-top:0;">Clique perto de um ponto e depois perto do próximo para ligá-los com uma linha — o clique sempre "gruda" no ponto mais próximo. Continue ligando os pontos na ordem do contorno do imóvel e feche o polígono ao final (clicando de volta no primeiro ponto ou no botão "Fechar polígono"). Edite nome/coordenadas na tabela ou exclua pontos que não fazem parte do limite (ex.: RN, apoio).</div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start;">
+        <div style="flex:1 1 320px; min-width:280px;">
+          <div style="max-height:300px; overflow:auto; border:1px solid rgba(220,238,245,0.14); border-radius:6px; margin-bottom:10px;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.76rem;">
+              <thead>
+                <tr style="position:sticky; top:0; background:var(--navy); z-index:1;">
+                  <th style="padding:6px 8px; text-align:left;">Ponto</th>
+                  <th style="padding:6px 8px; text-align:right;">Norte</th>
+                  <th style="padding:6px 8px; text-align:right;">Leste</th>
+                  <th style="padding:6px 8px; text-align:right;">Elevação</th>
+                  <th style="padding:6px 4px;"></th>
+                </tr>
+              </thead>
+              <tbody id="topcon-cad-tbody"></tbody>
+            </table>
+          </div>
+          <div id="topcon-cad-resumo" style="font-size:0.8rem; color:var(--chalk-dim); margin-bottom:8px;"></div>
+        </div>
+        <div style="flex:1 1 360px; min-width:300px;">
+          <div id="topcon-cad-svg-wrap" style="background:#fff; border-radius:6px; padding:8px; margin-bottom:10px;"></div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-desfazer">Desfazer último</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-fechar">Fechar polígono</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-limpar">Limpar desenho</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-confirmar-topcon-cad" disabled>Importar polígono desenhado</button>
+      <button class="btn btn-ghost" id="btn-cancelar-topcon-cad">Cancelar</button>
     </div>
 
     <div class="card" id="card-geometria-ativa" style="display:none;">
@@ -5605,9 +5705,10 @@ async function buscarWFSIncra(uf, minLon, minLat, maxLon, maxLat){
         throw new Error('O INCRA recusou a consulta: ' + (m ? m[1].trim() : rawText.slice(0,300)));
       }
       if(!resp.ok) throw new Error(`HTTP ${resp.status}. Resposta: ${rawText.slice(0,300)}`);
+      if(!rawText || !rawText.trim()) throw new Error('O servidor do INCRA devolveu uma resposta vazia para esta camada (instabilidade temporária do serviço) — tente novamente em instantes.');
       let fc;
       try{ fc = parseGML(rawText); }
-      catch(parseErr){ throw new Error('Não foi possível interpretar a resposta GML do INCRA: ' + (parseErr.message||parseErr) + '. Início da resposta: ' + rawText.slice(0,200)); }
+      catch(parseErr){ throw new Error('Não foi possível interpretar a resposta GML do INCRA: ' + String(parseErr.message||parseErr).replace(/\.+$/, '') + '. Início da resposta: ' + rawText.slice(0,200)); }
       const novasGeometrias = geoJsonParaGeometrias(fc);
       novasGeometrias.forEach(g=>{ g.origemCamada = camada; });
       geometrias.push(...novasGeometrias);
@@ -7141,6 +7242,460 @@ document.getElementById('btn-import-shp-imo').addEventListener('click', async ()
     console.error('Erro ao importar Shapefile:', e);
     showToast('Erro ao importar Shapefile: '+e.message);
   }
+});
+
+// Importação de relatório de coordenadas do Topcon — aceita tanto texto (.txt/.csv, separado por
+// vírgula, ponto e vírgula, tabulação ou espaços, decimal em ponto ou vírgula) quanto planilha
+// (.xlsx) exportada direto do software de ajustamento (ex.: Topcon Tools/MAGNET Office). Os dois
+// formatos convergem para a mesma função: uma lista de "linhas", cada uma já um array de campos
+// (texto ou número) — pra texto isso vem de dividir cada linha pelo delimitador detectado; pra
+// xlsx, cada linha da planilha já é naturalmente um array de células.
+//
+// Primeiro tentamos reconhecer o cabeçalho pelo NOME das colunas (ex.: "Malha Norte (m)", "Desv
+// Padrão n (m)") — é o jeito mais confiável, confirmado contra um relatório real do Topcon Tools
+// que usa exatamente esse formato (Nome, Malha Norte, Malha Este, Elevação, Desv Padrão n/e/Hz/u —
+// note o "Hz" (precisão horizontal combinada) entre E e u, que não é aproveitado mas não pode
+// bagunçar a leitura do "u" que vem depois dele). Só quando o cabeçalho não é reconhecido (arquivo
+// sem cabeçalho, ou com nomes de coluna muito diferentes) caímos numa heurística posicional: assume
+// a ordem Ponto,Norte,Leste,[Elevação],[sigmas...], corrigindo Norte/Leste automaticamente se os
+// valores parecerem trocados (no Brasil, Leste em UTM sempre cai entre 100.000 e 900.000, enquanto
+// Norte foge dessa faixa) — a opção "Inverter Norte/Leste" na tela força a troca manualmente para
+// os casos em que nem a heurística acerta (ex.: coordenada local, fora do padrão UTM).
+function normalizarTextoCabecalho(s){
+  // Troca "_"/"-" por espaço antes de tudo, pra que um cabeçalho como "Sigma_N" vire "sigma n" —
+  // assim o \b (fronteira de palavra) usado nos testes de coluna abaixo reconhece a letra isolada
+  // (N/E/U) normalmente, o que não acontece quando ela fica colada a um "_" (ambos são \w).
+  return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[_-]+/g,' ').trim();
+}
+function detectarMapaColunasTopcon(camposCabecalho){
+  const norm = camposCabecalho.map(normalizarTextoCabecalho);
+  const acharIndice = testes => { for(let i=0;i<norm.length;i++){ if(testes.some(re=>re.test(norm[i]))) return i; } return -1; };
+  const mapa = {
+    nome: acharIndice([/^nome$/, /^ponto$/, /^point$/, /^id$/, /^pt$/]),
+    norte: acharIndice([/norte/, /northing/]),
+    leste: acharIndice([/este|leste|easting/]),
+    elevacao: acharIndice([/elev/, /altitude/]),
+    sigmaN: acharIndice([/padr.*\bn\b/, /sigma.*\bn\b/, /desvio.*\bn\b/]),
+    sigmaE: acharIndice([/padr.*\be\b/, /sigma.*\be\b/, /desvio.*\be\b/]),
+    sigmaU: acharIndice([/padr.*\bu\b/, /sigma.*\bu\b/, /desvio.*\bu\b/, /vertical/]),
+  };
+  if(mapa.nome<0 || mapa.norte<0 || mapa.leste<0) return null;
+  return mapa;
+}
+function topconPareceDecimalVirgula(s){ return typeof s === 'string' && (/^-?\d{1,3}(\.\d{3})*,\d+$/.test(s) || /^-?\d+,\d+$/.test(s)); }
+function topconNormalizarNumero(v){
+  if(typeof v === 'number') return v;
+  const s = String(v==null?'':v).trim();
+  if(!s) return NaN;
+  return parseFloat(topconPareceDecimalVirgula(s) ? s.replace(/\./g,'').replace(',','.') : s);
+}
+// mapaManual (opcional): {nome,norte,leste,elevacao,sigmaN,sigmaE,sigmaU} com os índices de coluna
+// escolhidos manualmente na tela de mapeamento (-1 = coluna não usada). Quando ausente, tenta
+// reconhecer o cabeçalho automaticamente e, se não reconhecer, cai na heurística posicional.
+// ignorarPrimeiraLinha só é consultado quando mapaManual é passado (na detecção automática quem
+// decide se pula a 1ª linha é o próprio reconhecimento de cabeçalho).
+function pontosDeLinhasTabularesTopcon(linhasDeCampos, mapaManual, ignorarPrimeiraLinha){
+  const normalizarNumero = topconNormalizarNumero;
+  const ehNumerico = v => { const s = String(v==null?'':v).trim(); return s!=='' && !isNaN(normalizarNumero(s)); };
+
+  const pontos = [];
+  let linhasIgnoradas = 0;
+  if(!linhasDeCampos.length) return {pontos, linhasIgnoradas};
+
+  let colMap, inicio;
+  if(mapaManual){
+    colMap = mapaManual;
+    inicio = ignorarPrimeiraLinha ? 1 : 0;
+  } else {
+    const primeiraLinhaTextos = linhasDeCampos[0].map(c=>c==null?'':String(c));
+    colMap = detectarMapaColunasTopcon(primeiraLinhaTextos);
+    inicio = colMap ? 1 : 0;
+  }
+
+  for(let li=inicio; li<linhasDeCampos.length; li++){
+    const campos = linhasDeCampos[li] || [];
+    if(!campos.length || campos.every(c=>c==null || String(c).trim()==='')) continue;
+
+    if(colMap){
+      const nome = campos[colMap.nome]!=null ? String(campos[colMap.nome]).trim() : '';
+      const norte = normalizarNumero(campos[colMap.norte]);
+      const leste = normalizarNumero(campos[colMap.leste]);
+      if(!nome || isNaN(norte) || isNaN(leste)){ linhasIgnoradas++; continue; }
+      const elevacaoV = colMap.elevacao>=0 ? normalizarNumero(campos[colMap.elevacao]) : NaN;
+      const sigmaNV = colMap.sigmaN>=0 ? normalizarNumero(campos[colMap.sigmaN]) : NaN;
+      const sigmaEV = colMap.sigmaE>=0 ? normalizarNumero(campos[colMap.sigmaE]) : NaN;
+      const sigmaUV = colMap.sigmaU>=0 ? normalizarNumero(campos[colMap.sigmaU]) : NaN;
+      pontos.push({
+        nome, norte, leste,
+        elevacao: isNaN(elevacaoV) ? null : elevacaoV,
+        sigmaN: isNaN(sigmaNV) ? null : sigmaNV,
+        sigmaE: isNaN(sigmaEV) ? null : sigmaEV,
+        sigmaU: isNaN(sigmaUV) ? null : sigmaUV,
+        codigo: '',
+      });
+      continue;
+    }
+
+    // Heurística posicional (cabeçalho não reconhecido ou ausente).
+    const camposTexto = campos.map(c=>c==null?'':String(c).trim()).filter(c=>c.length);
+    if(camposTexto.length < 3){ if(camposTexto.length) linhasIgnoradas++; continue; }
+    const idxNumericos = [];
+    camposTexto.forEach((c,i)=>{ if(i>0 && ehNumerico(c)) idxNumericos.push(i); });
+    if(idxNumericos.length < 2){ linhasIgnoradas++; continue; }
+    const nome = camposTexto[0];
+    const v1 = normalizarNumero(camposTexto[idxNumericos[0]]);
+    const v2 = normalizarNumero(camposTexto[idxNumericos[1]]);
+    const pareceLeste = v => v>=100000 && v<=900000;
+    let norte, leste;
+    if(pareceLeste(v1) && !pareceLeste(v2)){ leste=v1; norte=v2; }
+    else if(pareceLeste(v2) && !pareceLeste(v1)){ leste=v2; norte=v1; }
+    else { norte=v1; leste=v2; }
+    let elevacao = null, sigmaN = null, sigmaE = null, sigmaU = null;
+    const usados = new Set([0, idxNumericos[0], idxNumericos[1]]);
+    const depoisDeNE = idxNumericos.slice(2);
+    if(depoisDeNE.length>=1){ elevacao = normalizarNumero(camposTexto[depoisDeNE[0]]); usados.add(depoisDeNE[0]); }
+    const sigmas = depoisDeNE.slice(1);
+    // 1 sobrando = só sigma u; 2 = N,E; 3 = N,E,u; 4+ = N,E,Hz,u (Hz descartado, não existe no app).
+    if(sigmas.length===1){ sigmaU = normalizarNumero(camposTexto[sigmas[0]]); usados.add(sigmas[0]); }
+    else if(sigmas.length===2){ sigmaN=normalizarNumero(camposTexto[sigmas[0]]); sigmaE=normalizarNumero(camposTexto[sigmas[1]]); usados.add(sigmas[0]); usados.add(sigmas[1]); }
+    else if(sigmas.length===3){ sigmaN=normalizarNumero(camposTexto[sigmas[0]]); sigmaE=normalizarNumero(camposTexto[sigmas[1]]); sigmaU=normalizarNumero(camposTexto[sigmas[2]]); sigmas.forEach(i=>usados.add(i)); }
+    else if(sigmas.length>=4){ sigmaN=normalizarNumero(camposTexto[sigmas[0]]); sigmaE=normalizarNumero(camposTexto[sigmas[1]]); sigmaU=normalizarNumero(camposTexto[sigmas[3]]); sigmas.forEach(i=>usados.add(i)); }
+    const codigo = camposTexto.filter((_,i)=>!usados.has(i)).join(' ').trim();
+    pontos.push({nome, norte, leste, elevacao, sigmaN, sigmaE, sigmaU, codigo});
+  }
+  return {pontos, linhasIgnoradas};
+}
+function linhasDeCamposDeTexto(texto){
+  const linhas = texto.split(/\r\n|\r|\n/).map(l=>l.trim()).filter(l=>l.length);
+  return linhas.map(linha=>{
+    // Espaço/tabulação é testado ANTES de vírgula: uma linha separada por espaços com decimal em
+    // vírgula (ex.: "1 8923456,123 512345,678") também tem 2+ vírgulas — se vírgula fosse testada
+    // primeiro, cortaria cada número ao meio.
+    const tokensEspaco = linha.split(/\s+/).map(c=>c.trim()).filter(c=>c.length);
+    let campos;
+    if(linha.indexOf(';')>=0) campos = linha.split(';');
+    else if(linha.indexOf('\t')>=0) campos = linha.split('\t');
+    else if(tokensEspaco.length >= 3) campos = tokensEspaco;
+    else if((linha.match(/,/g)||[]).length >= 2) campos = linha.split(',');
+    else campos = tokensEspaco;
+    return campos.map(c=>c.trim()).filter(c=>c.length);
+  });
+}
+function parseTopconRelatorioTexto(texto){
+  return pontosDeLinhasTabularesTopcon(linhasDeCamposDeTexto(texto));
+}
+// Leitor mínimo de .xlsx (sem depender de biblioteca própria de planilha): um .xlsx é um .zip —
+// usamos o JSZip já carregado pro resto do app — contendo XML simples. Lemos a primeira planilha
+// (xl/worksheets/sheetN.xml, a de menor N) e a tabela de textos compartilhados (sharedStrings.xml,
+// referenciada pelas células de texto) e devolvemos uma lista de linhas, cada uma um array de
+// células na ordem das colunas (reconstruída a partir da referência "B2" etc. de cada célula, já
+// que o xlsx não grava células vazias — sem isso as colunas desalinhariam quando uma célula do meio
+// estiver em branco).
+async function lerXlsxComoLinhas(file){
+  if(typeof JSZip === 'undefined'){
+    try{ await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }catch(e){ /* segue pro erro abaixo */ }
+    if(typeof JSZip === 'undefined') throw new Error('Biblioteca de leitura de .zip não carregou — verifique sua conexão com a internet e recarregue a página.');
+  }
+  const buffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(buffer);
+  let sharedStrings = [];
+  const sharedStringsFile = zip.file('xl/sharedStrings.xml');
+  if(sharedStringsFile){
+    const xml = await sharedStringsFile.async('text');
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    sharedStrings = Array.from(doc.getElementsByTagName('si')).map(si=>
+      Array.from(si.getElementsByTagName('t')).map(t=>t.textContent).join('')
+    );
+  }
+  const nomesSheets = Object.keys(zip.files)
+    .filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n))
+    .sort((a,b)=>parseInt(a.match(/sheet(\d+)\.xml/)[1],10) - parseInt(b.match(/sheet(\d+)\.xml/)[1],10));
+  if(!nomesSheets.length) throw new Error('Não foi possível encontrar uma planilha dentro do arquivo .xlsx.');
+  const sheetXml = await zip.file(nomesSheets[0]).async('text');
+  const doc = new DOMParser().parseFromString(sheetXml, 'text/xml');
+  const colParaIndice = ref => {
+    const letras = (ref.match(/^[A-Za-z]+/)||[''])[0].toUpperCase();
+    let idx = 0;
+    for(let i=0;i<letras.length;i++){ idx = idx*26 + (letras.charCodeAt(i)-64); }
+    return idx-1;
+  };
+  const linhas = [];
+  Array.from(doc.getElementsByTagName('row')).forEach(rowEl=>{
+    const linha = [];
+    Array.from(rowEl.getElementsByTagName('c')).forEach(c=>{
+      const ref = c.getAttribute('r') || '';
+      const idx = ref ? colParaIndice(ref) : linha.length;
+      const tipo = c.getAttribute('t');
+      const vEl = c.getElementsByTagName('v')[0];
+      let valor = '';
+      if(tipo === 's'){ valor = vEl ? (sharedStrings[parseInt(vEl.textContent,10)] || '') : ''; }
+      else if(tipo === 'inlineStr'){ const isEl = c.getElementsByTagName('is')[0]; valor = isEl ? Array.from(isEl.getElementsByTagName('t')).map(t=>t.textContent).join('') : ''; }
+      else if(tipo === 'str' || tipo === 'b'){ valor = vEl ? vEl.textContent : ''; }
+      else { valor = vEl && vEl.textContent!=='' ? parseFloat(vEl.textContent) : ''; }
+      while(linha.length < idx) linha.push('');
+      linha[idx] = valor;
+    });
+    linhas.push(linha);
+  });
+  return linhas;
+}
+let topconImportState = null; // { pontos:[{id,nome,norte,leste,elevacao,sigmaN,sigmaE,sigmaU,codigo}], zona, sul, nomeSugerido }
+let topconCadState = null; // { caminho:[idsNaOrdemClicada], fechado:bool }
+function topconPontoPorId(id){ return topconImportState.pontos.find(p=>p.id===id); }
+function renderTopconCadTabela(){
+  const tbody = document.getElementById('topcon-cad-tbody');
+  tbody.innerHTML = topconImportState.pontos.map(p=>`
+    <tr data-id="${p.id}">
+      <td style="padding:3px 6px;"><input type="text" class="topcon-cad-nome" data-id="${p.id}" value="${escXml(p.nome)}" style="width:72px;"></td>
+      <td style="padding:3px 4px;"><input type="number" step="any" class="topcon-cad-norte" data-id="${p.id}" value="${p.norte}" style="width:92px; text-align:right;"></td>
+      <td style="padding:3px 4px;"><input type="number" step="any" class="topcon-cad-leste" data-id="${p.id}" value="${p.leste}" style="width:92px; text-align:right;"></td>
+      <td style="padding:3px 4px;"><input type="number" step="any" class="topcon-cad-elevacao" data-id="${p.id}" value="${p.elevacao!=null && !isNaN(p.elevacao) ? p.elevacao : ''}" style="width:76px; text-align:right;"></td>
+      <td style="padding:3px 4px; text-align:center;"><button type="button" class="btn btn-sm btn-ghost topcon-cad-excluir" data-id="${p.id}" title="Excluir ponto" style="padding:2px 8px;">✕</button></td>
+    </tr>`).join('');
+  tbody.querySelectorAll('.topcon-cad-nome').forEach(el=>el.addEventListener('input', e=>{
+    const p = topconPontoPorId(Number(e.target.dataset.id)); if(p) p.nome = e.target.value;
+    atualizarSvgTopconCad();
+  }));
+  tbody.querySelectorAll('.topcon-cad-norte').forEach(el=>el.addEventListener('input', e=>{
+    const p = topconPontoPorId(Number(e.target.dataset.id)); if(p){ const v=parseFloat(e.target.value); if(!isNaN(v)) p.norte=v; }
+    atualizarSvgTopconCad();
+  }));
+  tbody.querySelectorAll('.topcon-cad-leste').forEach(el=>el.addEventListener('input', e=>{
+    const p = topconPontoPorId(Number(e.target.dataset.id)); if(p){ const v=parseFloat(e.target.value); if(!isNaN(v)) p.leste=v; }
+    atualizarSvgTopconCad();
+  }));
+  tbody.querySelectorAll('.topcon-cad-elevacao').forEach(el=>el.addEventListener('input', e=>{
+    const p = topconPontoPorId(Number(e.target.dataset.id));
+    if(p){ const v=parseFloat(e.target.value); p.elevacao = e.target.value.trim()==='' ? null : (isNaN(v)?null:v); }
+  }));
+  tbody.querySelectorAll('.topcon-cad-excluir').forEach(el=>el.addEventListener('click', e=>{
+    const id = Number(e.target.dataset.id);
+    if(topconImportState.pontos.length<=3){ showToast('É preciso manter ao menos 3 pontos para formar um polígono.'); return; }
+    topconImportState.pontos = topconImportState.pontos.filter(p=>p.id!==id);
+    topconCadState.caminho = topconCadState.caminho.filter(i=>i!==id);
+    if(topconCadState.caminho.length<3) topconCadState.fechado = false;
+    renderTopconCadTabela();
+    atualizarSvgTopconCad();
+  }));
+}
+function atualizarSvgTopconCad(){
+  const pontos = topconImportState.pontos;
+  const resumo = document.getElementById('topcon-cad-resumo');
+  const {caminho, fechado} = topconCadState;
+  resumo.textContent = `${pontos.length} ponto(s) lido(s) do arquivo. ` + (caminho.length===0
+    ? 'Clique em dois pontos no desenho para começar a ligar o contorno.'
+    : `${caminho.length} vértice(s) no contorno desenhado${fechado ? ' (fechado)' : ' — ainda aberto'}.`);
+  document.getElementById('btn-confirmar-topcon-cad').disabled = !(fechado && caminho.length>=3);
+  const W = 420, H = 360, PAD = 28;
+  const minE = Math.min(...pontos.map(p=>p.leste)), maxE = Math.max(...pontos.map(p=>p.leste));
+  const minN = Math.min(...pontos.map(p=>p.norte)), maxN = Math.max(...pontos.map(p=>p.norte));
+  const spanE = Math.max(maxE-minE, 0.001), spanN = Math.max(maxN-minN, 0.001);
+  const escala = Math.min((W-2*PAD)/spanE, (H-2*PAD)/spanN);
+  const offX = PAD + ((W-2*PAD) - spanE*escala)/2;
+  const offY = PAD + ((H-2*PAD) - spanN*escala)/2;
+  const px = p => offX + (p.leste-minE)*escala;
+  const py = p => H - (offY + (p.norte-minN)*escala); // Norte cresce para cima na tela
+  let svg = `<svg id="topcon-cad-svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; display:block; cursor:crosshair;">`;
+  if(caminho.length>=2){
+    const dPath = caminho.map((id,i)=>{
+      const p = topconPontoPorId(id); return `${i===0?'M':'L'} ${px(p).toFixed(1)} ${py(p).toFixed(1)}`;
+    }).join(' ') + (fechado ? ' Z' : '');
+    svg += `<path d="${dPath}" fill="${fechado?'rgba(26,140,180,0.12)':'none'}" stroke="#1a8cb4" stroke-width="2"/>`;
+  }
+  pontos.forEach(p=>{
+    const noCaminho = caminho.includes(p.id);
+    const ordem = caminho.indexOf(p.id);
+    svg += `<circle cx="${px(p).toFixed(1)}" cy="${py(p).toFixed(1)}" r="5" fill="${noCaminho?'#1a8cb4':'#f2a93b'}" stroke="#223" stroke-width="1"/>`;
+    svg += `<text x="${(px(p)+7).toFixed(1)}" y="${(py(p)-6).toFixed(1)}" font-size="10" fill="#223">${escXml(p.nome)}${ordem>=0?` (${ordem+1})`:''}</text>`;
+  });
+  svg += `</svg>`;
+  document.getElementById('topcon-cad-svg-wrap').innerHTML = svg;
+  const svgEl = document.getElementById('topcon-cad-svg');
+  svgEl.addEventListener('click', ev=>{
+    const rect = svgEl.getBoundingClientRect();
+    if(!rect.width) return;
+    const escalaTela = W / rect.width;
+    const cx = (ev.clientX - rect.left) * escalaTela;
+    const cy = (ev.clientY - rect.top) * escalaTela;
+    let melhor = null, melhorDist = Infinity;
+    pontos.forEach(p=>{
+      const d = Math.hypot(px(p)-cx, py(p)-cy);
+      if(d < melhorDist){ melhorDist = d; melhor = p; }
+    });
+    if(!melhor || topconCadState.fechado) return;
+    const ultimoId = topconCadState.caminho[topconCadState.caminho.length-1];
+    if(topconCadState.caminho.length>=3 && melhor.id===topconCadState.caminho[0]){
+      topconCadState.fechado = true;
+    } else if(melhor.id === ultimoId){
+      // clicou de novo no mesmo ponto — ignora
+    } else if(topconCadState.caminho.includes(melhor.id)){
+      showToast('Esse ponto já faz parte do contorno desenhado.');
+    } else {
+      topconCadState.caminho.push(melhor.id);
+    }
+    atualizarSvgTopconCad();
+  });
+}
+function abrirCadTopcon(){
+  topconImportState.pontos.forEach((p,i)=>{ p.id = i; });
+  topconCadState = {caminho: [], fechado: false};
+  renderTopconCadTabela();
+  atualizarSvgTopconCad();
+  document.getElementById('card-topcon-cad').style.display = 'block';
+  document.getElementById('card-topcon-cad').scrollIntoView({behavior:'smooth', block:'center'});
+}
+document.getElementById('btn-gerar-modelo-topcon').addEventListener('click', ()=>{
+  // Modelo de exemplo no formato real da coletora Topcon (Ponto,Norte,Leste,Elevação,Sigma_N,Sigma_E,Sigma_u),
+  // com 4 vértices de limite (V1-V4) e um ponto de apoio (RN1) só pra ilustrar que o relatório real
+  // normalmente traz pontos extras, que o usuário desmarca na tela de seleção depois de ler o arquivo.
+  const linhas = [
+    'V1,8923456.123,512345.678,450.100,0.008,0.009,0.015',
+    'V2,8923500.000,512400.500,451.200,0.007,0.008,0.014',
+    'V3,8923420.250,512480.750,449.800,0.009,0.010,0.016',
+    'V4,8923440.000,512330.000,452.000,0.008,0.009,0.015',
+    'RN1,8923410.000,512420.000,453.500,0.006,0.007,0.012',
+  ];
+  const blob = new Blob([linhas.join('\r\n')+'\r\n'], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'modelo_relatorio_topcon.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 10000);
+  showToast('Modelo baixado! Ele mostra o formato esperado (Ponto,Norte,Leste,Elevação,Sigma_N,Sigma_E,Sigma_u) com 4 vértices de exemplo + 1 ponto de apoio (RN1), pra você comparar com o seu relatório real ou usar como base. Zona UTM de exemplo: 21S.');
+});
+let topconMapeamentoState = null; // { linhasDeCampos, zona, sul, nomeSugerido }
+document.getElementById('btn-ler-topcon').addEventListener('click', async ()=>{
+  const fileInput = document.getElementById('topcon-file-imo');
+  const file = fileInput.files[0];
+  if(!file){ showToast('Escolha o arquivo do relatório Topcon (.txt, .csv ou .xlsx).'); return; }
+  const zonaTexto = document.getElementById('topcon-utm-zona').value.trim();
+  const mzona = /^(\d{1,2})\s*([NnSs])$/.exec(zonaTexto);
+  if(!mzona){ showToast('Selecione a Zona UTM do levantamento.'); return; }
+  const zona = Number(mzona[1]);
+  const sul = mzona[2].toUpperCase()==='S';
+  try{
+    const isXlsx = /\.xlsx$/i.test(file.name);
+    const linhasDeCampos = isXlsx ? await lerXlsxComoLinhas(file) : linhasDeCamposDeTexto(await file.text());
+    if(!linhasDeCampos.length){ showToast('O arquivo parece estar vazio.'); return; }
+    topconMapeamentoState = {linhasDeCampos, zona, sul, nomeSugerido: file.name};
+    abrirMapeamentoTopcon();
+    fileInput.value='';
+  }catch(e){
+    console.error('Erro ao importar relatório Topcon:', e);
+    showToast('Erro ao ler o relatório Topcon: '+e.message);
+  }
+});
+function abrirMapeamentoTopcon(){
+  const {linhasDeCampos} = topconMapeamentoState;
+  const numColunas = Math.max(...linhasDeCampos.map(l=>l.length));
+  const primeiraLinhaTextos = linhasDeCampos[0].map(c=>c==null?'':String(c));
+  const colMapAuto = detectarMapaColunasTopcon(primeiraLinhaTextos);
+  // Linha usada como exemplo nas opções dos <select> — a primeira linha de DADOS (pula o cabeçalho
+  // quando ele foi reconhecido), pra mostrar um valor real de cada coluna e não o texto do cabeçalho.
+  const linhaExemplo = (colMapAuto && linhasDeCampos.length>1) ? linhasDeCampos[1] : linhasDeCampos[0];
+  const rotuloColuna = i => {
+    const exemplo = linhaExemplo[i];
+    const exemploTxt = exemplo!=null && String(exemplo).trim()!=='' ? String(exemplo).trim() : 'vazio';
+    return `Coluna ${i+1} — ${exemploTxt.length>24 ? exemploTxt.slice(0,24)+'…' : exemploTxt}`;
+  };
+  const opcoesSelect = (incluirNenhuma) => {
+    let html = incluirNenhuma ? '<option value="-1">Nenhuma</option>' : '';
+    for(let i=0;i<numColunas;i++){ html += `<option value="${i}">${escXml(rotuloColuna(i))}</option>`; }
+    return html;
+  };
+  document.getElementById('topcon-map-nome').innerHTML = opcoesSelect(false);
+  document.getElementById('topcon-map-norte').innerHTML = opcoesSelect(false);
+  document.getElementById('topcon-map-leste').innerHTML = opcoesSelect(false);
+  document.getElementById('topcon-map-elevacao').innerHTML = opcoesSelect(true);
+  document.getElementById('topcon-map-sigma-n').innerHTML = opcoesSelect(true);
+  document.getElementById('topcon-map-sigma-e').innerHTML = opcoesSelect(true);
+  document.getElementById('topcon-map-sigma-u').innerHTML = opcoesSelect(true);
+  // Pré-seleciona com o que a detecção automática (por nome do cabeçalho) já achou; sem cabeçalho
+  // reconhecido, cai num palpite posicional razoável (Ponto,Norte,Leste,Elevação,SigmaN,SigmaE,...,SigmaU),
+  // deixando pro usuário confirmar ou corrigir.
+  const palpite = colMapAuto || {
+    nome: 0, norte: numColunas>1?1:-1, leste: numColunas>2?2:-1,
+    elevacao: numColunas>3?3:-1, sigmaN: numColunas>4?4:-1, sigmaE: numColunas>5?5:-1,
+    sigmaU: numColunas>6?numColunas-1:-1,
+  };
+  document.getElementById('topcon-map-nome').value = String(Math.max(palpite.nome,0));
+  document.getElementById('topcon-map-norte').value = String(Math.max(palpite.norte,0));
+  document.getElementById('topcon-map-leste').value = String(Math.max(palpite.leste,0));
+  document.getElementById('topcon-map-elevacao').value = String(palpite.elevacao);
+  document.getElementById('topcon-map-sigma-n').value = String(palpite.sigmaN);
+  document.getElementById('topcon-map-sigma-e').value = String(palpite.sigmaE);
+  document.getElementById('topcon-map-sigma-u').value = String(palpite.sigmaU);
+  document.getElementById('topcon-map-ignorar-cabecalho').checked = !!colMapAuto;
+  // Prévia: cabeçalho com o número de cada coluna, e as primeiras linhas de dados logo abaixo.
+  document.getElementById('topcon-mapeamento-cabecalho').innerHTML =
+    Array.from({length:numColunas}, (_,i)=>`<th style="padding:4px 8px; text-align:left; position:sticky; top:0; background:var(--navy);">Col. ${i+1}</th>`).join('');
+  document.getElementById('topcon-mapeamento-preview').innerHTML = linhasDeCampos.slice(0,5).map(linha=>
+    `<tr>${Array.from({length:numColunas}, (_,i)=>`<td style="padding:4px 8px;">${escXml(linha[i]!=null?String(linha[i]):'')}</td>`).join('')}</tr>`
+  ).join('');
+  document.getElementById('card-topcon-mapeamento').style.display = 'block';
+  document.getElementById('card-topcon-mapeamento').scrollIntoView({behavior:'smooth', block:'center'});
+}
+document.getElementById('btn-cancelar-topcon-mapeamento').addEventListener('click', ()=>{
+  topconMapeamentoState = null;
+  document.getElementById('card-topcon-mapeamento').style.display = 'none';
+});
+document.getElementById('btn-confirmar-topcon-mapeamento').addEventListener('click', ()=>{
+  const valor = id => Number(document.getElementById(id).value);
+  const mapa = {
+    nome: valor('topcon-map-nome'), norte: valor('topcon-map-norte'), leste: valor('topcon-map-leste'),
+    elevacao: valor('topcon-map-elevacao'), sigmaN: valor('topcon-map-sigma-n'),
+    sigmaE: valor('topcon-map-sigma-e'), sigmaU: valor('topcon-map-sigma-u'),
+  };
+  if(mapa.norte === mapa.leste){ showToast('Norte e Leste não podem apontar para a mesma coluna.'); return; }
+  const ignorarCabecalho = document.getElementById('topcon-map-ignorar-cabecalho').checked;
+  const {linhasDeCampos, zona, sul, nomeSugerido} = topconMapeamentoState;
+  const {pontos, linhasIgnoradas} = pontosDeLinhasTabularesTopcon(linhasDeCampos, mapa, ignorarCabecalho);
+  if(pontos.length < 3){ showToast('Não foi possível reconhecer ao menos 3 pontos com esse mapeamento de colunas. Confira as colunas escolhidas.'); return; }
+  topconImportState = {pontos, zona, sul, nomeSugerido};
+  document.getElementById('card-topcon-mapeamento').style.display = 'none';
+  topconMapeamentoState = null;
+  abrirCadTopcon();
+});
+document.getElementById('btn-topcon-cad-desfazer').addEventListener('click', ()=>{
+  if(!topconCadState) return;
+  if(topconCadState.fechado) topconCadState.fechado = false;
+  else topconCadState.caminho.pop();
+  atualizarSvgTopconCad();
+});
+document.getElementById('btn-topcon-cad-fechar').addEventListener('click', ()=>{
+  if(!topconCadState) return;
+  if(topconCadState.caminho.length < 3){ showToast('Ligue ao menos 3 pontos antes de fechar o polígono.'); return; }
+  topconCadState.fechado = true;
+  atualizarSvgTopconCad();
+});
+document.getElementById('btn-topcon-cad-limpar').addEventListener('click', ()=>{
+  if(!topconCadState) return;
+  topconCadState.caminho = [];
+  topconCadState.fechado = false;
+  atualizarSvgTopconCad();
+});
+document.getElementById('btn-cancelar-topcon-cad').addEventListener('click', ()=>{
+  topconImportState = null;
+  topconCadState = null;
+  document.getElementById('card-topcon-cad').style.display = 'none';
+});
+document.getElementById('btn-confirmar-topcon-cad').addEventListener('click', async ()=>{
+  if(!topconCadState || !topconCadState.fechado || topconCadState.caminho.length < 3){ showToast('Feche o polígono (ligando ao menos 3 pontos) antes de importar.'); return; }
+  const {zona, sul} = topconImportState;
+  const sequencia = topconCadState.caminho.map(id=>topconPontoPorId(id));
+  const pontosLonLat = sequencia.map(p=>utmParaLatLon(p.leste, p.norte, zona, sul));
+  const nomeSugerido = nomeImovelDoArquivo(topconImportState.nomeSugerido);
+  // Os sigmas e a elevação do relatório alimentam os mesmos campos avançados do SIGEF já usados
+  // pelo cadastro manual de marco e pela importação do "modelo completo" — Sigma_u do Topcon
+  // (precisão vertical) corresponde ao "Sigma h" do Map GEO, e a Elevação ao "Altitude elipsoidal
+  // (h)", necessários para gerar a planilha .ods do SIGEF com os dados completos.
+  const metadadosPorPonto = sequencia.map(p=>({
+    sigmaN: p.sigmaN, sigmaE: p.sigmaE, sigmaH: p.sigmaU, alturaElipsoidal: p.elevacao,
+  }));
+  document.getElementById('card-topcon-cad').style.display = 'none';
+  await importarPontosParaImovel(pontosLonLat, {nomeSugerido, origemLabel:'relatório Topcon', metadadosPorPonto});
+  topconImportState = null;
+  topconCadState = null;
 });
 
 document.getElementById('btn-baixar-modelo-importacao').addEventListener('click', async ()=>{
