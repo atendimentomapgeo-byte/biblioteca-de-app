@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-04T03:30:48.202Z",
+  "exportadoEm": "2026-10-04T03:37:47.032Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -492,7 +492,7 @@
       }
     },
     {
-      "id": "mut9jxuwn7tad",
+      "id": "mut9sx13aq8rk",
       "nome": "Ajustamento",
       "matricula": "",
       "area": "0.2199",
@@ -1809,8 +1809,8 @@
       "coordN": 8276984.995
     },
     {
-      "id": "mut9jxv2vkvxr",
-      "imovelId": "mut9jxuwn7tad",
+      "id": "mut9sx1azopi5",
+      "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 8,
       "confrontante": "",
@@ -1818,7 +1818,7 @@
       "codigoSigef": "",
       "sigmaE": 0.663,
       "sigmaN": 0.614,
-      "alturaElipsoidal": null,
+      "alturaElipsoidal": 165.521,
       "sigmaH": 3.591,
       "metodoPosicionamento": "",
       "tipoLimite": "",
@@ -1829,8 +1829,8 @@
       "coordN": 8277620.154
     },
     {
-      "id": "mut9jxv2gdslr",
-      "imovelId": "mut9jxuwn7tad",
+      "id": "mut9sx1atwp5n",
+      "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 1,
       "confrontante": "",
@@ -1838,7 +1838,7 @@
       "codigoSigef": "",
       "sigmaE": 0.018,
       "sigmaN": 0.035,
-      "alturaElipsoidal": null,
+      "alturaElipsoidal": 178.404,
       "sigmaH": 0.126,
       "metodoPosicionamento": "",
       "tipoLimite": "",
@@ -1849,8 +1849,8 @@
       "coordN": 8277620.215
     },
     {
-      "id": "mut9jxv2rug6s",
-      "imovelId": "mut9jxuwn7tad",
+      "id": "mut9sx1aj9wsz",
+      "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 2,
       "confrontante": "",
@@ -1858,7 +1858,7 @@
       "codigoSigef": "",
       "sigmaE": 0.012,
       "sigmaN": 0.013,
-      "alturaElipsoidal": null,
+      "alturaElipsoidal": 175.968,
       "sigmaH": 0.057,
       "metodoPosicionamento": "",
       "tipoLimite": "",
@@ -1869,8 +1869,8 @@
       "coordN": 8277609.767
     },
     {
-      "id": "mut9jxv22rwk1",
-      "imovelId": "mut9jxuwn7tad",
+      "id": "mut9sx1auqz9r",
+      "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 3,
       "confrontante": "",
@@ -1878,7 +1878,7 @@
       "codigoSigef": "",
       "sigmaE": 0.019,
       "sigmaN": 0.017,
-      "alturaElipsoidal": null,
+      "alturaElipsoidal": 177.207,
       "sigmaH": 0.054,
       "metodoPosicionamento": "",
       "tipoLimite": "",
@@ -1889,8 +1889,8 @@
       "coordN": 8277600.739
     },
     {
-      "id": "mut9jxv2kt4or",
-      "imovelId": "mut9jxuwn7tad",
+      "id": "mut9sx1ap386j",
+      "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 4,
       "confrontante": "",
@@ -1898,7 +1898,7 @@
       "codigoSigef": "",
       "sigmaE": 0.034,
       "sigmaN": 0.031,
-      "alturaElipsoidal": null,
+      "alturaElipsoidal": 175.278,
       "sigmaH": 0.225,
       "metodoPosicionamento": "",
       "tipoLimite": "",
@@ -1909,8 +1909,8 @@
       "coordN": 8277571.081
     },
     {
-      "id": "mut9jxv2gzy1d",
-      "imovelId": "mut9jxuwn7tad",
+      "id": "mut9sx1a428d6",
+      "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 5,
       "confrontante": "",
@@ -1918,7 +1918,7 @@
       "codigoSigef": "",
       "sigmaE": null,
       "sigmaN": null,
-      "alturaElipsoidal": null,
+      "alturaElipsoidal": 173.497,
       "sigmaH": null,
       "metodoPosicionamento": "",
       "tipoLimite": "",
@@ -1929,8 +1929,8 @@
       "coordN": 8277569.466
     },
     {
-      "id": "mut9jxv250em3",
-      "imovelId": "mut9jxuwn7tad",
+      "id": "mut9sx1atafb2",
+      "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 6,
       "confrontante": "",
@@ -1938,7 +1938,7 @@
       "codigoSigef": "",
       "sigmaE": 0.002,
       "sigmaN": 0.002,
-      "alturaElipsoidal": null,
+      "alturaElipsoidal": 174.072,
       "sigmaH": 0.005,
       "metodoPosicionamento": "",
       "tipoLimite": "",
@@ -1949,8 +1949,8 @@
       "coordN": 8277547.839
     },
     {
-      "id": "mut9jxv2zk4kh",
-      "imovelId": "mut9jxuwn7tad",
+      "id": "mut9sx1acaq8d",
+      "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 7,
       "confrontante": "",
@@ -1958,7 +1958,7 @@
       "codigoSigef": "",
       "sigmaE": 0.01,
       "sigmaN": 0.006,
-      "alturaElipsoidal": null,
+      "alturaElipsoidal": 175.015,
       "sigmaH": 0.05,
       "metodoPosicionamento": "",
       "tipoLimite": "",
