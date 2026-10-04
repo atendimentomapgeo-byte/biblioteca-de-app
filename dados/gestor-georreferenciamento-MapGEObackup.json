@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-04T03:40:32.450Z",
+  "exportadoEm": "2026-10-04T03:44:04.089Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -1845,8 +1845,8 @@
       "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 1,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada AAAA",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "sigmaE": 0.018,
       "sigmaN": 0.035,
@@ -1858,15 +1858,18 @@
       "numeroCatalogo": 1,
       "codigoCompleto": "DFGF-V-0001",
       "coordE": 603931.193,
-      "coordN": 8277620.215
+      "coordN": 8277620.215,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mut9sx1aj9wsz",
       "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 2,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada AAAA",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "sigmaE": 0.012,
       "sigmaN": 0.013,
@@ -1878,15 +1881,18 @@
       "numeroCatalogo": 2,
       "codigoCompleto": "DFGF-V-0002",
       "coordE": 603933.877,
-      "coordN": 8277609.767
+      "coordN": 8277609.767,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mut9sx1auqz9r",
       "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 3,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada AAAA",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "sigmaE": 0.019,
       "sigmaN": 0.017,
@@ -1898,15 +1904,18 @@
       "numeroCatalogo": 3,
       "codigoCompleto": "DFGF-V-0003",
       "coordE": 603939.141,
-      "coordN": 8277600.739
+      "coordN": 8277600.739,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mut9sx1ap386j",
       "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 4,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada AAAA",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "sigmaE": 0.034,
       "sigmaN": 0.031,
@@ -1918,15 +1927,18 @@
       "numeroCatalogo": 4,
       "codigoCompleto": "DFGF-V-0004",
       "coordE": 603937.342,
-      "coordN": 8277571.081
+      "coordN": 8277571.081,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mut9sx1a428d6",
       "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 5,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada AAAA",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "sigmaE": null,
       "sigmaN": null,
@@ -1938,15 +1950,18 @@
       "numeroCatalogo": 5,
       "codigoCompleto": "DFGF-V-0005",
       "coordE": 603931.745,
-      "coordN": 8277569.466
+      "coordN": 8277569.466,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mut9sx1atafb2",
       "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 6,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada AAAA",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "sigmaE": 0.002,
       "sigmaN": 0.002,
@@ -1958,15 +1973,18 @@
       "numeroCatalogo": 6,
       "codigoCompleto": "DFGF-V-0006",
       "coordE": 603928.098,
-      "coordN": 8277547.839
+      "coordN": 8277547.839,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mut9sx1acaq8d",
       "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 7,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada AAAA",
+      "confrontanteImovelId": "mud8pxpjq4r8c",
       "codigoSigef": "",
       "sigmaE": 0.01,
       "sigmaN": 0.006,
@@ -1978,7 +1996,10 @@
       "numeroCatalogo": 7,
       "codigoCompleto": "DFGF-V-0007",
       "coordE": 603899.861,
-      "coordN": 8277549.8
+      "coordN": 8277549.8,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     }
   ],
   "tiposRegistro": [
