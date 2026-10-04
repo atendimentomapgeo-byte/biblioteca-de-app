@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-04T03:44:04.089Z",
+  "exportadoEm": "2026-10-04T03:44:59.224Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -1825,8 +1825,8 @@
       "imovelId": "mut9sx13aq8rk",
       "tipo": "V",
       "ordem": 8,
-      "confrontante": "",
-      "confrontanteImovelId": null,
+      "confrontante": "Estrada AA",
+      "confrontanteImovelId": "mud93vdrk068q",
       "codigoSigef": "",
       "sigmaE": 0.663,
       "sigmaN": 0.614,
@@ -1838,7 +1838,10 @@
       "numeroCatalogo": 8,
       "codigoCompleto": "DFGF-V-0008",
       "coordE": 603908.073,
-      "coordN": 8277620.154
+      "coordN": 8277620.154,
+      "confrontanteTipo": "estrada",
+      "confrontanteAssinanteNome": "",
+      "confrontanteOrigem": "cadastro"
     },
     {
       "id": "mut9sx1atwp5n",
