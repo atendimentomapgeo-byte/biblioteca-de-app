@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-04T16:50:33.744Z",
+  "exportadoEm": "2026-10-04T17:24:31.345Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -492,7 +492,7 @@
       }
     },
     {
-      "id": "muu24fqomuhi0",
+      "id": "muu3c3ymxxjkk",
       "nome": "Ajustamento",
       "matricula": "",
       "area": "0.2199",
@@ -1809,8 +1809,8 @@
       "coordN": 8276984.995
     },
     {
-      "id": "muu24fqvuvjwm",
-      "imovelId": "muu24fqomuhi0",
+      "id": "muu3c3yt00ec0",
+      "imovelId": "muu3c3ymxxjkk",
       "tipo": "V",
       "ordem": 8,
       "confrontante": "",
@@ -1820,7 +1820,7 @@
       "sigmaN": 0.614,
       "alturaElipsoidal": 165.521,
       "sigmaH": 3.591,
-      "metodoPosicionamento": "PG2",
+      "metodoPosicionamento": "PG6",
       "tipoLimite": "LA7",
       "implantado": false,
       "numeroCatalogo": null,
@@ -1829,8 +1829,8 @@
       "coordN": 8277620.154
     },
     {
-      "id": "muu24fqvyj5b8",
-      "imovelId": "muu24fqomuhi0",
+      "id": "muu3c3yt07e59",
+      "imovelId": "muu3c3ymxxjkk",
       "tipo": "V",
       "ordem": 1,
       "confrontante": "",
@@ -1840,7 +1840,7 @@
       "sigmaN": 0.035,
       "alturaElipsoidal": 178.404,
       "sigmaH": 0.126,
-      "metodoPosicionamento": "PG2",
+      "metodoPosicionamento": "PG6",
       "tipoLimite": "LA7",
       "implantado": false,
       "numeroCatalogo": null,
@@ -1849,8 +1849,8 @@
       "coordN": 8277620.215
     },
     {
-      "id": "muu24fqvzmwag",
-      "imovelId": "muu24fqomuhi0",
+      "id": "muu3c3ytuc6zn",
+      "imovelId": "muu3c3ymxxjkk",
       "tipo": "V",
       "ordem": 2,
       "confrontante": "",
@@ -1860,7 +1860,7 @@
       "sigmaN": 0.013,
       "alturaElipsoidal": 175.968,
       "sigmaH": 0.057,
-      "metodoPosicionamento": "PG2",
+      "metodoPosicionamento": "PG6",
       "tipoLimite": "LA7",
       "implantado": false,
       "numeroCatalogo": null,
@@ -1869,8 +1869,8 @@
       "coordN": 8277609.767
     },
     {
-      "id": "muu24fqvh1nje",
-      "imovelId": "muu24fqomuhi0",
+      "id": "muu3c3ytn781a",
+      "imovelId": "muu3c3ymxxjkk",
       "tipo": "V",
       "ordem": 3,
       "confrontante": "",
@@ -1880,7 +1880,7 @@
       "sigmaN": 0.017,
       "alturaElipsoidal": 177.207,
       "sigmaH": 0.054,
-      "metodoPosicionamento": "PG2",
+      "metodoPosicionamento": "PG6",
       "tipoLimite": "LA7",
       "implantado": false,
       "numeroCatalogo": null,
@@ -1889,8 +1889,8 @@
       "coordN": 8277600.739
     },
     {
-      "id": "muu24fqvili03",
-      "imovelId": "muu24fqomuhi0",
+      "id": "muu3c3yti6aaz",
+      "imovelId": "muu3c3ymxxjkk",
       "tipo": "V",
       "ordem": 4,
       "confrontante": "",
@@ -1900,7 +1900,7 @@
       "sigmaN": 0.031,
       "alturaElipsoidal": 175.278,
       "sigmaH": 0.225,
-      "metodoPosicionamento": "PG2",
+      "metodoPosicionamento": "PG6",
       "tipoLimite": "LA7",
       "implantado": false,
       "numeroCatalogo": null,
@@ -1909,8 +1909,8 @@
       "coordN": 8277571.081
     },
     {
-      "id": "muu24fqvzzggl",
-      "imovelId": "muu24fqomuhi0",
+      "id": "muu3c3ytptwaa",
+      "imovelId": "muu3c3ymxxjkk",
       "tipo": "V",
       "ordem": 5,
       "confrontante": "",
@@ -1920,7 +1920,7 @@
       "sigmaN": null,
       "alturaElipsoidal": 173.497,
       "sigmaH": null,
-      "metodoPosicionamento": "PG2",
+      "metodoPosicionamento": "PG6",
       "tipoLimite": "LA7",
       "implantado": false,
       "numeroCatalogo": null,
@@ -1929,8 +1929,8 @@
       "coordN": 8277569.466
     },
     {
-      "id": "muu24fqv4ah7r",
-      "imovelId": "muu24fqomuhi0",
+      "id": "muu3c3ytbcqmz",
+      "imovelId": "muu3c3ymxxjkk",
       "tipo": "V",
       "ordem": 6,
       "confrontante": "",
@@ -1940,7 +1940,7 @@
       "sigmaN": 0.002,
       "alturaElipsoidal": 174.072,
       "sigmaH": 0.005,
-      "metodoPosicionamento": "PG2",
+      "metodoPosicionamento": "PG6",
       "tipoLimite": "LA7",
       "implantado": false,
       "numeroCatalogo": null,
@@ -1949,8 +1949,8 @@
       "coordN": 8277547.839
     },
     {
-      "id": "muu24fqv0yp45",
-      "imovelId": "muu24fqomuhi0",
+      "id": "muu3c3ytr9ovf",
+      "imovelId": "muu3c3ymxxjkk",
       "tipo": "V",
       "ordem": 7,
       "confrontante": "",
@@ -1960,7 +1960,7 @@
       "sigmaN": 0.006,
       "alturaElipsoidal": 175.015,
       "sigmaH": 0.05,
-      "metodoPosicionamento": "PG2",
+      "metodoPosicionamento": "PG6",
       "tipoLimite": "LA7",
       "implantado": false,
       "numeroCatalogo": null,
