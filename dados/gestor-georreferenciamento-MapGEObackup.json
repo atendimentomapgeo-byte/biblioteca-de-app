@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-04T03:39:38.414Z",
+  "exportadoEm": "2026-10-04T03:40:32.450Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -1834,9 +1834,9 @@
       "sigmaH": 3.591,
       "metodoPosicionamento": "",
       "tipoLimite": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
+      "implantado": true,
+      "numeroCatalogo": 8,
+      "codigoCompleto": "DFGF-V-0008",
       "coordE": 603908.073,
       "coordN": 8277620.154
     },
@@ -1854,9 +1854,9 @@
       "sigmaH": 0.126,
       "metodoPosicionamento": "",
       "tipoLimite": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
+      "implantado": true,
+      "numeroCatalogo": 1,
+      "codigoCompleto": "DFGF-V-0001",
       "coordE": 603931.193,
       "coordN": 8277620.215
     },
@@ -1874,9 +1874,9 @@
       "sigmaH": 0.057,
       "metodoPosicionamento": "",
       "tipoLimite": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
+      "implantado": true,
+      "numeroCatalogo": 2,
+      "codigoCompleto": "DFGF-V-0002",
       "coordE": 603933.877,
       "coordN": 8277609.767
     },
@@ -1894,9 +1894,9 @@
       "sigmaH": 0.054,
       "metodoPosicionamento": "",
       "tipoLimite": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
+      "implantado": true,
+      "numeroCatalogo": 3,
+      "codigoCompleto": "DFGF-V-0003",
       "coordE": 603939.141,
       "coordN": 8277600.739
     },
@@ -1914,9 +1914,9 @@
       "sigmaH": 0.225,
       "metodoPosicionamento": "",
       "tipoLimite": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
+      "implantado": true,
+      "numeroCatalogo": 4,
+      "codigoCompleto": "DFGF-V-0004",
       "coordE": 603937.342,
       "coordN": 8277571.081
     },
@@ -1934,9 +1934,9 @@
       "sigmaH": null,
       "metodoPosicionamento": "",
       "tipoLimite": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
+      "implantado": true,
+      "numeroCatalogo": 5,
+      "codigoCompleto": "DFGF-V-0005",
       "coordE": 603931.745,
       "coordN": 8277569.466
     },
@@ -1954,9 +1954,9 @@
       "sigmaH": 0.005,
       "metodoPosicionamento": "",
       "tipoLimite": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
+      "implantado": true,
+      "numeroCatalogo": 6,
+      "codigoCompleto": "DFGF-V-0006",
       "coordE": 603928.098,
       "coordN": 8277547.839
     },
@@ -1974,9 +1974,9 @@
       "sigmaH": 0.05,
       "metodoPosicionamento": "",
       "tipoLimite": "",
-      "implantado": false,
-      "numeroCatalogo": null,
-      "codigoCompleto": null,
+      "implantado": true,
+      "numeroCatalogo": 7,
+      "codigoCompleto": "DFGF-V-0007",
       "coordE": 603899.861,
       "coordN": 8277549.8
     }
@@ -1987,7 +1987,96 @@
     "CONFEA",
     "CFT"
   ],
-  "marcosCatalogo": [],
+  "marcosCatalogo": [
+    {
+      "id": "mut9wi7zg0u1t",
+      "codigo": "DFGF-V-0001",
+      "tecnicoId": "muh891fwfb6v3",
+      "tipo": "V",
+      "numero": 1,
+      "imovelId": "mut9sx13aq8rk",
+      "imovelNome": "Ajustamento",
+      "marcoId": "mut9sx1atwp5n",
+      "dataImplantacao": "2026-10-04T03:40:32.447Z"
+    },
+    {
+      "id": "mut9wi7z0hrqx",
+      "codigo": "DFGF-V-0002",
+      "tecnicoId": "muh891fwfb6v3",
+      "tipo": "V",
+      "numero": 2,
+      "imovelId": "mut9sx13aq8rk",
+      "imovelNome": "Ajustamento",
+      "marcoId": "mut9sx1aj9wsz",
+      "dataImplantacao": "2026-10-04T03:40:32.447Z"
+    },
+    {
+      "id": "mut9wi7zb79jj",
+      "codigo": "DFGF-V-0003",
+      "tecnicoId": "muh891fwfb6v3",
+      "tipo": "V",
+      "numero": 3,
+      "imovelId": "mut9sx13aq8rk",
+      "imovelNome": "Ajustamento",
+      "marcoId": "mut9sx1auqz9r",
+      "dataImplantacao": "2026-10-04T03:40:32.447Z"
+    },
+    {
+      "id": "mut9wi7z1eao8",
+      "codigo": "DFGF-V-0004",
+      "tecnicoId": "muh891fwfb6v3",
+      "tipo": "V",
+      "numero": 4,
+      "imovelId": "mut9sx13aq8rk",
+      "imovelNome": "Ajustamento",
+      "marcoId": "mut9sx1ap386j",
+      "dataImplantacao": "2026-10-04T03:40:32.447Z"
+    },
+    {
+      "id": "mut9wi7zk72wp",
+      "codigo": "DFGF-V-0005",
+      "tecnicoId": "muh891fwfb6v3",
+      "tipo": "V",
+      "numero": 5,
+      "imovelId": "mut9sx13aq8rk",
+      "imovelNome": "Ajustamento",
+      "marcoId": "mut9sx1a428d6",
+      "dataImplantacao": "2026-10-04T03:40:32.447Z"
+    },
+    {
+      "id": "mut9wi7zz9a14",
+      "codigo": "DFGF-V-0006",
+      "tecnicoId": "muh891fwfb6v3",
+      "tipo": "V",
+      "numero": 6,
+      "imovelId": "mut9sx13aq8rk",
+      "imovelNome": "Ajustamento",
+      "marcoId": "mut9sx1atafb2",
+      "dataImplantacao": "2026-10-04T03:40:32.447Z"
+    },
+    {
+      "id": "mut9wi7zvad3c",
+      "codigo": "DFGF-V-0007",
+      "tecnicoId": "muh891fwfb6v3",
+      "tipo": "V",
+      "numero": 7,
+      "imovelId": "mut9sx13aq8rk",
+      "imovelNome": "Ajustamento",
+      "marcoId": "mut9sx1acaq8d",
+      "dataImplantacao": "2026-10-04T03:40:32.447Z"
+    },
+    {
+      "id": "mut9wi7zxgpjp",
+      "codigo": "DFGF-V-0008",
+      "tecnicoId": "muh891fwfb6v3",
+      "tipo": "V",
+      "numero": 8,
+      "imovelId": "mut9sx13aq8rk",
+      "imovelNome": "Ajustamento",
+      "marcoId": "mut9sx1azopi5",
+      "dataImplantacao": "2026-10-04T03:40:32.447Z"
+    }
+  ],
   "config": {
     "confMostrarMatricula": true,
     "confMostrarProprietario": true,
