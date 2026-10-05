@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-05T17:46:15.306Z",
+  "exportadoEm": "2026-10-05T17:48:41.051Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -350,16 +350,28 @@
     {
       "id": "muvjjwrxpqk6v",
       "nome": "Sitio Baixadao",
-      "matricula": "",
+      "matricula": "2.385",
       "area": "408.5374",
-      "municipio": "",
-      "uf": "",
-      "comarca": "",
+      "municipio": "Juara",
+      "uf": "MT",
+      "comarca": "Juara",
       "proprietarioId": "",
       "tecnicoId": "",
+      "artTipo": "ART",
+      "art": "",
       "datum": "SIRGAS2000",
       "perimetro": "8706.93",
-      "utmZona": "21S"
+      "utmZona": "21S",
+      "codigoIncra": "950.084.052.973-3",
+      "leiDecreto": "",
+      "parcelaSigef": "",
+      "parcelaSigefSituacao": "",
+      "sigefDataCertificacao": "",
+      "sigefResponsavelTecnico": "",
+      "simcar": "",
+      "simcarSituacao": "",
+      "situacaoRegistral": "Imóvel Registrado",
+      "cns": ""
     }
   ],
   "marcos": [
