@@ -661,11 +661,29 @@ function parseNav(text,name){
   let i=0;
   for(;i<L.length;i++){
     const l=L[i],lb=l.slice(60).trim();
-    if(lb==='RINEX VERSION / TYPE'){nav.version=parseFloat(l.slice(0,9));if(l[20]&&l[20]!=='N')throw new Error('Arquivo de navegação inválido (tipo '+l[20]+').');}
+    if(lb==='RINEX VERSION / TYPE'){nav.version=parseFloat(l.slice(0,9));if(l[20]&&l[20]!=='N'&&!(nav.version<3&&l[20]==='G'))throw new Error('Arquivo de navegação inválido (tipo '+l[20]+').');if(nav.version<3&&l[20]==='G')nav.glonassOnly=true;}
     else if(lb==='IONOSPHERIC CORR'){const k=l.slice(0,4).trim(),v=[l.slice(5,17),l.slice(17,29),l.slice(29,41),l.slice(41,53)].map(dnum);if(k==='GPSA')nav.klobA=v;if(k==='GPSB')nav.klobB=v;}
+    else if(lb==='ION ALPHA'||lb==='ION BETA'){const v=[0,1,2,3].map(j=>dnum(l.slice(2+12*j,14+12*j)));if(lb==='ION ALPHA')nav.klobA=v;else nav.klobB=v;}
     else if(lb==='END OF HEADER'){i++;break;}
   }
-  if(nav.version<3)throw new Error('Navegação RINEX 2.x não suportada. Use navegação RINEX 3/4 (multi-GNSS).');
+  if(nav.version<3){ // RINEX 2.x: só efemérides GPS (arquivo GLONASS é ignorado)
+    if(nav.glonassOnly)return nav;
+    while(i+7<L.length){
+      const l0=L[i];if(!l0||!l0.trim()){i++;continue;}
+      const t=l0.slice(0,22).trim().split(/\s+/).map(Number);
+      if(t.length<7||!isFinite(t[0])){i++;continue;}
+      const yy=t[1]<80?2000+t[1]:1900+t[1],id='G'+String(t[0]).padStart(2,'0');
+      const toc=Date.UTC(yy,t[2]-1,t[3],t[4],t[5],Math.floor(t[6]));
+      const v=[];for(let q=1;q<=7;q++){const ll=(L[i+q]||'').padEnd(80);for(let j=0;j<4;j++)v.push(dnum(ll.slice(3+19*j,22+19*j)));}
+      const e={id,sys:'G',af0:dnum(l0.slice(22,41)),af1:dnum(l0.slice(41,60)),af2:dnum(l0.slice(60,79)),
+        crs:v[1],dn:v[2],m0:v[3],cuc:v[4],e:v[5],cus:v[6],sqrtA:v[7],toe:v[8],cic:v[9],Omega0:v[10],cis:v[11],
+        i0:v[12],crc:v[13],w:v[14],OmegaDot:v[15],idot:v[16],week:v[18],tgd:v[22],health:v[21]};
+      e.tocAbs=(toc-GPS0)/1000;e.toeAbs=e.week*604800+e.toe;
+      if(isFinite(e.sqrtA)&&isFinite(e.toeAbs)){(nav.eph[id]=nav.eph[id]||[]).push(e);nav.n++;}
+      i+=8;
+    }
+    return nav;
+  }
   const rec8=(k)=>{
     const l0=L[k];const id=satId(l0.slice(0,3)),sys=l0[0];
     const toc=Date.UTC(+l0.slice(4,8),+l0.slice(9,11)-1,+l0.slice(12,14),+l0.slice(15,17),+l0.slice(18,20),+l0.slice(21,23));
@@ -1020,7 +1038,7 @@ function baselineSolve(dsB,maskB,dsR,maskR,nav,baseMarkerXYZ,opt){
       const [i,j]=pairs[pi],tAbs=(dsR.t[i]-GPS0)/1000,tAbsB=(dsB.t[j]-GPS0)/1000;
       const slots=[];
       for(const id of dsR.satList){
-        const sr=dsR.sats[id];if(!(opt.sys||'GECJ').includes(sr.sys)||!sr.has[i]||!dsB.sats[id]||!dsB.sats[id].has[j])continue;
+        const sr=dsR.sats[id];if(opt.excl&&opt.excl.includes(id))continue;if(!(opt.sys||'GECJ').includes(sr.sys)||!sr.has[i]||!dsB.sats[id]||!dsB.sats[id].has[j])continue;
         if(sr.sys==='C'&&(sr.prn<=5||sr.prn>=59))continue;
         const ps=pickPhaseSlots(dsR,maskR,i,dsB,maskB,j,id);if(!ps)continue;
         const b0=Object.keys(ps)[0],pR0=sr.val[ps[b0].cc][i],pB0=dsB.sats[id].val[ps[b0].cc][j];
@@ -1209,7 +1227,7 @@ async function openFiles(files){
       toast('Lendo '+f.name+'…');await new Promise(r=>setTimeout(r,30));
       const txt=await f.text(),first=(txt.slice(0,300).split(/\r?\n/)[0]||'');
       const isNav=first[20]==='N'||/NAV|NAVIGATION/i.test(first.slice(20,40));
-      if(isNav){const nv=parseNav(txt,f.name);S.nav=(typeof mergeNav==='function')?mergeNav(S.nav,nv):nv;$('#navInfo').textContent=S.nav.name+' ('+S.nav.n+' efemérides)';toast('Navegação carregada: '+S.nav.n+' efemérides');if(S.ds)rebuildEvents();}
+      if(isNav){const nv=parseNav(txt,f.name);S.nav=(typeof mergeNav==='function')?mergeNav(S.nav,nv):nv;$('#navInfo').textContent=S.nav.name+' ('+S.nav.n+' efemérides)';toast(nv.glonassOnly?'Navegação GLONASS ignorada (o motor usa GPS/Galileo/BeiDou/QZSS).':'Navegação carregada: '+S.nav.n+' efemérides');if(S.ds)rebuildEvents();}
       else{const ds=parseRinexObs(txt,f.name);if(typeof vecAdd==='function'){const rec=vecAdd(ds);if(V.files.length===1||!S.ds)loadObs(ds);else toast('Arquivo adicionado em Vetores: '+ds.name);}else loadObs(ds);}
     }catch(err){toast('Erro: '+err.message);console.error(err);alert('Não foi possível abrir "'+f.name+'":\n'+err.message);}
   }
@@ -1795,11 +1813,11 @@ function vecAdd(ds){
 function vecSyncActive(){ // guarda as versões do editor no registro do arquivo ativo
   if(!S.ds)return;const f=V.files.find(f=>vkey(f.ds)===vkey(S.ds));if(f)f.ed={versions:S.versions,cur:S.cur,vCounter:S.vCounter};
 }
-function vecActivate(i){
+function vecActivate(i,stay){
   vecSyncActive();const f=V.files[i];if(!f)return;
   S.noRestore=true;loadObs(f.ds);S.noRestore=false;
   if(f.ed){S.versions=f.ed.versions;S.cur=f.ed.cur;S.vCounter=f.ed.vCounter;recompute();}
-  goTab('timeline');toast('Editando '+f.ds.name);
+  if(!stay){goTab('timeline');toast('Editando '+f.ds.name);}
 }
 function vecMask(f){
   vecSyncActive();
@@ -1837,18 +1855,28 @@ function runOne(f,B,bx,nav,mk,opt){
   if(bx){const sb=[num(V.base.sE),num(V.base.sN),num(V.base.sU)];r.absSig=[Math.hypot(sb[0],r.sdENU[0]),Math.hypot(sb[1],r.sdENU[1]),Math.hypot(sb[2],r.sdENU[2])];r.baseSig=sb;}
   return r;
 }
-async function runVectors(){
+async function leaveOneOut(f,B,bx,mk,cur){
+  const out=[];
+  for(const id of f.ds.satList.filter(i=>'GECJ'.includes(i[0]))){
+    await new Promise(r=>setTimeout(r,0));
+    let r;try{r=runOne(f,B,bx,S.nav,mk,{excl:[id]});}catch(e){continue;}
+    if(r&&r.ok&&r.rms<cur.rms*0.6)out.push({sat:id,rms:r.rms,status:r.status,ratio:r.ratio,length:r.length,dLen:r.length-cur.length});
+  }
+  out.sort((a,b)=>a.rms-b.rms);return out.slice(0,2);
+}
+async function runVectors(only){
   if(V.busy)return;vecSyncActive();
   const bf=V.files.find(f=>f.role==='base');if(!bf)return toast('Defina qual arquivo é a BASE.');
-  const rv=V.files.filter(f=>f.role==='rover');if(!rv.length)return toast('Nenhum arquivo marcado como ROVER.');
+  const rv=only?[only]:V.files.filter(f=>f.role==='rover');if(!rv.length)return toast('Nenhum arquivo marcado como ROVER.');
   if(!S.nav)return toast('Carregue a navegação (.nav / .rnx de efemérides) na aba Processar ou no botão Abrir.');
-  const bx=baseXYZ(),Bm=vecMask(bf),B={ds:bf.ds,mask:Bm.mask};V.busy=true;V.res={};
+  const bx=baseXYZ(),Bm=vecMask(bf),B={ds:bf.ds,mask:Bm.mask};V.busy=true;if(!only)V.res={};
   for(const f of rv){
     $('#vMsg').textContent='Calculando '+f.ds.name+'…';await new Promise(r=>setTimeout(r,30));
     const mk=vecMask(f),rec={edited:mk.edited,ver:mk.ver,baseEdited:Bm.edited};
     try{rec.cur=runOne(f,B,bx,S.nav,mk);if(mk.edited||Bm.edited)rec.orig=runOne(f,{ds:bf.ds,mask:allActive(bf.ds)},bx,S.nav,{mask:allActive(f.ds)});}
     catch(e){rec.cur={ok:false,status:'ERRO',reason:e.message};console.error(e);}
     V.res[vkey(f.ds)]=rec;renderVet();
+    if(rec.cur&&rec.cur.ok&&rec.cur.rms>0.02){$('#vMsg').textContent='Procurando satélite problemático em '+f.ds.name+'…';try{rec.sug=await leaveOneOut(f,B,bx,mk,rec.cur);}catch(e){console.error(e);}renderVet();}
   }
   V.busy=false;$('#vMsg').textContent=bx?'Pronto.':'Pronto — sem coordenadas da base: só os vetores; coordenadas absolutas não calculadas.';
   renderVet();
@@ -1878,7 +1906,7 @@ function vecCsv(){
 const statCls=s=>s==='FIX'?'good':s==='FIX PARCIAL'?'':'bad';
 function vecCell(r){
   if(!r)return '—';if(!r.ok)return `<span class="bad">${esc(r.status)}</span> <small class="mut">${esc(r.reason||'')}</small>`;
-  return `<b class="${statCls(r.status)}">${esc(r.status)}</b> · razão ${f2(r.ratio,1)} · ${r.nFix}/${r.nAmb} amb.<br>${f2(r.length,3)} m · ΔE ${f2(r.dE,3)} ΔN ${f2(r.dN,3)} ΔU ${f2(r.dU,3)}<br>σ(E,N,U) ${r.sdENU.map(v=>f2(v,3)).join(' / ')} · RMS fase ${f2(r.rms*1000,1)} mm · ${r.epochs} épocas`;
+  return `<b class="${r.rms>0.03?"bad":statCls(r.status)}">${esc(r.status)}</b> · razão ${f2(r.ratio,1)} · ${r.nFix}/${r.nAmb} amb.<br>${f2(r.length,3)} m · ΔE ${f2(r.dE,3)} ΔN ${f2(r.dN,3)} ΔU ${f2(r.dU,3)}<br>σ(E,N,U) ${r.sdENU.map(v=>f2(v,3)).join(' / ')} · RMS fase ${f2(r.rms*1000,1)} mm · ${r.epochs} épocas`;
 }
 var renderVet=function(){
   const box=$('#vFiles');if(!box)return;
@@ -1894,6 +1922,7 @@ var renderVet=function(){
     let h=`<div class="card"><h3>${esc(f.ds.name)} <small class="mut">· versão ${esc(rec.ver)}${rec.baseEdited?' · base editada':''}</small></h3>`;
     h+=rec.orig?`<div class="scroll"><table class="tbl"><tr><th>ORIGINAL</th><th>EDITADO</th></tr><tr><td>${vecCell(rec.orig)}</td><td>${vecCell(r)}</td></tr></table></div>`:`<p>${vecCell(r)}</p>`;
     if(r&&r.ok){
+      if(rec.sug&&rec.sug.length)h+='<div class="card" style="border-color:#f1c40f;margin:8px 0"><b>Possível problema encontrado</b>'+rec.sug.map(s=>`<p style="font-size:12px;margin:6px 0">Satélite <b>${s.sat}</b>: sem ele o resíduo cai de ${f2(r.rms*1000,0)} para ${f2(s.rms*1000,0)} mm · ${esc(s.status)} (razão ${f2(s.ratio,1)}) · comprimento ${f2(s.length,3)} m (${s.dLen>=0?'+':''}${f2(s.dLen*100,1)} cm).<br><button class="small" data-vact="sugOff" data-f="${V.files.indexOf(f)}" data-sat="${s.sat}">Desativar ${s.sat} neste rover</button> <span class="mut">(cria edição reversível; nada é removido sem a sua ação)</span></p>`).join('')+'</div>';
       if(r.warn.length)h+=r.warn.map(w=>`<p class="bad" style="font-size:12px">⚠ ${esc(w)}</p>`).join('');
       if(bx){const p=r.rover,s=r.absSig;
         h+=`<table class="tbl"><tr><th colspan="2">Coordenadas absolutas do ROVER (SIRGAS2000/ITRF da base)</th></tr>
@@ -1917,6 +1946,9 @@ document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.
 document.addEventListener('click',e=>{const b=e.target.closest('[data-vact]');if(!b)return;const a=b.dataset.vact,i=+b.dataset.i;
   if(a==='edit')vecActivate(i);
   else if(a==='rm'){if(S.ds&&vkey(V.files[i].ds)===vkey(S.ds)){}V.files.splice(i,1);V.res={};renderVet();}
+  else if(a==='sugOff'){const fi=+b.dataset.f,f=V.files[fi],sat=b.dataset.sat;vecActivate(fi,true);
+    const n=addEdits({sats:[sat],scope:'all',t0:f.ds.tFirst,t1:f.ds.tLast,action:'DESATIVAR',reason:'Resíduo DD alto no cálculo de vetores (sugestão aceita pelo usuário)'});
+    vecSyncActive();toast(sat+' desativado em '+f.ds.name+' ('+curV().name+'). Recalculando…');runVectors(f);}
   else if(a==='run')runVectors();
   else if(a==='pppExp')exportBaseForPPP();
   else if(a==='csv')vecCsv();
