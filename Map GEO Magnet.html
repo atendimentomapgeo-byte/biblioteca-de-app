@@ -1,0 +1,2054 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Map GEO Magnet Tools — Editor de Observações GNSS</title>
+<style>
+:root{--bg:#0e1318;--p1:#161d25;--p2:#1e2832;--bd:#2b3846;--tx:#e6edf3;--mu:#8b9bab;--ac:#4aa3ff;--ok:#2ecc71;--wa:#f1c40f;--er:#e74c3c;--vi:#b07cff;--or:#ff9f43}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:20;background:var(--p1);border-bottom:1px solid var(--bd);padding:8px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+header h1{font-size:15px;margin:0;flex:1 1 140px;line-height:1.2}header h1 small{display:block;color:var(--mu);font-weight:400;font-size:11px}
+button,.btn,select,input{font:inherit;color:var(--tx)}
+button,.btn{background:var(--p2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;min-height:40px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;justify-content:center}
+button:active,.btn:active{filter:brightness(1.25)}
+button.primary{background:var(--ac);border-color:var(--ac);color:#04121f;font-weight:700}
+button.danger{background:#3a1c1f;border-color:#6b2b31;color:#ff9aa2}
+button.ok{background:#12351f;border-color:#1f6b3b;color:#8bf0b2}
+button.small{min-height:32px;padding:4px 9px;font-size:12px}
+button.on{background:var(--ac);color:#04121f;border-color:var(--ac)}
+button:disabled{opacity:.45;pointer-events:none}
+input,select{background:#0b1015;border:1px solid var(--bd);border-radius:8px;padding:8px;min-height:40px;max-width:100%}
+input[type=checkbox]{min-height:0;width:18px;height:18px}
+main{padding:10px;max-width:1200px;margin:0 auto}
+.tab{display:none}.tab.on{display:block}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--p1);border-top:1px solid var(--bd);display:flex;overflow-x:auto;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1 0 auto;min-width:72px;border:0;border-radius:0;background:none;flex-direction:column;gap:0;font-size:11px;color:var(--mu);padding:6px 4px;min-height:56px}
+nav button b{font-size:18px;font-weight:400;line-height:1.1}nav button.on{color:var(--ac);background:var(--p2)}
+.card{background:var(--p1);border:1px solid var(--bd);border-radius:12px;padding:10px;margin-bottom:10px}
+.card h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mu)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}.row>label{color:var(--mu);font-size:12px;min-width:64px}
+.grow{flex:1 1 120px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--bd);background:var(--p2);border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer;user-select:none;min-height:32px;display:inline-flex;align-items:center;gap:5px}
+.chip.on{background:#16324d;border-color:var(--ac);color:#bfe0ff}.chip.dis{opacity:.35;pointer-events:none}
+.tlwrap{background:#0b1015;border:1px solid var(--bd);border-radius:10px;overflow:hidden;position:relative}
+canvas{display:block;width:100%;touch-action:none}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--mu);margin:6px 2px}
+.legend i{display:inline-block;width:12px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}.tbl th,.tbl td{padding:6px 5px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+.tbl th{color:var(--mu);font-weight:600;position:sticky;top:0;background:var(--p1)}.tbl tr.sel td{background:#16324d}
+.scroll{overflow:auto;max-height:62vh;border:1px solid var(--bd);border-radius:10px}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi div{background:var(--p2);border-radius:10px;padding:8px;text-align:center}.kpi small{display:block;color:var(--mu);font-size:10px;letter-spacing:.05em}.kpi b{font-size:18px}.kpi em{display:block;font-style:normal;font-size:11px;color:var(--mu)}
+.sug{border-left:4px solid var(--wa);background:var(--p2);border-radius:8px;padding:9px;margin-bottom:8px}.sug.s3{border-color:var(--er)}.sug.s1{border-color:#5a7a99}
+.sug.done{opacity:.5}.sug h4{margin:0 0 4px;font-size:13px}.sug p{margin:2px 0;font-size:12px;color:var(--mu)}.sug .b{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pipe{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11px;color:var(--mu);margin-bottom:8px}.pipe span{background:var(--p2);border:1px solid var(--bd);border-radius:6px;padding:3px 7px}.pipe span.on{border-color:var(--ok);color:#8bf0b2}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.sheet.on{display:flex}.sheet .in{background:var(--p1);border:1px solid var(--bd);border-radius:16px 16px 0 0;padding:14px;width:100%;max-width:560px;max-height:88vh;overflow:auto;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.sheet h2{margin:0 0 6px;font-size:16px}
+#toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#000c;border:1px solid var(--bd);padding:8px 14px;border-radius:10px;z-index:60;display:none;max-width:90vw}
+.mut{color:var(--mu)}.good{color:var(--ok)}.bad{color:var(--er)}.undone td{opacity:.45;text-decoration:line-through}
+.empty{text-align:center;padding:40px 10px;color:var(--mu)}
+details summary{cursor:pointer;color:var(--mu);margin:4px 0}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.pgrid label{display:flex;flex-direction:column;font-size:11px;color:var(--mu);gap:3px}
+@media(min-width:800px){nav button{flex-direction:row;gap:6px;font-size:13px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Map GEO Magnet Tools<small id="hSub">Editor de observações GNSS · abra um RINEX para começar</small></h1>
+  <label class="btn primary" for="fileIn">📂 Abrir RINEX</label>
+  <input id="fileIn" type="file" multiple hidden>
+  <select id="verSel" title="Versão ativa" style="max-width:150px;display:none"></select>
+</header>
+<main>
+<section class="tab on" id="tab-timeline">
+  <div id="emptyMsg" class="card empty">
+    <div style="font-size:42px">🛰️</div>
+    <p><b>Abra um arquivo RINEX de observação</b><br>(2.x ou 3.x, texto — <span class="mut">.rnx / .##o</span>).<br>Para PDOP e reprocessamento, abra também a navegação (<span class="mut">.nav / .##n / .rnx</span>) — ambos podem ser escolhidos juntos.</p>
+    <p class="mut" style="font-size:12px">O arquivo original nunca é modificado: todas as edições são uma máscara versionada.</p>
+  </div>
+  <div id="tlBox" style="display:none">
+    <div class="row" style="gap:6px">
+      <button data-act="mode" data-m="pan" class="on">✋ Mover</button>
+      <button data-act="mode" data-m="select">▭ Selecionar</button>
+      <button data-act="zin">＋</button><button data-act="zout">－</button><button data-act="zfit">Tudo</button><button data-act="zsel">Zoom sel.</button>
+    </div>
+    <div class="chips" id="sysChips" style="margin-bottom:8px"></div>
+    <div class="tlwrap"><canvas id="tl"></canvas></div>
+    <div class="legend">
+      <span><i style="background:#2ecc71"></i>ativa</span><span><i style="background:#f1c40f"></i>parcial</span><span><i style="background:repeating-linear-gradient(45deg,#7a2f3a,#7a2f3a 3px,#2a1114 3px,#2a1114 6px)"></i>desativada</span>
+      <span style="color:#ff6b6b">▼ cycle slip</span><span style="color:#ff7ad9">▼ salto/LLI</span><span style="color:#ff9f43">▭ gap</span><span style="color:#b07cff">▬ perda de fase</span><span style="color:#f1c40f">▬ SNR baixo</span><span style="color:#5ac8fa">◆ anormal</span>
+    </div>
+    <div class="mut" style="font-size:11px;margin:0 2px 8px">Modo <b>Selecionar</b>: arraste sobre as linhas (horizontal = intervalo, vertical = satélites). Toque num marcador para decidir sobre o evento. Toque no rótulo do satélite para marcá-lo. Dois dedos / roda do mouse = zoom.</div>
+    <div class="card" id="editCard">
+      <h3>Editar observações</h3>
+      <div class="row"><label>Satélites</label><div class="chips grow" id="selChips"></div></div>
+      <div class="row"><button class="small" data-act="selAllVis">Todos visíveis</button><button class="small" data-act="selClear">Limpar seleção</button></div>
+      <div class="row"><label>Escopo</label>
+        <select id="fScope" class="grow"><option value="all">Todos os observáveis</option><option value="band">Frequência (banda)</option><option value="obs">Observável</option></select>
+        <select id="fValue" class="grow" style="display:none"></select></div>
+      <div class="row"><label>Início</label><input type="time" step="1" id="fT0"><label style="min-width:30px">Fim</label><input type="time" step="1" id="fT1"><select id="fDay" style="display:none"></select></div>
+      <div class="row"><label>Ação</label><select id="fAct"><option>DESATIVAR</option><option>REATIVAR</option></select><input id="fReason" class="grow" placeholder="Motivo (ex.: cycle slip)"></div>
+      <div id="fPreview" class="mut" style="font-size:12px;margin-bottom:8px"></div>
+      <button class="primary" id="fApply" data-act="apply" style="width:100%">Aplicar edição</button>
+    </div>
+  </div>
+</section>
+
+<section class="tab" id="tab-sats">
+  <div class="card"><h3>Sistemas</h3><div class="chips" id="sysChips2"></div>
+    <div class="row" style="margin-top:8px"><button class="small" data-act="selAllVis">Selecionar visíveis</button><button class="small" data-act="selClear">Limpar</button><span class="mut" style="font-size:11px">Qualidade = completude (% das observações esperadas que existem no arquivo)</span></div></div>
+  <div class="scroll"><table class="tbl" id="satTbl"></table></div>
+</section>
+
+<section class="tab" id="tab-alert">
+  <div class="card"><button class="primary" style="width:100%" data-act="analyze">🔍 ANALISAR QUALIDADE</button>
+    <p class="mut" style="font-size:12px">Só sugere — nada é desativado sem o seu toque em “Desativar trecho”.</p>
+    <details><summary>Parâmetros da análise</summary><div class="pgrid" id="pGrid"></div><button class="small" data-act="pReset" style="margin-top:8px">Restaurar padrões</button></details></div>
+  <div id="sugOut"></div>
+</section>
+
+<section class="tab" id="tab-graf">
+  <div class="card">
+    <div class="row"><label>Satélite</label><select id="gSat" class="grow"></select></div>
+    <div class="row"><label>Fase</label><select id="gPh" class="grow"></select><select id="gPhMode"><option value="res">resíduo poli.</option><option value="raw">bruta (L−L₀)</option></select></div>
+    <div class="row"><label>Código</label><select id="gCode" class="grow"></select></div>
+    <div class="row"><button data-act="gmode" data-m="scroll" class="on small">↕ Rolar</button><button data-act="gmode" data-m="select" class="small">▭ Selecionar região</button>
+      <button class="small" data-act="gz" data-d="in">＋</button><button class="small" data-act="gz" data-d="out">－</button><button class="small" data-act="gz" data-d="l">◀</button><button class="small" data-act="gz" data-d="r">▶</button><button class="small" data-act="gz" data-d="fit">Tudo</button></div>
+    <div id="gRegion" class="row" style="display:none">
+      <span id="gRegTxt"></span><select id="gRegScope"></select><button class="danger small" data-act="gRegApply">Desativar região</button><button class="small" data-act="gRegClear">Limpar</button></div>
+  </div>
+  <div id="gCharts"></div>
+</section>
+
+<section class="tab" id="tab-hist">
+  <div class="card"><h3>Antes × depois</h3><div id="beforeAfter"></div></div>
+  <div class="card"><h3>O que foi alterado</h3><div id="changedBox"></div></div>
+  <div class="card"><h3>Histórico de edições</h3>
+    <div class="row"><button class="ok" data-act="exportRnx">⬇ Gerar RINEX editado</button><button data-act="csv">CSV</button><button data-act="restore">Restaurar original</button><button class="danger" data-act="discard">Descartar todas as edições</button></div>
+    <label class="row" style="font-size:12px"><input type="checkbox" id="optKeepEmpty" checked> manter épocas sem satélites no RINEX editado</label>
+    <div id="exportMsg" class="mut" style="font-size:12px;margin-bottom:6px"></div>
+    <div class="scroll"><table class="tbl" id="histTbl"></table></div></div>
+</section>
+
+<section class="tab" id="tab-ver">
+  <div class="card"><h3>Projeto</h3><div id="verList"></div>
+    <div class="row" style="margin-top:8px"><button data-act="vNew" class="primary">＋ Nova edição (do ORIGINAL)</button><button data-act="vDup">Duplicar versão atual</button></div></div>
+  <div class="card"><h3>Comparar versões</h3>
+    <div class="row"><select id="cmpA" class="grow"></select><span>×</span><select id="cmpB" class="grow"></select><button data-act="cmp">Comparar</button></div><div id="cmpOut"></div></div>
+  <div class="card"><h3>Projeto (.json)</h3><div class="row"><button data-act="saveProj">Salvar projeto</button><label class="btn" for="projIn">Abrir projeto</label><input id="projIn" type="file" accept=".json" hidden></div>
+    <p class="mut" style="font-size:12px">Guarda versões e edições (não os dados). Reabrir o mesmo RINEX restaura as versões salvas neste navegador.</p></div>
+</section>
+
+<section class="tab" id="tab-proc">
+  <div class="card"><div class="pipe" id="pipe"></div>
+    <div class="row"><label>Motor</label><select id="engSel" class="grow"></select></div>
+    <div class="row"><label>Máscara elev.</label><input type="number" id="pElev" value="10" style="width:80px"> °
+      <label class="btn" for="navIn">📡 Navegação</label><input id="navIn" type="file" hidden><span id="navInfo" class="mut" style="font-size:12px">nenhuma carregada</span></div>
+    <div class="row"><button data-act="procOrig">Processar ORIGINAL</button><button class="primary" data-act="procEdit">⟳ PROCESSAR NOVAMENTE</button><button data-act="report">Relatório (HTML)</button></div>
+    <div id="procMsg" class="mut" style="font-size:12px"></div>
+    <p class="mut" style="font-size:11px">Motor interno = posicionamento por ponto (SPP) com efemérides broadcast, usado como referência rápida de RMS/precisão. Para RTK/PPP, registre seu motor com <code>MapGEO.registerEngine(id, rótulo, async ({ds,mask,nav,params,rinexText})=&gt;resultado)</code>: ele recebe exatamente a máscara e o RINEX editado desta versão.</p></div>
+  <div id="procOut"></div>
+</section>
+</main>
+<section class="tab" id="tab-vet">
+  <div class="card"><h3>1 · Arquivos (base e rovers)</h3><div id="vFiles"></div>
+    <div class="row"><label class="btn" for="vFileIn">＋ Adicionar RINEX / nav</label><input id="vFileIn" type="file" multiple hidden></div></div>
+  <div class="card"><h3>2 · Base — coordenadas do IBGE-PPP</h3>
+    <p class="mut" style="font-size:12px">O PPP roda no site do IBGE. Exporte o RINEX da base abaixo, envie ao IBGE-PPP e digite aqui as coordenadas e sigmas do relatório (PDF).</p>
+    <div class="row"><label>Marcador</label><input id="vb_marker" class="grow" placeholder="nome (opcional)"><label>Antena</label><input id="vb_ant" class="grow" placeholder="ex.: TPSHIPER_GGD"></div>
+    <div class="row"><label>Altura da antena da base (m)</label><input id="vb_hi" type="number" step="0.001" style="width:90px"><button class="small" data-vact="pppExp">⬇ RINEX da base p/ IBGE-PPP</button></div>
+    <div class="pgrid"><label>Latitude<input id="vb_lat" placeholder="-26 39 01,2345 ou -26,65"></label><label>Longitude<input id="vb_lon" placeholder="-53 ..."></label><label>Altura elipsoidal (m)<input id="vb_h" inputmode="decimal"></label>
+      <label>σ E (m)<input id="vb_sE" inputmode="decimal"></label><label>σ N (m)<input id="vb_sN" inputmode="decimal"></label><label>σ U (m)<input id="vb_sU" inputmode="decimal"></label></div>
+    <details><summary>Colar texto do relatório</summary><textarea id="vPaste" rows="5" style="width:100%" placeholder="Cole aqui o texto copiado do PDF do IBGE-PPP"></textarea><button class="small" data-vact="parse">Interpretar texto</button> <span class="mut" style="font-size:11px">Leitura aproximada: confira os campos.</span></details>
+    <button class="small" data-vact="useHdr" style="margin-top:6px">Usar posição do cabeçalho (só teste)</button></div>
+  <div class="card"><h3>3 · Vetores base → rover</h3>
+    <div class="row"><label>Razão mín. fix</label><input id="vOptRatio" type="number" value="3" style="width:64px"><label>Elev. mín. °</label><input id="vOptElev" type="number" value="10" style="width:64px"></div>
+    <div class="row"><button class="primary grow" data-vact="run">Calcular vetores</button><button data-vact="csv">CSV</button></div>
+    <div id="vMsg" class="mut" style="font-size:12px"></div>
+    <p class="mut" style="font-size:11px">Modelo estático (rover parado), fase+código dupla diferença, L1/L2, ambiguidades inteiras (LAMBDA). Pensado para linhas de base curtas (&lt;15 km): sem modelo de ionosfera, sem PCO/PCV de antena, GLONASS fora. Usa as observações editadas da versão ativa de cada arquivo.</p></div>
+  <div class="card" id="vMapCard" style="display:none"><h3>Mapa dos pontos <small class="mut" id="vMapInfo"></small></h3><canvas id="vMap" style="width:100%;height:320px;display:block;cursor:pointer"></canvas><div class="row" style="font-size:12px;gap:10px;flex-wrap:wrap"><span>▲ base</span><span style="color:#2ecc71">● FIX</span><span style="color:#f1c40f">● FIX parcial</span><span style="color:#ff6b6b">● FLOAT</span><span class="mut">linha = vetor · elipse = 95% (exagero ×<input id="vExag" type="number" value="0" style="width:64px"> · 0 = auto)</span></div></div>
+  <div class="card" id="vPtsCard" style="display:none"><h3>Pontos</h3><div class="scroll"><table class="tbl" id="vPts"></table></div></div>
+  <div id="vOut"></div>
+</section>
+<nav id="nav">
+  <button class="on" data-tab="timeline"><b>▤</b>Timeline</button><button data-tab="sats"><b>🛰</b>Satélites</button><button data-tab="alert"><b>⚠</b>Alertas</button>
+  <button data-tab="graf"><b>📈</b>Gráficos</button><button data-tab="hist"><b>🕘</b>Edições</button><button data-tab="ver"><b>🗂</b>Versões</button><button data-tab="vet"><b>↔</b>Vetores</button><button data-tab="proc"><b>⚙</b>Processar</button>
+</nav>
+<div class="sheet" id="vPop"><div class="in" id="vPopIn"></div></div>
+<div class="sheet" id="evSheet"><div class="in" id="evIn"></div></div>
+<div id="toast"></div>
+<script>
+'use strict';
+/* ===================== NÚCLEO GNSS (sem DOM) ===================== */
+const CLIGHT = 299792458;
+const SYS_NAME = {G:'GPS',R:'GLONASS',E:'Galileo',C:'BeiDou',J:'QZSS',I:'NavIC',S:'SBAS'};
+const SYS_ORDER = 'GRECJIS';
+const FREQ = {
+  G:{1:1575.42,2:1227.60,5:1176.45},
+  E:{1:1575.42,5:1176.45,7:1207.14,8:1191.795,6:1278.75},
+  C:{2:1561.098,1:1575.42,5:1176.45,7:1207.14,8:1191.795,6:1268.52},
+  J:{1:1575.42,2:1227.60,5:1176.45,6:1278.75},
+  I:{5:1176.45,9:2492.028},
+  S:{1:1575.42,5:1176.45}
+};
+const BANDNAME = {
+  G:{1:'L1',2:'L2',5:'L5'}, R:{1:'G1',2:'G2',3:'G3'},
+  E:{1:'E1',5:'E5a',7:'E5b',8:'E5',6:'E6'}, C:{2:'B1I',1:'B1C',5:'B2a',7:'B2b',8:'B2',6:'B3I'},
+  J:{1:'L1',2:'L2',5:'L5',6:'L6'}, I:{5:'L5',9:'S'}, S:{1:'L1',5:'L5'}
+};
+const EVT_LABEL = {
+  CYCLE_SLIP:'CYCLE SLIP DETECTADO', PHASE_JUMP:'SALTO DE FASE DETECTADO', LOCK_LOSS:'PERDA DE LOCK (LLI)',
+  PHASE_LOSS:'PERDA DE FASE', GAP:'GAP NAS OBSERVAÇÕES', LOW_SNR:'SNR BAIXO', SNR_ABN:'SNR ANORMAL',
+  ABN:'OBSERVAÇÃO ANORMAL', INCONSISTENT:'OBSERVAÇÃO INCONSISTENTE', LOW_SATS:'POUCOS SATÉLITES', PDOP:'PDOP ELEVADO'
+};
+const DEF_PARAMS = {snrMin:28,snrRun:3,snrJump:10,gfThr:0.10,gfJump:1.0,gapFactor:1.5,cmcJump:30,
+  minArcMin:5,minSats:5,pdopMax:6,clusterMin:3,clusterWinMin:10,elevMask:10};
+
+const pad2 = n => String(n).padStart(2,'0');
+function fmtT(ms){const d=new Date(ms);return pad2(d.getUTCHours())+':'+pad2(d.getUTCMinutes())+':'+pad2(d.getUTCSeconds());}
+function fmtDate(ms){const d=new Date(ms);return pad2(d.getUTCDate())+'/'+pad2(d.getUTCMonth()+1)+'/'+d.getUTCFullYear();}
+function fmtDur(ms){const s=Math.round(ms/1000);if(s<60)return s+' s';if(s<3600)return Math.floor(s/60)+' min '+pad2(s%60)+' s';return Math.floor(s/3600)+' h '+pad2(Math.floor(s%3600/60))+' min';}
+function lowerBound(a,x){let lo=0,hi=a.length;while(lo<hi){const m=(lo+hi)>>1;if(a[m]<x)lo=m+1;else hi=m;}return lo;}
+function upperBound(a,x){let lo=0,hi=a.length;while(lo<hi){const m=(lo+hi)>>1;if(a[m]<=x)lo=m+1;else hi=m;}return lo;}
+function satId(s){let sys=s[0];if(!sys||sys===' ')sys='G';const prn=parseInt(s.slice(1,3));return sys+pad2(isNaN(prn)?0:prn);}
+function satSortKey(id){return SYS_ORDER.indexOf(id[0])*1000+(+id.slice(1));}
+
+function freqMHz(ds,sys,band,id){
+  if(sys==='R'){const k=ds.glo[id];if(k===undefined)return null;
+    if(band==='1')return 1602+k*0.5625;if(band==='2')return 1246+k*0.4375;if(band==='3')return 1202.025;return null;}
+  if(sys==='C'&&band==='1'&&ds.version<3.03)return 1561.098;
+  return (FREQ[sys]||{})[band]||null;
+}
+
+/* ---------- sistema linear (eliminação de Gauss, matriz aumentada n x n+1) ---------- */
+function gauss(A,n){
+  for(let c=0;c<n;c++){
+    let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;
+    if(Math.abs(A[p][c])<1e-12)return null;
+    [A[c],A[p]]=[A[p],A[c]];
+    for(let r=0;r<n;r++){if(r===c)continue;const f=A[r][c]/A[c][c];if(f)for(let k=c;k<=n;k++)A[r][k]-=f*A[c][k];}
+  }
+  return A.map((r,i)=>r[n]/r[i]);
+}
+function invert(M){
+  const n=M.length,A=M.map((r,i)=>[...r,...Array.from({length:n},(_,j)=>i===j?1:0)]);
+  for(let c=0;c<n;c++){
+    let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;
+    if(Math.abs(A[p][c])<1e-12)return null;
+    [A[c],A[p]]=[A[p],A[c]];const d=A[c][c];for(let k=0;k<2*n;k++)A[c][k]/=d;
+    for(let r=0;r<n;r++){if(r===c)continue;const f=A[r][c];if(f)for(let k=0;k<2*n;k++)A[r][k]-=f*A[c][k];}
+  }
+  return A.map(r=>r.slice(n));
+}
+
+/* ===================== PARSER RINEX OBS (2.x e 3.x) ===================== */
+function parseRinexObs(text,name){
+  if(/CRINEX/.test(text.slice(0,300)))throw new Error('Arquivo Hatanaka (CRINEX / .crx / .##d). Descompacte para RINEX (.rnx / .##o) antes de abrir.');
+  const eol=text.indexOf('\r\n')>=0?'\r\n':'\n';
+  const L=text.split(/\r?\n/);
+  const ds={name,eol,version:0,fileType:'',header:[],obsTypes:{},v2types:[],station:'',interval:0,approx:null,glo:{},recs:[],sats:{},satList:[],ant:'',rec:'',tsys:''};
+  let i=0,curSys=null,hdrOk=false;
+  for(;i<L.length;i++){
+    const l=L[i];ds.header.push(l);const lab=l.slice(60).trim();
+    if(lab==='RINEX VERSION / TYPE'){ds.version=parseFloat(l.slice(0,9));ds.fileType=l[20]||'';}
+    else if(lab==='MARKER NAME')ds.station=l.slice(0,60).trim();
+    else if(lab==='INTERVAL')ds.interval=parseFloat(l.slice(0,10))||0;
+    else if(lab==='APPROX POSITION XYZ'){const a=l.slice(0,42).trim().split(/\s+/).map(Number);if(a.length>=3&&Math.hypot(a[0],a[1],a[2])>1e6)ds.approx=a.slice(0,3);}
+    else if(lab==='ANT # / TYPE')ds.ant=l.slice(20,40).trim();
+    else if(lab==='REC # / TYPE / VERS')ds.rec=l.slice(20,40).trim();
+    else if(lab==='TIME OF FIRST OBS')ds.tsys=l.slice(48,51).trim();
+    else if(lab==='SYS / # / OBS TYPES'){
+      if(l[0]&&l[0]!==' '){curSys=l[0];ds.obsTypes[curSys]=[];}
+      if(curSys)ds.obsTypes[curSys].push(...l.slice(6,60).trim().split(/\s+/).filter(Boolean));
+    }
+    else if(lab==='# / TYPES OF OBSERV')ds.v2types.push(...l.slice(6,60).trim().split(/\s+/).filter(Boolean));
+    else if(lab==='GLONASS SLOT / FRQ #'){const tk=l.slice(4,60).trim().split(/\s+/);for(let k=0;k+1<tk.length;k+=2)ds.glo[satId(tk[k])]=+tk[k+1];}
+    else if(lab==='END OF HEADER'){i++;hdrOk=true;break;}
+  }
+  if(!ds.version||!hdrOk)throw new Error('Cabeçalho RINEX inválido ou ausente.');
+  if(ds.fileType&&ds.fileType!=='O')throw new Error('O arquivo não é de observação (tipo "'+ds.fileType+'"). Para navegação use o campo de efemérides.');
+  const v3=ds.version>=3;
+  if(v3&&!Object.keys(ds.obsTypes).length)throw new Error('Cabeçalho sem "SYS / # / OBS TYPES".');
+  if(!v3&&!ds.v2types.length)throw new Error('Cabeçalho sem "# / TYPES OF OBSERV".');
+  const times=[];let nE=0;
+  while(i<L.length){
+    const l=L[i];
+    if(!l||!l.trim()){i++;continue;}
+    let y,mo,d,hh,mi,sec,flag,n;
+    if(v3){
+      if(l[0]!=='>'){i++;continue;}
+      y=+l.slice(2,6);mo=+l.slice(7,9);d=+l.slice(10,12);hh=+l.slice(13,15);mi=+l.slice(16,18);
+      sec=parseFloat(l.slice(18,29));flag=parseInt(l.slice(31,32))||0;n=parseInt(l.slice(32,35))||0;
+    }else{
+      y=+l.slice(1,3);y+=y<80?2000:1900;mo=+l.slice(4,6);d=+l.slice(7,9);hh=+l.slice(10,12);mi=+l.slice(13,15);
+      sec=parseFloat(l.slice(15,26));flag=parseInt(l.slice(28,29))||0;n=parseInt(l.slice(29,32))||0;
+    }
+    const t=Date.UTC(y,mo-1,d,hh,mi,0)+Math.round(sec*1000);
+    if(flag>1&&flag<6){ds.recs.push({pass:true,head:l,lines:L.slice(i+1,i+1+n)});i+=1+n;continue;}
+    const rec={t,flag,head:l,sats:[],ei:nE++};times.push(t);
+    if(v3){
+      for(let k=0;k<n;k++){const s=L[i+1+k]||'';rec.sats.push({id:satId(s.slice(0,3)),line:s});}
+      i+=1+n;
+    }else{
+      const ids=[];const nl=Math.max(1,Math.ceil(n/12));
+      for(let q=0;q<nl;q++){const ll=L[i+q]||'';for(let j=0;j<12&&ids.length<n;j++)ids.push(satId(ll.slice(32+3*j,35+3*j)));}
+      rec.prefix=l.slice(0,29);rec.clk=l.length>=68?l.slice(68):'';
+      i+=nl;const nlo=Math.ceil(ds.v2types.length/5)||1;
+      for(const id of ids){const lines=[];for(let q=0;q<nlo;q++)lines.push(L[i+q]||'');i+=nlo;rec.sats.push({id,lines});}
+    }
+    ds.recs.push(rec);
+  }
+  ds.nE=nE;ds.t=Float64Array.from(times);
+  if(!nE)throw new Error('Nenhuma época de observação encontrada.');
+  const ensure=id=>{
+    let s=ds.sats[id];
+    if(!s){
+      const sys=id[0],codes=(v3?(ds.obsTypes[sys]||[]):ds.v2types).slice();
+      s={id,sys,prn:+id.slice(1),codes,val:{},lli:{},ssi:{},has:new Uint8Array(nE)};
+      for(const c of codes){s.val[c]=new Float64Array(nE).fill(NaN);s.lli[c]=new Uint8Array(nE);s.ssi[c]=new Uint8Array(nE);}
+      ds.sats[id]=s;
+    }
+    return s;
+  };
+  for(const rec of ds.recs){
+    if(rec.pass)continue;const ei=rec.ei;
+    for(const ent of rec.sats){
+      const s=ensure(ent.id);
+      for(let k=0;k<s.codes.length;k++){
+        const fld=v3?ent.line.substr(3+16*k,16):(ent.lines[Math.floor(k/5)]||'').substr(16*(k%5),16);
+        if(!fld.trim())continue;
+        const c=s.codes[k],num=parseFloat(fld.slice(0,14));
+        if(isFinite(num)&&num!==0){s.val[c][ei]=num;s.has[ei]=1;}
+        const a=fld.charCodeAt(14)-48,b=fld.charCodeAt(15)-48;
+        if(a>=0&&a<=9)s.lli[c][ei]=a;if(b>=0&&b<=9)s.ssi[c][ei]=b;
+      }
+    }
+  }
+  ds.satList=Object.keys(ds.sats).filter(id=>ds.sats[id].codes.length).sort((a,b)=>satSortKey(a)-satSortKey(b));
+  if(!ds.interval&&nE>1){const df=[];for(let k=1;k<Math.min(nE,2000);k++)df.push(ds.t[k]-ds.t[k-1]);df.sort((a,b)=>a-b);ds.interval=df[df.length>>1]/1000;}
+  ds.intervalMs=Math.round((ds.interval||1)*1000);
+  ds.tFirst=ds.t[0];ds.tLast=ds.t[nE-1];
+  return ds;
+}
+
+/* ===================== MÁSCARA DE OBSERVAÇÕES ===================== */
+function codesFor(s,scope,val){
+  if(scope==='all')return s.codes;
+  if(scope==='band')return s.codes.filter(c=>c[1]===val);
+  return s.codes.includes(val)?[val]:[];
+}
+function buildMask(ds,edits){
+  const mask={};
+  for(const id of ds.satList){const s=ds.sats[id],m={};for(const c of s.codes)m[c]=new Uint8Array(ds.nE).fill(1);mask[id]=m;}
+  for(const e of edits){
+    if(e.undone)continue;
+    const a=lowerBound(ds.t,e.t0),b=upperBound(ds.t,e.t1),v=e.action==='DESATIVAR'?0:1;
+    for(const sid of e.sats){const s=ds.sats[sid];if(!s)continue;for(const c of codesFor(s,e.scope,e.value))mask[sid][c].fill(v,a,b);}
+  }
+  return mask;
+}
+function countObs(ds,mask){
+  let tot=0,act=0;const ep=new Uint8Array(ds.nE),sv=new Set();
+  for(const id of ds.satList){const s=ds.sats[id];
+    for(const c of s.codes){const v=s.val[c],m=mask[id][c];
+      for(let i=0;i<ds.nE;i++)if(v[i]===v[i]){tot++;if(m[i]){act++;ep[i]=1;sv.add(id);}}}}
+  let ev=0;for(let i=0;i<ds.nE;i++)ev+=ep[i];
+  return {sats:ds.satList.length,satsValid:sv.size,epochs:ds.nE,epochsValid:ev,obs:tot,obsValid:act};
+}
+function satState(ds,mask,id){
+  const s=ds.sats[id],st=new Uint8Array(ds.nE);
+  for(let i=0;i<ds.nE;i++){
+    if(!s.has[i])continue;let a=0,d=0;
+    for(const c of s.codes)if(s.val[c][i]===s.val[c][i]){if(mask[id][c][i])a++;else d++;}
+    st[i]=d===0?1:(a===0?3:2);
+  }
+  return st;
+}
+function impact(ds,mask,sats,scope,value,t0,t1,action){
+  const a=lowerBound(ds.t,t0),b=upperBound(ds.t,t1),want=action==='DESATIVAR'?1:0;let obs=0;const eps=new Set();
+  for(const id of sats){const s=ds.sats[id];if(!s)continue;
+    for(const c of codesFor(s,scope,value)){const v=s.val[c],m=mask[id][c];
+      for(let i=a;i<b;i++)if(v[i]===v[i]&&m[i]===want){obs++;eps.add(i);}}}
+  return {obs,epochs:eps.size};
+}
+function mergeIntervals(idxs,T,gapMs){ // idxs ordenados → [{a,b}] em ms
+  const out=[];for(const i of idxs){const t=T[i];const l=out[out.length-1];if(l&&t-l.b<=gapMs)l.b=t;else out.push({a:t,b:t});}return out;
+}
+function diffSummary(ds,maskA,maskB){ // observações ativas em A e inativas em B etc.
+  const per={};let onlyA=0,onlyB=0;
+  for(const id of ds.satList){const s=ds.sats[id];let a=0,b=0;const eps=[];
+    for(const c of s.codes){const v=s.val[c],ma=maskA[id][c],mb=maskB[id][c];
+      for(let i=0;i<ds.nE;i++){if(v[i]!==v[i])continue;
+        if(ma[i]&&!mb[i]){a++;eps.push(i);}else if(!ma[i]&&mb[i]){b++;eps.push(i);}}}
+    if(a||b){eps.sort((x,y)=>x-y);per[id]={onlyA:a,onlyB:b,intervals:mergeIntervals([...new Set(eps)],ds.t,ds.intervalMs*1.5)};onlyA+=a;onlyB+=b;}}
+  return {per,onlyA,onlyB};
+}
+function changedSummary(ds,mask){ // o que foi desativado em relação ao original
+  const per={};let tot=0;
+  for(const id of ds.satList){const s=ds.sats[id];let n=0;const eps=[],codes=new Set();
+    for(const c of s.codes){const v=s.val[c],m=mask[id][c];
+      for(let i=0;i<ds.nE;i++)if(v[i]===v[i]&&!m[i]){n++;eps.push(i);codes.add(c);}}
+    if(n){eps.sort((x,y)=>x-y);const u=[...new Set(eps)];per[id]={obs:n,epochs:u.length,codes:[...codes],intervals:mergeIntervals(u,ds.t,ds.intervalMs*1.5)};tot+=n;}}
+  return {per,tot};
+}
+
+/* ===================== SÉRIES AUXILIARES ===================== */
+function gfInfo(ds,s){
+  if(s._gf!==undefined)return s._gf;
+  const phases=s.codes.filter(c=>c[0]==='L'),wl={};
+  for(const b of new Set(phases.map(c=>c[1]))){const f=freqMHz(ds,s.sys,b,s.id);if(f)wl[b]=CLIGHT/(f*1e6);}
+  const bl=Object.keys(wl).sort();
+  if(bl.length<2){s._gf=null;return null;}
+  const c1=phases.find(c=>c[1]===bl[0]),c2=phases.find(c=>c[1]===bl[1]),w1=wl[bl[0]],w2=wl[bl[1]];
+  const gf=new Float64Array(ds.nE).fill(NaN),a=s.val[c1],b=s.val[c2];
+  for(let i=0;i<ds.nE;i++)if(a[i]===a[i]&&b[i]===b[i])gf[i]=w1*a[i]-w2*b[i];
+  return (s._gf={gf,c1,c2,w1,w2});
+}
+function polyRes(xs,ys,deg){
+  const n=xs.length;if(n<2)return ys.map(()=>0);
+  const d=Math.min(deg,n-1),x0=xs[0],x1=xs[n-1],m=(x0+x1)/2,r=(x1-x0)/2||1,ym=ys.reduce((a,b)=>a+b,0)/n;
+  const A=Array.from({length:d+1},()=>new Array(d+2).fill(0));
+  for(let k=0;k<n;k++){const x=(xs[k]-m)/r,y=ys[k]-ym,p=[1];for(let j=1;j<=d;j++)p[j]=p[j-1]*x;
+    for(let a=0;a<=d;a++){for(let b=0;b<=d;b++)A[a][b]+=p[a]*p[b];A[a][d+1]+=p[a]*y;}}
+  const c=gauss(A,d+1)||new Array(d+1).fill(0);
+  return ys.map((y,k)=>{const x=(xs[k]-m)/r;let f=0,pp=1;for(let j=0;j<=d;j++){f+=c[j]*pp;pp*=x;}return y-ym-f;});
+}
+
+/* ===================== DETECÇÃO DE EVENTOS ===================== */
+function detectEvents(ds,P,nav){
+  const ev=[];let n=0;const add=o=>{o.id='ev'+(++n);ev.push(o);return o;};
+  const dt=ds.intervalMs||1000,T=ds.t,gapMs=P.gapFactor*dt+1;
+  for(const id of ds.satList){
+    const s=ds.sats[id],idx=[];for(let i=0;i<ds.nE;i++)if(s.has[i])idx.push(i);
+    if(!idx.length)continue;
+    const phases=s.codes.filter(c=>c[0]==='L'),snrs=s.codes.filter(c=>c[0]==='S'),pcodes=s.codes.filter(c=>c[0]==='C'||c[0]==='P');
+    const mine=[];
+    const push=o=>{o.sat=id;mine.push(o);};
+    // gaps
+    for(let k=1;k<idx.length;k++){const g=T[idx[k]]-T[idx[k-1]];
+      if(g>gapMs)push({type:'GAP',t0:T[idx[k-1]],t1:T[idx[k]],i0:idx[k-1],i1:idx[k],codes:[],detail:'Sem observações por '+fmtDur(g)});}
+    // perda de fase (código presente, fase ausente)
+    for(const c of phases){
+      const pc=pcodes.filter(x=>x[1]===c[1]);let run=null;
+      for(const i of idx){
+        const lost=s.val[c][i]!==s.val[c][i]&&pc.some(x=>s.val[x][i]===s.val[x][i]);
+        if(lost){if(run&&T[i]-run.t1<=gapMs){run.t1=T[i];run.i1=i;run.n++;}else{run={type:'PHASE_LOSS',t0:T[i],t1:T[i],i0:i,i1:i,codes:[c],n:1,detail:'Fase ausente com código presente'};push(run);}}
+      }
+    }
+    // LLI e saltos GF
+    const slip=new Map();
+    for(const c of phases)for(const i of idx)if(s.lli[c][i]&1){const o=slip.get(i)||{lli:[],gf:0};o.lli.push(c);slip.set(i,o);}
+    const g=gfInfo(ds,s);
+    if(g){let prev=-1;
+      for(const i of idx){
+        if(g.gf[i]!==g.gf[i])continue;
+        if(prev>=0&&T[i]-T[prev]<=gapMs){
+          const jump=Math.abs(g.gf[i]-g.gf[prev]),thr=P.gfThr*(1+(T[i]-T[prev])/60000);
+          if(jump>thr){const o=slip.get(i)||{lli:[],gf:0};o.gf=jump;slip.set(i,o);}
+        }
+        prev=i;
+      }
+    }
+    for(const [i,o] of slip){
+      let type='LOCK_LOSS',det=[];
+      if(o.gf){type=o.gf>P.gfJump?'PHASE_JUMP':'CYCLE_SLIP';det.push('GF Δ='+o.gf.toFixed(3)+' m');}
+      if(o.lli.length)det.push('LLI em '+o.lli.join(','));
+      push({type,t0:T[i],t1:T[i],i0:i,i1:i,codes:o.lli.length?o.lli:(g?[g.c1,g.c2]:[]),detail:det.join(' · ')});
+    }
+    // SNR
+    for(const c of snrs){
+      const v=s.val[c];let run=null,prev=-1;
+      for(const i of idx){
+        if(v[i]!==v[i]){prev=-1;continue;}
+        if(v[i]<P.snrMin){if(run&&T[i]-run.t1<=gapMs){run.t1=T[i];run.i1=i;run.n++;run.min=Math.min(run.min,v[i]);}
+          else{run={t0:T[i],t1:T[i],i0:i,i1:i,n:1,min:v[i]};run.close=()=>{};(run.list=run.list||[]);mine.push(Object.assign(run,{sat:id,type:'LOW_SNR',codes:[c],_tmp:true}));}}
+        if(prev>=0&&T[i]-T[prev]<=gapMs&&Math.abs(v[i]-v[prev])>P.snrJump)push({type:'SNR_ABN',t0:T[i],t1:T[i],i0:i,i1:i,codes:[c],detail:'Variação de '+(v[i]-v[prev]).toFixed(1)+' dB-Hz entre épocas'});
+        prev=i;
+      }
+    }
+    for(let k=mine.length-1;k>=0;k--){const o=mine[k];if(o._tmp){delete o._tmp;delete o.close;delete o.list;if(o.n<P.snrRun){mine.splice(k,1);}else o.detail='SNR mínimo '+o.min.toFixed(1)+' dB-Hz (< '+P.snrMin+')';}}
+    // pseudodistância fora de faixa e consistência código-fase
+    for(const c of pcodes){const v=s.val[c];
+      for(const i of idx)if(v[i]===v[i]&&(v[i]<1.5e7||v[i]>4.6e7))push({type:'ABN',t0:T[i],t1:T[i],i0:i,i1:i,codes:[c],detail:'Pseudodistância '+(v[i]/1000).toFixed(0)+' km fora da faixa plausível'});}
+    const slipEp=new Set(slip.keys());
+    for(const c of phases){
+      const f=freqMHz(ds,s.sys,c[1],id);if(!f)continue;const w=CLIGHT/(f*1e6);
+      const pc=pcodes.find(x=>x[1]===c[1]);if(!pc)continue;
+      let prev=-1,pv=0;
+      for(const i of idx){
+        const a=s.val[pc][i],b=s.val[c][i];if(a!==a||b!==b){continue;}
+        const cmc=a-w*b;
+        if(prev>=0&&T[i]-T[prev]<=gapMs&&Math.abs(cmc-pv)>P.cmcJump&&!slipEp.has(i))
+          push({type:'INCONSISTENT',t0:T[i],t1:T[i],i0:i,i1:i,codes:[pc,c],detail:'Código−fase variou '+Math.abs(cmc-pv).toFixed(1)+' m'});
+        prev=i;pv=cmc;
+      }
+    }
+    // mescla eventos adjacentes do mesmo tipo (exceto GAP)
+    mine.sort((a,b)=>a.type<b.type?-1:a.type>b.type?1:a.t0-b.t0);
+    const merged=[];
+    for(const o of mine){
+      const l=merged[merged.length-1];
+      if(l&&l.type===o.type&&o.type!=='GAP'&&o.t0<=l.t1+gapMs){
+        l.t1=Math.max(l.t1,o.t1);l.i1=Math.max(l.i1,o.i1);l.count=(l.count||1)+(o.count||1);
+        for(const c of o.codes)if(!l.codes.includes(c))l.codes.push(c);
+        if(o.type==='LOW_SNR'&&o.detail){l.detail=o.detail;}
+      }else merged.push(Object.assign({},o));
+    }
+    for(const o of merged){if(o.count>1&&o.type!=='LOW_SNR'&&o.type!=='PHASE_LOSS')o.detail=(o.detail||'')+' (+'+(o.count-1)+' eventos consecutivos)';add(o);}
+  }
+  // eventos globais: poucos satélites / PDOP
+  const cnt=new Uint16Array(ds.nE);
+  for(const id of ds.satList){const h=ds.sats[id].has;for(let i=0;i<ds.nE;i++)cnt[i]+=h[i];}
+  let run=null;
+  for(let i=0;i<ds.nE;i++){
+    if(cnt[i]<P.minSats){if(run&&ds.t[i]-run.t1<=gapMs){run.t1=ds.t[i];run.i1=i;run.min=Math.min(run.min,cnt[i]);}
+      else{run={sat:'*',type:'LOW_SATS',t0:ds.t[i],t1:ds.t[i],i0:i,i1:i,codes:[],min:cnt[i]};add(run);}}
+  }
+  for(const e of ev)if(e.type==='LOW_SATS'){e.detail='Mínimo de '+e.min+' satélite(s) (limite '+P.minSats+')';delete e.min;}
+  if(nav){
+    const pd=pdopSeries(ds,nav,null,P);
+    if(pd){let r=null;
+      for(let i=0;i<ds.nE;i++){
+        if(pd[i]>P.pdopMax){if(r&&ds.t[i]-r.t1<=gapMs){r.t1=ds.t[i];r.i1=i;r.max=Math.max(r.max,pd[i]);}
+          else{r={sat:'*',type:'PDOP',t0:ds.t[i],t1:ds.t[i],i0:i,i1:i,codes:[],max:pd[i]};add(r);}}
+      }
+      for(const e of ev)if(e.type==='PDOP'){e.detail='PDOP até '+e.max.toFixed(1)+' (limite '+P.pdopMax+')';delete e.max;}
+    }
+  }
+  ev.sort((a,b)=>a.t0-b.t0);
+  return ev;
+}
+
+/* ---------- sugestões (nunca aplicadas automaticamente) ---------- */
+function buildSuggestions(ds,events,P){
+  const sug=[];let n=0;const dt=ds.intervalMs||1000;
+  const add=o=>{o.id='sg'+(++n);o.status='pending';sug.push(o);};
+  const slipTypes=['CYCLE_SLIP','PHASE_JUMP','LOCK_LOSS'];
+  const bySat={};for(const e of events){if(e.sat==='*')continue;(bySat[e.sat]=bySat[e.sat]||[]).push(e);}
+  for(const id in bySat){
+    const list=bySat[id];
+    const sl=list.filter(e=>slipTypes.includes(e.type)).sort((a,b)=>a.t0-b.t0);
+    // clusters de perdas de ciclo
+    let grp=[];const flush=()=>{
+      const tot=grp.reduce((a,e)=>a+(e.count||1),0);
+      if(tot>=P.clusterMin)add({sat:id,t0:grp[0].t0-dt,t1:grp[grp.length-1].t1+dt,scope:'all',value:null,severity:3,canDisable:true,
+        reason:'múltiplas perdas de ciclo ('+tot+' em '+fmtDur(grp[grp.length-1].t1-grp[0].t0)+')',evIds:grp.map(e=>e.id)});
+      grp=[];};
+    for(const e of sl){if(grp.length&&e.t0-grp[grp.length-1].t1>P.clusterWinMin*60000)flush();grp.push(e);}
+    if(grp.length)flush();
+    for(const e of list){
+      if(e.type==='PHASE_JUMP')add({sat:id,t0:e.t0-dt,t1:e.t1+dt,scope:'all',value:null,severity:3,canDisable:true,reason:'salto de fase ('+e.detail+')',evIds:[e.id]});
+      else if(e.type==='LOW_SNR'){const b=e.codes[0]?e.codes[0][1]:null;add({sat:id,t0:e.t0,t1:e.t1,scope:b?'band':'all',value:b,severity:2,canDisable:true,reason:'SNR baixo em '+e.codes.join(',')+' — '+e.detail,evIds:[e.id]});}
+      else if(e.type==='SNR_ABN')add({sat:id,t0:e.t0,t1:e.t1,scope:'band',value:e.codes[0][1],severity:1,canDisable:true,reason:'SNR anormal em '+e.codes[0]+' — '+e.detail,evIds:[e.id]});
+      else if(e.type==='ABN'||e.type==='INCONSISTENT')add({sat:id,t0:e.t0,t1:e.t1,scope:'all',value:null,severity:2,canDisable:true,reason:'observação '+(e.type==='ABN'?'anormal':'inconsistente')+' — '+e.detail,evIds:[e.id]});
+      else if(e.type==='PHASE_LOSS'&&(e.count||1)>=P.snrRun)add({sat:id,t0:e.t0,t1:e.t1,scope:'band',value:e.codes[0][1],severity:2,canDisable:true,reason:'perda de fase em '+e.codes.join(',')+' ('+(e.count||1)+' épocas)',evIds:[e.id]});
+    }
+    // arcos curtos
+    const s=ds.sats[id],brk=new Set();
+    for(const e of list){if(e.type==='GAP')brk.add(e.i1);else if(slipTypes.includes(e.type))brk.add(e.i0);}
+    let a0=-1,last=-1;const arcs=[];
+    for(let i=0;i<ds.nE;i++){if(!s.has[i])continue;if(a0<0||brk.has(i)){if(a0>=0)arcs.push([a0,last]);a0=i;}last=i;}
+    if(a0>=0)arcs.push([a0,last]);
+    if(arcs.length>1)for(const [a,b] of arcs){const d=ds.t[b]-ds.t[a]+dt;
+      if(d<P.minArcMin*60000)add({sat:id,t0:ds.t[a],t1:ds.t[b],scope:'all',value:null,severity:2,canDisable:true,reason:'arco contínuo curto ('+fmtDur(d)+' < '+P.minArcMin+' min) entre eventos',evIds:[]});}
+  }
+  for(const e of events){
+    if(e.sat!=='*')continue;
+    add({sat:'*',t0:e.t0,t1:e.t1,scope:'all',value:null,severity:2,canDisable:false,reason:EVT_LABEL[e.type].toLowerCase()+' — '+e.detail,evIds:[e.id]});
+  }
+  sug.sort((a,b)=>b.severity-a.severity||a.t0-b.t0);
+  return sug;
+}
+
+/* ===================== EXPORTAÇÃO RINEX EDITADO ===================== */
+function activeCounts(ds,mask){
+  const out={};
+  for(const id of ds.satList){const s=ds.sats[id];out[id]=s.codes.map(c=>{let n=0;const v=s.val[c],m=mask[id][c];for(let i=0;i<ds.nE;i++)if(v[i]===v[i]&&m[i])n++;return n;});}
+  return out;
+}
+function exportRinex(ds,mask,edits,opts){
+  opts=Object.assign({keepEmptyEpochs:true},opts||{});
+  const v3=ds.version>=3,eol=ds.eol,out=[];
+  const counts=activeCounts(ds,mask);
+  const satsActive=ds.satList.filter(id=>counts[id].some(x=>x>0));
+  const lab=(txt,l)=>txt.padEnd(60).slice(0,60)+l;
+  const cmt=[];
+  cmt.push(lab('Editado por Map GEO Magnet Tools - Editor GNSS (original preservado)','COMMENT'));
+  cmt.push(lab('Fonte: '+ds.name,'COMMENT'));
+  const act=edits.filter(e=>!e.undone);
+  cmt.push(lab(act.length+' edicao(oes) ativa(s); obs desativadas = valor em branco','COMMENT'));
+  for(const e of act.slice(0,40)){
+    const obs=e.scope==='all'?'TODOS':e.scope==='band'?'BANDA'+e.value:e.value;
+    cmt.push(lab((e.sats.join(',')+' '+obs+' '+fmtT(e.t0)+'-'+fmtT(e.t1)+' '+e.action).slice(0,60),'COMMENT'));
+  }
+  if(act.length>40)cmt.push(lab('... +'+(act.length-40)+' edicao(oes) omitida(s)','COMMENT'));
+  for(let k=0;k<ds.header.length;k++){
+    const l=ds.header[k],lb=l.slice(60).trim();
+    if(lb==='PRN / # OF OBS'){
+      if(l.slice(0,6).trim()===''){continue;}
+      if(l[3]===undefined)continue;
+      // regrava o bloco inteiro quando encontra o primeiro registro
+      if(!ds._prnWritten){}
+      continue;
+    }
+    if(lb==='# OF SATELLITES'){out.push(String(satsActive.length).padStart(6)+l.slice(6));continue;}
+    if(lb==='END OF HEADER'){
+      for(const c of cmt)out.push(c);
+      if(ds.header.some(h=>h.slice(60).trim()==='PRN / # OF OBS')){
+        for(const id of ds.satList){
+          const cs=counts[id];
+          for(let q=0;q<cs.length;q+=9){
+            const part=cs.slice(q,q+9).map(x=>String(x).padStart(6)).join('');
+            out.push(((q===0?'   '+id:'      ')+part).padEnd(60)+'PRN / # OF OBS');
+          }
+        }
+      }
+      out.push(l);continue;
+    }
+    out.push(l);
+  }
+  const blank16=' '.repeat(16);
+  for(const rec of ds.recs){
+    if(rec.pass){out.push(rec.head,...rec.lines);continue;}
+    const ei=rec.ei,keep=[];
+    for(const ent of rec.sats){
+      const s=ds.sats[ent.id];
+      if(!s){keep.push(ent);continue;}
+      let had=false,left=false;
+      const cut=[];
+      for(let k=0;k<s.codes.length;k++){
+        const c=s.codes[k];
+        if(s.val[c][ei]===s.val[c][ei]){had=true;if(mask[ent.id][c][ei])left=true;else cut.push(k);}
+      }
+      if(had&&!left&&opts.dropEmptySats!==false)continue;
+      if(!cut.length){keep.push(ent);continue;}
+      if(v3){
+        let line=ent.line.padEnd(3+16*s.codes.length);
+        for(const k of cut)line=line.slice(0,3+16*k)+blank16+line.slice(3+16*k+16);
+        keep.push({id:ent.id,line:line.replace(/\s+$/,'')});
+      }else{
+        const lines=ent.lines.map(x=>x.padEnd(80));
+        for(const k of cut){const li=Math.floor(k/5),col=16*(k%5);lines[li]=lines[li].slice(0,col)+blank16+lines[li].slice(col+16);}
+        keep.push({id:ent.id,lines:lines.map(x=>x.replace(/\s+$/,''))});
+      }
+    }
+    if(!keep.length&&!opts.keepEmptyEpochs)continue;
+    if(v3){
+      out.push(rec.head.slice(0,32)+String(keep.length).padStart(3)+rec.head.slice(35));
+      for(const e of keep)out.push(e.line);
+    }else{
+      const ids=keep.map(e=>(e.id[0]+e.id.slice(1)));
+      const first=rec.prefix+String(keep.length).padStart(3)+ids.slice(0,12).join('');
+      out.push(rec.clk?first.padEnd(68)+rec.clk:first);
+      for(let q=12;q<ids.length;q+=12)out.push(' '.repeat(32)+ids.slice(q,q+12).join(''));
+      for(const e of keep)out.push(...e.lines);
+    }
+  }
+  return out.join(eol)+eol;
+}
+
+/* ===================== NAVEGAÇÃO / EFEMÉRIDES / SPP ===================== */
+const GPS0=Date.UTC(1980,0,6),BDT0=Date.UTC(2006,0,1);
+const MU={G:3.986005e14,E:3.986004418e14,C:3.986004418e14,J:3.986005e14,I:3.986005e14};
+const OMGE={G:7.2921151467e-5,E:7.2921151467e-5,C:7.292115e-5,J:7.2921151467e-5,I:7.2921151467e-5};
+const dnum=s=>{const v=parseFloat(String(s).replace(/[dD]/,'E'));return v;};
+function parseNav(text,name){
+  const L=text.split(/\r?\n/),nav={name,version:0,eph:{},klobA:null,klobB:null,n:0};
+  let i=0;
+  for(;i<L.length;i++){
+    const l=L[i],lb=l.slice(60).trim();
+    if(lb==='RINEX VERSION / TYPE'){nav.version=parseFloat(l.slice(0,9));if(l[20]&&l[20]!=='N'&&!(nav.version<3&&l[20]==='G'))throw new Error('Arquivo de navegação inválido (tipo '+l[20]+').');if(nav.version<3&&l[20]==='G')nav.glonassOnly=true;}
+    else if(lb==='IONOSPHERIC CORR'){const k=l.slice(0,4).trim(),v=[l.slice(5,17),l.slice(17,29),l.slice(29,41),l.slice(41,53)].map(dnum);if(k==='GPSA')nav.klobA=v;if(k==='GPSB')nav.klobB=v;}
+    else if(lb==='ION ALPHA'||lb==='ION BETA'){const v=[0,1,2,3].map(j=>dnum(l.slice(2+12*j,14+12*j)));if(lb==='ION ALPHA')nav.klobA=v;else nav.klobB=v;}
+    else if(lb==='END OF HEADER'){i++;break;}
+  }
+  if(nav.version<3){ // RINEX 2.x: só efemérides GPS (arquivo GLONASS é ignorado)
+    if(nav.glonassOnly)return nav;
+    while(i+7<L.length){
+      const l0=L[i];if(!l0||!l0.trim()){i++;continue;}
+      const t=l0.slice(0,22).trim().split(/\s+/).map(Number);
+      if(t.length<7||!isFinite(t[0])){i++;continue;}
+      const yy=t[1]<80?2000+t[1]:1900+t[1],id='G'+String(t[0]).padStart(2,'0');
+      const toc=Date.UTC(yy,t[2]-1,t[3],t[4],t[5],Math.floor(t[6]));
+      const v=[];for(let q=1;q<=7;q++){const ll=(L[i+q]||'').padEnd(80);for(let j=0;j<4;j++)v.push(dnum(ll.slice(3+19*j,22+19*j)));}
+      const e={id,sys:'G',af0:dnum(l0.slice(22,41)),af1:dnum(l0.slice(41,60)),af2:dnum(l0.slice(60,79)),
+        crs:v[1],dn:v[2],m0:v[3],cuc:v[4],e:v[5],cus:v[6],sqrtA:v[7],toe:v[8],cic:v[9],Omega0:v[10],cis:v[11],
+        i0:v[12],crc:v[13],w:v[14],OmegaDot:v[15],idot:v[16],week:v[18],tgd:v[22],health:v[21]};
+      e.tocAbs=(toc-GPS0)/1000;e.toeAbs=e.week*604800+e.toe;
+      if(isFinite(e.sqrtA)&&isFinite(e.toeAbs)){(nav.eph[id]=nav.eph[id]||[]).push(e);nav.n++;}
+      i+=8;
+    }
+    return nav;
+  }
+  const rec8=(k)=>{
+    const l0=L[k];const id=satId(l0.slice(0,3)),sys=l0[0];
+    const toc=Date.UTC(+l0.slice(4,8),+l0.slice(9,11)-1,+l0.slice(12,14),+l0.slice(15,17),+l0.slice(18,20),+l0.slice(21,23));
+    const v=[];for(let q=1;q<=7;q++){const ll=(L[k+q]||'').padEnd(80);for(let j=0;j<4;j++)v.push(dnum(ll.slice(4+19*j,23+19*j)));}
+    const e={id,sys,af0:dnum(l0.slice(23,42)),af1:dnum(l0.slice(42,61)),af2:dnum(l0.slice(61,80)),
+      crs:v[1],dn:v[2],m0:v[3],cuc:v[4],e:v[5],cus:v[6],sqrtA:v[7],toe:v[8],cic:v[9],Omega0:v[10],cis:v[11],
+      i0:v[12],crc:v[13],w:v[14],OmegaDot:v[15],idot:v[16],week:v[18],tgd:v[22],health:v[21]};
+    if(sys==='C'){e.tocAbs=(toc-BDT0)/1000+1356*604800+14;e.toeAbs=(e.week+1356)*604800+e.toe+14;}
+    else{e.tocAbs=(toc-GPS0)/1000;e.toeAbs=e.week*604800+e.toe;}
+    return e;
+  };
+  while(i<L.length){
+    const l=L[i];
+    if(!l||!l.trim()){i++;continue;}
+    if(l[0]==='>'){ // RINEX 4
+      const tk=l.split(/\s+/);
+      if(tk[1]==='EPH'&&['LNAV','INAV','FNAV','D1','D2'].includes(tk[3])&&'GECJI'.includes(tk[2][0])){
+        const e=rec8(i+1);if(e&&isFinite(e.sqrtA)&&isFinite(e.toeAbs)){(nav.eph[e.id]=nav.eph[e.id]||[]).push(e);nav.n++;}
+        i+=9;continue;
+      }
+      i++;continue;
+    }
+    const sys=l[0];
+    if('GECJI'.includes(sys)&&/^[A-Z][ 0-9]\d /.test(l)){
+      const e=rec8(i);if(isFinite(e.sqrtA)&&isFinite(e.toeAbs)){(nav.eph[e.id]=nav.eph[e.id]||[]).push(e);nav.n++;}
+      i+=8;continue;
+    }
+    if(sys==='R'||sys==='S'){i+=4;continue;}
+    i++;
+  }
+  if(!nav.n)throw new Error('Nenhuma efeméride Kepleriana (GPS/Galileo/BeiDou/QZSS) encontrada.');
+  return nav;
+}
+function pickEph(nav,id,tAbs){
+  const list=nav.eph[id];if(!list)return null;
+  let best=null,bd=1e18;for(const e of list){if(e.health>0&&e.sys!=='E')continue;const d=Math.abs(tAbs-e.toeAbs);if(d<bd){bd=d;best=e;}}
+  return bd<=14400?best:null;
+}
+function ephPos(e,t){
+  const mu=MU[e.sys],oe=OMGE[e.sys],A=e.sqrtA*e.sqrtA,tk=t-e.toeAbs;
+  const n=Math.sqrt(mu/(A*A*A))+e.dn,M=e.m0+n*tk;let E=M;
+  for(let k=0;k<30;k++){const En=M+e.e*Math.sin(E);if(Math.abs(En-E)<1e-13){E=En;break;}E=En;}
+  const sE=Math.sin(E),cE=Math.cos(E),v=Math.atan2(Math.sqrt(1-e.e*e.e)*sE,cE-e.e),phi=v+e.w;
+  const s2=Math.sin(2*phi),c2=Math.cos(2*phi);
+  const u=phi+e.cus*s2+e.cuc*c2,r=A*(1-e.e*cE)+e.crs*s2+e.crc*c2,inc=e.i0+e.cis*s2+e.cic*c2+e.idot*tk;
+  const xp=r*Math.cos(u),yp=r*Math.sin(u),Om=e.Omega0+(e.OmegaDot-oe)*tk-oe*e.toe;
+  const cO=Math.cos(Om),sO=Math.sin(Om),ci=Math.cos(inc);
+  const dtc=t-e.tocAbs,dts=e.af0+e.af1*dtc+e.af2*dtc*dtc-4.442807633e-10*e.e*e.sqrtA*sE;
+  return {x:xp*cO-yp*ci*sO,y:xp*sO+yp*ci*cO,z:yp*Math.sin(inc),dts};
+}
+const WA=6378137,WF=1/298.257223563,WE2=WF*(2-WF);
+function ecef2llh(x,y,z){
+  const p=Math.hypot(x,y);let lat=Math.atan2(z,p*(1-WE2)),h=0;
+  for(let k=0;k<6;k++){const N=WA/Math.sqrt(1-WE2*Math.sin(lat)**2);h=p/Math.cos(lat)-N;lat=Math.atan2(z,p*(1-WE2*N/(N+h)));}
+  const N=WA/Math.sqrt(1-WE2*Math.sin(lat)**2);h=p/Math.cos(lat)-N;return [lat,Math.atan2(y,x),h];
+}
+function enuOf(dx,dy,dz,lat,lon){
+  const sl=Math.sin(lat),cl=Math.cos(lat),so=Math.sin(lon),co=Math.cos(lon);
+  return [-so*dx+co*dy,-sl*co*dx-sl*so*dy+cl*dz,cl*co*dx+cl*so*dy+sl*dz];
+}
+function tropDelay(el,h,lat){
+  h=Math.max(0,Math.min(h,9000));const p=1013.25*Math.pow(1-2.2557e-5*h,5.2568);
+  const zhd=0.0022768*p/(1-0.00266*Math.cos(2*lat)-0.00000028*h),zwd=0.1;
+  return (zhd+zwd)/(Math.sin(el)+0.00143/(Math.tan(el)+0.0455));
+}
+function klobuchar(a,b,lat,lon,az,el,tsow){
+  const psi=0.0137/(el/Math.PI+0.11)-0.022;let phi=lat/Math.PI+psi*Math.cos(az);phi=Math.max(-0.416,Math.min(0.416,phi));
+  const lam=lon/Math.PI+psi*Math.sin(az)/Math.cos(phi*Math.PI);phi+=0.064*Math.cos((lam-1.617)*Math.PI);
+  let tt=43200*lam+tsow;tt-=Math.floor(tt/86400)*86400;
+  const F=1+16*Math.pow(0.53-el/Math.PI,3);
+  let amp=a[0]+phi*(a[1]+phi*(a[2]+phi*a[3]));if(amp<0)amp=0;
+  let per=b[0]+phi*(b[1]+phi*(b[2]+phi*b[3]));if(per<72000)per=72000;
+  const x=2*Math.PI*(tt-50400)/per;
+  return CLIGHT*F*(Math.abs(x)<1.57?5e-9+amp*(1-x*x/2+x*x*x*x/24):5e-9);
+}
+function refPosition(ds,nav){
+  if(ds.approx)return ds.approx;
+  return null;
+}
+function pdopSeries(ds,nav,mask,P){
+  let ref=refPosition(ds,nav);
+  if(!ref){const r=sppSolveSync(ds,nav,mask||allActive(ds),Object.assign({},P,{maxEpochs:5}));if(r&&r.epochs.length)ref=[r.epochs[0].x,r.epochs[0].y,r.epochs[0].z];}
+  if(!ref)return null;
+  const [lat,lon]=ecef2llh(ref[0],ref[1],ref[2]),out=new Float64Array(ds.nE).fill(NaN),em=P.elevMask*Math.PI/180;
+  for(let i=0;i<ds.nE;i++){
+    const tr=(ds.t[i]-GPS0)/1000,G=[];
+    for(const id of ds.satList){
+      const s=ds.sats[id];if(!'GECJ'.includes(s.sys)||!s.has[i])continue;
+      if(s.sys==='C'&&(s.prn<=5||s.prn>=59))continue;
+      if(mask){let ok=false;for(const c of s.codes)if(s.val[c][i]===s.val[c][i]&&mask[id][c][i]){ok=true;break;}if(!ok)continue;}
+      const e=pickEph(nav,id,tr);if(!e)continue;
+      const p=ephPos(e,tr-0.075),dx=p.x-ref[0],dy=p.y-ref[1],dz=p.z-ref[2],[E,N,U]=enuOf(dx,dy,dz,lat,lon),r=Math.hypot(E,N,U);
+      if(Math.asin(U/r)<em)continue;G.push([dx/r,dy/r,dz/r,1]);
+    }
+    if(G.length<4)continue;
+    const N=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+    for(const g of G)for(let a=0;a<4;a++)for(let b=0;b<4;b++)N[a][b]+=g[a]*g[b];
+    const Q=invert(N);if(Q)out[i]=Math.sqrt(Q[0][0]+Q[1][1]+Q[2][2]);
+  }
+  return out;
+}
+function allActive(ds){return buildMask(ds,[]);}
+
+function sppEpochSolve(ds,nav,mask,P,i,xinit,state){
+  const tr=(ds.t[i]-GPS0)/1000,em=P.elevMask*Math.PI/180;
+  let obs=[];
+  for(const id of ds.satList){
+    const s=ds.sats[id];if(!'GECJ'.includes(s.sys)||!s.has[i])continue;
+    if(s.sys==='C'&&(s.prn<=5||s.prn>=59))continue;
+    const rs={};
+    for(const c of s.codes){
+      if(c[0]!=='C'&&c[0]!=='P')continue;const b=c[1];if(rs[b])continue;
+      const v=s.val[c][i];
+      if(v===v&&mask[id][c][i]&&v>1e7&&v<6e7){const f=freqMHz(ds,s.sys,b,id);if(f)rs[b]={p:v,f};}
+    }
+    const bands=Object.keys(rs).sort();if(bands.length)obs.push({id,sys:s.sys,rs,bands});
+  }
+  const dual=obs.filter(o=>o.bands.length>=2).length,useIF=P.mode!=='single'&&dual>=5;
+  if(useIF)obs=obs.filter(o=>o.bands.length>=2);
+  const rows=[];
+  for(const o of obs){
+    let p,f1;
+    if(useIF){const a=o.rs[o.bands[0]],b=o.rs[o.bands[1]],A=a.f*a.f,B=b.f*b.f;p=(A*a.p-B*b.p)/(A-B);f1=null;}
+    else{const a=o.rs[o.bands[0]];p=a.p;f1=a.f;}
+    const e=pickEph(nav,o.id,tr);if(!e)continue;
+    let pos=ephPos(e,tr-p/CLIGHT);pos=ephPos(e,tr-p/CLIGHT-pos.dts);
+    let dts=pos.dts;if(!useIF&&e.sys==='G'&&o.bands[0]==='1')dts-=e.tgd;
+    rows.push({id:o.id,sys:o.sys,p,f1,sx:pos.x,sy:pos.y,sz:pos.z,dts});
+  }
+  const systems=[...new Set(rows.map(r=>r.sys))],nu=4+systems.length-1;
+  if(rows.length<nu+0)return null;
+  const x=xinit.slice(),clk=new Array(systems.length).fill(0);
+  let used=null,okc=false,lastRes=null;
+  for(let it=0;it<12;it++){
+    const hasPos=Math.hypot(x[0],x[1],x[2])>6e6;
+    const [lat,lon,hgt]=hasPos?ecef2llh(x[0],x[1],x[2]):[0,0,0];
+    const N=Array.from({length:nu},()=>new Array(nu+1).fill(0));used=[];const res=[];
+    for(const r of rows){
+      const a=OMGE[r.sys],tau=Math.hypot(r.sx-x[0],r.sy-x[1],r.sz-x[2])/CLIGHT;
+      const sx=r.sx*Math.cos(a*tau)+r.sy*Math.sin(a*tau),sy=-r.sx*Math.sin(a*tau)+r.sy*Math.cos(a*tau),sz=r.sz;
+      const dx=sx-x[0],dy=sy-x[1],dz=sz-x[2],rho=Math.hypot(dx,dy,dz);let el=Math.PI/2,corr=0;
+      if(hasPos){
+        const [E,Nn,U]=enuOf(dx,dy,dz,lat,lon);el=Math.asin(U/rho);if(el<em)continue;
+        corr+=tropDelay(el,hgt,lat);
+        if(r.f1&&nav.klobA&&nav.klobB){const tsow=((ds.t[i]-GPS0)/1000)%604800;corr+=klobuchar(nav.klobA,nav.klobB,lat,lon,Math.atan2(E,Nn),el,tsow)*Math.pow(1575.42/r.f1,2);}
+      }
+      const si=systems.indexOf(r.sys),y=r.p+CLIGHT*r.dts-corr;
+      const v=y-rho-clk[0]-(si>0?clk[si]:0);
+      const g=new Array(nu).fill(0);g[0]=-dx/rho;g[1]=-dy/rho;g[2]=-dz/rho;g[3]=1;if(si>0)g[3+si]=1;
+      const w=Math.pow(Math.sin(el),2)+0.01;
+      for(let a1=0;a1<nu;a1++){for(let b1=0;b1<nu;b1++)N[a1][b1]+=w*g[a1]*g[b1];N[a1][nu]+=w*g[a1]*v;}
+      used.push({id:r.id,v,el,g});res.push(v);
+    }
+    if(used.length<nu)return null;
+    const d=gauss(N,nu);if(!d)return null;
+    x[0]+=d[0];x[1]+=d[1];x[2]+=d[2];clk[0]+=d[3];for(let k=1;k<systems.length;k++)clk[k]+=d[3+k];
+    lastRes=res;
+    if(hasPos&&Math.hypot(...d)<1e-3){okc=true;break;}
+  }
+  if(!okc||!lastRes)return null;
+  const rn=Math.hypot(x[0],x[1],x[2]);if(rn<6.2e6||rn>6.5e6)return null;
+  // resíduos finais com a solução convergida
+  let ss=0;const [lat,lon]=ecef2llh(x[0],x[1],x[2]);
+  const Nq=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+  for(const u of used){ss+=u.v*u.v;const g=[u.g[0],u.g[1],u.g[2],1];for(let a=0;a<4;a++)for(let b=0;b<4;b++)Nq[a][b]+=g[a]*g[b];}
+  const Q=invert(Nq),pdop=Q?Math.sqrt(Q[0][0]+Q[1][1]+Q[2][2]):NaN;
+  return {i,t:ds.t[i],clk:clk[0],x:x[0],y:x[1],z:x[2],nsat:used.length,pdop,rms:Math.sqrt(ss/used.length),dof:used.length-nu,mode:useIF?'IF':'L1'};
+}
+function summarizeSolution(ds,eps,total,label){
+  if(!eps.length)return {engine:label,ok:false,epochs:0,epochsTotal:total};
+  const n=eps.length,mx=eps.reduce((a,e)=>a+e.x,0)/n,my=eps.reduce((a,e)=>a+e.y,0)/n,mz=eps.reduce((a,e)=>a+e.z,0)/n;
+  const [lat,lon,h]=ecef2llh(mx,my,mz);
+  const E=[],Nn=[],U=[];
+  for(const e of eps){const [a,b,c]=enuOf(e.x-mx,e.y-my,e.z-mz,lat,lon);E.push(a);Nn.push(b);U.push(c);}
+  const sd=a=>Math.sqrt(a.reduce((s,x)=>s+x*x,0)/Math.max(1,a.length-1));
+  const sdE=sd(E),sdN=sd(Nn),sdU=sd(U),pd=eps.filter(e=>isFinite(e.pdop));
+  const rmsAll=Math.sqrt(eps.reduce((s,e)=>s+e.rms*e.rms,0)/n);
+  return {engine:label,ok:true,epochs:n,epochsTotal:total,
+    nsatMean:eps.reduce((a,e)=>a+e.nsat,0)/n,nsatMax:Math.max(...eps.map(e=>e.nsat)),
+    pdopMean:pd.length?pd.reduce((a,e)=>a+e.pdop,0)/pd.length:NaN,rms:rmsAll,
+    sdE,sdN,sdU,sdH:Math.hypot(sdE,sdN),sd3:Math.hypot(sdE,sdN,sdU),
+    mean:{x:mx,y:my,z:mz,lat:lat*180/Math.PI,lon:lon*180/Math.PI,h},
+    series:{t:eps.map(e=>e.t),E,N:Nn,U}};
+}
+function sppSolveSync(ds,nav,mask,P){
+  const eps=[];let x=ds.approx?ds.approx.slice():[0,0,0];const max=P.maxEpochs||ds.nE;
+  for(let i=0;i<ds.nE&&eps.length<max;i++){const r=sppEpochSolve(ds,nav,mask,P,i,x);if(r){eps.push(r);x=[r.x,r.y,r.z];}}
+  return {epochs:eps};
+}
+const ENGINES={spp:{label:'Interno — SPP (pseudodistância, efemérides broadcast)',run:async input=>{
+  const {ds,nav,mask,params,onProgress}=input;
+  if(!nav)throw new Error('Carregue o arquivo de navegação (broadcast) para o motor interno.');
+  const eps=[];let x=ds.approx?ds.approx.slice():[0,0,0];
+  for(let i=0;i<ds.nE;i++){
+    const r=sppEpochSolve(ds,nav,mask,params,i,x);if(r){eps.push(r);x=[r.x,r.y,r.z];}
+    if(i%150===0){if(onProgress)onProgress(i/ds.nE);await new Promise(r=>setTimeout(r,0));}
+  }
+  return summarizeSolution(ds,eps,ds.nE,'SPP interno');
+}}};
+function registerEngine(id,label,fn){ENGINES[id]={label,run:fn};}
+
+
+/* ===================== LINHA DE BASE (base → rover) ===================== */
+/* ---- LAMBDA (porte da formulação clássica: LtDL, redução, busca) ---- */
+function lambdaSolve(a,Q,m){
+  const n=a.length;m=m||2;
+  const L=Array.from({length:n},()=>new Array(n).fill(0)),D=new Array(n).fill(0),Z=Array.from({length:n},(_,i)=>{const r=new Array(n).fill(0);r[i]=1;return r;});
+  // LD
+  const A=Q.map(r=>r.slice());
+  for(let i=n-1;i>=0;i--){
+    D[i]=A[i][i];if(!(D[i]>0))return null;
+    const s=Math.sqrt(D[i]);
+    for(let j=0;j<=i;j++)L[i][j]=A[i][j]/s;
+    for(let j=0;j<=i-1;j++)for(let k=0;k<=j;k++)A[j][k]-=L[i][k]*L[i][j];
+    for(let j=0;j<=i;j++)L[i][j]/=L[i][i];
+  }
+  const rnd=x=>Math.floor(x+0.5),sgn=x=>x<=0?-1:1;
+  const lg=(i,j)=>{const mu=rnd(L[i][j]);if(mu!==0){for(let k=i;k<n;k++)L[k][j]-=mu*L[k][i];for(let k=0;k<n;k++)Z[k][j]-=mu*Z[k][i];}};
+  const perm=(j,del)=>{
+    const eta=D[j]/del,lam=D[j+1]*L[j+1][j]/del;
+    D[j]=eta*D[j+1];D[j+1]=del;
+    for(let k=0;k<=j-1;k++){const a0=L[j][k],a1=L[j+1][k];L[j][k]=-L[j+1][j]*a0+a1;L[j+1][k]=eta*a0+lam*a1;}
+    L[j+1][j]=lam;
+    for(let k=j+2;k<n;k++){const t=L[k][j];L[k][j]=L[k][j+1];L[k][j+1]=t;}
+    for(let k=0;k<n;k++){const t=Z[k][j];Z[k][j]=Z[k][j+1];Z[k][j+1]=t;}
+  };
+  // reduction
+  let j=n-2,k=n-2;
+  while(j>=0){
+    if(j<=k)for(let i=j+1;i<n;i++)lg(i,j);
+    const del=D[j]+L[j+1][j]*L[j+1][j]*D[j+1];
+    if(del+1e-6<D[j+1]){perm(j,del);k=j;j=n-2;}else j--;
+  }
+  // z = Z' a
+  const zs=new Array(n).fill(0);for(let i=0;i<n;i++){let s=0;for(let q=0;q<n;q++)s+=Z[q][i]*a[q];zs[i]=s;}
+  // search
+  const S=Array.from({length:n},()=>new Array(n).fill(0)),dist=new Array(n).fill(0),zb=new Array(n).fill(0),z=new Array(n).fill(0),step=new Array(n).fill(0);
+  const zn=[],s=[];let nn=0,imax=0,maxdist=1e99,y;
+  k=n-1;dist[k]=0;zb[k]=zs[k];z[k]=rnd(zb[k]);y=zb[k]-z[k];step[k]=sgn(y);
+  for(let c=0;c<20000;c++){
+    const nd=dist[k]+y*y/D[k];
+    if(nd<maxdist){
+      if(k!==0){
+        dist[--k]=nd;
+        for(let i=0;i<=k;i++)S[k][i]=S[k+1][i]+(z[k+1]-zb[k+1])*L[k+1][i];
+        zb[k]=zs[k]+S[k][k];z[k]=rnd(zb[k]);y=zb[k]-z[k];step[k]=sgn(y);
+      }else{
+        if(nn<m){if(nn===0||nd>s[imax])imax=nn;zn[nn]=z.slice();s[nn++]=nd;}
+        else{
+          if(nd<s[imax]){zn[imax]=z.slice();s[imax]=nd;imax=0;for(let i=0;i<m;i++)if(s[imax]<s[i])imax=i;}
+          maxdist=s[imax];
+        }
+        z[0]+=step[0];y=zb[0]-z[0];step[0]=-step[0]-sgn(step[0]);
+      }
+    }else{
+      if(k===n-1)break;
+      k++;z[k]+=step[k];y=zb[k]-z[k];step[k]=-step[k]-sgn(step[k]);
+    }
+  }
+  if(nn<1)return null;
+  const idx=s.map((v,i)=>i).sort((p,q)=>s[p]-s[q]);
+  // F = Z' \ E
+  const ZT=Z.map((r,i)=>Z.map(rr=>rr[i]));const ZTi=invert(ZT);if(!ZTi)return null;
+  const F=idx.map(ii=>ZTi.map(row=>{let t=0;for(let q=0;q<n;q++)t+=row[q]*zn[ii][q];return Math.round(t);}));
+  return {F,s:idx.map(i=>s[i])};
+}
+
+/* ---- coordenadas ---- */
+const GRS80={a:6378137,f:1/298.257222101};
+function llh2ecef(lat,lon,h){const e2=GRS80.f*(2-GRS80.f),N=GRS80.a/Math.sqrt(1-e2*Math.sin(lat)**2);return [(N+h)*Math.cos(lat)*Math.cos(lon),(N+h)*Math.cos(lat)*Math.sin(lon),(N*(1-e2)+h)*Math.sin(lat)];}
+function toUTM(lat,lon){
+  const a=GRS80.a,f=GRS80.f,k0=0.9996,n=f/(2-f),A=a/(1+n)*(1+n*n/4+n**4/64+n**6/256);
+  const al=[n/2-2*n*n/3+5*n**3/16+41*n**4/180,13*n*n/48-3*n**3/5+557*n**4/1440,61*n**3/240-103*n**4/140,49561*n**4/161280];
+  const zone=Math.floor((lon*180/Math.PI+180)/6)+1,lon0=((zone-1)*6-180+3)*Math.PI/180,dl=lon-lon0;
+  const q=2*Math.sqrt(n)/(1+n),t=Math.sinh(Math.atanh(Math.sin(lat))-q*Math.atanh(q*Math.sin(lat)));
+  const xi=Math.atan2(t,Math.cos(dl)),eta=Math.atanh(Math.sin(dl)/Math.sqrt(1+t*t));
+  let x=xi,y=eta;
+  for(let j=1;j<=4;j++){x+=al[j-1]*Math.sin(2*j*xi)*Math.cosh(2*j*eta);y+=al[j-1]*Math.cos(2*j*xi)*Math.sinh(2*j*eta);}
+  return {zone,hem:lat<0?'S':'N',E:500000+k0*A*y,N:k0*A*x+(lat<0?1e7:0)};
+}
+function parseAngle(s){ // aceita decimal ou graus/min/seg, vírgula decimal, hemisfério S/W/N/E
+  if(typeof s==='number')return s;
+  let t=String(s).trim().replace(',','.').replace(/,/g,'.');if(!t)return NaN;
+  let sign=1;if(/[SWOswo]/.test(t)&&!/^[-+]?\d/.test(t.replace(/[^0-9+\-.]/g,'')))sign=1;
+  if(/[SsWwOo]\s*$/.test(t)||/^\s*[SsWwOo]/.test(t))sign=-1;
+  if(/^\s*-/.test(t))sign=-1;
+  const nums=(t.match(/\d+(?:\.\d+)?/g)||[]).map(Number);if(!nums.length)return NaN;
+  let v=nums[0]+(nums[1]||0)/60+(nums[2]||0)/3600;return sign*v;
+}
+function upVec(lat,lon){return [Math.cos(lat)*Math.cos(lon),Math.cos(lat)*Math.sin(lon),Math.sin(lat)];}
+function describePos(xyz){
+  const [lat,lon,h]=ecef2llh(xyz[0],xyz[1],xyz[2]),u=toUTM(lat,lon);
+  return {x:xyz[0],y:xyz[1],z:xyz[2],lat:lat*180/Math.PI,lon:lon*180/Math.PI,h,utm:u};
+}
+function fmtDMS(deg,isLat){const s=deg<0?-1:1,a=Math.abs(deg),d=Math.floor(a),m=Math.floor((a-d)*60),sec=((a-d)*60-m)*60;return (s<0?(isLat?'S ':'W '):(isLat?'N ':'E '))+d+'° '+String(m).padStart(2,'0')+"' "+sec.toFixed(5).padStart(8,'0')+'"';}
+
+/* ---- processamento base → rover (estático, DD fase+código, ambiguidades inteiras) ---- */
+const BL_DEF={elev:10,ratio:3,sigPhase:0.003,sigCode:0.3,maxBaselineKm:15,hiBase:0,hiRover:0,minEpochs:5,tol:0.05};
+function pairEpochs(dsR,dsB,tolS){
+  const out=[],tb=dsB.t,tol=tolS*1000;
+  for(let i=0;i<dsR.nE;i++){let j=lowerBound(tb,dsR.t[i]-tol);if(j<tb.length&&Math.abs(tb[j]-dsR.t[i])<=tol)out.push([i,j]);}
+  return out;
+}
+function pickPhaseSlots(dsR,maskR,i,dsB,maskB,j,id){
+  // devolve {band: {pc, cc, lamb}} usando os mesmos códigos nos dois receptores
+  const sr=dsR.sats[id],sb=dsB.sats[id];if(!sr||!sb)return null;
+  const res={},bands=new Set(sr.codes.filter(c=>c[0]==='L').map(c=>c[1]));
+  for(const b of bands){
+    const f=freqMHz(dsR,sr.sys,b,id);if(!f)continue;
+    const ok=(c,s,sd,mk,k)=>s.codes.includes(c)&&sd.val[c][k]===sd.val[c][k]&&mk[c][k];
+    const pc=sr.codes.find(c=>c[0]==='L'&&c[1]===b&&sb.codes.includes(c)&&sr.val[c][i]===sr.val[c][i]&&sb.val[c][j]===sb.val[c][j]&&maskR[id][c][i]&&maskB[id][c][j]);
+    if(!pc)continue;
+    const cands=sr.codes.filter(c=>(c[0]==='C'||c[0]==='P')&&c[1]===b&&sb.codes.includes(c)&&sr.val[c][i]===sr.val[c][i]&&sb.val[c][j]===sb.val[c][j]&&maskR[id][c][i]&&maskB[id][c][j]);
+    const cc=cands.find(c=>c.slice(2)===pc.slice(2))||cands[0];if(!cc)continue;
+    const lli=((sr.lli[pc][i]|sb.lli[pc][j])&1)?1:0;
+    res[b]={pc,cc,lamb:CLIGHT/(f*1e6),lli};
+  }
+  return Object.keys(res).length?res:null;
+}
+function satGeom(nav,id,tAbs,pCode,X,lat,lon,h){
+  const e=pickEph(nav,id,tAbs);if(!e)return null;
+  let pos=ephPos(e,tAbs-pCode/CLIGHT);pos=ephPos(e,tAbs-pCode/CLIGHT-pos.dts);
+  const oe=OMGE[e.sys];let rho=pCode,sx=pos.x,sy=pos.y,sz=pos.z;
+  for(let it=0;it<3;it++){const tau=rho/CLIGHT,a=oe*tau;sx=pos.x*Math.cos(a)+pos.y*Math.sin(a);sy=-pos.x*Math.sin(a)+pos.y*Math.cos(a);sz=pos.z;rho=Math.hypot(sx-X[0],sy-X[1],sz-X[2]);}
+  const dx=sx-X[0],dy=sy-X[1],dz=sz-X[2],[E,N,U]=enuOf(dx,dy,dz,lat,lon),el=Math.asin(U/rho);
+  return {sx,sy,sz,rho,el,ux:dx/rho,uy:dy/rho,uz:dz/rho,trop:tropDelay(Math.max(el,0.05),h,lat)};
+}
+function baselineSolve(dsB,maskB,dsR,maskR,nav,baseMarkerXYZ,opt){
+  opt=Object.assign({},BL_DEF,opt||{});
+  if(!nav)throw new Error('Carregue a navegação (broadcast) para processar linhas de base.');
+  const pairs=pairEpochs(dsR,dsB,opt.tol);
+  if(pairs.length<opt.minEpochs)return {ok:false,status:'SEM ÉPOCAS COMUNS',reason:'Épocas comuns entre base e rover: '+pairs.length+' (mín. '+opt.minEpochs+').'};
+  const [latB,lonB]=ecef2llh(baseMarkerXYZ[0],baseMarkerXYZ[1],baseMarkerXYZ[2]),upB=upVec(latB,lonB);
+  const XB=[0,1,2].map(k=>baseMarkerXYZ[k]+upB[k]*opt.hiBase);
+  let XR=opt.approxRover||dsR.approx;
+  if(!XR||Math.hypot(...XR)<6e6){
+    const r=sppSolveSync(dsR,nav,maskR,Object.assign({},DEF_PARAMS,{maxEpochs:3,elevMask:opt.elev}));
+    if(!r.epochs.length)return {ok:false,status:'SEM POSIÇÃO INICIAL',reason:'Não foi possível obter posição aproximada do rover.'};
+    XR=[r.epochs[0].x,r.epochs[0].y,r.epochs[0].z];
+  }
+  XR=XR.slice();
+  const interval=Math.max(dsR.intervalMs,dsB.intervalMs)/1000,em=opt.elev*Math.PI/180;
+  let result=null;
+  const tropOn=true;
+  for(let outer=0;outer<4;outer++){
+    const [latR,lonR,hR]=ecef2llh(XR[0],XR[1],XR[2]),[,,hB]=ecef2llh(XB[0],XB[1],XB[2]);
+    // 1) observações por época
+    const arcOf={},arcCount={},arcs=[];
+    const lastEp={},lastSDgf={};
+    const eps=[];
+    for(let pi=0;pi<pairs.length;pi++){
+      const [i,j]=pairs[pi],tAbs=(dsR.t[i]-GPS0)/1000,tAbsB=(dsB.t[j]-GPS0)/1000;
+      const slots=[];
+      for(const id of dsR.satList){
+        const sr=dsR.sats[id];if(opt.excl&&opt.excl.includes(id))continue;if(!(opt.sys||'GECJ').includes(sr.sys)||!sr.has[i]||!dsB.sats[id]||!dsB.sats[id].has[j])continue;
+        if(sr.sys==='C'&&(sr.prn<=5||sr.prn>=59))continue;
+        const ps=pickPhaseSlots(dsR,maskR,i,dsB,maskB,j,id);if(!ps)continue;
+        const b0=Object.keys(ps)[0],pR0=sr.val[ps[b0].cc][i],pB0=dsB.sats[id].val[ps[b0].cc][j];
+        const gR=satGeom(nav,id,tAbs,pR0,XR,latR,lonR,hR),gB=satGeom(nav,id,tAbsB,pB0,XB,latB,lonB,hB);
+        if(!gR||!gB||gR.el<em)continue;
+        // slip por GF diferença simples
+        let slip=false;const bs=Object.keys(ps).sort();
+        if(bs.length>=2){
+          const sb=dsB.sats[id],a=ps[bs[0]],b=ps[bs[1]];
+          const sd=(c,w)=>w*((sr.val[c][i]-sb.val[c][j]));
+          const gf=sd(a.pc,a.lamb)-sd(b.pc,b.lamb);
+          if(lastSDgf[id]!==undefined&&pi-lastEp[id+'gf']===1&&Math.abs(gf-lastSDgf[id])>0.15)slip=true;
+          lastSDgf[id]=gf;lastEp[id+'gf']=pi;
+        }
+        for(const b of bs){
+          if(opt.onlyBand&&b!==opt.onlyBand)continue;
+          const o=ps[b],key=id+'|'+b,sb=dsB.sats[id];
+          const newArc=arcOf[key]===undefined||pi-lastEp[key]>Math.max(2,Math.round(180/interval))||o.lli||slip;
+          if(newArc){arcCount[key]=(arcCount[key]||0)+1;const a={key,sys:sr.sys,band:b,lamb:o.lamb,n:0,idx:arcs.length};arcs.push(a);arcOf[key]=a;}
+          const arc=arcOf[key];arc.n++;lastEp[key]=pi;
+          slots.push({id,sys:sr.sys,band:b,arc,lamb:o.lamb,el:gR.el,
+            phi:o.lamb*((sr.val[o.pc][i]-sb.val[o.pc][j])), // SD fase (m)
+            cod:sr.val[o.cc][i]-sb.val[o.cc][j], // SD código (m)
+            gR,gB});
+        }
+      }
+      eps.push(slots);
+    }
+    // 2) linhas DD (satélite de referência por sistema/banda e época)
+    const rows=[];
+    for(const slots of eps){
+      const groups={};for(const s of slots)(groups[s.sys+s.band]=groups[s.sys+s.band]||[]).push(s);
+      for(const g of Object.values(groups)){
+        if(g.length<2)continue;g.sort((a,b)=>b.el-a.el);const ref=g[0];
+        for(let q=1;q<g.length;q++){
+          const s=g[q];
+          const mod=(s.gR.rho-s.gB.rho+s.gR.trop-s.gB.trop)-(ref.gR.rho-ref.gB.rho+ref.gR.trop-ref.gB.trop);
+          const sP=opt.sigPhase,sC=opt.sigCode,vs=1/Math.sin(s.el),vr=1/Math.sin(ref.el);
+          rows.push({s,ref,mod,
+            ex:-(s.gR.ux-ref.gR.ux),ey:-(s.gR.uy-ref.gR.uy),ez:-(s.gR.uz-ref.gR.uz),
+            dphi:s.phi-ref.phi,dcod:s.cod-ref.cod,
+            wP:1/(2*(sP*sP*(vs*vs+vr*vr))),wC:1/(2*(sC*sC*(vs*vs+vr*vr)))});
+        }
+      }
+    }
+    if(rows.length<10)return {ok:false,status:'DADOS INSUFICIENTES',reason:'Poucas observações duplamente diferenciadas ('+rows.length+').'};
+    // 3) componentes conexos e âncoras
+    const par=arcs.map((_,i)=>i),find=x=>{while(par[x]!==x){par[x]=par[par[x]];x=par[x];}return x;};
+    for(const r of rows){const a=find(r.s.arc.idx),b=find(r.ref.arc.idx);if(a!==b)par[a]=b;}
+    const used=new Set();for(const r of rows){used.add(r.s.arc.idx);used.add(r.ref.arc.idx);}
+    const anchor={};for(const a of arcs){if(!used.has(a.idx))continue;const c=find(a.idx);if(!anchor[c]||a.n>arcs[anchor[c]].n)anchor[c]=a.idx;}
+    const pidx={};let np=3;const plist=[];
+    for(const a of arcs){if(!used.has(a.idx))continue;if(opt.noPhase||anchor[find(a.idx)]===a.idx)continue;pidx[a.idx]=np++;plist.push(a);}
+    const nU=np;
+    // 4) mínimos quadrados (iterações para a posição)
+    let x=[0,0,0],Nm,Qm,NA=0;
+    const solve=(rowsUse)=>{
+      for(let it=0;it<5;it++){
+        const N=Array.from({length:nU},()=>new Array(nU+1).fill(0));
+        for(const r of rowsUse){
+          const [lat2,lon2,h2]=[latR,lonR,hR];
+          const dposModel=r.ex*x[0]+r.ey*x[1]+r.ez*x[2];
+          // fase: dphi = mod + dpos + lamb*(N_i - N_ref)
+          const yP=r.dphi-r.mod-dposModel,yC=r.dcod-r.mod-dposModel;
+          const ia=pidx[r.s.arc.idx],ir=pidx[r.ref.arc.idx];
+          const lam=r.s.lamb;
+          const rowP=[],rowC=[];
+          // construir linha esparsa
+          const add=(g,w,y,withAmb)=>{
+            const idx=[0,1,2],co=[r.ex,r.ey,r.ez];
+            if(withAmb){if(ia!==undefined){idx.push(ia);co.push(lam);}if(ir!==undefined){idx.push(ir);co.push(-lam);}}
+            for(let a=0;a<idx.length;a++){for(let b=0;b<idx.length;b++)N[idx[a]][idx[b]]+=w*co[a]*co[b];N[idx[a]][nU]+=w*co[a]*y;}
+          };
+          if(!opt.noPhase)add(0,r.wP,yP,true);add(0,r.wC,yC,false);
+        }
+        for(let k=3;k<nU;k++)N[k][k]+=1e-9;
+        const Nc=N.map(r=>r.slice());
+        const d=gauss(Nc,nU);if(!d)return null;
+        x[0]+=d[0];x[1]+=d[1];x[2]+=d[2];
+        const amb=d.slice(3);
+        const done=Math.hypot(d[0],d[1],d[2])<1e-4;
+        if(done||it===4){
+          const Nn=N.map(r=>r.slice(0,nU)),Q=invert(Nn);if(!Q)return null;
+          return {x:x.slice(),amb,Q};
+        }
+        // ambiguidade absoluta = d.slice(3) (modelo linear em N): guardar e continuar
+      }
+      return null;
+    };
+    // primeira solução + rejeição de outliers
+    x=[0,0,0];let fl=solve(rows);if(!fl)return {ok:false,status:'FALHOU',reason:'Sistema singular (geometria/ambiguidades).'};
+    const resid=(r,xx,amb)=>{const dp=r.ex*xx[0]+r.ey*xx[1]+r.ez*xx[2];const ia=pidx[r.s.arc.idx],ir=pidx[r.ref.arc.idx];
+      const nA=(ia!==undefined?amb[ia-3]:0)-(ir!==undefined?amb[ir-3]:0);return {p:r.dphi-r.mod-dp-r.s.lamb*nA,c:r.dcod-r.mod-dp};};
+    let kept=rows.filter(r=>{const e=resid(r,fl.x,fl.amb);return (opt.noPhase||Math.abs(e.p)<Math.max(0.05,6/Math.sqrt(r.wP)))&&Math.abs(e.c)<Math.max(10,6/Math.sqrt(r.wC));});
+    if(kept.length<rows.length&&kept.length>=10){x=[0,0,0];const f2=solve(kept);if(f2){fl=f2;}}
+    else kept=rows;
+    // âncora pode ter ficado sem linhas: ok
+    const XRnew=[XR[0]+fl.x[0],XR[1]+fl.x[1],XR[2]+fl.x[2]];
+    const moved=Math.hypot(fl.x[0],fl.x[1],fl.x[2]);
+    // resíduo float
+    let ssP=0,nP=0,ssC=0;for(const r of kept){const e=resid(r,fl.x,fl.amb);ssP+=e.p*e.p;ssC+=e.c*e.c;nP++;}
+    const Qpp=[0,1,2].map(a=>[0,1,2].map(b=>fl.Q[a][b]));
+    const res={float:{x:fl.x,sd:[0,1,2].map(k=>Math.sqrt(Math.max(0,Qpp[k][k]))),rms:Math.sqrt(ssP/nP),codeRms:Math.sqrt(ssC/nP)},nAmb:plist.length,nRows:kept.length,epochs:eps.filter(s=>s.length>=2).length};
+    // 5) fixação com LAMBDA (e fixação parcial)
+    res.status='FLOAT';res.ratio=0;res.nFix=0;res.fixed=null;
+    const nA=plist.length;
+    if(nA>=2){
+      let sel=plist.map((_,i)=>i),best=null;
+      const Qaa0=sel.map(a=>sel.map(b=>fl.Q[3+a][3+b]));
+      for(let tries=0;tries<Math.max(1,nA-3)&&sel.length>=3;tries++){
+        const a=sel.map(i=>fl.amb[i]),Qaa=sel.map(p=>sel.map(q=>fl.Q[3+p][3+q]));
+        const lam=lambdaSolve(a,Qaa,2);
+        if(lam&&lam.F.length>=2){const ratio=lam.s[0]>1e-12?lam.s[1]/lam.s[0]:99;
+          if(!best||ratio>best.ratio)best={ratio,sel:sel.slice(),F:lam.F[0],Qaa};
+          if(ratio>=opt.ratio){best={ratio,sel:sel.slice(),F:lam.F[0],Qaa};break;}}
+        // remove a ambiguidade de maior variância
+        let wi=0,wv=-1;sel.forEach((p,k)=>{const v=fl.Q[3+p][3+p];if(v>wv){wv=v;wi=k;}});sel.splice(wi,1);
+      }
+      if(best){
+        res.ratio=best.ratio;res.nFix=best.sel.length;
+        if(best.ratio>=opt.ratio){
+          // x_fix = x_f - Q_pa Q_aa^-1 (a_f - a_fix)
+          const sel=best.sel,Qaai=invert(best.Qaa);
+          if(Qaai){
+            const da=sel.map((p,k)=>fl.amb[p]-best.F[k]);
+            const t=Qaai.map(row=>row.reduce((s,v,k)=>s+v*da[k],0));
+            const xf=[0,1,2].map(c=>fl.x[c]-sel.reduce((s,p,k)=>s+fl.Q[c][3+p]*t[k],0));
+            // covariância condicional
+            const sd=[0,1,2].map(c=>{let v=fl.Q[c][c];for(let a=0;a<sel.length;a++)for(let b=0;b<sel.length;b++)v-=fl.Q[c][3+sel[a]]*Qaai[a][b]*fl.Q[c][3+sel[b]];return Math.sqrt(Math.max(0,v));});
+            // resíduo fixo: reestima ambiguidades restantes mantendo as fixadas
+            const ambF=fl.amb.slice();sel.forEach((p,k)=>ambF[p]=best.F[k]);
+            let ss=0,n=0;for(const r of kept){const e=resid(r,xf,ambF);ss+=e.p*e.p;n++;}
+            res.fixed={x:xf,sd,rms:Math.sqrt(ss/n)};res.status=(best.sel.length===nA?'FIX':'FIX PARCIAL');
+          }
+        }
+      }
+    }
+    const use=res.fixed||res.float;
+    result={res,XRnew:[XR[0]+use.x[0],XR[1]+use.x[1],XR[2]+use.x[2]]};
+    // iterar com posição atualizada (geometria/elevação)
+    XR=result.XRnew;
+    if(moved<0.05&&outer>=1)break;
+  }
+  const {res}=result,use=res.fixed||res.float,XRf=result.XRnew;
+  const vec=[XRf[0]-XB[0],XRf[1]-XB[1],XRf[2]-XB[2]],[lat0,lon0]=[latB,lonB];
+  const [dE,dN,dU]=enuOf(vec[0],vec[1],vec[2],lat0,lon0);
+  const len=Math.hypot(...vec);
+  // ARP do rover → marcador
+  const [latR2,lonR2]=ecef2llh(XRf[0],XRf[1],XRf[2]),upR=upVec(latR2,lonR2);
+  const markR=[0,1,2].map(k=>XRf[k]-upR[k]*opt.hiRover);
+  const warn=[];if(len/1000>opt.maxBaselineKm)warn.push('Linha de base de '+(len/1000).toFixed(1)+' km: sem modelo de ionosfera, a fixação pode falhar/ser enganosa.');
+  if(res.rms>0.03)warn.push('Resíduo de fase alto ('+(res.rms*1000).toFixed(0)+' mm): o rover pode não ter ficado estático ou há perdas de ciclo; desconfie do vetor.');
+  if(res.status==='FLOAT'&&res.ratio>0)warn.push('Razão de fixação '+res.ratio.toFixed(1)+' < '+opt.ratio+': solução float.');
+  if(use.rms>0.02)warn.push('Resíduo DD de fase alto ('+(use.rms*1000).toFixed(0)+' mm): rover pode ter se movido (modelo é estático).');
+  return {ok:true,status:res.status,ratio:res.ratio,nFix:res.nFix,nAmb:res.nAmb,epochs:res.epochs,pairs:pairs.length,
+    vec,dE,dN,dU,length:len,sd:use.sd,rms:use.rms,codeRms:res.float.codeRms,floatVec:null,rover:describePos(markR),roverARP:XRf,baseARP:XB,warn};
+}
+
+</script>
+<script>
+'use strict';
+/* ===================== INTERFACE ===================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nf=n=>Number(n).toLocaleString('pt-BR');
+const f2=(n,d=2)=>isFinite(n)?Number(n).toFixed(d).replace('.',','):'—';
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>t.style.display='none',3500);}
+const TL={ROW:28,LBL:50,AXIS:30,GLB:10};
+const EV_COL={CYCLE_SLIP:'#ff6b6b',PHASE_JUMP:'#ff7ad9',LOCK_LOSS:'#ff7ad9',GAP:'#ff9f43',PHASE_LOSS:'#b07cff',LOW_SNR:'#f1c40f',SNR_ABN:'#5ac8fa',ABN:'#5ac8fa',INCONSISTENT:'#5ac8fa',LOW_SATS:'#ff9f43',PDOP:'#b07cff'};
+const SLIP_TYPES=['CYCLE_SLIP','PHASE_JUMP','LOCK_LOSS'];
+const S={ds:null,nav:null,params:Object.assign({},DEF_PARAMS),versions:[],cur:0,vCounter:0,mask:null,maskOrig:null,counts:null,countsOrig:null,states:{},
+  events:[],evBySat:{},evState:{},sugs:[],results:{},view:{t0:0,t1:1},scroll:0,mode:'pan',sysVis:{},sel:{t0:null,t1:null,sats:new Set()},
+  cr:null,gmode:'scroll',gview:null,hits:[],tw:300,th:200,dpr:1,day0:0,nDays:1};
+const curV=()=>S.versions[S.cur];
+const sysOf=id=>SYS_NAME[id[0]];
+const visSats=()=>S.ds?S.ds.satList.filter(id=>S.sysVis[id[0]]):[];
+function bandLabel(sat,b){return (BANDNAME[sat[0]]||{})[b]||('B'+b);}
+function obsLabel(e){return e.scope==='all'?'TODOS':e.scope==='band'?bandLabel(e.sat,e.value)+' (banda '+e.value+')':e.value;}
+function hmsToMs(day,str){const m=/^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(str||'');if(!m)return NaN;return S.day0+day*864e5+(+m[1])*36e5+(+m[2])*6e4+(+m[3]||0)*1e3;}
+function rangeTxt(a,b){return fmtT(a)+'–'+fmtT(b);}
+
+/* ---------- carregamento ---------- */
+async function openFiles(files){
+  for(const f of files){
+    try{
+      toast('Lendo '+f.name+'…');await new Promise(r=>setTimeout(r,30));
+      const txt=await f.text(),first=(txt.slice(0,300).split(/\r?\n/)[0]||'');
+      const isNav=first[20]==='N'||/NAV|NAVIGATION/i.test(first.slice(20,40));
+      if(isNav){const nv=parseNav(txt,f.name);S.nav=(typeof mergeNav==='function')?mergeNav(S.nav,nv):nv;$('#navInfo').textContent=S.nav.name+' ('+S.nav.n+' efemérides)';toast(nv.glonassOnly?'Navegação GLONASS ignorada (o motor usa GPS/Galileo/BeiDou/QZSS).':'Navegação carregada: '+S.nav.n+' efemérides');if(S.ds)rebuildEvents();}
+      else{const ds=parseRinexObs(txt,f.name);if(typeof vecAdd==='function'){const rec=vecAdd(ds);if(V.files.length===1||!S.ds)loadObs(ds);else toast('Arquivo adicionado em Vetores: '+ds.name);}else loadObs(ds);}
+    }catch(err){toast('Erro: '+err.message);console.error(err);alert('Não foi possível abrir "'+f.name+'":\n'+err.message);}
+  }
+}
+function loadObs(ds){
+  S.ds=ds;S.versions=[{id:'orig',name:'ORIGINAL',edits:[],nextId:1}];S.cur=0;S.vCounter=0;S.results={};S.evState={};S.sugs=[];S.scroll=0;
+  S.sel={t0:null,t1:null,sats:new Set()};S.cr=null;S.states={};
+  const d=new Date(ds.tFirst);S.day0=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());S.nDays=Math.floor((ds.tLast-S.day0)/864e5)+1;
+  S.sysVis={};for(const id of ds.satList)S.sysVis[id[0]]=true;
+  S.maskOrig=allActive(ds);S.countsOrig=countObs(ds,S.maskOrig);
+  rebuildEvents(true);fitView();
+  const key=projKey();try{const raw=localStorage.getItem(key);if(raw&&!S.noRestore&&confirm('Há versões salvas para este arquivo neste navegador. Restaurar?')){applyProject(JSON.parse(raw));}}catch(e){}
+  $('#emptyMsg').style.display='none';$('#tlBox').style.display='block';$('#verSel').style.display='';
+  $('#hSub').textContent=(ds.station||ds.name)+' · '+ds.satList.length+' sat · '+nf(ds.nE)+' épocas · '+ds.interval+' s · '+fmtDate(ds.tFirst)+' (tempo '+(ds.tsys||'do arquivo')+')';
+  recompute();toast('RINEX carregado: '+ds.satList.length+' satélites, '+nf(ds.nE)+' épocas');
+}
+function rebuildEvents(silent){
+  S.events=detectEvents(S.ds,S.params,S.nav);S.evBySat={};
+  for(const e of S.events)(S.evBySat[e.sat]=S.evBySat[e.sat]||[]).push(e);
+  if(!silent){drawTL();renderSats();}
+}
+function fitView(){const ds=S.ds,pad=Math.max(ds.intervalMs*2,(ds.tLast-ds.tFirst)*0.01);S.view={t0:ds.tFirst-pad,t1:ds.tLast+pad};S.gview={t0:ds.tFirst-pad,t1:ds.tLast+pad};}
+function clampView(v){
+  const ds=S.ds,dt=ds.intervalMs,full=(ds.tLast-ds.tFirst+dt)*1.1;let span=v.t1-v.t0;
+  span=Math.max(Math.min(span,full),Math.max(5000,dt*5));const c=(v.t0+v.t1)/2;let t0=c-span/2;
+  if(t0<ds.tFirst-span*0.05)t0=ds.tFirst-span*0.05;if(t0+span>ds.tLast+span*0.05+dt)t0=ds.tLast+span*0.05+dt-span;
+  return {t0,t1:t0+span};
+}
+
+/* ---------- máscara / recompute ---------- */
+function recompute(){
+  if(!S.ds)return;
+  S.mask=curV().edits.length?buildMask(S.ds,curV().edits):S.maskOrig;S.counts=countObs(S.ds,S.mask);S.states={};
+  persist();renderAll();
+}
+function getState(id){return S.states[id]||(S.states[id]=satState(S.ds,S.mask,id));}
+function projKey(){const d=S.ds;return 'mapgeo-gnss:'+d.name+'|'+d.nE+'|'+d.tFirst+'|'+d.satList.length;}
+function projData(){return {app:'MapGEO-GNSS',sig:projKey(),file:S.ds.name,cur:S.cur,vCounter:S.vCounter,versions:S.versions};}
+function persist(){try{localStorage.setItem(projKey(),JSON.stringify(projData()));}catch(e){}}
+function applyProject(p){S.versions=p.versions;S.cur=Math.min(p.cur||0,p.versions.length-1);S.vCounter=p.vCounter||p.versions.length;}
+function newVersion(fromCur){
+  const v={id:'v'+Date.now()+Math.floor(Math.random()*999),name:'EDIÇÃO_'+pad2(++S.vCounter),edits:[],nextId:1};
+  if(fromCur&&S.cur>0){v.edits=JSON.parse(JSON.stringify(curV().edits));v.nextId=curV().nextId;}
+  S.versions.push(v);S.cur=S.versions.length-1;return v;
+}
+function addEdits(spec){
+  if(S.cur===0){newVersion(false);toast('Criada '+curV().name+' (o ORIGINAL é somente leitura).');}
+  const v=curV(),grp=v.nextId;let n=0;
+  for(const sat of spec.sats){
+    if(!S.ds.sats[sat])continue;
+    v.edits.push({id:v.nextId++,grp,date:new Date().toLocaleDateString('pt-BR'),iso:new Date().toISOString(),station:S.ds.station||S.ds.name,sat,sats:[sat],
+      scope:spec.scope,value:spec.value||null,t0:spec.t0,t1:spec.t1,action:spec.action,reason:spec.reason||'',undone:false});n++;
+  }
+  recompute();return n;
+}
+
+/* ---------- renderização geral ---------- */
+function renderAll(){renderVerSel();renderSelChips();renderFormValues();renderPreview();drawTL();
+  const t=($('.tab.on')||{}).id;
+  if(t==='tab-sats')renderSats();if(t==='tab-hist')renderHist();if(t==='tab-ver')renderVers();if(t==='tab-graf')renderGraphs();if(t==='tab-proc')renderProc();if(t==='tab-alert')renderSugs();
+  renderSysChips();}
+function renderVerSel(){const s=$('#verSel');s.innerHTML=S.versions.map((v,i)=>`<option value="${i}" ${i===S.cur?'selected':''}>${esc(v.name)}${v.edits.some(e=>!e.undone)?' ('+v.edits.filter(e=>!e.undone).length+')':''}</option>`).join('');}
+function renderSysChips(){
+  const present=new Set(S.ds.satList.map(i=>i[0]));
+  const html=SYS_ORDER.split('').map(c=>`<span class="chip ${S.sysVis[c]?'on':''} ${present.has(c)?'':'dis'}" data-act="sys" data-s="${c}">${SYS_NAME[c]}${present.has(c)?' '+S.ds.satList.filter(i=>i[0]===c).length:''}</span>`).join('');
+  $('#sysChips').innerHTML=html;$('#sysChips2').innerHTML=html;
+}
+function renderSelChips(){
+  const ids=[...S.sel.sats].sort((a,b)=>satSortKey(a)-satSortKey(b));
+  $('#selChips').innerHTML=ids.length?ids.map(i=>`<span class="chip on" data-act="togsat" data-id="${i}">${i} ✕</span>`).join(''):'<span class="mut">toque nos rótulos da timeline ou arraste em “Selecionar”</span>';
+}
+function scopeOpts(sats){
+  const ids=sats.length?sats:S.ds.satList;
+  const bands=new Map(),codes=new Set();
+  for(const id of ids){const s=S.ds.sats[id];for(const c of s.codes){codes.add(c);const b=c[1];if(!/\d/.test(b))continue;if(!bands.has(b))bands.set(b,new Set());bands.get(b).add(bandLabel(id,b));}}
+  return {bands:[...bands].sort().map(([b,set])=>[b,'Banda '+b+' — '+[...set].join(' / ')]),codes:[...codes].sort()};
+}
+function renderFormValues(){
+  const sc=$('#fScope').value,sv=$('#fValue'),o=scopeOpts([...S.sel.sats]);
+  if(sc==='all'){sv.style.display='none';return;}
+  const prev=sv.value;sv.style.display='';
+  sv.innerHTML=sc==='band'?o.bands.map(([b,l])=>`<option value="${b}">${esc(l)}</option>`).join(''):o.codes.map(c=>`<option>${c}</option>`).join('');
+  if([...sv.options].some(x=>x.value===prev))sv.value=prev;
+  const dsel=$('#fDay');if(S.nDays>1){dsel.style.display='';if(dsel.options.length!==S.nDays)dsel.innerHTML=Array.from({length:S.nDays},(_,i)=>`<option value="${i}">${fmtDate(S.day0+i*864e5)}</option>`).join('');}else dsel.style.display='none';
+}
+function formSpec(){
+  const sc=$('#fScope').value,day=+($('#fDay').value||0);
+  const t0=hmsToMs(S.nDays>1?day:0,$('#fT0').value),t1=hmsToMs(S.nDays>1?day:0,$('#fT1').value);
+  return {sats:[...S.sel.sats],scope:sc,value:sc==='all'?null:$('#fValue').value,t0,t1,action:$('#fAct').value,reason:$('#fReason').value.trim()};
+}
+function setFormTimes(a,b){
+  const toIn=ms=>{const d=Math.floor((ms-S.day0)/864e5);return {d,s:fmtT(ms)};};
+  const A=toIn(a),B=toIn(b);$('#fT0').value=A.s;$('#fT1').value=B.s;if(S.nDays>1)$('#fDay').value=Math.max(0,Math.min(S.nDays-1,A.d));
+}
+function renderPreview(){
+  const el=$('#fPreview');if(!S.ds){return;}
+  const sp=formSpec();
+  if(!sp.sats.length){el.textContent='Selecione ao menos um satélite.';return;}
+  if(!isFinite(sp.t0)||!isFinite(sp.t1)||sp.t1<sp.t0){el.textContent='Defina início ≤ fim.';return;}
+  const im=impact(S.ds,S.mask,sp.sats,sp.scope,sp.value,sp.t0,sp.t1,sp.action);
+  el.innerHTML=(sp.action==='DESATIVAR'?'Desativará ':'Reativará ')+'<b>'+nf(im.obs)+'</b> observações em <b>'+nf(im.epochs)+'</b> épocas ('+sp.sats.length+' sat.) · '+rangeTxt(sp.t0,sp.t1)+(S.cur===0?' · <span class="wa">criará uma nova edição</span>':'');
+}
+['fScope','fValue','fT0','fT1','fDay','fAct'].forEach(id=>$('#'+id).addEventListener('change',()=>{
+  if(id==='fScope')renderFormValues();
+  if(id==='fT0'||id==='fT1'||id==='fDay'){const s=formSpec();if(isFinite(s.t0)&&isFinite(s.t1)){S.sel.t0=s.t0;S.sel.t1=s.t1;drawTL();}}
+  renderPreview();}));
+
+/* ---------- TIMELINE ---------- */
+const hatch=(()=>{const c=document.createElement('canvas');c.width=c.height=6;const g=c.getContext('2d');g.fillStyle='#2a1114';g.fillRect(0,0,6,6);g.strokeStyle='#8a3441';g.lineWidth=1.5;g.beginPath();g.moveTo(-1,7);g.lineTo(7,-1);g.stroke();return c;})();
+function tlSize(){
+  const cv=$('#tl'),box=cv.parentElement;if(!box.clientWidth)return;
+  const w=box.clientWidth,rows=visSats().length,h=Math.max(170,Math.min(Math.round(innerHeight*0.58),TL.AXIS+TL.GLB+rows*TL.ROW+4)),d=window.devicePixelRatio||1;
+  cv.style.height=h+'px';cv.width=Math.round(w*d);cv.height=Math.round(h*d);S.tw=w;S.th=h;S.dpr=d;
+}
+const xOf=t=>TL.LBL+(t-S.view.t0)/(S.view.t1-S.view.t0)*(S.tw-TL.LBL);
+const tOf=x=>S.view.t0+(x-TL.LBL)/(S.tw-TL.LBL)*(S.view.t1-S.view.t0);
+const rowTop=()=>TL.AXIS+TL.GLB;
+function maxScroll(){return Math.max(0,visSats().length*TL.ROW-(S.th-rowTop()));}
+function rowAt(y){const n=visSats().length;return Math.max(0,Math.min(n-1,Math.floor((y-rowTop()+S.scroll)/TL.ROW)));}
+function drawTL(){
+  if(!S.ds||!$('#tlBox')||$('#tab-timeline').classList.contains('on')===false)return;
+  const cv=$('#tl');if(!S.tw||cv.width===0)tlSize();
+  const g=cv.getContext('2d'),w=S.tw,h=S.th,ds=S.ds,T=ds.t,dt=ds.intervalMs||1000;
+  g.setTransform(S.dpr,0,0,S.dpr,0,0);g.fillStyle='#0b1015';g.fillRect(0,0,w,h);
+  const span=S.view.t1-S.view.t0,rows=visSats();S.scroll=Math.max(0,Math.min(S.scroll,maxScroll()));
+  // eixo
+  const steps=[1,2,5,10,15,30,60,120,300,600,900,1800,3600,7200,14400,21600,43200,86400].map(x=>x*1000);
+  let step=steps.find(s=>s/span*(w-TL.LBL)>=64)||steps[steps.length-1];
+  g.fillStyle='#161d25';g.fillRect(0,0,w,TL.AXIS);g.font='10px system-ui';g.textBaseline='middle';
+  const first=Math.ceil(S.view.t0/step)*step;
+  g.strokeStyle='#2b3846';g.fillStyle='#8b9bab';g.textAlign='center';
+  for(let t=first;t<=S.view.t1;t+=step){const x=xOf(t);if(x<TL.LBL)continue;g.beginPath();g.moveTo(x,TL.AXIS-6);g.lineTo(x,h);g.globalAlpha=.35;g.stroke();g.globalAlpha=1;g.fillText(step>=60000?fmtT(t).slice(0,5):fmtT(t),x,TL.AXIS/2-3);}
+  g.textAlign='left';g.fillStyle='#8b9bab';g.fillText('tempo →',4,TL.AXIS/2-3);g.fillText(fmtDate(S.view.t0+span/2),4,TL.AXIS-7);
+  S.hits=[];
+  // eventos globais
+  for(const e of S.evBySat['*']||[]){if(e.t1<S.view.t0||e.t0>S.view.t1)continue;const x0=xOf(e.t0),x1=Math.max(x0+3,xOf(e.t1+dt));
+    g.fillStyle=EV_COL[e.type];g.globalAlpha=.9;g.fillRect(Math.max(TL.LBL,x0),TL.AXIS,Math.min(w,x1)-Math.max(TL.LBL,x0),7);g.globalAlpha=1;S.hits.push({x0:x0-4,x1:x1+4,y0:TL.AXIS-2,y1:TL.AXIS+9,ev:e});}
+  // linhas
+  g.save();g.beginPath();g.rect(0,rowTop(),w,h-rowTop());g.clip();
+  const sel=S.sel;
+  const a=Math.max(0,lowerBound(T,S.view.t0-dt*2)),b=upperBound(T,S.view.t1+dt);
+  rows.forEach((id,r)=>{
+    const y=rowTop()+r*TL.ROW-S.scroll;if(y>h||y+TL.ROW<rowTop())return;
+    g.fillStyle=r%2?'#0e151c':'#0b1015';g.fillRect(0,y,w,TL.ROW);
+    const s=ds.sats[id],st=getState(id);
+    let i=a;
+    while(i<b){
+      if(!s.has[i]){i++;continue;}
+      const state=st[i];let j=i;
+      while(j+1<b&&s.has[j+1]&&st[j+1]===state&&T[j+1]-T[j]<=dt*1.5)j++;
+      const x0=xOf(T[i]),x1=xOf(T[j]+dt*0.9),ww=Math.max(1.5,x1-x0);
+      if(x1>TL.LBL&&x0<w){const xs=Math.max(x0,TL.LBL);
+        g.fillStyle=state===1?'#2ecc71':state===2?'#f1c40f':g.createPattern(hatch,'repeat');
+        g.fillRect(xs,y+6,Math.max(1.5,x0+ww-xs),TL.ROW-12);
+        if(state===3){g.strokeStyle='#c0566a';g.lineWidth=1;g.strokeRect(xs+.5,y+6.5,Math.max(1,x0+ww-xs-1),TL.ROW-13);}}
+      i=j+1;
+    }
+    // eventos
+    for(const e of S.evBySat[id]||[]){
+      if(e.t1<S.view.t0-dt||e.t0>S.view.t1+dt)continue;
+      const col=EV_COL[e.type],x0=xOf(e.t0),x1=xOf(e.t1+(e.type==='GAP'?0:dt*0.9)),dim=S.evState[e.id]?0.35:1;
+      g.globalAlpha=dim;g.fillStyle=col;g.strokeStyle=col;
+      if(e.type==='GAP'){g.globalAlpha=dim*.25;g.fillRect(Math.max(x0,TL.LBL),y+3,Math.max(2,x1-x0),TL.ROW-6);g.globalAlpha=dim;g.setLineDash([3,3]);g.strokeRect(Math.max(x0,TL.LBL)+.5,y+3.5,Math.max(2,x1-x0),TL.ROW-7);g.setLineDash([]);S.hits.push({x0:x0-3,x1:Math.max(x1,x0+10),y0:y,y1:y+TL.ROW,ev:e});}
+      else if(SLIP_TYPES.includes(e.type)){const xm=Math.max(x0,TL.LBL);if(x0>=TL.LBL-6){g.beginPath();g.moveTo(x0-5,y+1);g.lineTo(x0+5,y+1);g.lineTo(x0,y+9);g.fill();}
+        g.lineWidth=1;g.beginPath();g.moveTo(xm,y+9);g.lineTo(xm,y+TL.ROW-3);g.stroke();if(x1-x0>3){g.lineWidth=2;g.beginPath();g.moveTo(xm,y+TL.ROW-4);g.lineTo(x1,y+TL.ROW-4);g.stroke();}
+        S.hits.push({x0:x0-9,x1:Math.max(x1,x0)+9,y0:y,y1:y+TL.ROW,ev:e});}
+      else if(e.type==='PHASE_LOSS'||e.type==='LOW_SNR'){g.fillRect(Math.max(x0,TL.LBL),y+TL.ROW-5,Math.max(3,x1-x0),3);S.hits.push({x0:x0-4,x1:Math.max(x1,x0)+4,y0:y+TL.ROW-12,y1:y+TL.ROW,ev:e});}
+      else{const xm=(x0+x1)/2;g.beginPath();g.moveTo(xm,y+TL.ROW/2-5);g.lineTo(xm+4,y+TL.ROW/2);g.lineTo(xm,y+TL.ROW/2+5);g.lineTo(xm-4,y+TL.ROW/2);g.fill();S.hits.push({x0:xm-8,x1:xm+8,y0:y,y1:y+TL.ROW,ev:e});}
+      g.globalAlpha=1;
+    }
+    // seleção
+    if(sel.t0!=null&&sel.sats.has(id)){const x0=Math.max(TL.LBL,xOf(sel.t0)),x1=Math.min(w,xOf(sel.t1));if(x1>x0){g.fillStyle='rgba(74,163,255,.28)';g.fillRect(x0,y,x1-x0,TL.ROW);g.strokeStyle='#4aa3ff';g.lineWidth=1;g.strokeRect(x0+.5,y+.5,x1-x0-1,TL.ROW-1);}}
+    // rótulo
+    g.fillStyle=sel.sats.has(id)?'#1f4a73':'#161d25';g.fillRect(0,y,TL.LBL-2,TL.ROW);
+    g.fillStyle='#e6edf3';g.font='bold 12px system-ui';g.textAlign='left';g.fillText(id,6,y+TL.ROW/2);
+  });
+  // faixa de seleção sem satélite
+  if(sel.t0!=null){const x0=Math.max(TL.LBL,xOf(sel.t0)),x1=Math.min(w,xOf(sel.t1));if(x1>x0){g.fillStyle='rgba(74,163,255,.07)';g.fillRect(x0,rowTop(),x1-x0,h);g.strokeStyle='#4aa3ff';g.beginPath();g.moveTo(x0,TL.AXIS);g.lineTo(x0,h);g.moveTo(x1,TL.AXIS);g.lineTo(x1,h);g.stroke();}}
+  g.restore();
+  g.strokeStyle='#2b3846';g.beginPath();g.moveTo(TL.LBL-.5,0);g.lineTo(TL.LBL-.5,h);g.stroke();
+  updateSelBar();
+}
+function updateSelBar(){
+  let bar=$('#selBar');const box=$('#tl').parentElement;
+  if(!bar){bar=document.createElement('div');bar.id='selBar';bar.style.cssText='position:absolute;left:6px;right:6px;bottom:6px;background:#0f1a26ee;border:1px solid #4aa3ff;border-radius:10px;padding:6px 8px;display:none;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px';box.appendChild(bar);}
+  const sel=S.sel;
+  if(sel.t0==null||!sel.sats.size){bar.style.display='none';return;}
+  bar.style.display='flex';const ids=[...sel.sats];
+  bar.innerHTML=`<span class="grow"><b>${ids.length>3?ids.length+' sat.':ids.join(' ')}</b> · ${rangeTxt(sel.t0,sel.t1)}</span><button class="danger small" data-act="quickOff">Desativar</button><button class="small" data-act="quickOn">Reativar</button><button class="small" data-act="selReset">✕</button>`;
+}
+function zoom(f,cx){
+  const v=S.view,c=cx==null?(v.t0+v.t1)/2:cx;S.view=clampView({t0:c-(c-v.t0)*f,t1:c+(v.t1-c)*f});drawTL();
+}
+(function(){
+  const cv=$('#tl'),ptr=new Map();let gst=null;
+  const pos=e=>{const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};};
+  cv.addEventListener('pointerdown',e=>{
+    if(!S.ds)return;cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,pos(e));
+    if(ptr.size===2){const [a,b]=[...ptr.values()];gst={type:'pinch',d0:Math.max(20,Math.abs(a.x-b.x)),v0:Object.assign({},S.view),cx:(a.x+b.x)/2};return;}
+    const p=pos(e);
+    gst={type:(S.mode==='select'&&p.x>TL.LBL&&p.y>TL.AXIS)?'select':'pan',x0:p.x,y0:p.y,v0:Object.assign({},S.view),sc0:S.scroll,moved:false,ts:Date.now(),ta:tOf(p.x),ra:rowAt(p.y)};
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!gst||!ptr.has(e.pointerId))return;const p=pos(e);ptr.set(e.pointerId,p);
+    if(gst.type==='pinch'&&ptr.size>=2){const [a,b]=[...ptr.values()],d=Math.max(20,Math.abs(a.x-b.x)),v0=gst.v0,sp0=v0.t1-v0.t0,sp1=sp0*gst.d0/d,fr=(gst.cx-TL.LBL)/(S.tw-TL.LBL),tc=v0.t0+fr*sp0;S.view=clampView({t0:tc-fr*sp1,t1:tc-fr*sp1+sp1});drawTL();return;}
+    if(Math.abs(p.x-gst.x0)+Math.abs(p.y-gst.y0)>6)gst.moved=true;if(!gst.moved)return;
+    if(gst.type==='pan'){const sp=gst.v0.t1-gst.v0.t0,dtm=-(p.x-gst.x0)/(S.tw-TL.LBL)*sp;S.view=clampView({t0:gst.v0.t0+dtm,t1:gst.v0.t1+dtm});S.scroll=Math.max(0,Math.min(maxScroll(),gst.sc0-(p.y-gst.y0)));drawTL();}
+    else if(gst.type==='select'){
+      const tb=tOf(p.x),rb=rowAt(p.y),rows=visSats(),r0=Math.min(gst.ra,rb),r1=Math.max(gst.ra,rb);
+      S.sel.t0=Math.min(gst.ta,tb);S.sel.t1=Math.max(gst.ta,tb);S.sel.sats=new Set(rows.slice(r0,r1+1));
+      const ds=S.ds;S.sel.t0=Math.max(S.sel.t0,ds.tFirst-ds.intervalMs);S.sel.t1=Math.min(S.sel.t1,ds.tLast+ds.intervalMs);
+      drawTL();
+    }
+  });
+  const up=e=>{
+    if(!ptr.has(e.pointerId))return;const p=pos(e);ptr.delete(e.pointerId);
+    if(gst&&gst.type==='pinch'){if(ptr.size<2)gst=null;return;}
+    if(gst&&!gst.moved&&Date.now()-gst.ts<600){
+      const hit=S.hits.slice().reverse().find(h=>p.x>=h.x0&&p.x<=h.x1&&p.y>=h.y0&&p.y<=h.y1&&p.x>TL.LBL-4);
+      if(hit&&p.y>TL.AXIS-3)openEvent(hit.ev);
+      else if(p.x<TL.LBL&&p.y>rowTop()){toggleSat(visSats()[rowAt(p.y)]);}
+      else if(S.mode==='select'&&p.y>rowTop()){toggleSat(visSats()[rowAt(p.y)]);}
+    }else if(gst&&gst.type==='select'&&gst.moved){syncFormFromSel();}
+    gst=null;
+  };
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  cv.addEventListener('wheel',e=>{if(!S.ds)return;e.preventDefault();const p=pos(e);
+    if(e.shiftKey||Math.abs(e.deltaX)>Math.abs(e.deltaY)){const sp=S.view.t1-S.view.t0,d=(e.deltaX||e.deltaY)/(S.tw)*sp;S.view=clampView({t0:S.view.t0+d,t1:S.view.t1+d});drawTL();}
+    else zoom(e.deltaY>0?1.25:0.8,tOf(Math.max(TL.LBL,p.x)));},{passive:false});
+})();
+function toggleSat(id){if(!id)return;if(S.sel.sats.has(id))S.sel.sats.delete(id);else S.sel.sats.add(id);renderSelChips();renderFormValues();renderPreview();drawTL();if($('#tab-sats').classList.contains('on'))renderSats();}
+function syncFormFromSel(){if(S.sel.t0!=null)setFormTimes(S.sel.t0,S.sel.t1);renderSelChips();renderFormValues();renderPreview();}
+
+/* ---------- eventos ---------- */
+function openEvent(e){
+  const ds=S.ds,dt=ds.intervalMs,m=dt;
+  const isG=e.sat==='*',codes=(e.codes||[]).map(c=>typeof c==='string'?c:'').filter(Boolean);
+  const a=e.t0-m,b=e.t1+m;
+  const st=S.evState[e.id];
+  $('#evIn').innerHTML=`<h2>${EVT_LABEL[e.type]}</h2>
+   <p><b>${isG?'Todos os satélites':e.sat+' · '+sysOf(e.sat)}</b><br>Horário: <b>${e.t0===e.t1?fmtT(e.t0):rangeTxt(e.t0,e.t1)}</b>${codes.length?'<br>Observáveis: '+codes.join(', '):''}<br><span class="mut">${esc(e.detail||'')}</span>${st?'<br><span class="mut">Decisão registrada: '+(st==='kept'?'mantida':'trecho desativado')+'</span>':''}</p>
+   ${isG?'<p class="mut">Evento global (geometria/contagem): não há remoção automática. Use a edição por satélite se quiser agir.</p>':`
+   <div class="row"><label>Início</label><input type="time" step="1" id="evT0" value="${fmtT(a)}"><label style="min-width:30px">Fim</label><input type="time" step="1" id="evT1" value="${fmtT(b)}"></div>
+   <div class="row"><label>Escopo</label><select id="evScope" class="grow"><option value="all">Todos os observáveis do satélite</option>${codes.length?'<option value="evcodes">Somente observáveis do evento</option>':''}</select></div>`}
+   <div class="row" style="margin-top:10px">
+   ${isG?'':`<button class="danger" data-act="evOff" data-id="${e.id}">Desativar trecho</button><button class="ok" data-act="evKeep" data-id="${e.id}">Manter observação</button><button data-act="evManual" data-id="${e.id}">Editar manualmente</button>`}
+   <button data-act="evClose">Fechar</button></div>
+   <p class="mut" style="font-size:11px">Margem de ±${(m/1000)} s já incluída. Nada é desativado sem o seu toque.</p>`;
+  $('#evSheet').classList.add('on');
+}
+function findEv(id){return S.events.find(e=>e.id===id);}
+function evRange(){const day=0;return {t0:hmsToMs(0,$('#evT0').value)+0,t1:hmsToMs(0,$('#evT1').value)};}
+function evTimes(e){ // as caixas de hora do evento assumem o dia da época do evento
+  const base=Date.UTC(new Date(e.t0).getUTCFullYear(),new Date(e.t0).getUTCMonth(),new Date(e.t0).getUTCDate());
+  const p=v=>{const m=/^(\d+):(\d+):?(\d+)?/.exec(v);return base+(+m[1])*36e5+(+m[2])*6e4+(+m[3]||0)*1e3;};
+  return {t0:p($('#evT0').value),t1:p($('#evT1').value)};
+}
+
+/* ---------- ações (delegação) ---------- */
+const ACT={
+  mode(b){S.mode=b.dataset.m;$$('[data-act=mode]').forEach(x=>x.classList.toggle('on',x===b));},
+  zin(){zoom(0.5);},zout(){zoom(2);},zfit(){fitView();drawTL();},
+  zsel(){if(S.sel.t0==null)return toast('Selecione um intervalo primeiro.');const p=(S.sel.t1-S.sel.t0)*0.15+S.ds.intervalMs;S.view=clampView({t0:S.sel.t0-p,t1:S.sel.t1+p});drawTL();},
+  sys(b){const c=b.dataset.s;S.sysVis[c]=!S.sysVis[c];tlSize();drawTL();renderSysChips();renderSats();},
+  togsat(b){toggleSat(b.dataset.id);},
+  selAllVis(){visSats().forEach(i=>S.sel.sats.add(i));renderSelChips();renderFormValues();renderPreview();drawTL();renderSats();},
+  selClear(){S.sel.sats.clear();renderSelChips();renderFormValues();renderPreview();drawTL();renderSats();},
+  selReset(){S.sel={t0:null,t1:null,sats:new Set()};renderSelChips();renderPreview();drawTL();},
+  apply(){doApply(formSpec());},
+  quickOff(){const sp=formSpec();sp.action='DESATIVAR';sp.t0=S.sel.t0;sp.t1=S.sel.t1;doApply(sp);},
+  quickOn(){const sp=formSpec();sp.action='REATIVAR';sp.t0=S.sel.t0;sp.t1=S.sel.t1;doApply(sp);},
+  evClose(){$('#evSheet').classList.remove('on');},
+  evOff(b){const e=findEv(b.dataset.id),r=evTimes(e),sc=$('#evScope').value;
+    let spec={sats:[e.sat],scope:'all',value:null,t0:r.t0,t1:r.t1,action:'DESATIVAR',reason:EVT_LABEL[e.type]};
+    if(sc==='evcodes'){const cs=(e.codes||[]).filter(c=>typeof c==='string');const n=addEditsMulti(e.sat,cs,r.t0,r.t1,EVT_LABEL[e.type]);S.evState[e.id]='disabled';ACT.evClose();toast(n+' edição(ões) criada(s).');return;}
+    const n=addEdits(spec);S.evState[e.id]='disabled';ACT.evClose();toast(n?'Trecho desativado ('+curV().name+').':'Nada a desativar.');drawTL();},
+  evKeep(b){S.evState[b.dataset.id]='kept';ACT.evClose();drawTL();toast('Observação mantida.');},
+  evManual(b){const e=findEv(b.dataset.id),r=evTimes(e);S.sel={t0:r.t0,t1:r.t1,sats:new Set([e.sat])};ACT.evClose();goTab('timeline');setFormTimes(r.t0,r.t1);$('#fReason').value=EVT_LABEL[e.type];renderSelChips();renderFormValues();renderPreview();drawTL();$('#editCard').scrollIntoView({behavior:'smooth'});},
+  undo(b){const v=curV();if(S.cur===0)return;const e=v.edits.find(x=>x.id==b.dataset.id);if(e){e.undone=!e.undone;recompute();}},
+  undoGrp(b){const v=curV();const es=v.edits.filter(x=>x.grp==b.dataset.grp);const to=!es.every(x=>x.undone);es.forEach(x=>x.undone=to);recompute();},
+  restore(){S.cur=0;recompute();toast('Exibindo o ORIGINAL (nenhuma edição foi perdida).');},
+  discard(){if(S.cur===0)return toast('O ORIGINAL não possui edições.');if(!confirm('Descartar TODAS as edições de '+curV().name+'?'))return;curV().edits=[];S.evState={};recompute();toast('Edições descartadas.');},
+  csv(){histCsv();},
+  exportRnx(){doExport();},
+  analyze(){readParams();rebuildEvents(true);S.sugs=buildSuggestions(S.ds,S.events,S.params);renderSugs();drawTL();toast(S.sugs.length+' sugestão(ões). Nada foi alterado.');},
+  pReset(){S.params=Object.assign({},DEF_PARAMS);renderParams();},
+  sugOff(b){const s=S.sugs.find(x=>x.id===b.dataset.id);if(!s)return;
+    const n=addEdits({sats:[s.sat],scope:s.scope,value:s.value,t0:s.t0,t1:s.t1,action:'DESATIVAR',reason:'Análise: '+s.reason});
+    s.status='applied';(s.evIds||[]).forEach(i=>S.evState[i]='disabled');renderSugs();drawTL();toast(n?'Trecho desativado.':'Nada a desativar.');},
+  sugIgn(b){const s=S.sugs.find(x=>x.id===b.dataset.id);if(s){s.status='ignored';(s.evIds||[]).forEach(i=>S.evState[i]='kept');renderSugs();drawTL();}},
+  sugGo(b){const s=S.sugs.find(x=>x.id===b.dataset.id);if(!s)return;goTab('timeline');const p=Math.max((s.t1-s.t0)*2,S.ds.intervalMs*20);S.view=clampView({t0:s.t0-p,t1:s.t1+p});
+    if(s.sat!=='*')S.sel={t0:s.t0,t1:s.t1,sats:new Set([s.sat])};else S.sel={t0:s.t0,t1:s.t1,sats:new Set()};syncFormFromSel();
+    const i=visSats().indexOf(s.sat);if(i>=0)S.scroll=Math.max(0,Math.min(maxScroll(),i*TL.ROW-TL.ROW*2));drawTL();},
+  vUse(b){S.cur=+b.dataset.i;recompute();},
+  vNew(){newVersion(false);recompute();toast(curV().name+' criada a partir do ORIGINAL.');},
+  vDup(){newVersion(true);recompute();toast(curV().name+' criada (cópia).');},
+  vDel(b){const i=+b.dataset.i;if(i===0)return;if(!confirm('Excluir '+S.versions[i].name+'?'))return;S.versions.splice(i,1);if(S.cur>=i)S.cur=Math.max(0,S.cur-1);recompute();},
+  vRen(b){const i=+b.dataset.i,n=prompt('Novo nome',S.versions[i].name);if(n&&i>0){S.versions[i].name=n.trim();renderAll();persist();}},
+  cmp(){renderCmp();},
+  saveProj(){dl((S.ds.name.replace(/\.[^.]*$/,''))+'_projeto_gnss.json',JSON.stringify(projData(),null,1),'application/json');},
+  procOrig(){runProc('orig');},procEdit(){runProc('cur');},report(){makeReport();},
+  gmode(b){S.gmode=b.dataset.m;$$('[data-act=gmode]').forEach(x=>x.classList.toggle('on',x===b));$$('#gCharts canvas').forEach(c=>c.style.touchAction=S.gmode==='select'?'none':'pan-y');},
+  gz(b){if(!S.gview)return;const v=S.gview,sp=v.t1-v.t0,c=(v.t0+v.t1)/2,d=b.dataset.d;
+    if(d==='fit'){fitView();}else if(d==='in')S.gview={t0:c-sp/4,t1:c+sp/4};else if(d==='out')S.gview={t0:c-sp,t1:c+sp};else{const k=d==='l'?-0.3:0.3;S.gview={t0:v.t0+sp*k,t1:v.t1+sp*k};}
+    renderGraphs();},
+  gRegClear(){S.cr=null;renderGraphs();},
+  gRegApply(){if(!S.cr)return;const sat=$('#gSat').value,v=$('#gRegScope').value;let scope='all',value=null;
+    if(v.startsWith('band:')){scope='band';value=v.slice(5);}else if(v.startsWith('obs:')){scope='obs';value=v.slice(4);}
+    const n=addEdits({sats:[sat],scope,value,t0:S.cr.a,t1:S.cr.b,action:'DESATIVAR',reason:'Seleção em gráfico'});toast(n?'Região desativada.':'Nada a desativar.');S.cr=null;renderGraphs();}
+};
+function addEditsMulti(sat,codes,t0,t1,reason){if(S.cur===0){newVersion(false);}let n=0;for(const c of codes){if(S.ds.sats[sat].codes.includes(c))n+=addEdits({sats:[sat],scope:'obs',value:c,t0,t1,action:'DESATIVAR',reason});}return n;}
+function doApply(sp){
+  if(!sp.sats.length)return toast('Selecione ao menos um satélite.');
+  if(!isFinite(sp.t0)||!isFinite(sp.t1)||sp.t1<sp.t0)return toast('Intervalo inválido (início ≤ fim).');
+  if(sp.scope!=='all'&&!sp.value)return toast('Escolha a frequência/observável.');
+  const im=impact(S.ds,S.mask,sp.sats,sp.scope,sp.value,sp.t0,sp.t1,sp.action);
+  if(!im.obs)return toast('Nenhuma observação seria alterada nesse intervalo.');
+  const n=addEdits(sp);toast(n+' registro(s) em '+curV().name+' · '+nf(im.obs)+' observações '+(sp.action==='DESATIVAR'?'desativadas':'reativadas')+'.');
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&ACT[b.dataset.act]){e.preventDefault();ACT[b.dataset.act](b,e);}});
+$('#evSheet').addEventListener('click',e=>{if(e.target.id==='evSheet')ACT.evClose();});
+$('#verSel').addEventListener('change',e=>{S.cur=+e.target.value;recompute();});
+$('#fileIn').addEventListener('change',e=>{openFiles([...e.target.files]);e.target.value='';});
+$('#vFileIn').addEventListener('change',e=>{openFiles([...e.target.files]);e.target.value='';});
+$('#navIn').addEventListener('change',e=>{openFiles([...e.target.files]);e.target.value='';});
+$('#projIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f||!S.ds)return toast('Abra o RINEX antes do projeto.');
+  try{const p=JSON.parse(await f.text());if(p.app!=='MapGEO-GNSS')throw new Error('Arquivo de projeto inválido.');if(p.sig!==projKey()&&!confirm('Este projeto foi salvo para outro arquivo ('+p.file+'). Aplicar mesmo assim?'))return;applyProject(p);recompute();toast('Projeto carregado.');}catch(err){toast('Erro: '+err.message);}});
+function dl(name,text,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime||'text/plain'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);}
+
+/* ---------- abas ---------- */
+function goTab(t){$$('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+t));$$('#nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));window.scrollTo(0,0);
+  if(!S.ds&&t!=='timeline'){}
+  if(S.ds){if(t==='timeline'){tlSize();drawTL();}if(t==='sats')renderSats();if(t==='alert'){renderParams();renderSugs();}if(t==='graf')initGraphs();if(t==='hist')renderHist();if(t==='ver')renderVers();if(t==='proc')renderProc();}
+  if(t==='vet'&&typeof renderVet==='function'){renderBaseForm();renderVet();}}
+$('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)goTab(b.dataset.tab);});
+window.addEventListener('resize',()=>{if(!S.ds)return;tlSize();drawTL();if($('#tab-graf').classList.contains('on'))renderGraphs();});
+
+/* ---------- satélites ---------- */
+function satStats(id){
+  const s=S.ds.sats[id],ds=S.ds;let a=-1,b=-1,n=0;
+  for(let i=0;i<ds.nE;i++)if(s.has[i]){if(a<0)a=i;b=i;n++;}
+  const used=s.codes.filter(c=>{for(let i=0;i<ds.nE;i++)if(s.val[c][i]===s.val[c][i])return true;return false;});
+  let pres=0,act=0,sS=0,sN=0;
+  for(const c of used){const v=s.val[c],m=S.mask[id][c],isS=c[0]==='S';for(let i=0;i<ds.nE;i++)if(v[i]===v[i]){pres++;if(m[i])act++;if(isS){sS+=v[i];sN++;}}}
+  const exp=a>=0?Math.round((ds.t[b]-ds.t[a])/ds.intervalMs)+1:0;
+  const slips=(S.evBySat[id]||[]).filter(e=>SLIP_TYPES.includes(e.type)).reduce((x,e)=>x+(e.count||1),0);
+  return {a,b,n,avail:exp?n/exp*100:0,slips,qual:n&&used.length?pres/(n*used.length)*100:0,snr:sN?sS/sN:NaN,pres,act};
+}
+function renderSats(){
+  if(!S.ds)return;
+  const rows=visSats().map(id=>{const st=satStats(id),sel=S.sel.sats.has(id);
+    return `<tr class="${sel?'sel':''}" data-act="togsat" data-id="${id}"><td>${sel?'☑':'☐'}</td><td><b>${id}</b></td><td>${sysOf(id)}</td><td>${st.a>=0?fmtT(S.ds.t[st.a]):'—'}</td><td>${st.b>=0?fmtT(S.ds.t[st.b]):'—'}</td><td>${nf(st.n)}</td><td>${f2(st.avail,1)}%</td><td>${st.slips}</td><td>${f2(st.qual,1)}%</td><td>${f2(st.snr,1)}</td><td>${nf(st.act)}/${nf(st.pres)}</td><td><button class="small" data-act="goGraf" data-id="${id}" onclick="event.stopPropagation();openGraf('${id}')">📈</button></td></tr>`;}).join('');
+  $('#satTbl').innerHTML=`<tr><th></th><th>Sat</th><th>Sistema</th><th>Início</th><th>Fim</th><th>Épocas</th><th>Disp.</th><th>Perdas ciclo</th><th>Qualid.</th><th>SNR méd.</th><th>Obs ativas</th><th></th></tr>`+rows;
+  renderSysChips();
+}
+window.openGraf=function(id){goTab('graf');$('#gSat').value=id;fillGrafSelects();renderGraphs();};
+
+/* ---------- alertas ---------- */
+const PDEF=[['snrMin','SNR mínimo (dB-Hz)'],['snrRun','Épocas seguidas c/ SNR baixo'],['snrJump','Salto de SNR (dB)'],['gfThr','Limiar cycle slip GF (m)'],['gfJump','Salto de fase GF (m)'],['gapFactor','Gap (× intervalo)'],['cmcJump','Código−fase (m)'],['minArcMin','Arco mínimo (min)'],['minSats','Mín. de satélites'],['pdopMax','PDOP máximo'],['clusterMin','Perdas p/ agrupar'],['clusterWinMin','Janela do grupo (min)'],['elevMask','Máscara de elevação (°)']];
+function renderParams(){$('#pGrid').innerHTML=PDEF.map(([k,l])=>`<label>${l}<input type="number" step="any" data-p="${k}" value="${S.params[k]}"></label>`).join('');}
+function readParams(){$$('#pGrid input').forEach(i=>{const v=parseFloat(i.value);if(isFinite(v))S.params[i.dataset.p]=v;});}
+function renderSugs(){
+  if(!S.ds)return;const el=$('#sugOut');
+  if(!S.sugs.length){el.innerHTML='<div class="card empty">Toque em <b>ANALISAR QUALIDADE</b> para listar possíveis problemas.<br><span class="mut" style="font-size:12px">'+(S.nav?'PDOP será avaliado com a navegação carregada.':'Sem arquivo de navegação, o PDOP não é avaliado.')+'</span></div>';return;}
+  const cnt={};for(const e of S.events)cnt[e.type]=(cnt[e.type]||0)+1;
+  const sum=Object.entries(cnt).map(([k,v])=>`${EVT_LABEL[k]}: <b>${v}</b>`).join(' · ');
+  el.innerHTML=`<div class="card"><h3>Eventos detectados</h3><p style="font-size:12px;margin:0">${sum||'nenhum'}</p>${S.nav?'':'<p class="mut" style="font-size:11px;margin:6px 0 0">PDOP não avaliado (carregue a navegação na aba Processar).</p>'}</div>`+
+  S.sugs.slice(0,300).map(s=>`<div class="sug s${s.severity} ${s.status!=='pending'?'done':''}"><h4>Possível problema encontrado ${s.status==='applied'?'· ✔ desativado':s.status==='ignored'?'· ignorado':''}</h4>
+   <p>Satélite: <b>${s.sat==='*'?'todos':s.sat}</b></p><p>Horário: <b>${rangeTxt(s.t0,s.t1)}</b></p><p>Motivo: ${esc(s.reason)}</p>
+   <div class="b">${s.status==='pending'?(s.canDisable?`<button class="danger small" data-act="sugOff" data-id="${s.id}">DESATIVAR TRECHO</button>`:'')+`<button class="small" data-act="sugIgn" data-id="${s.id}">IGNORAR ALERTA</button>`:''}<button class="small" data-act="sugGo" data-id="${s.id}">Ver na timeline</button></div></div>`).join('')+(S.sugs.length>300?`<p class="mut">+${S.sugs.length-300} sugestões omitidas (ajuste os parâmetros).</p>`:'');
+}
+
+/* ---------- gráficos ---------- */
+function fillGrafSelects(){
+  const sel=$('#gSat');if(!S.ds)return;
+  if(sel.options.length!==S.ds.satList.length)sel.innerHTML=S.ds.satList.map(i=>`<option>${i}</option>`).join('');
+  const s=S.ds.sats[sel.value||S.ds.satList[0]];if(!s)return;
+  const cs=s.codes,fill=(id,f)=>{const el=$(id),prev=el.value,l=cs.filter(f);el.innerHTML=l.map(c=>`<option>${c}</option>`).join('');if(l.includes(prev))el.value=prev;};
+  fill('#gPh',c=>c[0]==='L');fill('#gCode',c=>c[0]==='C'||c[0]==='P');
+  const rs=$('#gRegScope'),o=scopeOpts([sel.value]);rs.innerHTML='<option value="all">Todos os observáveis</option>'+o.bands.map(([b,l])=>`<option value="band:${b}">${esc(l)}</option>`).join('')+o.codes.map(c=>`<option value="obs:${c}">${c}</option>`).join('');
+}
+function initGraphs(){if(!$('#gSat').options.length||$('#gSat').dataset.n!==String(S.ds.satList.length)){$('#gSat').innerHTML=S.ds.satList.map(i=>`<option>${i}</option>`).join('');$('#gSat').dataset.n=S.ds.satList.length;}
+  if(!$('#gCharts').children.length){$('#gCharts').innerHTML=['SNR × tempo (dB-Hz)','Fase × tempo','Pseudodistância × tempo (km)','Cycle slip × tempo (GF, m)','Disponibilidade × tempo'].map((t,i)=>`<div class="card" style="padding:6px"><div class="mut" style="font-size:11px;margin:0 4px 2px">${t}</div><canvas id="gc${i}" style="touch-action:pan-y"></canvas></div>`).join('');
+    for(let i=0;i<5;i++)bindChart($('#gc'+i));}
+  fillGrafSelects();renderGraphs();}
+['gSat','gPh','gCode','gPhMode'].forEach(id=>$('#'+id).addEventListener('change',()=>{if(id==='gSat'){S.cr=null;fillGrafSelects();}renderGraphs();}));
+const CH={L:46,R:8,T:6,B:16};
+function bindChart(cv){
+  let drag=null;
+  const px=e=>e.clientX-cv.getBoundingClientRect().left;
+  const tAt=x=>S.gview.t0+(x-CH.L)/(cv.clientWidth-CH.L-CH.R)*(S.gview.t1-S.gview.t0);
+  cv.addEventListener('pointerdown',e=>{if(S.gmode!=='select')return;cv.setPointerCapture(e.pointerId);drag=tAt(px(e));S.cr={a:drag,b:drag};renderGraphs(true);});
+  cv.addEventListener('pointermove',e=>{if(drag==null)return;const t=tAt(px(e));S.cr={a:Math.min(drag,t),b:Math.max(drag,t)};renderGraphs(true);});
+  const end=()=>{if(drag==null)return;drag=null;if(S.cr&&S.cr.b-S.cr.a<S.ds.intervalMs*0.5)S.cr=null;renderGraphs();};
+  cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+  cv.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.shiftKey)return;e.preventDefault();const t=tAt(px(e)),f=e.deltaY>0?1.3:0.77,v=S.gview;S.gview={t0:t-(t-v.t0)*f,t1:t+(v.t1-t)*f};renderGraphs();},{passive:false});
+}
+function chartBase(cv,h){const d=window.devicePixelRatio||1,w=cv.parentElement.clientWidth-12;cv.style.width=w+'px';cv.style.height=h+'px';cv.width=Math.round(w*d);cv.height=Math.round(h*d);const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);g.fillStyle='#0b1015';g.fillRect(0,0,w,h);return {g,w,h};}
+function shadeCh(g,id,x,w,h){
+  const ds=S.ds,st=getState(id),T=ds.t,dt=ds.intervalMs,v=S.gview,s=ds.sats[id];
+  const a=Math.max(0,lowerBound(T,v.t0-dt)),b=upperBound(T,v.t1+dt);let i=a;
+  while(i<b){const state=st[i];if(!s.has[i]||state===1){i++;continue;}let j=i;while(j+1<b&&s.has[j+1]&&st[j+1]===state)j++;
+    g.fillStyle=state===3?'rgba(231,76,60,.28)':'rgba(241,196,15,.16)';const x0=x(T[i]),x1=x(T[j]+dt);g.fillRect(x0,CH.T,Math.max(2,x1-x0),h-CH.T-CH.B);i=j+1;}
+}
+function axisCh(g,w,h,x,ymin,ymax,fmt){
+  const v=S.gview;g.strokeStyle='#2b3846';g.fillStyle='#8b9bab';g.font='10px system-ui';g.textAlign='right';g.textBaseline='middle';
+  for(let k=0;k<=3;k++){const y=CH.T+(h-CH.T-CH.B)*k/3,val=ymax-(ymax-ymin)*k/3;g.globalAlpha=.4;g.beginPath();g.moveTo(CH.L,y);g.lineTo(w-CH.R,y);g.stroke();g.globalAlpha=1;g.fillText(fmt?fmt(val):val.toPrecision(4),CH.L-4,y);}
+  const span=v.t1-v.t0,steps=[1,5,10,30,60,300,600,1800,3600,7200,21600].map(s=>s*1000),step=steps.find(s=>s/span*(w-CH.L-CH.R)>=60)||steps[steps.length-1];
+  g.textAlign='center';g.textBaseline='top';for(let t=Math.ceil(v.t0/step)*step;t<=v.t1;t+=step){const xx=x(t);g.globalAlpha=.25;g.beginPath();g.moveTo(xx,CH.T);g.lineTo(xx,h-CH.B);g.stroke();g.globalAlpha=1;g.fillText(step>=60000?fmtT(t).slice(0,5):fmtT(t),xx,h-CH.B+3);}
+  if(S.cr){const x0=Math.max(CH.L,x(S.cr.a)),x1=Math.min(w-CH.R,x(S.cr.b));if(x1>x0){g.fillStyle='rgba(74,163,255,.3)';g.fillRect(x0,CH.T,x1-x0,h-CH.T-CH.B);g.strokeStyle='#4aa3ff';g.strokeRect(x0+.5,CH.T+.5,x1-x0-1,h-CH.T-CH.B-1);}}
+}
+function seriesCh(cv,id,list,opt){ // list: [{t:[],y:[],color,name}]
+  const {g,w,h}=chartBase(cv,opt.h||130),v=S.gview,x=t=>CH.L+(t-v.t0)/(v.t1-v.t0)*(w-CH.L-CH.R);
+  let lo=Infinity,hi=-Infinity;
+  for(const s of list)for(let k=0;k<s.t.length;k++){if(s.t[k]<v.t0||s.t[k]>v.t1)continue;const y=s.y[k];if(y===y){if(y<lo)lo=y;if(y>hi)hi=y;}}
+  if(!isFinite(lo)){lo=0;hi=1;g.fillStyle='#8b9bab';g.font='12px system-ui';g.textAlign='center';g.fillText(opt.empty||'sem dados no intervalo',w/2,h/2);}
+  if(hi-lo<1e-9){hi=lo+1;}const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;
+  shadeCh(g,id,x,w,h);axisCh(g,w,h,x,lo,hi,opt.fmt);
+  const y=val=>CH.T+(hi-val)/(hi-lo)*(h-CH.T-CH.B),dt=S.ds.intervalMs*3;
+  g.save();g.beginPath();g.rect(CH.L,0,w-CH.L-CH.R,h);g.clip();
+  for(const s of list){g.strokeStyle=s.color;g.fillStyle=s.color;g.lineWidth=1;let prev=-1;g.beginPath();
+    for(let k=0;k<s.t.length;k++){if(s.t[k]<v.t0-dt||s.t[k]>v.t1+dt){prev=-1;continue;}const yy=s.y[k];if(yy!==yy){prev=-1;continue;}const X=x(s.t[k]),Y=y(yy);
+      if(prev>=0&&s.t[k]-s.t[prev]<=dt)g.lineTo(X,Y);else g.moveTo(X,Y);prev=k;}
+    g.stroke();
+    for(let k=0;k<s.t.length;k++){if(s.t[k]<v.t0||s.t[k]>v.t1)continue;const yy=s.y[k];if(yy!==yy)continue;g.fillRect(x(s.t[k])-1,y(yy)-1,2.5,2.5);}}
+  for(const m of opt.marks||[]){if(m.t<v.t0||m.t>v.t1)continue;g.strokeStyle=m.color;g.lineWidth=1.2;const X=x(m.t);g.beginPath();g.moveTo(X,CH.T);g.lineTo(X,h-CH.B);g.stroke();}
+  g.restore();
+  if(list.length>1||opt.legend){g.font='10px system-ui';g.textAlign='left';g.textBaseline='top';let lx=CH.L+4;for(const s of list){g.fillStyle=s.color;g.fillText('● '+s.name,lx,CH.T+2);lx+=g.measureText('● '+s.name).width+10;}}
+}
+function renderGraphs(light){
+  if(!S.ds||!$('#gc0'))return;const id=$('#gSat').value||S.ds.satList[0];if(!id)return;const ds=S.ds,s=ds.sats[id],T=ds.t;
+  const pal=['#5ac8fa','#ff9f43','#2ecc71','#b07cff','#ff6b6b'];
+  const idx=[];for(let i=0;i<ds.nE;i++)if(s.has[i])idx.push(i);
+  const tt=idx.map(i=>T[i]);
+  // SNR
+  const snr=s.codes.filter(c=>c[0]==='S').map((c,k)=>({t:tt,y:idx.map(i=>s.val[c][i]),color:pal[k%5],name:c}));
+  seriesCh($('#gc0'),id,snr,{empty:'sem observáveis de SNR'});
+  // fase
+  const pc=$('#gPh').value;let ph=[];
+  if(pc){const raw=idx.map(i=>s.val[pc][i]);let y;
+    if($('#gPhMode').value==='raw'){const f0=raw.find(v=>v===v);y=raw.map(v=>v-f0);}
+    else{y=new Array(raw.length).fill(NaN);let a=0;const dtm=ds.intervalMs*(S.params.gapFactor)+1;
+      for(let k=1;k<=raw.length;k++){if(k===raw.length||tt[k]-tt[k-1]>dtm){const xs=[],ys=[],ks=[];for(let q=a;q<k;q++)if(raw[q]===raw[q]){xs.push(tt[q]);ys.push(raw[q]);ks.push(q);}
+        const r=polyRes(xs,ys,4);ks.forEach((q,z)=>y[q]=r[z]);a=k;}}}
+    ph=[{t:tt,y,color:'#5ac8fa',name:pc}];}
+  seriesCh($('#gc1'),id,ph,{empty:'sem fase',legend:true,fmt:v=>v.toFixed(Math.abs(v)<10?2:0)});
+  // pseudodistância
+  const cc=$('#gCode').value;
+  seriesCh($('#gc2'),id,cc?[{t:tt,y:idx.map(i=>s.val[cc][i]/1000),color:'#2ecc71',name:cc}]:[],{empty:'sem pseudodistância',legend:true,fmt:v=>v.toFixed(0)});
+  // cycle slip
+  const gi=gfInfo(ds,s),marks=(S.evBySat[id]||[]).filter(e=>SLIP_TYPES.includes(e.type)).map(e=>({t:e.t0,color:EV_COL[e.type]}));
+  seriesCh($('#gc3'),id,gi?[{t:tt,y:idx.map(i=>gi.gf[i]),color:'#8b9bab',name:'GF '+gi.c1+'−'+gi.c2}]:[],{marks,empty:gi?'':'sem dupla frequência: só eventos LLI (linhas)',legend:true,fmt:v=>v.toFixed(2)});
+  // disponibilidade
+  {const {g,w,h}=chartBase($('#gc4'),Math.max(80,s.codes.length*14+CH.B+CH.T)),v=S.gview,x=t=>CH.L+(t-v.t0)/(v.t1-v.t0)*(w-CH.L-CH.R),rh=(h-CH.T-CH.B)/s.codes.length;
+    axisCh(g,w,h,x,0,1,()=> '');g.fillStyle='#0b1015';g.fillRect(0,0,CH.L-1,h);g.font='10px system-ui';g.textAlign='right';g.textBaseline='middle';
+    s.codes.forEach((c,k)=>{const y0=CH.T+k*rh;g.fillStyle='#8b9bab';g.fillText(c,CH.L-4,y0+rh/2);const a=Math.max(0,lowerBound(T,v.t0-ds.intervalMs)),b=upperBound(T,v.t1+ds.intervalMs);let i=a;const val=s.val[c],m=S.mask[id][c];
+      while(i<b){if(val[i]!==val[i]){i++;continue;}const on=m[i];let j=i;while(j+1<b&&val[j+1]===val[j+1]&&m[j+1]===on&&T[j+1]-T[j]<=ds.intervalMs*1.5)j++;g.fillStyle=on?'#2ecc71':'#c0566a';const x0=x(T[i]),x1=x(T[j]+ds.intervalMs*0.9);g.fillRect(Math.max(CH.L,x0),y0+1,Math.max(1.5,x1-x0),rh-2);i=j+1;}});
+    if(S.cr){const x0=Math.max(CH.L,x(S.cr.a)),x1=Math.min(w-CH.R,x(S.cr.b));if(x1>x0){g.fillStyle='rgba(74,163,255,.3)';g.fillRect(x0,CH.T,x1-x0,h-CH.T-CH.B);}}}
+  const rg=$('#gRegion');rg.style.display=S.cr?'flex':'none';if(S.cr)$('#gRegTxt').textContent=id+' · '+rangeTxt(S.cr.a,S.cr.b);
+}
+
+/* ---------- edições: antes/depois, alterações, histórico ---------- */
+function kpi(label,a,b,tag){const d=b-a;return `<div><small>${label}</small><b>${nf(a)}</b><em>${tag}</em><b class="${d<0?'bad':'good'}" style="font-size:16px">${nf(b)}</b><em>${d?(d>0?'+':'')+nf(d):'sem mudança'}</em></div>`;}
+function renderHist(){
+  if(!S.ds)return;const A=S.countsOrig,B=S.counts;
+  $('#beforeAfter').innerHTML=`<div class="mut" style="font-size:12px;margin-bottom:6px">Versão ativa: <b>${esc(curV().name)}</b></div><div class="kpi">${kpi('SATÉLITES',A.sats,B.satsValid,'antes → depois')}${kpi('ÉPOCAS',A.epochs,B.epochsValid,'válidas')}${kpi('OBSERVAÇÕES',A.obs,B.obsValid,'válidas')}</div>
+   <p class="mut" style="font-size:11px">Época válida = com ao menos uma observação ativa. Observação = cada valor (código, fase, SNR…) presente no arquivo.</p>`;
+  const ch=changedSummary(S.ds,S.mask);
+  const ids=Object.keys(ch.per).sort((a,b)=>satSortKey(a)-satSortKey(b));
+  $('#changedBox').innerHTML=ids.length?`<div class="scroll"><table class="tbl"><tr><th>Sat</th><th>Obs desativadas</th><th>Épocas</th><th>Observáveis</th><th>Intervalos</th></tr>${ids.map(id=>{const p=ch.per[id];return `<tr><td><b>${id}</b></td><td>${nf(p.obs)}</td><td>${nf(p.epochs)}</td><td>${p.codes.join(' ')}</td><td>${p.intervals.slice(0,6).map(i=>rangeTxt(i.a,i.b)).join(', ')}${p.intervals.length>6?' +'+(p.intervals.length-6):''}</td></tr>`;}).join('')}</table></div><p class="mut" style="font-size:11px">Total: ${nf(ch.tot)} observações desativadas · o arquivo original permanece intacto.</p>`:'<span class="mut">Nenhuma observação desativada nesta versão.</span>';
+  const ed=curV().edits,grpCount={};ed.forEach(e=>grpCount[e.grp]=(grpCount[e.grp]||0)+1);
+  $('#histTbl').innerHTML=ed.length?`<tr><th>ID</th><th>DATA</th><th>ESTAÇÃO</th><th>SATÉLITE</th><th>OBSERVÁVEL</th><th>INÍCIO</th><th>FIM</th><th>AÇÃO</th><th>MOTIVO</th><th></th></tr>`+ed.map(e=>`<tr class="${e.undone?'undone':''}"><td>${pad2(e.id)}</td><td>${e.date}</td><td>${esc(e.station)}</td><td>${e.sat}</td><td>${obsLabel(e)}</td><td>${fmtT(e.t0)}</td><td>${fmtT(e.t1)}</td><td>${e.action}</td><td>${esc(e.reason)}</td><td style="text-decoration:none"><button class="small" style="text-decoration:none" data-act="undo" data-id="${e.id}">${e.undone?'↷ Refazer':'↶ Desfazer'}</button>${grpCount[e.grp]>1?`<button class="small" data-act="undoGrp" data-grp="${e.grp}">lote</button>`:''}</td></tr>`).join(''):`<tr><td class="mut">${S.cur===0?'ORIGINAL — sem edições. Faça uma edição para criar a EDIÇÃO_01.':'Nenhum registro.'}</td></tr>`;
+}
+function histCsv(){const ed=curV().edits,rows=[['ID','DATA','ESTACAO','SATELITE','OBSERVAVEL','INICIO','FIM','ACAO','MOTIVO','DESFEITA']];ed.forEach(e=>rows.push([pad2(e.id),e.date,e.station,e.sat,obsLabel(e),fmtT(e.t0),fmtT(e.t1),e.action,e.reason,e.undone?'sim':'']));
+  dl('historico_'+curV().name+'.csv','﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\r\n'),'text/csv');}
+function editedName(){return S.ds.name.replace(/(\.[^.]*)?$/,m=>'_EDITADO'+(m||'.rnx'));}
+function doExport(){
+  const ds=S.ds,ed=curV().edits;
+  const txt=exportRinex(ds,S.mask,ed,{keepEmptyEpochs:$('#optKeepEmpty').checked});
+  let msg='';try{const d2=parseRinexObs(txt,'check');const c2=countObs(d2,allActive(d2));const ok=c2.obsValid===S.counts.obsValid&&c2.epochs===(S.counts.epochs)||(!$('#optKeepEmpty').checked);
+    msg=c2.obs===S.counts.obsValid?'✔ Verificação: o arquivo gerado contém exatamente as '+nf(c2.obs)+' observações ativas da máscara.':'⚠ Verificação divergente: arquivo '+nf(c2.obs)+' × máscara '+nf(S.counts.obsValid);}catch(e){msg='⚠ Não foi possível reler o arquivo gerado: '+e.message;}
+  dl(editedName(),txt,'text/plain');$('#exportMsg').innerHTML=esc(ds.name)+' → <b>'+esc(editedName())+'</b> · '+msg+'<br>Desativadas = campo em branco (padrão RINEX para “não observado”); linhas de satélite totalmente desativadas são omitidas e a contagem da época é atualizada. O original não foi tocado.';
+}
+
+/* ---------- versões ---------- */
+function verSummary(v){const m=v.edits.length?buildMask(S.ds,v.edits):S.maskOrig,c=countObs(S.ds,m);return {m,c};}
+function renderVers(){
+  if(!S.ds)return;
+  $('#verList').innerHTML=S.versions.map((v,i)=>{const {c}=verSummary(v),act=v.edits.filter(e=>!e.undone);
+    const lines=act.slice(0,5).map(e=>`${e.sat} ${obsLabel(e)} ${rangeTxt(e.t0,e.t1)} ${e.action==='DESATIVAR'?'desativado':'reativado'}`);
+    return `<div class="sug ${i===S.cur?'':'s1'}" style="border-color:${i===S.cur?'#4aa3ff':''}"><h4>${i===0?'📁':i===S.versions.length-1?'└─':'├─'} ${esc(v.name)} ${i===S.cur?'· <span class="good">ativa</span>':''}</h4>
+    <p>${act.length?lines.join('<br>')+(act.length>5?'<br>… +'+(act.length-5):''):'sem edições'}</p><p>Obs válidas: <b>${nf(c.obsValid)}</b> / ${nf(c.obs)}</p>
+    <div class="b"><button class="small" data-act="vUse" data-i="${i}">Usar</button>${i?`<button class="small" data-act="vRen" data-i="${i}">Renomear</button><button class="small danger" data-act="vDel" data-i="${i}">Excluir</button>`:''}</div></div>`;}).join('');
+  const opts=S.versions.map((v,i)=>`<option value="${i}">${esc(v.name)}</option>`).join('');const a=$('#cmpA').value,b=$('#cmpB').value;$('#cmpA').innerHTML=opts;$('#cmpB').innerHTML=opts;
+  $('#cmpA').value=a||'0';$('#cmpB').value=b||String(Math.max(0,S.versions.length-1));
+}
+function renderCmp(){
+  const A=S.versions[+$('#cmpA').value],B=S.versions[+$('#cmpB').value];if(!A||!B)return;
+  const sa=verSummary(A),sb=verSummary(B),df=diffSummary(S.ds,sa.m,sb.m);
+  const ids=Object.keys(df.per).sort((x,y)=>satSortKey(x)-satSortKey(y));
+  $('#cmpOut').innerHTML=`<div class="kpi" style="margin:8px 0"><div><small>${esc(A.name)}</small><b>${nf(sa.c.obsValid)}</b><em>obs válidas</em></div><div><small>${esc(B.name)}</small><b>${nf(sb.c.obsValid)}</b><em>obs válidas</em></div><div><small>DIFERENÇA</small><b>${nf(sb.c.obsValid-sa.c.obsValid)}</b><em>B − A</em></div></div>`+
+   (ids.length?`<div class="scroll"><table class="tbl"><tr><th>Sat</th><th>Só ativas em ${esc(A.name)}</th><th>Só ativas em ${esc(B.name)}</th><th>Intervalos que diferem</th></tr>${ids.map(id=>{const p=df.per[id];return `<tr><td><b>${id}</b></td><td>${nf(p.onlyA)}</td><td>${nf(p.onlyB)}</td><td>${p.intervals.slice(0,5).map(i=>rangeTxt(i.a,i.b)).join(', ')}${p.intervals.length>5?' +'+(p.intervals.length-5):''}</td></tr>`;}).join('')}</table></div>`:'<p class="good">As duas versões usam exatamente o mesmo conjunto de observações.</p>');
+}
+
+/* ---------- processamento ---------- */
+function renderProc(){
+  if(!S.ds)return;
+  const sel=$('#engSel');if(sel.options.length!==Object.keys(ENGINES).length){sel.innerHTML=Object.entries(ENGINES).map(([k,e])=>`<option value="${k}">${esc(e.label)}</option>`).join('');}
+  const has=S.cur>0&&curV().edits.some(e=>!e.undone),r=S.results;
+  const steps=[['RINEX ORIGINAL',1],['PARSER RINEX',1],['MÁSCARA',has],['OBS EDITADAS',has],['MOTOR GNSS',r.cur||r.orig],['SOLUÇÃO',r.cur||r.orig],['RELATÓRIO',0]];
+  $('#pipe').innerHTML=steps.map(([n,on],i)=>(i?'<b>→</b>':'')+`<span class="${on?'on':''}">${n}</span>`).join('');
+  const o=r.orig,c=r.cur;if(!o&&!c){$('#procOut').innerHTML='';return;}
+  const rows=[['Épocas resolvidas',x=>nf(x.epochs)+' / '+nf(x.epochsTotal),x=>x.epochs,0],['Satélites (média)',x=>f2(x.nsatMean,1),x=>x.nsatMean,0],['Satélites (máx.)',x=>x.nsatMax,x=>x.nsatMax,0],['PDOP médio',x=>f2(x.pdopMean,2),x=>x.pdopMean,-1],
+    ['RMS dos resíduos (m)',x=>f2(x.rms,3),x=>x.rms,-1],['Precisão σE (m)',x=>f2(x.sdE,3),x=>x.sdE,-1],['Precisão σN (m)',x=>f2(x.sdN,3),x=>x.sdN,-1],['Precisão σU (m)',x=>f2(x.sdU,3),x=>x.sdU,-1],['Precisão σH (m)',x=>f2(x.sdH,3),x=>x.sdH,-1],['Precisão σ3D (m)',x=>f2(x.sd3,3),x=>x.sd3,-1]];
+  const cell=(x,f)=>x&&x.ok?f(x):(x?'falhou':'—');
+  $('#procOut').innerHTML=`<div class="card"><h3>Comparação</h3><div class="scroll"><table class="tbl"><tr><th></th><th>PROCESSAMENTO ORIGINAL</th><th>PROCESSAMENTO EDITADO${c?' · '+esc(c.verName):''}</th><th>Diferença</th></tr>`+
+   rows.map(([l,f,g,dir])=>{let d='—',cls='';if(o&&o.ok&&c&&c.ok){const dv=g(c)-g(o);d=(dv>0?'+':'')+f2(dv,Math.abs(dv)<10?3:1);if(dir&&Math.abs(dv)>1e-9)cls=(dir<0?dv<0:dv>0)?'good':'bad';}return `<tr><td>${l}</td><td>${cell(o,f)}</td><td>${cell(c,f)}</td><td class="${cls}">${d}</td></tr>`;}).join('')+`</table></div>
+   <p class="mut" style="font-size:11px">Verde = melhora (menor RMS/σ/PDOP). ${c&&o&&c.sig===o.sig?'A versão ativa é o ORIGINAL.':''} Resultado do motor interno <b>SPP</b> (pseudodistância): serve para comparar conjuntos de observações; não substitui um processamento RTK/PPP.</p></div>
+   ${(o&&o.ok||c&&c.ok)?'<div class="card"><h3>Série ENU (m) — cinza: original · cores: editado</h3><canvas id="enuCv" style="touch-action:pan-y"></canvas></div>':''}`;
+  if($('#enuCv'))drawEnu();
+}
+function drawEnu(){
+  const o=S.results.orig,c=S.results.cur,cv=$('#enuCv'),{g,w,h}=chartBase(cv,170);
+  const all=[o,c].filter(x=>x&&x.ok);let lo=Infinity,hi=-Infinity,t0=Infinity,t1=-Infinity;
+  for(const r of all){for(const k of ['E','N','U'])for(const v of r.series[k]){if(v<lo)lo=v;if(v>hi)hi=v;}t0=Math.min(t0,r.series.t[0]);t1=Math.max(t1,r.series.t[r.series.t.length-1]);}
+  if(!isFinite(lo))return;const pad=(hi-lo)*0.1||1;lo-=pad;hi+=pad;const L=40,x=t=>L+(t-t0)/(t1-t0||1)*(w-L-6),y=v=>8+(hi-v)/(hi-lo)*(h-24);
+  g.strokeStyle='#2b3846';g.fillStyle='#8b9bab';g.font='10px system-ui';g.textAlign='right';g.textBaseline='middle';for(let k=0;k<=3;k++){const v=hi-(hi-lo)*k/3;g.beginPath();g.moveTo(L,y(v));g.lineTo(w-6,y(v));g.globalAlpha=.4;g.stroke();g.globalAlpha=1;g.fillText(v.toFixed(1),L-3,y(v));}
+  g.textAlign='center';g.textBaseline='top';for(let k=0;k<=4;k++){const t=t0+(t1-t0)*k/4;g.fillText(fmtT(t),x(t),h-14);}
+  const cols={E:'#5ac8fa',N:'#2ecc71',U:'#ff9f43'};
+  for(const [r,grey] of [[o,true],[c,false]]){if(!r||!r.ok)continue;if(grey===false&&o&&c&&c.sig===o.sig)continue;
+    for(const k of ['E','N','U']){g.strokeStyle=grey?'#566575':cols[k];g.lineWidth=1;g.beginPath();r.series[k].forEach((v,i)=>{const X=x(r.series.t[i]),Y=y(v);i?g.lineTo(X,Y):g.moveTo(X,Y);});g.stroke();}}
+  g.textAlign='left';g.textBaseline='top';g.fillStyle=cols.E;g.fillText('E',L+4,2);g.fillStyle=cols.N;g.fillText('N',L+18,2);g.fillStyle=cols.U;g.fillText('U',L+32,2);
+}
+async function runProc(which){
+  if(!S.ds)return;const eng=ENGINES[$('#engSel').value],msg=$('#procMsg');
+  const useOrig=which==='orig'||S.cur===0,mask=useOrig?S.maskOrig:S.mask,ver=useOrig?S.versions[0]:curV();
+  const P=Object.assign({},S.params,{elevMask:parseFloat($('#pElev').value)||10});
+  const sig=JSON.stringify(ver.edits.filter(e=>!e.undone).map(e=>[e.sat,e.scope,e.value,e.t0,e.t1,e.action]))+'|'+P.elevMask+'|'+(S.nav?S.nav.name:'');
+  msg.textContent='Processando '+ver.name+'…';
+  try{
+    const res=await eng.run({ds:S.ds,mask,nav:S.nav,params:P,onProgress:p=>{msg.textContent='Processando '+ver.name+'… '+Math.round(p*100)+'%';},rinexText:()=>exportRinex(S.ds,mask,ver.edits,{keepEmptyEpochs:true})});
+    res.sig=sig;res.verName=ver.name;
+    if(useOrig)S.results.orig=res;else S.results.cur=res;
+    if(useOrig&&S.cur===0)S.results.cur=res;
+    msg.textContent=res.ok?'Concluído: '+ver.name+' · '+res.epochs+' épocas resolvidas.':'O motor não conseguiu resolver nenhuma época (verifique a navegação e a quantidade de satélites ativos).';
+  }catch(err){msg.textContent='Erro: '+err.message;toast(err.message);}
+  renderProc();
+}
+function makeReport(){
+  const ds=S.ds,v=curV(),A=S.countsOrig,B=S.counts,ed=v.edits,o=S.results.orig,c=S.results.cur,ch=changedSummary(ds,S.mask);
+  const tr=(a)=>'<tr>'+a.map(x=>'<td>'+x+'</td>').join('')+'</tr>';
+  let h=`<!DOCTYPE html><html lang="pt-BR"><meta charset="utf-8"><title>Relatório GNSS — ${esc(ds.station||ds.name)}</title><style>body{font:13px system-ui;margin:24px;max-width:960px}table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid #bbb;padding:4px 6px;text-align:left}h2{margin-top:24px}</style>
+  <h1>Relatório de edição de observações GNSS</h1><p>Map GEO Ambiental · gerado em ${new Date().toLocaleString('pt-BR')}<br>Arquivo original: <b>${esc(ds.name)}</b> (não modificado) · Estação: ${esc(ds.station||'—')} · Receptor: ${esc(ds.rec||'—')} · Antena: ${esc(ds.ant||'—')}<br>Período: ${fmtDate(ds.tFirst)} ${fmtT(ds.tFirst)} – ${fmtT(ds.tLast)} · intervalo ${ds.interval} s · versão: <b>${esc(v.name)}</b></p>
+  <h2>Antes × depois</h2><table><tr><th></th><th>Antes</th><th>Depois</th></tr>${tr(['Satélites',A.sats,B.satsValid])}${tr(['Épocas',nf(A.epochs),nf(B.epochsValid)])}${tr(['Observações',nf(A.obs),nf(B.obsValid)])}</table>
+  <h2>O que foi alterado</h2><table><tr><th>Sat</th><th>Obs desativadas</th><th>Épocas</th><th>Observáveis</th><th>Intervalos</th></tr>${Object.keys(ch.per).map(id=>{const p=ch.per[id];return tr([id,nf(p.obs),nf(p.epochs),p.codes.join(' '),p.intervals.map(i=>rangeTxt(i.a,i.b)).join(', ')]);}).join('')||tr(['—','','','',''])}</table>
+  <h2>Histórico de edições</h2><table><tr><th>ID</th><th>Data</th><th>Estação</th><th>Satélite</th><th>Observável</th><th>Início</th><th>Fim</th><th>Ação</th><th>Motivo</th><th>Situação</th></tr>${ed.map(e=>tr([pad2(e.id),e.date,esc(e.station),e.sat,obsLabel(e),fmtT(e.t0),fmtT(e.t1),e.action,esc(e.reason),e.undone?'desfeita':'ativa'])).join('')||tr(['—','','','','','','','','',''])}</table>`;
+  if(o||c){const row=(l,f)=>tr([l,o&&o.ok?f(o):'—',c&&c.ok?f(c):'—']);h+=`<h2>Processamento (${esc((o||c).engine)})</h2><table><tr><th></th><th>Original</th><th>Editado (${esc(c?c.verName:'—')})</th></tr>${row('Épocas resolvidas',x=>x.epochs+'/'+x.epochsTotal)}${row('Satélites (média)',x=>f2(x.nsatMean,1))}${row('PDOP médio',x=>f2(x.pdopMean,2))}${row('RMS resíduos (m)',x=>f2(x.rms,3))}${row('σE / σN / σU (m)',x=>f2(x.sdE,3)+' / '+f2(x.sdN,3)+' / '+f2(x.sdU,3))}${row('σ3D (m)',x=>f2(x.sd3,3))}</table>`;}
+  h+=`<p style="color:#666">Nenhum valor GNSS foi alterado ou inventado; observações desativadas são mascaradas (campo em branco no RINEX editado).</p></html>`;
+  dl('relatorio_'+ds.name.replace(/\.[^.]*$/,'')+'_'+v.name+'.html',h,'text/html');
+}
+
+/* ---------- API pública (plugar motor próprio) ---------- */
+window.MapGEO={registerEngine:(id,label,fn)=>{registerEngine(id,label,fn);if(S.ds)renderProc();},state:S,exportRinex:()=>exportRinex(S.ds,S.mask,curV().edits,{keepEmptyEpochs:true}),mask:()=>S.mask};
+renderParams();
+
+/* ===================== VETORES BASE → ROVERS / COORDENADAS ABSOLUTAS ===================== */
+const V={files:[],base:{lat:'',lon:'',h:'',sE:'',sN:'',sU:'',hi:'0',ant:'',marker:''},res:{},opt:{ratio:3,elev:10},busy:false};
+try{const s=localStorage.getItem('mapgeo-vet-base');if(s)Object.assign(V.base,JSON.parse(s));}catch(e){}
+const vsave=()=>{try{localStorage.setItem('mapgeo-vet-base',JSON.stringify(V.base));}catch(e){}};
+const vkey=ds=>ds.name+'|'+ds.nE+'|'+ds.tFirst;
+function mergeNav(a,b){
+  if(!a)return b;const n=Object.assign({},a);n.eph=Object.assign({},a.eph);
+  for(const id of Object.keys(b.eph)){const ex=n.eph[id]=(n.eph[id]||[]).slice();for(const e of b.eph[id])if(!ex.some(x=>x.toeAbs===e.toeAbs))ex.push(e);}
+  n.n=Object.values(n.eph).reduce((s,l)=>s+l.length,0);n.klobA=a.klobA||b.klobA;n.klobB=a.klobB||b.klobB;n.name=a.name+' + '+b.name;return n;
+}
+function vecAdd(ds){
+  if(V.files.some(f=>vkey(f.ds)===vkey(ds))){const f=V.files.find(f=>vkey(f.ds)===vkey(ds));f.ds=ds;return f;}
+  const isBase=/base/i.test(ds.name)||/base/i.test(ds.station||'');
+  const f={ds,role:isBase&&!V.files.some(x=>x.role==='base')?'base':'rover',hi:'0',ed:null};
+  V.files.push(f);if(!V.files.some(x=>x.role==='base')&&V.files.length===1)f.role='base';
+  renderVet();return f;
+}
+function vecSyncActive(){ // guarda as versões do editor no registro do arquivo ativo
+  if(!S.ds)return;const f=V.files.find(f=>vkey(f.ds)===vkey(S.ds));if(f)f.ed={versions:S.versions,cur:S.cur,vCounter:S.vCounter};
+}
+function vecActivate(i,stay){
+  vecSyncActive();const f=V.files[i];if(!f)return;
+  S.noRestore=true;loadObs(f.ds);S.noRestore=false;
+  if(f.ed){S.versions=f.ed.versions;S.cur=f.ed.cur;S.vCounter=f.ed.vCounter;recompute();}
+  if(!stay){goTab('timeline');toast('Editando '+f.ds.name);}
+}
+function vecMask(f){
+  vecSyncActive();
+  const ed=f.ed;if(ed&&ed.cur>0){const v=ed.versions[ed.cur];if(v.edits.some(e=>!e.undone))return {mask:buildMask(f.ds,v.edits),edited:true,ver:v.name};}
+  return {mask:allActive(f.ds),edited:false,ver:'ORIGINAL'};
+}
+/* ---- coordenadas da base ---- */
+function baseXYZ(){
+  const b=V.base,lat=parseAngle(b.lat),lon=parseAngle(b.lon),h=parseFloat(String(b.h).replace(',','.'));
+  if(!isFinite(lat)||!isFinite(lon)||!isFinite(h)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
+  return {xyz:llh2ecef(lat*Math.PI/180,lon*Math.PI/180,h),lat,lon,h};
+}
+const num=s=>{const v=parseFloat(String(s).replace(',','.'));return isFinite(v)?v:0;};
+function parsePPPText(t){
+  const out={},L=t.split(/\r?\n/);const grab=(re)=>{for(let i=0;i<L.length;i++){if(re.test(L[i])){return L[i].replace(re,'').trim()+' '+(L[i+1]||'');}}return null;};
+  const ang=s=>{if(!s)return null;const m=/[-+]?\s*\d+\s*[°º:\s]\s*\d+\s*['′:\s]\s*\d+(?:[.,]\d+)?|[-+]?\d+(?:[.,]\d+)?/.exec(s);return m?m[0].trim():null;};
+  const la=grab(/^.*Latitude[^:\d-]*[:\s]/i),lo=grab(/^.*Longitude[^:\d-]*[:\s]/i),hh=grab(/^.*(Altitude\s*elips|Altura\s*elips|Alt\.?\s*elips)[^:\d-]*[:\s]/i);
+  out.lat=ang(la);out.lon=ang(lo);const hm=hh&&/[-+]?\d+(?:[.,]\d+)?/.exec(hh);out.h=hm?hm[0]:null;
+  const sg=t.match(/(?:sigma|desvio)[^\n]*?(\d+[.,]\d+)[^\d\n]+(\d+[.,]\d+)[^\d\n]+(\d+[.,]\d+)/i);
+  if(sg){out.sN=sg[1];out.sE=sg[2];out.sU=sg[3];}
+  return out;
+}
+/* ---- cálculo ---- */
+function enuSigma(sdXYZ,lat,lon){
+  const sl=Math.sin(lat),cl=Math.cos(lat),so=Math.sin(lon),co=Math.cos(lon);
+  const R=[[-so,co,0],[-sl*co,-sl*so,cl],[cl*co,cl*so,sl]];
+  return R.map(r=>Math.sqrt(r.reduce((s,v,k)=>s+v*v*sdXYZ[k]*sdXYZ[k],0)));
+}
+function runOne(f,B,bx,nav,mk,opt){
+  const hiB=num(V.base.hi);
+  const r=baselineSolve(B.ds,B.mask,f.ds,mk.mask,nav,bx?bx.xyz:B.ds.approx,Object.assign({},BL_DEF,{elev:f.elev||V.opt.elev,ratio:V.opt.ratio,hiBase:bx?hiB:0,hiRover:num(f.hi)},opt||{}));
+  if(!r.ok)return r;
+  const [lat,lon]=ecef2llh(r.roverARP[0],r.roverARP[1],r.roverARP[2]);
+  const k=Math.max(1,r.rms/BL_DEF.sigPhase);r.sdScaled=r.sd.map(v=>v*k);r.sdENU=enuSigma(r.sdScaled,lat,lon);
+  if(bx){const sb=[num(V.base.sE),num(V.base.sN),num(V.base.sU)];r.absSig=[Math.hypot(sb[0],r.sdENU[0]),Math.hypot(sb[1],r.sdENU[1]),Math.hypot(sb[2],r.sdENU[2])];r.baseSig=sb;}
+  return r;
+}
+async function leaveOneOut(f,B,bx,mk,cur,all){
+  const out=[];
+  for(const id of f.ds.satList.filter(i=>'GECJ'.includes(i[0]))){
+    await new Promise(r=>setTimeout(r,0));
+    let r;try{r=runOne(f,B,bx,S.nav,mk,{excl:[id]});}catch(e){continue;}
+    if(r&&r.ok&&(all||r.rms<cur.rms*0.6))out.push({sat:id,rms:r.rms,status:r.status,ratio:r.ratio,length:r.length,dLen:r.length-cur.length});
+  }
+  out.sort((a,b)=>a.rms-b.rms);return all?out:out.slice(0,2);
+}
+async function runVectors(only){
+  if(V.busy)return;vecSyncActive();
+  const bf=V.files.find(f=>f.role==='base');if(!bf)return toast('Defina qual arquivo é a BASE.');
+  const rv=only?[only]:V.files.filter(f=>f.role==='rover');if(!rv.length)return toast('Nenhum arquivo marcado como ROVER.');
+  if(!S.nav)return toast('Carregue a navegação (.nav / .rnx de efemérides) na aba Processar ou no botão Abrir.');
+  const bx=baseXYZ(),Bm=vecMask(bf),B={ds:bf.ds,mask:Bm.mask};V.busy=true;if(!only)V.res={};
+  for(const f of rv){
+    $('#vMsg').textContent='Calculando '+f.ds.name+'…';await new Promise(r=>setTimeout(r,30));
+    const mk=vecMask(f),rec={edited:mk.edited,ver:mk.ver,baseEdited:Bm.edited};
+    try{rec.cur=runOne(f,B,bx,S.nav,mk);if(mk.edited||Bm.edited)rec.orig=runOne(f,{ds:bf.ds,mask:allActive(bf.ds)},bx,S.nav,{mask:allActive(f.ds)});}
+    catch(e){rec.cur={ok:false,status:'ERRO',reason:e.message};console.error(e);}
+    V.res[vkey(f.ds)]=rec;renderVet();
+    if(rec.cur&&rec.cur.ok&&rec.cur.rms>0.02){$('#vMsg').textContent='Procurando satélite problemático em '+f.ds.name+'…';try{rec.sug=await leaveOneOut(f,B,bx,mk,rec.cur);}catch(e){console.error(e);}renderVet();}
+  }
+  V.busy=false;$('#vMsg').textContent=bx?'Pronto.':'Pronto — sem coordenadas da base: só os vetores; coordenadas absolutas não calculadas.';
+  renderVet();
+}
+/* ---- IBGE-PPP: RINEX da base ---- */
+function exportBaseForPPP(){
+  const bf=V.files.find(f=>f.role==='base');if(!bf)return toast('Defina a BASE.');
+  const Bm=vecMask(bf);let txt=exportRinex(bf.ds,Bm.mask,Bm.edited?(bf.ed.versions[bf.ed.cur].edits):[],{keepEmptyEpochs:false});
+  const eol=bf.ds.eol||'\n',L=txt.split(/\r?\n/),b=V.base;let hdr=true;
+  for(let i=0;i<L.length&&hdr;i++){const lb=L[i].slice(60).trim();
+    if(lb==='END OF HEADER')hdr=false;
+    else if(lb==='MARKER NAME'&&b.marker)L[i]=b.marker.padEnd(60).slice(0,60)+'MARKER NAME';
+    else if(lb==='ANT # / TYPE'&&b.ant)L[i]=L[i].slice(0,20)+b.ant.padEnd(20).slice(0,20)+L[i].slice(40);
+    else if(lb==='ANTENNA: DELTA H/E/N'&&num(b.hi)>0){const h=num(b.hi);L[i]=h.toFixed(4).padStart(14)+'0.0000'.padStart(14)+'0.0000'.padStart(14)+''.padEnd(18)+'ANTENNA: DELTA H/E/N';}}
+  const name=bf.ds.name.replace(/(\.[^.]*)?$/,'_PPP.rnx');dl(name,L.join(eol),'text/plain');
+  toast('Gerado '+name+' (o original não foi alterado). Envie-o ao IBGE-PPP.');
+}
+/* ---- exportação ---- */
+function vecCsv(){
+  const b=baseXYZ(),rows=[['ARQUIVO','VERSAO','STATUS','RATIO','AMB_FIX','AMB_TOT','COMPRIMENTO_m','dE_m','dN_m','dU_m','dX_m','dY_m','dZ_m','RMS_fase_mm','LAT','LON','H_m','UTM_E','UTM_N','FUSO','sE_m','sN_m','sU_m','ALTURA_ANTENA_m']];
+  for(const f of V.files.filter(f=>f.role==='rover')){const rec=V.res[vkey(f.ds)];if(!rec||!rec.cur||!rec.cur.ok)continue;const r=rec.cur,p=r.rover;
+    rows.push([f.ds.name,rec.ver,r.status,r.ratio.toFixed(2),r.nFix,r.nAmb,r.length.toFixed(4),r.dE.toFixed(4),r.dN.toFixed(4),r.dU.toFixed(4),...r.vec.map(v=>v.toFixed(4)),(r.rms*1000).toFixed(1),
+      b?p.lat.toFixed(9):'',b?p.lon.toFixed(9):'',b?p.h.toFixed(4):'',b?p.utm.E.toFixed(3):'',b?p.utm.N.toFixed(3):'',b?p.utm.zone+p.utm.hem:'',...(r.absSig||[]).map(v=>v.toFixed(4)),num(f.hi)]);}
+  dl('vetores_e_coordenadas.csv','﻿'+rows.map(r=>r.join(';')).join('\n'),'text/csv');
+}
+/* ---- UI ---- */
+const statCls=s=>s==='FIX'?'good':s==='FIX PARCIAL'?'':'bad';
+function vecCell(r){
+  if(!r)return '—';if(!r.ok)return `<span class="bad">${esc(r.status)}</span> <small class="mut">${esc(r.reason||'')}</small>`;
+  return `<b class="${r.rms>0.03?"bad":statCls(r.status)}">${esc(r.status)}</b> · razão ${f2(r.ratio,1)} · ${r.nFix}/${r.nAmb} amb.<br>${f2(r.length,3)} m · ΔE ${f2(r.dE,3)} ΔN ${f2(r.dN,3)} ΔU ${f2(r.dU,3)}<br>σ(E,N,U) ${r.sdENU.map(v=>f2(v,3)).join(' / ')} · RMS fase ${f2(r.rms*1000,1)} mm · ${r.epochs} épocas`;
+}
+var renderVet=function(){
+  const box=$('#vFiles');if(!box)return;
+  if(!V.files.length){box.innerHTML='<p class="mut">Abra a BASE e os ROVERS (RINEX). Para .tps/.jps, converta antes para RINEX.</p>';$('#vOut').innerHTML='';return;}
+  box.innerHTML=V.files.map((f,i)=>`<div class="row" style="gap:6px;flex-wrap:wrap;border-bottom:1px solid #223;padding:6px 0">
+    <b class="grow" style="min-width:140px">${esc(f.ds.name)}<br><small class="mut">${esc(f.ds.station||'')} · ${fmtT(f.ds.tFirst)}–${fmtT(f.ds.tLast)} · ${f.ds.interval}s · ${f.ds.satList.length} sat</small></b>
+    <select data-vf="role" data-i="${i}"><option value="base" ${f.role==='base'?'selected':''}>BASE</option><option value="rover" ${f.role==='rover'?'selected':''}>ROVER</option><option value="x" ${f.role==='x'?'selected':''}>ignorar</option></select>
+    <label style="font-size:12px">h.ant ${f.role==='rover'?'(m)':''}<input data-vf="hi" data-i="${i}" type="number" step="0.001" value="${f.role==='base'?esc(V.base.hi):esc(f.hi)}" style="width:76px" ${f.role==='base'?'disabled':''}></label>
+    <button class="small" data-vact="edit" data-i="${i}">✂ Editar obs.</button><button class="small danger" data-vact="rm" data-i="${i}">✕</button></div>`).join('');
+  const bx=baseXYZ();
+  const rv=V.files.filter(f=>f.role==='rover');
+  $('#vOut').innerHTML=rv.map(f=>{const rec=V.res[vkey(f.ds)];if(!rec)return '';const r=rec.cur;
+    let h=`<div class="card"><h3>${esc(f.ds.name)} <small class="mut">· versão ${esc(rec.ver)}${rec.baseEdited?' · base editada':''}</small></h3>`;
+    h+=rec.orig?`<div class="scroll"><table class="tbl"><tr><th>ORIGINAL</th><th>EDITADO</th></tr><tr><td>${vecCell(rec.orig)}</td><td>${vecCell(r)}</td></tr></table></div>`:`<p>${vecCell(r)}</p>`;
+    if(r&&r.ok){
+      if(rec.sug&&rec.sug.length)h+='<div class="card" style="border-color:#f1c40f;margin:8px 0"><b>Possível problema encontrado</b>'+rec.sug.map(s=>`<p style="font-size:12px;margin:6px 0">Satélite <b>${s.sat}</b>: sem ele o resíduo cai de ${f2(r.rms*1000,0)} para ${f2(s.rms*1000,0)} mm · ${esc(s.status)} (razão ${f2(s.ratio,1)}) · comprimento ${f2(s.length,3)} m (${s.dLen>=0?'+':''}${f2(s.dLen*100,1)} cm).<br><button class="small" data-vact="sugOff" data-f="${V.files.indexOf(f)}" data-sat="${s.sat}">Desativar ${s.sat} neste rover</button> <span class="mut">(cria edição reversível; nada é removido sem a sua ação)</span></p>`).join('')+'</div>';
+      if(r.warn.length)h+=r.warn.map(w=>`<p class="bad" style="font-size:12px">⚠ ${esc(w)}</p>`).join('');
+      if(bx){const p=r.rover,s=r.absSig;
+        h+=`<table class="tbl"><tr><th colspan="2">Coordenadas absolutas do ROVER (SIRGAS2000/ITRF da base)</th></tr>
+        <tr><td>Latitude</td><td>${fmtDMS(p.lat,true)} <small class="mut">(${p.lat.toFixed(9)}°)</small></td></tr>
+        <tr><td>Longitude</td><td>${fmtDMS(p.lon,false)} <small class="mut">(${p.lon.toFixed(9)}°)</small></td></tr>
+        <tr><td>Altura elipsoidal</td><td>${f2(p.h,4)} m</td></tr>
+        <tr><td>UTM ${p.utm.zone}${p.utm.hem}</td><td>E ${f2(p.utm.E,3)} · N ${f2(p.utm.N,3)}</td></tr>
+        <tr><td>XYZ</td><td>${f2(p.x,4)} ${f2(p.y,4)} ${f2(p.z,4)}</td></tr>
+        <tr><td>σ final E/N/U</td><td>${s.map(v=>f2(v,3)).join(' / ')} m <small class="mut">= √(σ base² + σ vetor²); σ da base: ${r.baseSig.map(v=>f2(v,3)).join(' / ')}</small></td></tr></table>`;}
+      else h+='<p class="mut" style="font-size:12px">Informe as coordenadas da base (do relatório IBGE-PPP) para obter as coordenadas absolutas.</p>';
+    }
+    return h+'</div>';}).join('');
+};
+function renderBaseForm(){
+  const b=V.base;for(const k of ['lat','lon','h','sE','sN','sU','hi','ant','marker']){const e=$('#vb_'+k);if(e&&document.activeElement!==e)e.value=b[k]||'';}
+}
+document.addEventListener('input',e=>{const t=e.target;if(t.id&&t.id.startsWith('vb_')){V.base[t.id.slice(3)]=t.value;vsave();if(t.id==='vb_hi')renderVet();}
+  if(t.dataset&&t.dataset.vf==='hi'){V.files[+t.dataset.i].hi=t.value;}
+  if(t.id==='vOptRatio')V.opt.ratio=num(t.value)||3;if(t.id==='vOptElev')V.opt.elev=num(t.value)||10;});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.vf==='role'){const f=V.files[+t.dataset.i];f.role=t.value;if(t.value==='base')V.files.forEach(o=>{if(o!==f&&o.role==='base')o.role='rover';});V.res={};renderVet();}});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-vact]');if(!b)return;const a=b.dataset.vact,i=+b.dataset.i;
+  if(a==='edit')vecActivate(i);
+  else if(a==='rm'){if(S.ds&&vkey(V.files[i].ds)===vkey(S.ds)){}V.files.splice(i,1);V.res={};renderVet();}
+  else if(a==='sugOff'){const fi=+b.dataset.f,f=V.files[fi],sat=b.dataset.sat;vecActivate(fi,true);
+    const n=addEdits({sats:[sat],scope:'all',t0:f.ds.tFirst,t1:f.ds.tLast,action:'DESATIVAR',reason:'Resíduo DD alto no cálculo de vetores (sugestão aceita pelo usuário)'});
+    vecSyncActive();toast(sat+' desativado em '+f.ds.name+' ('+curV().name+'). Recalculando…');runVectors(f).then(()=>{delete (V.an||{})[vkey(f.ds)];vPopRefresh();});}
+  else if(a==='run')runVectors();
+  else if(a==='pppExp')exportBaseForPPP();
+  else if(a==='csv')vecCsv();
+  else if(a==='parse'){const o=parsePPPText($('#vPaste').value);let n=0;for(const k of ['lat','lon','h','sE','sN','sU'])if(o[k]){V.base[k]=String(o[k]).replace(/\s+/g,' ');n++;}vsave();renderBaseForm();toast(n?n+' campo(s) preenchido(s) — CONFIRA os valores com o relatório.':'Não consegui identificar os campos; digite manualmente.');}
+  else if(a==='useHdr'){const bf=V.files.find(f=>f.role==='base');if(bf&&bf.ds.approx){const [la,lo,h]=ecef2llh(...bf.ds.approx);V.base.lat=(la*180/Math.PI).toFixed(9);V.base.lon=(lo*180/Math.PI).toFixed(9);V.base.h=h.toFixed(3);vsave();renderBaseForm();toast('Posição aproximada do cabeçalho (precisão de metros) — use só para testes.');}}
+});
+
+function vecMap(){
+  const bx=baseXYZ(),pts=[];
+  const recs=V.files.filter(f=>f.role==='rover').map(f=>({f,r:(V.res[vkey(f.ds)]||{}).cur})).filter(o=>o.r&&o.r.ok);
+  const card=$('#vMapCard'),pc=$('#vPtsCard');
+  if(!recs.length){card.style.display='none';pc.style.display='none';return;}
+  card.style.display='';pc.style.display='';
+  const o=bx||{lat:recs[0].r.rover.lat,lon:recs[0].r.rover.lon};const la0=o.lat*Math.PI/180,lo0=o.lon*Math.PI/180;
+  const bsx=[num(V.base.sE),num(V.base.sN),num(V.base.sU)];
+  const bxyz=bx?bx.xyz:V.files.find(f=>f.role==='base').ds.approx;
+  const bname=(V.files.find(f=>f.role==='base').ds.station||'BASE');
+  const mk=(name,E,N,sE,sN,sU,kind,st,p,fi)=>({name,E,N,sE,sN,sU,kind,st,p,fi});V.hits=[];
+  if(bx)pts.push(mk(bname,0,0,bsx[0],bsx[1],bsx[2],'base','Controle',{lat:bx.lat,lon:bx.lon,h:bx.h},V.files.findIndex(f=>f.role==='base')));
+  for(const {f,r} of recs){const [E,N]=enuOf(r.roverARP[0]-bxyz[0],r.roverARP[1]-bxyz[1],r.roverARP[2]-bxyz[2],la0,lo0);
+    const s=r.absSig||r.sdENU;pts.push(mk(f.ds.name.replace(/\.[^.]*$/,''),E,N,s[0],s[1],s[2],'rover',r.status,r.rover,V.files.indexOf(f)));}
+  // tabela de pontos
+  $('#vPts').innerHTML='<tr><th></th><th>Nome</th><th>Latitude</th><th>Longitude</th><th>Alt. elips. (m)</th><th>Código</th><th>Controle</th><th>σE</th><th>σN</th><th>σU</th></tr>'+
+   pts.map(p=>{const c=p.kind==='base'?'#4aa3ff':p.st==='FIX'?'#2ecc71':p.st==='FIX PARCIAL'?'#f1c40f':'#ff6b6b';
+    return `<tr data-vact="pop" data-i="${p.fi}" style="cursor:pointer"><td style="color:${c}">${p.kind==='base'?'▲':'●'}</td><td>${esc(p.name)}</td><td>${p.p.lat!=null?fmtDMS(p.p.lat,true):'—'}</td><td>${p.p.lon!=null?fmtDMS(p.p.lon,false):'—'}</td><td>${f2(p.p.h,4)}</td><td>${p.kind==='base'?'GPS PP Estático (IBGE-PPP)':'GPS PP '+esc(p.st)}</td><td>${p.kind==='base'?'Horizontal+Vertical':'Nenhum'}</td><td>${f2(p.sE,4)}</td><td>${f2(p.sN,4)}</td><td>${f2(p.sU,4)}</td></tr>`;}).join('');
+  if(!bx)$('#vPts').innerHTML+='<tr><td colspan="10" class="mut">Sem coordenadas da base: mapa em coordenadas locais (posição aproximada do cabeçalho).</td></tr>';
+  // mapa
+  const cv=$('#vMap'),w=cv.parentElement.clientWidth-12||320,h=320,d=window.devicePixelRatio||1;cv.width=Math.round(w*d);cv.height=Math.round(h*d);
+  const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);g.fillStyle='#fff';g.fillRect(0,0,w,h);
+  let xs=pts.map(p=>p.E),ys=pts.map(p=>p.N);const pad=40;
+  let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);const span=Math.max(x1-x0,y1-y0,5);
+  const cx=(x0+x1)/2,cy=(y0+y1)/2,sc=(Math.min(w,h)-pad*2)/(span*1.0);const px=E=>w/2+(E-cx)*sc,py=N=>h/2-(N-cy)*sc;
+  const smax=Math.max(...pts.map(p=>Math.max(p.sE,p.sN)*2.4477),1e-6);
+  let ex=num($('#vExag').value);if(!(ex>0))ex=Math.max(1,Math.round(span*0.06/smax));
+  $('#vMapInfo').textContent='· elipses ×'+ex+' (95%)';
+  g.strokeStyle='#e3e6ea';g.fillStyle='#667';g.font='10px system-ui';g.lineWidth=1;
+  const step=[1,2,5,10,20,50,100,200,500,1000].find(s=>span/s<=2.5)||1000;
+  const R=6378137,toLon=E=>(lo0+E/(R*Math.cos(la0)))*180/Math.PI,toLat=N=>(la0+N/R)*180/Math.PI;
+  for(let E=Math.ceil((cx-w/2/sc)/step)*step;E<cx+w/2/sc;E+=step){g.beginPath();g.moveTo(px(E),0);g.lineTo(px(E),h);g.stroke();g.fillText(fmtDMS(toLon(E),false).replace(/^[EW] /,''),px(E)+2,h-3);}
+  for(let N=Math.ceil((cy-h/2/sc)/step)*step;N<cy+h/2/sc;N+=step){g.beginPath();g.moveTo(0,py(N));g.lineTo(w,py(N));g.stroke();g.fillText(fmtDMS(toLat(N),true).replace(/^[NS] /,''),2,py(N)-2);}
+  const base=pts.find(p=>p.kind==='base')||{E:0,N:0};
+  for(const p of pts){if(p.kind!=='rover')continue;g.strokeStyle='#1a8f3c';g.lineWidth=1.2;g.beginPath();g.moveTo(px(base.E),py(base.N));g.lineTo(px(p.E),py(p.N));g.stroke();}
+  for(const p of pts){
+    const col=p.kind==='base'?'#4aa3ff':p.st==='FIX'?'#2ecc71':p.st==='FIX PARCIAL'?'#f1c40f':'#ff6b6b';
+    const rx=Math.max(p.sE*2.4477*ex*sc,3),ry=Math.max(p.sN*2.4477*ex*sc,3);
+    g.strokeStyle='#2e9e3e';g.fillStyle='rgba(60,200,80,.12)';g.lineWidth=1;g.beginPath();g.ellipse(px(p.E),py(p.N),rx,ry,0,0,Math.PI*2);g.fill();g.stroke();
+    g.fillStyle=col;g.strokeStyle='#123';g.lineWidth=1;g.beginPath();
+    if(p.kind==='base'){const X=px(p.E),Y=py(p.N);g.moveTo(X,Y-7);g.lineTo(X+6,Y+5);g.lineTo(X-6,Y+5);g.closePath();}else g.arc(px(p.E),py(p.N),4.5,0,Math.PI*2);
+    g.fill();g.stroke();g.fillStyle='#123';g.font='11px system-ui';g.fillText(p.name,px(p.E)+8,py(p.N)-6);V.hits.push({x:px(p.E),y:py(p.N),fi:p.fi});
+  }
+}
+document.addEventListener('input',e=>{if(e.target.id==='vExag')vecMap();});
+{const _rv=renderVet;renderVet=function(){_rv();try{vecMap();}catch(e){console.error(e);}};}
+
+function vecCtx(f){const bf=V.files.find(x=>x.role==='base');const Bm=vecMask(bf);return {bf,B:{ds:bf.ds,mask:Bm.mask},bx:baseXYZ(),mk:vecMask(f)};}
+function activeEdits(f){vecSyncActive();const ed=f.ed;if(!ed||ed.cur<1)return [];return ed.versions[ed.cur].edits.map((e,k)=>({e,k})).filter(o=>!o.e.undone);}
+function vPop(fi){
+  const f=V.files[fi];if(!f)return;V.popFi=fi;const rec=V.res[vkey(f.ds)]||{},r=rec.cur;
+  let h='';
+  if(f.role==='base'){
+    const b=baseXYZ();
+    h=`<h2>▲ BASE · ${esc(f.ds.station||f.ds.name)}</h2><p style="font-size:13px">${b?`${fmtDMS(b.lat,true)}<br>${fmtDMS(b.lon,false)}<br>h elipsoidal ${f2(b.h,4)} m<br>σ E/N/U: ${f2(num(V.base.sE),4)} / ${f2(num(V.base.sN),4)} / ${f2(num(V.base.sU),4)} m`:'<span class="bad">Coordenadas da base não informadas.</span>'}</p>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><button data-vact="popGoBase">Editar coordenadas / σ</button><button data-vact="pppExp">⬇ RINEX p/ IBGE-PPP</button><button data-vact="popEdit" data-i="${fi}">✂ Editar observações da base</button></div>
+    <p class="mut" style="font-size:11px">Editar a base muda todos os vetores: depois de editar, use "Calcular vetores".</p>`;
+  }else{
+    const ed=activeEdits(f),an=(V.an||{})[vkey(f.ds)];
+    h=`<h2>● ${esc(f.ds.station||f.ds.name)} <small class="mut">· ${esc(rec.ver||'ORIGINAL')}</small></h2>`;
+    if(r&&r.ok){const p=r.rover;h+=`<p style="font-size:13px"><b class="${r.rms>0.03?'bad':statCls(r.status)}">${esc(r.status)}</b> · razão ${f2(r.ratio,1)} · ${r.nFix}/${r.nAmb} amb. · RMS ${f2(r.rms*1000,1)} mm · ${r.epochs} épocas<br>Vetor ${f2(r.length,3)} m (ΔE ${f2(r.dE,3)} ΔN ${f2(r.dN,3)} ΔU ${f2(r.dU,3)})<br>σ vetor E/N/U ${r.sdENU.map(x=>f2(x,3)).join(' / ')} m${V.base.lat?'<br>'+fmtDMS(p.lat,true)+' · '+fmtDMS(p.lon,false)+' · h '+f2(p.h,3)+' m':''}</p>`;}
+    else h+='<p class="bad">Sem solução ainda — use "Calcular vetores".</p>';
+    h+=`<div class="row" style="flex-wrap:wrap;gap:6px"><button data-vact="popEdit" data-i="${fi}">✂ Editar observações (timeline)</button><button data-vact="popRecalc" data-i="${fi}">↻ Recalcular</button></div>
+    <div class="row"><label>Elevação mín.</label><select id="popElev">${[10,12,15,20,25].map(e=>`<option ${((f.elev||V.opt.elev)==e)?'selected':''}>${e}</option>`).join('')}</select>°<button class="small" data-vact="popElev" data-i="${fi}">Aplicar</button></div>
+    <div class="row"><label>Altura da antena (m)</label><input type="number" step="0.001" id="popHi" value="${esc(f.hi)}" style="width:80px"><button class="small" data-vact="popHi" data-i="${fi}">Aplicar</button></div>
+    <h3 style="margin:12px 0 4px">Satélites</h3><div class="row"><button class="small" data-vact="popAnalyze" data-i="${fi}">Testar o resultado sem cada satélite</button><span id="popAnMsg" class="mut" style="font-size:12px"></span></div>`;
+    if(an){h+=`<div class="scroll"><table class="tbl"><tr><th>Sat</th><th>RMS sem ele</th><th>Status</th><th>Razão</th><th>Δ comprimento</th><th></th></tr>`+an.map(s=>`<tr><td><b>${s.sat}</b></td><td class="${r&&s.rms<r.rms?'good':'bad'}">${f2(s.rms*1000,1)} mm</td><td>${esc(s.status)}</td><td>${f2(s.ratio,1)}</td><td>${s.dLen>=0?'+':''}${f2(s.dLen*100,1)} cm</td><td><button class="small danger" data-vact="sugOff" data-f="${fi}" data-sat="${s.sat}">Desativar</button></td></tr>`).join('')+`</table></div><p class="mut" style="font-size:11px">Compare RMS, status e comprimento: melhorar o RMS removendo um satélite só vale se o comprimento do vetor continuar coerente.</p>`;}
+    h+=`<h3 style="margin:12px 0 4px">Edições ativas neste rover</h3>`+(ed.length?ed.map(o=>`<div class="row" style="font-size:12px"><span class="grow">${o.e.sat} · ${obsLabel(o.e)} · ${fmtT(o.e.t0)}–${fmtT(o.e.t1)} · ${esc(o.e.reason||'')}</span><button class="small" data-vact="popUndo" data-i="${fi}" data-k="${o.k}">Desfazer</button></div>`).join(''):'<p class="mut" style="font-size:12px">Nenhuma (observações originais).</p>')+
+    `<div class="row" style="margin-top:8px"><button class="small" data-vact="popOrig" data-i="${fi}" ${ed.length?'':'disabled'}>Usar ORIGINAL (sem edições)</button></div>`;
+  }
+  h+='<div class="row" style="margin-top:10px"><button data-vact="popClose">Fechar</button></div>';
+  $('#vPopIn').innerHTML=h;$('#vPop').classList.add('on');
+}
+function vPopRefresh(){if($('#vPop').classList.contains('on')&&V.popFi!=null)vPop(V.popFi);}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-vact]');if(!b)return;const a=b.dataset.vact,i=+b.dataset.i,f=V.files[i];
+  if(a==='pop')vPop(i);
+  else if(a==='popClose')$('#vPop').classList.remove('on');
+  else if(a==='popGoBase'){$('#vPop').classList.remove('on');$('#vb_lat').scrollIntoView({block:'center'});}
+  else if(a==='popEdit'){$('#vPop').classList.remove('on');vecActivate(i);}
+  else if(a==='popRecalc'){await runVectors(f);vPopRefresh();}
+  else if(a==='popElev'){f.elev=+$('#popElev').value;await runVectors(f);vPopRefresh();}
+  else if(a==='popHi'){f.hi=$('#popHi').value;renderVet();await runVectors(f);vPopRefresh();}
+  else if(a==='popOrig'){vecActivate(i,true);S.cur=0;recompute();vecSyncActive();await runVectors(f);vPopRefresh();}
+  else if(a==='popUndo'){vecActivate(i,true);curV().edits[+b.dataset.k].undone=true;recompute();vecSyncActive();await runVectors(f);vPopRefresh();}
+  else if(a==='popAnalyze'){const c=vecCtx(f),rec=V.res[vkey(f.ds)];if(!rec||!rec.cur||!rec.cur.ok)return toast('Calcule os vetores antes.');
+    $('#popAnMsg').textContent='Calculando…';V.an=V.an||{};V.an[vkey(f.ds)]=await leaveOneOut(f,c.B,c.bx,c.mk,rec.cur,true);vPopRefresh();}
+});
+document.addEventListener('click',e=>{if(e.target.id==='vPop')$('#vPop').classList.remove('on');
+  if(e.target.id==='vMap'){const r=e.target.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let best=null,bd=22;for(const h of V.hits||[]){const d=Math.hypot(h.x-x,h.y-y);if(d<bd){bd=d;best=h;}}if(best)vPop(best.fi);}});
+renderBaseForm();renderVet();
+Object.assign(window.MapGEO,{vectors:V,runVectors});
+
+</script>
+</body>
+</html>
