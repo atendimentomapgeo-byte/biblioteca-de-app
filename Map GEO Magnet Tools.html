@@ -155,9 +155,27 @@ details summary{cursor:pointer;color:var(--mu);margin:4px 0}
   <div id="procOut"></div>
 </section>
 </main>
+<section class="tab" id="tab-vet">
+  <div class="card"><h3>1 · Arquivos (base e rovers)</h3><div id="vFiles"></div>
+    <div class="row"><label class="btn" for="vFileIn">＋ Adicionar RINEX / nav</label><input id="vFileIn" type="file" multiple hidden></div></div>
+  <div class="card"><h3>2 · Base — coordenadas do IBGE-PPP</h3>
+    <p class="mut" style="font-size:12px">O PPP roda no site do IBGE. Exporte o RINEX da base abaixo, envie ao IBGE-PPP e digite aqui as coordenadas e sigmas do relatório (PDF).</p>
+    <div class="row"><label>Marcador</label><input id="vb_marker" class="grow" placeholder="nome (opcional)"><label>Antena</label><input id="vb_ant" class="grow" placeholder="ex.: TPSHIPER_GGD"></div>
+    <div class="row"><label>Altura da antena da base (m)</label><input id="vb_hi" type="number" step="0.001" style="width:90px"><button class="small" data-vact="pppExp">⬇ RINEX da base p/ IBGE-PPP</button></div>
+    <div class="pgrid"><label>Latitude<input id="vb_lat" placeholder="-26 39 01,2345 ou -26,65"></label><label>Longitude<input id="vb_lon" placeholder="-53 ..."></label><label>Altura elipsoidal (m)<input id="vb_h" inputmode="decimal"></label>
+      <label>σ E (m)<input id="vb_sE" inputmode="decimal"></label><label>σ N (m)<input id="vb_sN" inputmode="decimal"></label><label>σ U (m)<input id="vb_sU" inputmode="decimal"></label></div>
+    <details><summary>Colar texto do relatório</summary><textarea id="vPaste" rows="5" style="width:100%" placeholder="Cole aqui o texto copiado do PDF do IBGE-PPP"></textarea><button class="small" data-vact="parse">Interpretar texto</button> <span class="mut" style="font-size:11px">Leitura aproximada: confira os campos.</span></details>
+    <button class="small" data-vact="useHdr" style="margin-top:6px">Usar posição do cabeçalho (só teste)</button></div>
+  <div class="card"><h3>3 · Vetores base → rover</h3>
+    <div class="row"><label>Razão mín. fix</label><input id="vOptRatio" type="number" value="3" style="width:64px"><label>Elev. mín. °</label><input id="vOptElev" type="number" value="10" style="width:64px"></div>
+    <div class="row"><button class="primary grow" data-vact="run">Calcular vetores</button><button data-vact="csv">CSV</button></div>
+    <div id="vMsg" class="mut" style="font-size:12px"></div>
+    <p class="mut" style="font-size:11px">Modelo estático (rover parado), fase+código dupla diferença, L1/L2, ambiguidades inteiras (LAMBDA). Pensado para linhas de base curtas (&lt;15 km): sem modelo de ionosfera, sem PCO/PCV de antena, GLONASS fora. Usa as observações editadas da versão ativa de cada arquivo.</p></div>
+  <div id="vOut"></div>
+</section>
 <nav id="nav">
   <button class="on" data-tab="timeline"><b>▤</b>Timeline</button><button data-tab="sats"><b>🛰</b>Satélites</button><button data-tab="alert"><b>⚠</b>Alertas</button>
-  <button data-tab="graf"><b>📈</b>Gráficos</button><button data-tab="hist"><b>🕘</b>Edições</button><button data-tab="ver"><b>🗂</b>Versões</button><button data-tab="proc"><b>⚙</b>Processar</button>
+  <button data-tab="graf"><b>📈</b>Gráficos</button><button data-tab="hist"><b>🕘</b>Edições</button><button data-tab="ver"><b>🗂</b>Versões</button><button data-tab="vet"><b>↔</b>Vetores</button><button data-tab="proc"><b>⚙</b>Processar</button>
 </nav>
 <div class="sheet" id="evSheet"><div class="in" id="evIn"></div></div>
 <div id="toast"></div>
@@ -803,7 +821,7 @@ function sppEpochSolve(ds,nav,mask,P,i,xinit,state){
     const d=gauss(N,nu);if(!d)return null;
     x[0]+=d[0];x[1]+=d[1];x[2]+=d[2];clk[0]+=d[3];for(let k=1;k<systems.length;k++)clk[k]+=d[3+k];
     lastRes=res;
-    if(hasPos&&Math.hypot(d[0],d[1],d[2])<1e-3){okc=true;break;}
+    if(hasPos&&Math.hypot(...d)<1e-3){okc=true;break;}
   }
   if(!okc||!lastRes)return null;
   const rn=Math.hypot(x[0],x[1],x[2]);if(rn<6.2e6||rn>6.5e6)return null;
@@ -812,7 +830,7 @@ function sppEpochSolve(ds,nav,mask,P,i,xinit,state){
   const Nq=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
   for(const u of used){ss+=u.v*u.v;const g=[u.g[0],u.g[1],u.g[2],1];for(let a=0;a<4;a++)for(let b=0;b<4;b++)Nq[a][b]+=g[a]*g[b];}
   const Q=invert(Nq),pdop=Q?Math.sqrt(Q[0][0]+Q[1][1]+Q[2][2]):NaN;
-  return {i,t:ds.t[i],x:x[0],y:x[1],z:x[2],nsat:used.length,pdop,rms:Math.sqrt(ss/used.length),dof:used.length-nu,mode:useIF?'IF':'L1'};
+  return {i,t:ds.t[i],clk:clk[0],x:x[0],y:x[1],z:x[2],nsat:used.length,pdop,rms:Math.sqrt(ss/used.length),dof:used.length-nu,mode:useIF?'IF':'L1'};
 }
 function summarizeSolution(ds,eps,total,label){
   if(!eps.length)return {engine:label,ok:false,epochs:0,epochsTotal:total};
@@ -847,6 +865,318 @@ const ENGINES={spp:{label:'Interno — SPP (pseudodistância, efemérides broadc
 }}};
 function registerEngine(id,label,fn){ENGINES[id]={label,run:fn};}
 
+
+/* ===================== LINHA DE BASE (base → rover) ===================== */
+/* ---- LAMBDA (porte da formulação clássica: LtDL, redução, busca) ---- */
+function lambdaSolve(a,Q,m){
+  const n=a.length;m=m||2;
+  const L=Array.from({length:n},()=>new Array(n).fill(0)),D=new Array(n).fill(0),Z=Array.from({length:n},(_,i)=>{const r=new Array(n).fill(0);r[i]=1;return r;});
+  // LD
+  const A=Q.map(r=>r.slice());
+  for(let i=n-1;i>=0;i--){
+    D[i]=A[i][i];if(!(D[i]>0))return null;
+    const s=Math.sqrt(D[i]);
+    for(let j=0;j<=i;j++)L[i][j]=A[i][j]/s;
+    for(let j=0;j<=i-1;j++)for(let k=0;k<=j;k++)A[j][k]-=L[i][k]*L[i][j];
+    for(let j=0;j<=i;j++)L[i][j]/=L[i][i];
+  }
+  const rnd=x=>Math.floor(x+0.5),sgn=x=>x<=0?-1:1;
+  const lg=(i,j)=>{const mu=rnd(L[i][j]);if(mu!==0){for(let k=i;k<n;k++)L[k][j]-=mu*L[k][i];for(let k=0;k<n;k++)Z[k][j]-=mu*Z[k][i];}};
+  const perm=(j,del)=>{
+    const eta=D[j]/del,lam=D[j+1]*L[j+1][j]/del;
+    D[j]=eta*D[j+1];D[j+1]=del;
+    for(let k=0;k<=j-1;k++){const a0=L[j][k],a1=L[j+1][k];L[j][k]=-L[j+1][j]*a0+a1;L[j+1][k]=eta*a0+lam*a1;}
+    L[j+1][j]=lam;
+    for(let k=j+2;k<n;k++){const t=L[k][j];L[k][j]=L[k][j+1];L[k][j+1]=t;}
+    for(let k=0;k<n;k++){const t=Z[k][j];Z[k][j]=Z[k][j+1];Z[k][j+1]=t;}
+  };
+  // reduction
+  let j=n-2,k=n-2;
+  while(j>=0){
+    if(j<=k)for(let i=j+1;i<n;i++)lg(i,j);
+    const del=D[j]+L[j+1][j]*L[j+1][j]*D[j+1];
+    if(del+1e-6<D[j+1]){perm(j,del);k=j;j=n-2;}else j--;
+  }
+  // z = Z' a
+  const zs=new Array(n).fill(0);for(let i=0;i<n;i++){let s=0;for(let q=0;q<n;q++)s+=Z[q][i]*a[q];zs[i]=s;}
+  // search
+  const S=Array.from({length:n},()=>new Array(n).fill(0)),dist=new Array(n).fill(0),zb=new Array(n).fill(0),z=new Array(n).fill(0),step=new Array(n).fill(0);
+  const zn=[],s=[];let nn=0,imax=0,maxdist=1e99,y;
+  k=n-1;dist[k]=0;zb[k]=zs[k];z[k]=rnd(zb[k]);y=zb[k]-z[k];step[k]=sgn(y);
+  for(let c=0;c<20000;c++){
+    const nd=dist[k]+y*y/D[k];
+    if(nd<maxdist){
+      if(k!==0){
+        dist[--k]=nd;
+        for(let i=0;i<=k;i++)S[k][i]=S[k+1][i]+(z[k+1]-zb[k+1])*L[k+1][i];
+        zb[k]=zs[k]+S[k][k];z[k]=rnd(zb[k]);y=zb[k]-z[k];step[k]=sgn(y);
+      }else{
+        if(nn<m){if(nn===0||nd>s[imax])imax=nn;zn[nn]=z.slice();s[nn++]=nd;}
+        else{
+          if(nd<s[imax]){zn[imax]=z.slice();s[imax]=nd;imax=0;for(let i=0;i<m;i++)if(s[imax]<s[i])imax=i;}
+          maxdist=s[imax];
+        }
+        z[0]+=step[0];y=zb[0]-z[0];step[0]=-step[0]-sgn(step[0]);
+      }
+    }else{
+      if(k===n-1)break;
+      k++;z[k]+=step[k];y=zb[k]-z[k];step[k]=-step[k]-sgn(step[k]);
+    }
+  }
+  if(nn<1)return null;
+  const idx=s.map((v,i)=>i).sort((p,q)=>s[p]-s[q]);
+  // F = Z' \ E
+  const ZT=Z.map((r,i)=>Z.map(rr=>rr[i]));const ZTi=invert(ZT);if(!ZTi)return null;
+  const F=idx.map(ii=>ZTi.map(row=>{let t=0;for(let q=0;q<n;q++)t+=row[q]*zn[ii][q];return Math.round(t);}));
+  return {F,s:idx.map(i=>s[i])};
+}
+
+/* ---- coordenadas ---- */
+const GRS80={a:6378137,f:1/298.257222101};
+function llh2ecef(lat,lon,h){const e2=GRS80.f*(2-GRS80.f),N=GRS80.a/Math.sqrt(1-e2*Math.sin(lat)**2);return [(N+h)*Math.cos(lat)*Math.cos(lon),(N+h)*Math.cos(lat)*Math.sin(lon),(N*(1-e2)+h)*Math.sin(lat)];}
+function toUTM(lat,lon){
+  const a=GRS80.a,f=GRS80.f,k0=0.9996,n=f/(2-f),A=a/(1+n)*(1+n*n/4+n**4/64+n**6/256);
+  const al=[n/2-2*n*n/3+5*n**3/16+41*n**4/180,13*n*n/48-3*n**3/5+557*n**4/1440,61*n**3/240-103*n**4/140,49561*n**4/161280];
+  const zone=Math.floor((lon*180/Math.PI+180)/6)+1,lon0=((zone-1)*6-180+3)*Math.PI/180,dl=lon-lon0;
+  const q=2*Math.sqrt(n)/(1+n),t=Math.sinh(Math.atanh(Math.sin(lat))-q*Math.atanh(q*Math.sin(lat)));
+  const xi=Math.atan2(t,Math.cos(dl)),eta=Math.atanh(Math.sin(dl)/Math.sqrt(1+t*t));
+  let x=xi,y=eta;
+  for(let j=1;j<=4;j++){x+=al[j-1]*Math.sin(2*j*xi)*Math.cosh(2*j*eta);y+=al[j-1]*Math.cos(2*j*xi)*Math.sinh(2*j*eta);}
+  return {zone,hem:lat<0?'S':'N',E:500000+k0*A*y,N:k0*A*x+(lat<0?1e7:0)};
+}
+function parseAngle(s){ // aceita decimal ou graus/min/seg, vírgula decimal, hemisfério S/W/N/E
+  if(typeof s==='number')return s;
+  let t=String(s).trim().replace(',','.').replace(/,/g,'.');if(!t)return NaN;
+  let sign=1;if(/[SWOswo]/.test(t)&&!/^[-+]?\d/.test(t.replace(/[^0-9+\-.]/g,'')))sign=1;
+  if(/[SsWwOo]\s*$/.test(t)||/^\s*[SsWwOo]/.test(t))sign=-1;
+  if(/^\s*-/.test(t))sign=-1;
+  const nums=(t.match(/\d+(?:\.\d+)?/g)||[]).map(Number);if(!nums.length)return NaN;
+  let v=nums[0]+(nums[1]||0)/60+(nums[2]||0)/3600;return sign*v;
+}
+function upVec(lat,lon){return [Math.cos(lat)*Math.cos(lon),Math.cos(lat)*Math.sin(lon),Math.sin(lat)];}
+function describePos(xyz){
+  const [lat,lon,h]=ecef2llh(xyz[0],xyz[1],xyz[2]),u=toUTM(lat,lon);
+  return {x:xyz[0],y:xyz[1],z:xyz[2],lat:lat*180/Math.PI,lon:lon*180/Math.PI,h,utm:u};
+}
+function fmtDMS(deg,isLat){const s=deg<0?-1:1,a=Math.abs(deg),d=Math.floor(a),m=Math.floor((a-d)*60),sec=((a-d)*60-m)*60;return (s<0?(isLat?'S ':'W '):(isLat?'N ':'E '))+d+'° '+String(m).padStart(2,'0')+"' "+sec.toFixed(5).padStart(8,'0')+'"';}
+
+/* ---- processamento base → rover (estático, DD fase+código, ambiguidades inteiras) ---- */
+const BL_DEF={elev:10,ratio:3,sigPhase:0.003,sigCode:0.3,maxBaselineKm:15,hiBase:0,hiRover:0,minEpochs:5,tol:0.05};
+function pairEpochs(dsR,dsB,tolS){
+  const out=[],tb=dsB.t,tol=tolS*1000;
+  for(let i=0;i<dsR.nE;i++){let j=lowerBound(tb,dsR.t[i]-tol);if(j<tb.length&&Math.abs(tb[j]-dsR.t[i])<=tol)out.push([i,j]);}
+  return out;
+}
+function pickPhaseSlots(dsR,maskR,i,dsB,maskB,j,id){
+  // devolve {band: {pc, cc, lamb}} usando os mesmos códigos nos dois receptores
+  const sr=dsR.sats[id],sb=dsB.sats[id];if(!sr||!sb)return null;
+  const res={},bands=new Set(sr.codes.filter(c=>c[0]==='L').map(c=>c[1]));
+  for(const b of bands){
+    const f=freqMHz(dsR,sr.sys,b,id);if(!f)continue;
+    const ok=(c,s,sd,mk,k)=>s.codes.includes(c)&&sd.val[c][k]===sd.val[c][k]&&mk[c][k];
+    const pc=sr.codes.find(c=>c[0]==='L'&&c[1]===b&&sb.codes.includes(c)&&sr.val[c][i]===sr.val[c][i]&&sb.val[c][j]===sb.val[c][j]&&maskR[id][c][i]&&maskB[id][c][j]);
+    if(!pc)continue;
+    const cands=sr.codes.filter(c=>(c[0]==='C'||c[0]==='P')&&c[1]===b&&sb.codes.includes(c)&&sr.val[c][i]===sr.val[c][i]&&sb.val[c][j]===sb.val[c][j]&&maskR[id][c][i]&&maskB[id][c][j]);
+    const cc=cands.find(c=>c.slice(2)===pc.slice(2))||cands[0];if(!cc)continue;
+    const lli=((sr.lli[pc][i]|sb.lli[pc][j])&1)?1:0;
+    res[b]={pc,cc,lamb:CLIGHT/(f*1e6),lli};
+  }
+  return Object.keys(res).length?res:null;
+}
+function satGeom(nav,id,tAbs,pCode,X,lat,lon,h){
+  const e=pickEph(nav,id,tAbs);if(!e)return null;
+  let pos=ephPos(e,tAbs-pCode/CLIGHT);pos=ephPos(e,tAbs-pCode/CLIGHT-pos.dts);
+  const oe=OMGE[e.sys];let rho=pCode,sx=pos.x,sy=pos.y,sz=pos.z;
+  for(let it=0;it<3;it++){const tau=rho/CLIGHT,a=oe*tau;sx=pos.x*Math.cos(a)+pos.y*Math.sin(a);sy=-pos.x*Math.sin(a)+pos.y*Math.cos(a);sz=pos.z;rho=Math.hypot(sx-X[0],sy-X[1],sz-X[2]);}
+  const dx=sx-X[0],dy=sy-X[1],dz=sz-X[2],[E,N,U]=enuOf(dx,dy,dz,lat,lon),el=Math.asin(U/rho);
+  return {sx,sy,sz,rho,el,ux:dx/rho,uy:dy/rho,uz:dz/rho,trop:tropDelay(Math.max(el,0.05),h,lat)};
+}
+function baselineSolve(dsB,maskB,dsR,maskR,nav,baseMarkerXYZ,opt){
+  opt=Object.assign({},BL_DEF,opt||{});
+  if(!nav)throw new Error('Carregue a navegação (broadcast) para processar linhas de base.');
+  const pairs=pairEpochs(dsR,dsB,opt.tol);
+  if(pairs.length<opt.minEpochs)return {ok:false,status:'SEM ÉPOCAS COMUNS',reason:'Épocas comuns entre base e rover: '+pairs.length+' (mín. '+opt.minEpochs+').'};
+  const [latB,lonB]=ecef2llh(baseMarkerXYZ[0],baseMarkerXYZ[1],baseMarkerXYZ[2]),upB=upVec(latB,lonB);
+  const XB=[0,1,2].map(k=>baseMarkerXYZ[k]+upB[k]*opt.hiBase);
+  let XR=opt.approxRover||dsR.approx;
+  if(!XR||Math.hypot(...XR)<6e6){
+    const r=sppSolveSync(dsR,nav,maskR,Object.assign({},DEF_PARAMS,{maxEpochs:3,elevMask:opt.elev}));
+    if(!r.epochs.length)return {ok:false,status:'SEM POSIÇÃO INICIAL',reason:'Não foi possível obter posição aproximada do rover.'};
+    XR=[r.epochs[0].x,r.epochs[0].y,r.epochs[0].z];
+  }
+  XR=XR.slice();
+  const interval=Math.max(dsR.intervalMs,dsB.intervalMs)/1000,em=opt.elev*Math.PI/180;
+  let result=null;
+  const tropOn=true;
+  for(let outer=0;outer<4;outer++){
+    const [latR,lonR,hR]=ecef2llh(XR[0],XR[1],XR[2]),[,,hB]=ecef2llh(XB[0],XB[1],XB[2]);
+    // 1) observações por época
+    const arcOf={},arcCount={},arcs=[];
+    const lastEp={},lastSDgf={};
+    const eps=[];
+    for(let pi=0;pi<pairs.length;pi++){
+      const [i,j]=pairs[pi],tAbs=(dsR.t[i]-GPS0)/1000,tAbsB=(dsB.t[j]-GPS0)/1000;
+      const slots=[];
+      for(const id of dsR.satList){
+        const sr=dsR.sats[id];if(!(opt.sys||'GECJ').includes(sr.sys)||!sr.has[i]||!dsB.sats[id]||!dsB.sats[id].has[j])continue;
+        if(sr.sys==='C'&&(sr.prn<=5||sr.prn>=59))continue;
+        const ps=pickPhaseSlots(dsR,maskR,i,dsB,maskB,j,id);if(!ps)continue;
+        const b0=Object.keys(ps)[0],pR0=sr.val[ps[b0].cc][i],pB0=dsB.sats[id].val[ps[b0].cc][j];
+        const gR=satGeom(nav,id,tAbs,pR0,XR,latR,lonR,hR),gB=satGeom(nav,id,tAbsB,pB0,XB,latB,lonB,hB);
+        if(!gR||!gB||gR.el<em)continue;
+        // slip por GF diferença simples
+        let slip=false;const bs=Object.keys(ps).sort();
+        if(bs.length>=2){
+          const sb=dsB.sats[id],a=ps[bs[0]],b=ps[bs[1]];
+          const sd=(c,w)=>w*((sr.val[c][i]-sb.val[c][j]));
+          const gf=sd(a.pc,a.lamb)-sd(b.pc,b.lamb);
+          if(lastSDgf[id]!==undefined&&pi-lastEp[id+'gf']===1&&Math.abs(gf-lastSDgf[id])>0.15)slip=true;
+          lastSDgf[id]=gf;lastEp[id+'gf']=pi;
+        }
+        for(const b of bs){
+          if(opt.onlyBand&&b!==opt.onlyBand)continue;
+          const o=ps[b],key=id+'|'+b,sb=dsB.sats[id];
+          const newArc=arcOf[key]===undefined||pi-lastEp[key]>Math.max(2,Math.round(180/interval))||o.lli||slip;
+          if(newArc){arcCount[key]=(arcCount[key]||0)+1;const a={key,sys:sr.sys,band:b,lamb:o.lamb,n:0,idx:arcs.length};arcs.push(a);arcOf[key]=a;}
+          const arc=arcOf[key];arc.n++;lastEp[key]=pi;
+          slots.push({id,sys:sr.sys,band:b,arc,lamb:o.lamb,el:gR.el,
+            phi:o.lamb*((sr.val[o.pc][i]-sb.val[o.pc][j])), // SD fase (m)
+            cod:sr.val[o.cc][i]-sb.val[o.cc][j], // SD código (m)
+            gR,gB});
+        }
+      }
+      eps.push(slots);
+    }
+    // 2) linhas DD (satélite de referência por sistema/banda e época)
+    const rows=[];
+    for(const slots of eps){
+      const groups={};for(const s of slots)(groups[s.sys+s.band]=groups[s.sys+s.band]||[]).push(s);
+      for(const g of Object.values(groups)){
+        if(g.length<2)continue;g.sort((a,b)=>b.el-a.el);const ref=g[0];
+        for(let q=1;q<g.length;q++){
+          const s=g[q];
+          const mod=(s.gR.rho-s.gB.rho+s.gR.trop-s.gB.trop)-(ref.gR.rho-ref.gB.rho+ref.gR.trop-ref.gB.trop);
+          const sP=opt.sigPhase,sC=opt.sigCode,vs=1/Math.sin(s.el),vr=1/Math.sin(ref.el);
+          rows.push({s,ref,mod,
+            ex:-(s.gR.ux-ref.gR.ux),ey:-(s.gR.uy-ref.gR.uy),ez:-(s.gR.uz-ref.gR.uz),
+            dphi:s.phi-ref.phi,dcod:s.cod-ref.cod,
+            wP:1/(2*(sP*sP*(vs*vs+vr*vr))),wC:1/(2*(sC*sC*(vs*vs+vr*vr)))});
+        }
+      }
+    }
+    if(rows.length<10)return {ok:false,status:'DADOS INSUFICIENTES',reason:'Poucas observações duplamente diferenciadas ('+rows.length+').'};
+    // 3) componentes conexos e âncoras
+    const par=arcs.map((_,i)=>i),find=x=>{while(par[x]!==x){par[x]=par[par[x]];x=par[x];}return x;};
+    for(const r of rows){const a=find(r.s.arc.idx),b=find(r.ref.arc.idx);if(a!==b)par[a]=b;}
+    const used=new Set();for(const r of rows){used.add(r.s.arc.idx);used.add(r.ref.arc.idx);}
+    const anchor={};for(const a of arcs){if(!used.has(a.idx))continue;const c=find(a.idx);if(!anchor[c]||a.n>arcs[anchor[c]].n)anchor[c]=a.idx;}
+    const pidx={};let np=3;const plist=[];
+    for(const a of arcs){if(!used.has(a.idx))continue;if(opt.noPhase||anchor[find(a.idx)]===a.idx)continue;pidx[a.idx]=np++;plist.push(a);}
+    const nU=np;
+    // 4) mínimos quadrados (iterações para a posição)
+    let x=[0,0,0],Nm,Qm,NA=0;
+    const solve=(rowsUse)=>{
+      for(let it=0;it<5;it++){
+        const N=Array.from({length:nU},()=>new Array(nU+1).fill(0));
+        for(const r of rowsUse){
+          const [lat2,lon2,h2]=[latR,lonR,hR];
+          const dposModel=r.ex*x[0]+r.ey*x[1]+r.ez*x[2];
+          // fase: dphi = mod + dpos + lamb*(N_i - N_ref)
+          const yP=r.dphi-r.mod-dposModel,yC=r.dcod-r.mod-dposModel;
+          const ia=pidx[r.s.arc.idx],ir=pidx[r.ref.arc.idx];
+          const lam=r.s.lamb;
+          const rowP=[],rowC=[];
+          // construir linha esparsa
+          const add=(g,w,y,withAmb)=>{
+            const idx=[0,1,2],co=[r.ex,r.ey,r.ez];
+            if(withAmb){if(ia!==undefined){idx.push(ia);co.push(lam);}if(ir!==undefined){idx.push(ir);co.push(-lam);}}
+            for(let a=0;a<idx.length;a++){for(let b=0;b<idx.length;b++)N[idx[a]][idx[b]]+=w*co[a]*co[b];N[idx[a]][nU]+=w*co[a]*y;}
+          };
+          if(!opt.noPhase)add(0,r.wP,yP,true);add(0,r.wC,yC,false);
+        }
+        for(let k=3;k<nU;k++)N[k][k]+=1e-9;
+        const Nc=N.map(r=>r.slice());
+        const d=gauss(Nc,nU);if(!d)return null;
+        x[0]+=d[0];x[1]+=d[1];x[2]+=d[2];
+        const amb=d.slice(3);
+        const done=Math.hypot(d[0],d[1],d[2])<1e-4;
+        if(done||it===4){
+          const Nn=N.map(r=>r.slice(0,nU)),Q=invert(Nn);if(!Q)return null;
+          return {x:x.slice(),amb,Q};
+        }
+        // ambiguidade absoluta = d.slice(3) (modelo linear em N): guardar e continuar
+      }
+      return null;
+    };
+    // primeira solução + rejeição de outliers
+    x=[0,0,0];let fl=solve(rows);if(!fl)return {ok:false,status:'FALHOU',reason:'Sistema singular (geometria/ambiguidades).'};
+    const resid=(r,xx,amb)=>{const dp=r.ex*xx[0]+r.ey*xx[1]+r.ez*xx[2];const ia=pidx[r.s.arc.idx],ir=pidx[r.ref.arc.idx];
+      const nA=(ia!==undefined?amb[ia-3]:0)-(ir!==undefined?amb[ir-3]:0);return {p:r.dphi-r.mod-dp-r.s.lamb*nA,c:r.dcod-r.mod-dp};};
+    let kept=rows.filter(r=>{const e=resid(r,fl.x,fl.amb);return (opt.noPhase||Math.abs(e.p)<Math.max(0.05,6/Math.sqrt(r.wP)))&&Math.abs(e.c)<Math.max(10,6/Math.sqrt(r.wC));});
+    if(kept.length<rows.length&&kept.length>=10){x=[0,0,0];const f2=solve(kept);if(f2){fl=f2;}}
+    else kept=rows;
+    // âncora pode ter ficado sem linhas: ok
+    const XRnew=[XR[0]+fl.x[0],XR[1]+fl.x[1],XR[2]+fl.x[2]];
+    const moved=Math.hypot(fl.x[0],fl.x[1],fl.x[2]);
+    // resíduo float
+    let ssP=0,nP=0,ssC=0;for(const r of kept){const e=resid(r,fl.x,fl.amb);ssP+=e.p*e.p;ssC+=e.c*e.c;nP++;}
+    const Qpp=[0,1,2].map(a=>[0,1,2].map(b=>fl.Q[a][b]));
+    const res={float:{x:fl.x,sd:[0,1,2].map(k=>Math.sqrt(Math.max(0,Qpp[k][k]))),rms:Math.sqrt(ssP/nP),codeRms:Math.sqrt(ssC/nP)},nAmb:plist.length,nRows:kept.length,epochs:eps.filter(s=>s.length>=2).length};
+    // 5) fixação com LAMBDA (e fixação parcial)
+    res.status='FLOAT';res.ratio=0;res.nFix=0;res.fixed=null;
+    const nA=plist.length;
+    if(nA>=2){
+      let sel=plist.map((_,i)=>i),best=null;
+      const Qaa0=sel.map(a=>sel.map(b=>fl.Q[3+a][3+b]));
+      for(let tries=0;tries<Math.max(1,nA-3)&&sel.length>=3;tries++){
+        const a=sel.map(i=>fl.amb[i]),Qaa=sel.map(p=>sel.map(q=>fl.Q[3+p][3+q]));
+        const lam=lambdaSolve(a,Qaa,2);
+        if(lam&&lam.F.length>=2){const ratio=lam.s[0]>1e-12?lam.s[1]/lam.s[0]:99;
+          if(!best||ratio>best.ratio)best={ratio,sel:sel.slice(),F:lam.F[0],Qaa};
+          if(ratio>=opt.ratio){best={ratio,sel:sel.slice(),F:lam.F[0],Qaa};break;}}
+        // remove a ambiguidade de maior variância
+        let wi=0,wv=-1;sel.forEach((p,k)=>{const v=fl.Q[3+p][3+p];if(v>wv){wv=v;wi=k;}});sel.splice(wi,1);
+      }
+      if(best){
+        res.ratio=best.ratio;res.nFix=best.sel.length;
+        if(best.ratio>=opt.ratio){
+          // x_fix = x_f - Q_pa Q_aa^-1 (a_f - a_fix)
+          const sel=best.sel,Qaai=invert(best.Qaa);
+          if(Qaai){
+            const da=sel.map((p,k)=>fl.amb[p]-best.F[k]);
+            const t=Qaai.map(row=>row.reduce((s,v,k)=>s+v*da[k],0));
+            const xf=[0,1,2].map(c=>fl.x[c]-sel.reduce((s,p,k)=>s+fl.Q[c][3+p]*t[k],0));
+            // covariância condicional
+            const sd=[0,1,2].map(c=>{let v=fl.Q[c][c];for(let a=0;a<sel.length;a++)for(let b=0;b<sel.length;b++)v-=fl.Q[c][3+sel[a]]*Qaai[a][b]*fl.Q[c][3+sel[b]];return Math.sqrt(Math.max(0,v));});
+            // resíduo fixo: reestima ambiguidades restantes mantendo as fixadas
+            const ambF=fl.amb.slice();sel.forEach((p,k)=>ambF[p]=best.F[k]);
+            let ss=0,n=0;for(const r of kept){const e=resid(r,xf,ambF);ss+=e.p*e.p;n++;}
+            res.fixed={x:xf,sd,rms:Math.sqrt(ss/n)};res.status=(best.sel.length===nA?'FIX':'FIX PARCIAL');
+          }
+        }
+      }
+    }
+    const use=res.fixed||res.float;
+    result={res,XRnew:[XR[0]+use.x[0],XR[1]+use.x[1],XR[2]+use.x[2]]};
+    // iterar com posição atualizada (geometria/elevação)
+    XR=result.XRnew;
+    if(moved<0.05&&outer>=1)break;
+  }
+  const {res}=result,use=res.fixed||res.float,XRf=result.XRnew;
+  const vec=[XRf[0]-XB[0],XRf[1]-XB[1],XRf[2]-XB[2]],[lat0,lon0]=[latB,lonB];
+  const [dE,dN,dU]=enuOf(vec[0],vec[1],vec[2],lat0,lon0);
+  const len=Math.hypot(...vec);
+  // ARP do rover → marcador
+  const [latR2,lonR2]=ecef2llh(XRf[0],XRf[1],XRf[2]),upR=upVec(latR2,lonR2);
+  const markR=[0,1,2].map(k=>XRf[k]-upR[k]*opt.hiRover);
+  const warn=[];if(len/1000>opt.maxBaselineKm)warn.push('Linha de base de '+(len/1000).toFixed(1)+' km: sem modelo de ionosfera, a fixação pode falhar/ser enganosa.');
+  if(res.rms>0.03)warn.push('Resíduo de fase alto ('+(res.rms*1000).toFixed(0)+' mm): o rover pode não ter ficado estático ou há perdas de ciclo; desconfie do vetor.');
+  if(res.status==='FLOAT'&&res.ratio>0)warn.push('Razão de fixação '+res.ratio.toFixed(1)+' < '+opt.ratio+': solução float.');
+  if(use.rms>0.02)warn.push('Resíduo DD de fase alto ('+(use.rms*1000).toFixed(0)+' mm): rover pode ter se movido (modelo é estático).');
+  return {ok:true,status:res.status,ratio:res.ratio,nFix:res.nFix,nAmb:res.nAmb,epochs:res.epochs,pairs:pairs.length,
+    vec,dE,dN,dU,length:len,sd:use.sd,rms:use.rms,codeRms:res.float.codeRms,floatVec:null,rover:describePos(markR),roverARP:XRf,baseARP:XB,warn};
+}
+
 </script>
 <script>
 'use strict';
@@ -877,8 +1207,8 @@ async function openFiles(files){
       toast('Lendo '+f.name+'…');await new Promise(r=>setTimeout(r,30));
       const txt=await f.text(),first=(txt.slice(0,300).split(/\r?\n/)[0]||'');
       const isNav=first[20]==='N'||/NAV|NAVIGATION/i.test(first.slice(20,40));
-      if(isNav){S.nav=parseNav(txt,f.name);$('#navInfo').textContent=f.name+' ('+S.nav.n+' efemérides)';toast('Navegação carregada: '+S.nav.n+' efemérides');if(S.ds)rebuildEvents();}
-      else loadObs(parseRinexObs(txt,f.name));
+      if(isNav){const nv=parseNav(txt,f.name);S.nav=(typeof mergeNav==='function')?mergeNav(S.nav,nv):nv;$('#navInfo').textContent=S.nav.name+' ('+S.nav.n+' efemérides)';toast('Navegação carregada: '+S.nav.n+' efemérides');if(S.ds)rebuildEvents();}
+      else{const ds=parseRinexObs(txt,f.name);if(typeof vecAdd==='function'){const rec=vecAdd(ds);if(V.files.length===1||!S.ds)loadObs(ds);else toast('Arquivo adicionado em Vetores: '+ds.name);}else loadObs(ds);}
     }catch(err){toast('Erro: '+err.message);console.error(err);alert('Não foi possível abrir "'+f.name+'":\n'+err.message);}
   }
 }
@@ -889,7 +1219,7 @@ function loadObs(ds){
   S.sysVis={};for(const id of ds.satList)S.sysVis[id[0]]=true;
   S.maskOrig=allActive(ds);S.countsOrig=countObs(ds,S.maskOrig);
   rebuildEvents(true);fitView();
-  const key=projKey();try{const raw=localStorage.getItem(key);if(raw&&confirm('Há versões salvas para este arquivo neste navegador. Restaurar?')){applyProject(JSON.parse(raw));}}catch(e){}
+  const key=projKey();try{const raw=localStorage.getItem(key);if(raw&&!S.noRestore&&confirm('Há versões salvas para este arquivo neste navegador. Restaurar?')){applyProject(JSON.parse(raw));}}catch(e){}
   $('#emptyMsg').style.display='none';$('#tlBox').style.display='block';$('#verSel').style.display='';
   $('#hSub').textContent=(ds.station||ds.name)+' · '+ds.satList.length+' sat · '+nf(ds.nE)+' épocas · '+ds.interval+' s · '+fmtDate(ds.tFirst)+' (tempo '+(ds.tsys||'do arquivo')+')';
   recompute();toast('RINEX carregado: '+ds.satList.length+' satélites, '+nf(ds.nE)+' épocas');
@@ -1201,6 +1531,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
 $('#evSheet').addEventListener('click',e=>{if(e.target.id==='evSheet')ACT.evClose();});
 $('#verSel').addEventListener('change',e=>{S.cur=+e.target.value;recompute();});
 $('#fileIn').addEventListener('change',e=>{openFiles([...e.target.files]);e.target.value='';});
+$('#vFileIn').addEventListener('change',e=>{openFiles([...e.target.files]);e.target.value='';});
 $('#navIn').addEventListener('change',e=>{openFiles([...e.target.files]);e.target.value='';});
 $('#projIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f||!S.ds)return toast('Abra o RINEX antes do projeto.');
   try{const p=JSON.parse(await f.text());if(p.app!=='MapGEO-GNSS')throw new Error('Arquivo de projeto inválido.');if(p.sig!==projKey()&&!confirm('Este projeto foi salvo para outro arquivo ('+p.file+'). Aplicar mesmo assim?'))return;applyProject(p);recompute();toast('Projeto carregado.');}catch(err){toast('Erro: '+err.message);}});
@@ -1209,7 +1540,8 @@ function dl(name,text,mime){const a=document.createElement('a');a.href=URL.creat
 /* ---------- abas ---------- */
 function goTab(t){$$('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+t));$$('#nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));window.scrollTo(0,0);
   if(!S.ds&&t!=='timeline'){}
-  if(S.ds){if(t==='timeline'){tlSize();drawTL();}if(t==='sats')renderSats();if(t==='alert'){renderParams();renderSugs();}if(t==='graf')initGraphs();if(t==='hist')renderHist();if(t==='ver')renderVers();if(t==='proc')renderProc();}}
+  if(S.ds){if(t==='timeline'){tlSize();drawTL();}if(t==='sats')renderSats();if(t==='alert'){renderParams();renderSugs();}if(t==='graf')initGraphs();if(t==='hist')renderHist();if(t==='ver')renderVers();if(t==='proc')renderProc();}
+  if(t==='vet'&&typeof renderVet==='function'){renderBaseForm();renderVet();}}
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)goTab(b.dataset.tab);});
 window.addEventListener('resize',()=>{if(!S.ds)return;tlSize();drawTL();if($('#tab-graf').classList.contains('on'))renderGraphs();});
 
@@ -1440,6 +1772,157 @@ function makeReport(){
 /* ---------- API pública (plugar motor próprio) ---------- */
 window.MapGEO={registerEngine:(id,label,fn)=>{registerEngine(id,label,fn);if(S.ds)renderProc();},state:S,exportRinex:()=>exportRinex(S.ds,S.mask,curV().edits,{keepEmptyEpochs:true}),mask:()=>S.mask};
 renderParams();
+
+/* ===================== VETORES BASE → ROVERS / COORDENADAS ABSOLUTAS ===================== */
+const V={files:[],base:{lat:'',lon:'',h:'',sE:'',sN:'',sU:'',hi:'0',ant:'',marker:''},res:{},opt:{ratio:3,elev:10},busy:false};
+try{const s=localStorage.getItem('mapgeo-vet-base');if(s)Object.assign(V.base,JSON.parse(s));}catch(e){}
+const vsave=()=>{try{localStorage.setItem('mapgeo-vet-base',JSON.stringify(V.base));}catch(e){}};
+const vkey=ds=>ds.name+'|'+ds.nE+'|'+ds.tFirst;
+function mergeNav(a,b){
+  if(!a)return b;const n=Object.assign({},a);n.eph=Object.assign({},a.eph);
+  for(const id of Object.keys(b.eph)){const ex=n.eph[id]=(n.eph[id]||[]).slice();for(const e of b.eph[id])if(!ex.some(x=>x.toeAbs===e.toeAbs))ex.push(e);}
+  n.n=Object.values(n.eph).reduce((s,l)=>s+l.length,0);n.klobA=a.klobA||b.klobA;n.klobB=a.klobB||b.klobB;n.name=a.name+' + '+b.name;return n;
+}
+function vecAdd(ds){
+  if(V.files.some(f=>vkey(f.ds)===vkey(ds))){const f=V.files.find(f=>vkey(f.ds)===vkey(ds));f.ds=ds;return f;}
+  const isBase=/base/i.test(ds.name)||/base/i.test(ds.station||'');
+  const f={ds,role:isBase&&!V.files.some(x=>x.role==='base')?'base':'rover',hi:'0',ed:null};
+  V.files.push(f);if(!V.files.some(x=>x.role==='base')&&V.files.length===1)f.role='base';
+  renderVet();return f;
+}
+function vecSyncActive(){ // guarda as versões do editor no registro do arquivo ativo
+  if(!S.ds)return;const f=V.files.find(f=>vkey(f.ds)===vkey(S.ds));if(f)f.ed={versions:S.versions,cur:S.cur,vCounter:S.vCounter};
+}
+function vecActivate(i){
+  vecSyncActive();const f=V.files[i];if(!f)return;
+  S.noRestore=true;loadObs(f.ds);S.noRestore=false;
+  if(f.ed){S.versions=f.ed.versions;S.cur=f.ed.cur;S.vCounter=f.ed.vCounter;recompute();}
+  goTab('timeline');toast('Editando '+f.ds.name);
+}
+function vecMask(f){
+  vecSyncActive();
+  const ed=f.ed;if(ed&&ed.cur>0){const v=ed.versions[ed.cur];if(v.edits.some(e=>!e.undone))return {mask:buildMask(f.ds,v.edits),edited:true,ver:v.name};}
+  return {mask:allActive(f.ds),edited:false,ver:'ORIGINAL'};
+}
+/* ---- coordenadas da base ---- */
+function baseXYZ(){
+  const b=V.base,lat=parseAngle(b.lat),lon=parseAngle(b.lon),h=parseFloat(String(b.h).replace(',','.'));
+  if(!isFinite(lat)||!isFinite(lon)||!isFinite(h)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
+  return {xyz:llh2ecef(lat*Math.PI/180,lon*Math.PI/180,h),lat,lon,h};
+}
+const num=s=>{const v=parseFloat(String(s).replace(',','.'));return isFinite(v)?v:0;};
+function parsePPPText(t){
+  const out={},L=t.split(/\r?\n/);const grab=(re)=>{for(let i=0;i<L.length;i++){if(re.test(L[i])){return L[i].replace(re,'').trim()+' '+(L[i+1]||'');}}return null;};
+  const ang=s=>{if(!s)return null;const m=/[-+]?\s*\d+\s*[°º:\s]\s*\d+\s*['′:\s]\s*\d+(?:[.,]\d+)?|[-+]?\d+(?:[.,]\d+)?/.exec(s);return m?m[0].trim():null;};
+  const la=grab(/^.*Latitude[^:\d-]*[:\s]/i),lo=grab(/^.*Longitude[^:\d-]*[:\s]/i),hh=grab(/^.*(Altitude\s*elips|Altura\s*elips|Alt\.?\s*elips)[^:\d-]*[:\s]/i);
+  out.lat=ang(la);out.lon=ang(lo);const hm=hh&&/[-+]?\d+(?:[.,]\d+)?/.exec(hh);out.h=hm?hm[0]:null;
+  const sg=t.match(/(?:sigma|desvio)[^\n]*?(\d+[.,]\d+)[^\d\n]+(\d+[.,]\d+)[^\d\n]+(\d+[.,]\d+)/i);
+  if(sg){out.sN=sg[1];out.sE=sg[2];out.sU=sg[3];}
+  return out;
+}
+/* ---- cálculo ---- */
+function enuSigma(sdXYZ,lat,lon){
+  const sl=Math.sin(lat),cl=Math.cos(lat),so=Math.sin(lon),co=Math.cos(lon);
+  const R=[[-so,co,0],[-sl*co,-sl*so,cl],[cl*co,cl*so,sl]];
+  return R.map(r=>Math.sqrt(r.reduce((s,v,k)=>s+v*v*sdXYZ[k]*sdXYZ[k],0)));
+}
+function runOne(f,B,bx,nav,mk,opt){
+  const hiB=num(V.base.hi);
+  const r=baselineSolve(B.ds,B.mask,f.ds,mk.mask,nav,bx?bx.xyz:B.ds.approx,Object.assign({},BL_DEF,{elev:V.opt.elev,ratio:V.opt.ratio,hiBase:bx?hiB:0,hiRover:num(f.hi)},opt||{}));
+  if(!r.ok)return r;
+  const [lat,lon]=ecef2llh(r.roverARP[0],r.roverARP[1],r.roverARP[2]);
+  const k=Math.max(1,r.rms/BL_DEF.sigPhase);r.sdScaled=r.sd.map(v=>v*k);r.sdENU=enuSigma(r.sdScaled,lat,lon);
+  if(bx){const sb=[num(V.base.sE),num(V.base.sN),num(V.base.sU)];r.absSig=[Math.hypot(sb[0],r.sdENU[0]),Math.hypot(sb[1],r.sdENU[1]),Math.hypot(sb[2],r.sdENU[2])];r.baseSig=sb;}
+  return r;
+}
+async function runVectors(){
+  if(V.busy)return;vecSyncActive();
+  const bf=V.files.find(f=>f.role==='base');if(!bf)return toast('Defina qual arquivo é a BASE.');
+  const rv=V.files.filter(f=>f.role==='rover');if(!rv.length)return toast('Nenhum arquivo marcado como ROVER.');
+  if(!S.nav)return toast('Carregue a navegação (.nav / .rnx de efemérides) na aba Processar ou no botão Abrir.');
+  const bx=baseXYZ(),Bm=vecMask(bf),B={ds:bf.ds,mask:Bm.mask};V.busy=true;V.res={};
+  for(const f of rv){
+    $('#vMsg').textContent='Calculando '+f.ds.name+'…';await new Promise(r=>setTimeout(r,30));
+    const mk=vecMask(f),rec={edited:mk.edited,ver:mk.ver,baseEdited:Bm.edited};
+    try{rec.cur=runOne(f,B,bx,S.nav,mk);if(mk.edited||Bm.edited)rec.orig=runOne(f,{ds:bf.ds,mask:allActive(bf.ds)},bx,S.nav,{mask:allActive(f.ds)});}
+    catch(e){rec.cur={ok:false,status:'ERRO',reason:e.message};console.error(e);}
+    V.res[vkey(f.ds)]=rec;renderVet();
+  }
+  V.busy=false;$('#vMsg').textContent=bx?'Pronto.':'Pronto — sem coordenadas da base: só os vetores; coordenadas absolutas não calculadas.';
+  renderVet();
+}
+/* ---- IBGE-PPP: RINEX da base ---- */
+function exportBaseForPPP(){
+  const bf=V.files.find(f=>f.role==='base');if(!bf)return toast('Defina a BASE.');
+  const Bm=vecMask(bf);let txt=exportRinex(bf.ds,Bm.mask,Bm.edited?(bf.ed.versions[bf.ed.cur].edits):[],{keepEmptyEpochs:false});
+  const eol=bf.ds.eol||'\n',L=txt.split(/\r?\n/),b=V.base;let hdr=true;
+  for(let i=0;i<L.length&&hdr;i++){const lb=L[i].slice(60).trim();
+    if(lb==='END OF HEADER')hdr=false;
+    else if(lb==='MARKER NAME'&&b.marker)L[i]=b.marker.padEnd(60).slice(0,60)+'MARKER NAME';
+    else if(lb==='ANT # / TYPE'&&b.ant)L[i]=L[i].slice(0,20)+b.ant.padEnd(20).slice(0,20)+L[i].slice(40);
+    else if(lb==='ANTENNA: DELTA H/E/N'&&num(b.hi)>0){const h=num(b.hi);L[i]=h.toFixed(4).padStart(14)+'0.0000'.padStart(14)+'0.0000'.padStart(14)+''.padEnd(18)+'ANTENNA: DELTA H/E/N';}}
+  const name=bf.ds.name.replace(/(\.[^.]*)?$/,'_PPP.rnx');dl(name,L.join(eol),'text/plain');
+  toast('Gerado '+name+' (o original não foi alterado). Envie-o ao IBGE-PPP.');
+}
+/* ---- exportação ---- */
+function vecCsv(){
+  const b=baseXYZ(),rows=[['ARQUIVO','VERSAO','STATUS','RATIO','AMB_FIX','AMB_TOT','COMPRIMENTO_m','dE_m','dN_m','dU_m','dX_m','dY_m','dZ_m','RMS_fase_mm','LAT','LON','H_m','UTM_E','UTM_N','FUSO','sE_m','sN_m','sU_m','ALTURA_ANTENA_m']];
+  for(const f of V.files.filter(f=>f.role==='rover')){const rec=V.res[vkey(f.ds)];if(!rec||!rec.cur||!rec.cur.ok)continue;const r=rec.cur,p=r.rover;
+    rows.push([f.ds.name,rec.ver,r.status,r.ratio.toFixed(2),r.nFix,r.nAmb,r.length.toFixed(4),r.dE.toFixed(4),r.dN.toFixed(4),r.dU.toFixed(4),...r.vec.map(v=>v.toFixed(4)),(r.rms*1000).toFixed(1),
+      b?p.lat.toFixed(9):'',b?p.lon.toFixed(9):'',b?p.h.toFixed(4):'',b?p.utm.E.toFixed(3):'',b?p.utm.N.toFixed(3):'',b?p.utm.zone+p.utm.hem:'',...(r.absSig||[]).map(v=>v.toFixed(4)),num(f.hi)]);}
+  dl('vetores_e_coordenadas.csv','﻿'+rows.map(r=>r.join(';')).join('\n'),'text/csv');
+}
+/* ---- UI ---- */
+const statCls=s=>s==='FIX'?'good':s==='FIX PARCIAL'?'':'bad';
+function vecCell(r){
+  if(!r)return '—';if(!r.ok)return `<span class="bad">${esc(r.status)}</span> <small class="mut">${esc(r.reason||'')}</small>`;
+  return `<b class="${statCls(r.status)}">${esc(r.status)}</b> · razão ${f2(r.ratio,1)} · ${r.nFix}/${r.nAmb} amb.<br>${f2(r.length,3)} m · ΔE ${f2(r.dE,3)} ΔN ${f2(r.dN,3)} ΔU ${f2(r.dU,3)}<br>σ(E,N,U) ${r.sdENU.map(v=>f2(v,3)).join(' / ')} · RMS fase ${f2(r.rms*1000,1)} mm · ${r.epochs} épocas`;
+}
+function renderVet(){
+  const box=$('#vFiles');if(!box)return;
+  if(!V.files.length){box.innerHTML='<p class="mut">Abra a BASE e os ROVERS (RINEX). Para .tps/.jps, converta antes para RINEX.</p>';$('#vOut').innerHTML='';return;}
+  box.innerHTML=V.files.map((f,i)=>`<div class="row" style="gap:6px;flex-wrap:wrap;border-bottom:1px solid #223;padding:6px 0">
+    <b class="grow" style="min-width:140px">${esc(f.ds.name)}<br><small class="mut">${esc(f.ds.station||'')} · ${fmtT(f.ds.tFirst)}–${fmtT(f.ds.tLast)} · ${f.ds.interval}s · ${f.ds.satList.length} sat</small></b>
+    <select data-vf="role" data-i="${i}"><option value="base" ${f.role==='base'?'selected':''}>BASE</option><option value="rover" ${f.role==='rover'?'selected':''}>ROVER</option><option value="x" ${f.role==='x'?'selected':''}>ignorar</option></select>
+    <label style="font-size:12px">h.ant ${f.role==='rover'?'(m)':''}<input data-vf="hi" data-i="${i}" type="number" step="0.001" value="${f.role==='base'?esc(V.base.hi):esc(f.hi)}" style="width:76px" ${f.role==='base'?'disabled':''}></label>
+    <button class="small" data-vact="edit" data-i="${i}">✂ Editar obs.</button><button class="small danger" data-vact="rm" data-i="${i}">✕</button></div>`).join('');
+  const bx=baseXYZ();
+  const rv=V.files.filter(f=>f.role==='rover');
+  $('#vOut').innerHTML=rv.map(f=>{const rec=V.res[vkey(f.ds)];if(!rec)return '';const r=rec.cur;
+    let h=`<div class="card"><h3>${esc(f.ds.name)} <small class="mut">· versão ${esc(rec.ver)}${rec.baseEdited?' · base editada':''}</small></h3>`;
+    h+=rec.orig?`<div class="scroll"><table class="tbl"><tr><th>ORIGINAL</th><th>EDITADO</th></tr><tr><td>${vecCell(rec.orig)}</td><td>${vecCell(r)}</td></tr></table></div>`:`<p>${vecCell(r)}</p>`;
+    if(r&&r.ok){
+      if(r.warn.length)h+=r.warn.map(w=>`<p class="bad" style="font-size:12px">⚠ ${esc(w)}</p>`).join('');
+      if(bx){const p=r.rover,s=r.absSig;
+        h+=`<table class="tbl"><tr><th colspan="2">Coordenadas absolutas do ROVER (SIRGAS2000/ITRF da base)</th></tr>
+        <tr><td>Latitude</td><td>${fmtDMS(p.lat,true)} <small class="mut">(${p.lat.toFixed(9)}°)</small></td></tr>
+        <tr><td>Longitude</td><td>${fmtDMS(p.lon,false)} <small class="mut">(${p.lon.toFixed(9)}°)</small></td></tr>
+        <tr><td>Altura elipsoidal</td><td>${f2(p.h,4)} m</td></tr>
+        <tr><td>UTM ${p.utm.zone}${p.utm.hem}</td><td>E ${f2(p.utm.E,3)} · N ${f2(p.utm.N,3)}</td></tr>
+        <tr><td>XYZ</td><td>${f2(p.x,4)} ${f2(p.y,4)} ${f2(p.z,4)}</td></tr>
+        <tr><td>σ final E/N/U</td><td>${s.map(v=>f2(v,3)).join(' / ')} m <small class="mut">= √(σ base² + σ vetor²); σ da base: ${r.baseSig.map(v=>f2(v,3)).join(' / ')}</small></td></tr></table>`;}
+      else h+='<p class="mut" style="font-size:12px">Informe as coordenadas da base (do relatório IBGE-PPP) para obter as coordenadas absolutas.</p>';
+    }
+    return h+'</div>';}).join('');
+}
+function renderBaseForm(){
+  const b=V.base;for(const k of ['lat','lon','h','sE','sN','sU','hi','ant','marker']){const e=$('#vb_'+k);if(e&&document.activeElement!==e)e.value=b[k]||'';}
+}
+document.addEventListener('input',e=>{const t=e.target;if(t.id&&t.id.startsWith('vb_')){V.base[t.id.slice(3)]=t.value;vsave();if(t.id==='vb_hi')renderVet();}
+  if(t.dataset&&t.dataset.vf==='hi'){V.files[+t.dataset.i].hi=t.value;}
+  if(t.id==='vOptRatio')V.opt.ratio=num(t.value)||3;if(t.id==='vOptElev')V.opt.elev=num(t.value)||10;});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.vf==='role'){const f=V.files[+t.dataset.i];f.role=t.value;if(t.value==='base')V.files.forEach(o=>{if(o!==f&&o.role==='base')o.role='rover';});V.res={};renderVet();}});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-vact]');if(!b)return;const a=b.dataset.vact,i=+b.dataset.i;
+  if(a==='edit')vecActivate(i);
+  else if(a==='rm'){if(S.ds&&vkey(V.files[i].ds)===vkey(S.ds)){}V.files.splice(i,1);V.res={};renderVet();}
+  else if(a==='run')runVectors();
+  else if(a==='pppExp')exportBaseForPPP();
+  else if(a==='csv')vecCsv();
+  else if(a==='parse'){const o=parsePPPText($('#vPaste').value);let n=0;for(const k of ['lat','lon','h','sE','sN','sU'])if(o[k]){V.base[k]=String(o[k]).replace(/\s+/g,' ');n++;}vsave();renderBaseForm();toast(n?n+' campo(s) preenchido(s) — CONFIRA os valores com o relatório.':'Não consegui identificar os campos; digite manualmente.');}
+  else if(a==='useHdr'){const bf=V.files.find(f=>f.role==='base');if(bf&&bf.ds.approx){const [la,lo,h]=ecef2llh(...bf.ds.approx);V.base.lat=(la*180/Math.PI).toFixed(9);V.base.lon=(lo*180/Math.PI).toFixed(9);V.base.h=h.toFixed(3);vsave();renderBaseForm();toast('Posição aproximada do cabeçalho (precisão de metros) — use só para testes.');}}
+});
+renderBaseForm();renderVet();
+Object.assign(window.MapGEO,{vectors:V,runVectors});
 
 </script>
 </body>
