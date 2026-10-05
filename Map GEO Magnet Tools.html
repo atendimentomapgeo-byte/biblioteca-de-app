@@ -171,6 +171,8 @@ details summary{cursor:pointer;color:var(--mu);margin:4px 0}
     <div class="row"><button class="primary grow" data-vact="run">Calcular vetores</button><button data-vact="csv">CSV</button></div>
     <div id="vMsg" class="mut" style="font-size:12px"></div>
     <p class="mut" style="font-size:11px">Modelo estático (rover parado), fase+código dupla diferença, L1/L2, ambiguidades inteiras (LAMBDA). Pensado para linhas de base curtas (&lt;15 km): sem modelo de ionosfera, sem PCO/PCV de antena, GLONASS fora. Usa as observações editadas da versão ativa de cada arquivo.</p></div>
+  <div class="card" id="vMapCard" style="display:none"><h3>Mapa dos pontos <small class="mut" id="vMapInfo"></small></h3><canvas id="vMap" style="width:100%;height:320px;display:block"></canvas><div class="row" style="font-size:12px;gap:10px;flex-wrap:wrap"><span>▲ base</span><span style="color:#2ecc71">● FIX</span><span style="color:#f1c40f">● FIX parcial</span><span style="color:#ff6b6b">● FLOAT</span><span class="mut">linha = vetor · elipse = 95% (exagero ×<input id="vExag" type="number" value="0" style="width:64px"> · 0 = auto)</span></div></div>
+  <div class="card" id="vPtsCard" style="display:none"><h3>Pontos</h3><div class="scroll"><table class="tbl" id="vPts"></table></div></div>
   <div id="vOut"></div>
 </section>
 <nav id="nav">
@@ -1878,7 +1880,7 @@ function vecCell(r){
   if(!r)return '—';if(!r.ok)return `<span class="bad">${esc(r.status)}</span> <small class="mut">${esc(r.reason||'')}</small>`;
   return `<b class="${statCls(r.status)}">${esc(r.status)}</b> · razão ${f2(r.ratio,1)} · ${r.nFix}/${r.nAmb} amb.<br>${f2(r.length,3)} m · ΔE ${f2(r.dE,3)} ΔN ${f2(r.dN,3)} ΔU ${f2(r.dU,3)}<br>σ(E,N,U) ${r.sdENU.map(v=>f2(v,3)).join(' / ')} · RMS fase ${f2(r.rms*1000,1)} mm · ${r.epochs} épocas`;
 }
-function renderVet(){
+var renderVet=function(){
   const box=$('#vFiles');if(!box)return;
   if(!V.files.length){box.innerHTML='<p class="mut">Abra a BASE e os ROVERS (RINEX). Para .tps/.jps, converta antes para RINEX.</p>';$('#vOut').innerHTML='';return;}
   box.innerHTML=V.files.map((f,i)=>`<div class="row" style="gap:6px;flex-wrap:wrap;border-bottom:1px solid #223;padding:6px 0">
@@ -1904,7 +1906,7 @@ function renderVet(){
       else h+='<p class="mut" style="font-size:12px">Informe as coordenadas da base (do relatório IBGE-PPP) para obter as coordenadas absolutas.</p>';
     }
     return h+'</div>';}).join('');
-}
+};
 function renderBaseForm(){
   const b=V.base;for(const k of ['lat','lon','h','sE','sN','sU','hi','ant','marker']){const e=$('#vb_'+k);if(e&&document.activeElement!==e)e.value=b[k]||'';}
 }
@@ -1921,6 +1923,53 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-vact]');if
   else if(a==='parse'){const o=parsePPPText($('#vPaste').value);let n=0;for(const k of ['lat','lon','h','sE','sN','sU'])if(o[k]){V.base[k]=String(o[k]).replace(/\s+/g,' ');n++;}vsave();renderBaseForm();toast(n?n+' campo(s) preenchido(s) — CONFIRA os valores com o relatório.':'Não consegui identificar os campos; digite manualmente.');}
   else if(a==='useHdr'){const bf=V.files.find(f=>f.role==='base');if(bf&&bf.ds.approx){const [la,lo,h]=ecef2llh(...bf.ds.approx);V.base.lat=(la*180/Math.PI).toFixed(9);V.base.lon=(lo*180/Math.PI).toFixed(9);V.base.h=h.toFixed(3);vsave();renderBaseForm();toast('Posição aproximada do cabeçalho (precisão de metros) — use só para testes.');}}
 });
+
+function vecMap(){
+  const bx=baseXYZ(),pts=[];
+  const recs=V.files.filter(f=>f.role==='rover').map(f=>({f,r:(V.res[vkey(f.ds)]||{}).cur})).filter(o=>o.r&&o.r.ok);
+  const card=$('#vMapCard'),pc=$('#vPtsCard');
+  if(!recs.length){card.style.display='none';pc.style.display='none';return;}
+  card.style.display='';pc.style.display='';
+  const o=bx||{lat:recs[0].r.rover.lat,lon:recs[0].r.rover.lon};const la0=o.lat*Math.PI/180,lo0=o.lon*Math.PI/180;
+  const bsx=[num(V.base.sE),num(V.base.sN),num(V.base.sU)];
+  const bxyz=bx?bx.xyz:V.files.find(f=>f.role==='base').ds.approx;
+  const bname=(V.files.find(f=>f.role==='base').ds.station||'BASE');
+  const mk=(name,E,N,sE,sN,sU,kind,st,p)=>({name,E,N,sE,sN,sU,kind,st,p});
+  if(bx)pts.push(mk(bname,0,0,bsx[0],bsx[1],bsx[2],'base','Controle',{lat:bx.lat,lon:bx.lon,h:bx.h}));
+  for(const {f,r} of recs){const [E,N]=enuOf(r.roverARP[0]-bxyz[0],r.roverARP[1]-bxyz[1],r.roverARP[2]-bxyz[2],la0,lo0);
+    const s=r.absSig||r.sdENU;pts.push(mk(f.ds.name.replace(/\.[^.]*$/,''),E,N,s[0],s[1],s[2],'rover',r.status,r.rover));}
+  // tabela de pontos
+  $('#vPts').innerHTML='<tr><th></th><th>Nome</th><th>Latitude</th><th>Longitude</th><th>Alt. elips. (m)</th><th>Código</th><th>Controle</th><th>σE</th><th>σN</th><th>σU</th></tr>'+
+   pts.map(p=>{const c=p.kind==='base'?'#4aa3ff':p.st==='FIX'?'#2ecc71':p.st==='FIX PARCIAL'?'#f1c40f':'#ff6b6b';
+    return `<tr><td style="color:${c}">${p.kind==='base'?'▲':'●'}</td><td>${esc(p.name)}</td><td>${p.p.lat!=null?fmtDMS(p.p.lat,true):'—'}</td><td>${p.p.lon!=null?fmtDMS(p.p.lon,false):'—'}</td><td>${f2(p.p.h,4)}</td><td>${p.kind==='base'?'GPS PP Estático (IBGE-PPP)':'GPS PP '+esc(p.st)}</td><td>${p.kind==='base'?'Horizontal+Vertical':'Nenhum'}</td><td>${f2(p.sE,4)}</td><td>${f2(p.sN,4)}</td><td>${f2(p.sU,4)}</td></tr>`;}).join('');
+  if(!bx)$('#vPts').innerHTML+='<tr><td colspan="10" class="mut">Sem coordenadas da base: mapa em coordenadas locais (posição aproximada do cabeçalho).</td></tr>';
+  // mapa
+  const cv=$('#vMap'),w=cv.parentElement.clientWidth-12||320,h=320,d=window.devicePixelRatio||1;cv.width=Math.round(w*d);cv.height=Math.round(h*d);
+  const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);g.fillStyle='#fff';g.fillRect(0,0,w,h);
+  let xs=pts.map(p=>p.E),ys=pts.map(p=>p.N);const pad=40;
+  let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);const span=Math.max(x1-x0,y1-y0,5);
+  const cx=(x0+x1)/2,cy=(y0+y1)/2,sc=(Math.min(w,h)-pad*2)/(span*1.0);const px=E=>w/2+(E-cx)*sc,py=N=>h/2-(N-cy)*sc;
+  const smax=Math.max(...pts.map(p=>Math.max(p.sE,p.sN)*2.4477),1e-6);
+  let ex=num($('#vExag').value);if(!(ex>0))ex=Math.max(1,Math.round(span*0.06/smax));
+  $('#vMapInfo').textContent='· elipses ×'+ex+' (95%)';
+  g.strokeStyle='#e3e6ea';g.fillStyle='#667';g.font='10px system-ui';g.lineWidth=1;
+  const step=[1,2,5,10,20,50,100,200,500,1000].find(s=>span/s<=2.5)||1000;
+  const R=6378137,toLon=E=>(lo0+E/(R*Math.cos(la0)))*180/Math.PI,toLat=N=>(la0+N/R)*180/Math.PI;
+  for(let E=Math.ceil((cx-w/2/sc)/step)*step;E<cx+w/2/sc;E+=step){g.beginPath();g.moveTo(px(E),0);g.lineTo(px(E),h);g.stroke();g.fillText(fmtDMS(toLon(E),false).replace(/^[EW] /,''),px(E)+2,h-3);}
+  for(let N=Math.ceil((cy-h/2/sc)/step)*step;N<cy+h/2/sc;N+=step){g.beginPath();g.moveTo(0,py(N));g.lineTo(w,py(N));g.stroke();g.fillText(fmtDMS(toLat(N),true).replace(/^[NS] /,''),2,py(N)-2);}
+  const base=pts.find(p=>p.kind==='base')||{E:0,N:0};
+  for(const p of pts){if(p.kind!=='rover')continue;g.strokeStyle='#1a8f3c';g.lineWidth=1.2;g.beginPath();g.moveTo(px(base.E),py(base.N));g.lineTo(px(p.E),py(p.N));g.stroke();}
+  for(const p of pts){
+    const col=p.kind==='base'?'#4aa3ff':p.st==='FIX'?'#2ecc71':p.st==='FIX PARCIAL'?'#f1c40f':'#ff6b6b';
+    const rx=Math.max(p.sE*2.4477*ex*sc,3),ry=Math.max(p.sN*2.4477*ex*sc,3);
+    g.strokeStyle='#2e9e3e';g.fillStyle='rgba(60,200,80,.12)';g.lineWidth=1;g.beginPath();g.ellipse(px(p.E),py(p.N),rx,ry,0,0,Math.PI*2);g.fill();g.stroke();
+    g.fillStyle=col;g.strokeStyle='#123';g.lineWidth=1;g.beginPath();
+    if(p.kind==='base'){const X=px(p.E),Y=py(p.N);g.moveTo(X,Y-7);g.lineTo(X+6,Y+5);g.lineTo(X-6,Y+5);g.closePath();}else g.arc(px(p.E),py(p.N),4.5,0,Math.PI*2);
+    g.fill();g.stroke();g.fillStyle='#123';g.font='11px system-ui';g.fillText(p.name,px(p.E)+8,py(p.N)-6);
+  }
+}
+document.addEventListener('input',e=>{if(e.target.id==='vExag')vecMap();});
+{const _rv=renderVet;renderVet=function(){_rv();try{vecMap();}catch(e){console.error(e);}};}
 renderBaseForm();renderVet();
 Object.assign(window.MapGEO,{vectors:V,runVectors});
 
