@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Map GEO Magnet Tools — Editor de Observações GNSS</title>
+<title>Map GEO Magnet — Editor de Observações GNSS</title>
 <style>
 :root{--bg:#0e1318;--p1:#161d25;--p2:#1e2832;--bd:#2b3846;--tx:#e6edf3;--mu:#8b9bab;--ac:#4aa3ff;--ok:#2ecc71;--wa:#f1c40f;--er:#e74c3c;--vi:#b07cff;--or:#ff9f43}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -59,7 +59,7 @@ details summary{cursor:pointer;color:var(--mu);margin:4px 0}
 </head>
 <body>
 <header>
-  <h1>Map GEO Magnet Tools<small id="hSub">Editor de observações GNSS · abra um RINEX para começar</small></h1>
+  <h1>Map GEO Magnet<small id="hSub">Editor de observações GNSS · abra um RINEX para começar</small></h1>
   <label class="btn primary" for="fileIn">📂 Abrir RINEX</label>
   <input id="fileIn" type="file" multiple hidden>
   <select id="verSel" title="Versão ativa" style="max-width:150px;display:none"></select>
@@ -578,7 +578,7 @@ function exportRinex(ds,mask,edits,opts){
   const satsActive=ds.satList.filter(id=>counts[id].some(x=>x>0));
   const lab=(txt,l)=>txt.padEnd(60).slice(0,60)+l;
   const cmt=[];
-  cmt.push(lab('Editado por Map GEO Magnet Tools - Editor GNSS (original preservado)','COMMENT'));
+  cmt.push(lab('Editado por Map GEO Magnet - Editor GNSS (original preservado)','COMMENT'));
   cmt.push(lab('Fonte: '+ds.name,'COMMENT'));
   const act=edits.filter(e=>!e.undone);
   cmt.push(lab(act.length+' edicao(oes) ativa(s); obs desativadas = valor em branco','COMMENT'));
@@ -1781,7 +1781,7 @@ function makeReport(){
   const ds=S.ds,v=curV(),A=S.countsOrig,B=S.counts,ed=v.edits,o=S.results.orig,c=S.results.cur,ch=changedSummary(ds,S.mask);
   const tr=(a)=>'<tr>'+a.map(x=>'<td>'+x+'</td>').join('')+'</tr>';
   let h=`<!DOCTYPE html><html lang="pt-BR"><meta charset="utf-8"><title>Relatório GNSS — ${esc(ds.station||ds.name)}</title><style>body{font:13px system-ui;margin:24px;max-width:960px}table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid #bbb;padding:4px 6px;text-align:left}h2{margin-top:24px}</style>
-  <h1>Relatório de edição de observações GNSS</h1><p>Map GEO Ambiental · gerado em ${new Date().toLocaleString('pt-BR')}<br>Arquivo original: <b>${esc(ds.name)}</b> (não modificado) · Estação: ${esc(ds.station||'—')} · Receptor: ${esc(ds.rec||'—')} · Antena: ${esc(ds.ant||'—')}<br>Período: ${fmtDate(ds.tFirst)} ${fmtT(ds.tFirst)} – ${fmtT(ds.tLast)} · intervalo ${ds.interval} s · versão: <b>${esc(v.name)}</b></p>
+  <h1>Relatório de edição de observações GNSS</h1><p>Map GEO Magnet · gerado em ${new Date().toLocaleString('pt-BR')}<br>Arquivo original: <b>${esc(ds.name)}</b> (não modificado) · Estação: ${esc(ds.station||'—')} · Receptor: ${esc(ds.rec||'—')} · Antena: ${esc(ds.ant||'—')}<br>Período: ${fmtDate(ds.tFirst)} ${fmtT(ds.tFirst)} – ${fmtT(ds.tLast)} · intervalo ${ds.interval} s · versão: <b>${esc(v.name)}</b></p>
   <h2>Antes × depois</h2><table><tr><th></th><th>Antes</th><th>Depois</th></tr>${tr(['Satélites',A.sats,B.satsValid])}${tr(['Épocas',nf(A.epochs),nf(B.epochsValid)])}${tr(['Observações',nf(A.obs),nf(B.obsValid)])}</table>
   <h2>O que foi alterado</h2><table><tr><th>Sat</th><th>Obs desativadas</th><th>Épocas</th><th>Observáveis</th><th>Intervalos</th></tr>${Object.keys(ch.per).map(id=>{const p=ch.per[id];return tr([id,nf(p.obs),nf(p.epochs),p.codes.join(' '),p.intervals.map(i=>rangeTxt(i.a,i.b)).join(', ')]);}).join('')||tr(['—','','','',''])}</table>
   <h2>Histórico de edições</h2><table><tr><th>ID</th><th>Data</th><th>Estação</th><th>Satélite</th><th>Observável</th><th>Início</th><th>Fim</th><th>Ação</th><th>Motivo</th><th>Situação</th></tr>${ed.map(e=>tr([pad2(e.id),e.date,esc(e.station),e.sat,obsLabel(e),fmtT(e.t0),fmtT(e.t1),e.action,esc(e.reason),e.undone?'desfeita':'ativa'])).join('')||tr(['—','','','','','','','','',''])}</table>`;
