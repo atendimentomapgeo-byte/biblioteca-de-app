@@ -529,20 +529,30 @@
    * reconstituição dos cantos em lat/lon) validada numericamente antes de
    * implementar — ver fitSimilarityTransform acima.
    *
-   * LIMITAÇÃO ASSUMIDA quando há rotação de verdade: só é possível manter
-   * Norte-pra-cima recortando para a área do /Viewport (o quadro do mapa em
-   * si) — sem estender pra folha inteira como no caso sem rotação. Título,
-   * legenda e margens da prancha normalmente NÃO giram junto com o mapa no
-   * PDF original (só o quadro do mapa é desenhado girado); se girássemos a
-   * folha inteira junto, esse texto ficaria de lado/de cabeça para baixo.
-   * Quando a rotação é desprezível (<1°), o comportamento continua sendo o
-   * de sempre: estende pra folha inteira, mantendo título/legenda visíveis.
+   * SEMPRE importa a FOLHA INTEIRA do PDF (título, legenda, margens — tudo),
+   * mesmo quando o mapa está rotacionado: nesse caso, gira a página inteira
+   * junto (não só o quadro do mapa) pra manter o Norte pra cima. Efeito
+   * colateral assumido: título/legenda/margens, que no PDF original ficam na
+   * horizontal, giram junto com o mapa na imagem final (não tem como manter
+   * o mapa Norte-pra-cima E o texto da prancha na horizontal ao mesmo tempo
+   * numa imagem só — são rotações diferentes). Isso é intencional: o usuário
+   * pediu explicitamente que o PDF seja importado por inteiro.
+   *
+   * Matemática (ângulo de rotação, tamanho do canvas rotacionado, e
+   * reconstituição dos cantos em lat/lon) validada numericamente antes de
+   * implementar — ver fitSimilarityTransform acima.
    *
    * @returns {Promise<{canvas, bounds}|null>} null quando os pontos de
    *   controle não formam uma transformação confiável (cai no modo manual).
    */
   async function buildNorthUpRaster(sourceCanvas, geoPoints, viewportBBox, pageWidthPts, pageHeightPts, renderScale) {
-    const bbox = viewportBBox || { llx: 0, lly: 0, urx: pageWidthPts, ury: pageHeightPts };
+    // bboxGCP: área (Viewport, se houver) que o LPTS dos pontos de controle
+    // usa como referência 0–1 — só serve pra interpretar a posição desses
+    // pontos na página, não limita o que é importado.
+    const bboxGCP = viewportBBox || { llx: 0, lly: 0, urx: pageWidthPts, ury: pageHeightPts };
+    // regiaoFinal: SEMPRE a folha inteira — é isso que acaba sendo recortado/
+    // rotacionado/posicionado no mapa, com ou sem Viewport menor no PDF.
+    const regiaoFinal = { llx: 0, lly: 0, urx: pageWidthPts, ury: pageHeightPts };
 
     // A especificação (ISO 32000-2) define LPTS com a MESMA origem do /BBox
     // da página/Viewport (canto inferior-esquerdo, Y pra cima — padrão PDF).
@@ -555,8 +565,10 @@
     // os dois tipos de gerador sem precisar adivinhar qual é.
     function pontosComConvencaoY(yInvertido) {
       return geoPoints.map((p) => ({
-        xPts: bbox.llx + p.u * (bbox.urx - bbox.llx),
-        yPts: yInvertido ? bbox.ury - p.v * (bbox.ury - bbox.lly) : bbox.lly + p.v * (bbox.ury - bbox.lly),
+        xPts: bboxGCP.llx + p.u * (bboxGCP.urx - bboxGCP.llx),
+        yPts: yInvertido
+          ? bboxGCP.ury - p.v * (bboxGCP.ury - bboxGCP.lly)
+          : bboxGCP.lly + p.v * (bboxGCP.ury - bboxGCP.lly),
         lat: p.lat,
         lon: p.lon,
       }));
@@ -566,12 +578,10 @@
     const fitNormal = fitSimilarityTransform(candidatoNormal);
     const fitInvertido = fitSimilarityTransform(candidatoInvertido);
 
-    let pontosPagina, fit;
+    let fit;
     if (fitNormal && (!fitInvertido || fitNormal.erroMedioMetros <= fitInvertido.erroMedioMetros)) {
-      pontosPagina = candidatoNormal;
       fit = fitNormal;
     } else {
-      pontosPagina = candidatoInvertido;
       fit = fitInvertido;
     }
     if (!fit) return null;
@@ -580,33 +590,18 @@
     // no PDF): resíduo médio maior que ~3% da diagonal da área mapeada não é
     // confiável — melhor cair pro modo manual do que posicionar errado e
     // sem avisar.
-    const diagonalM = Math.hypot((bbox.urx - bbox.llx) * fit.scale, (bbox.ury - bbox.lly) * fit.scale);
+    const diagonalM = Math.hypot(
+      (bboxGCP.urx - bboxGCP.llx) * fit.scale,
+      (bboxGCP.ury - bboxGCP.lly) * fit.scale
+    );
     if (!(diagonalM > 0) || fit.erroMedioMetros > diagonalM * 0.03) return null;
 
     const rotApplied = -fit.theta; // ângulo pra ctx.rotate() — ver derivação em fitSimilarityTransform
 
-    // Recorta o canvas de origem pra área do Viewport (se houver e for
-    // realmente menor que a página inteira) antes de rotacionar.
-    const cropX1 = bbox.llx * renderScale;
-    const cropY1 = sourceCanvas.height - bbox.ury * renderScale;
-    const cropWpx = (bbox.urx - bbox.llx) * renderScale;
-    const cropHpx = (bbox.ury - bbox.lly) * renderScale;
-
-    let recortado = sourceCanvas;
-    const precisaRecortar = cropWpx < sourceCanvas.width - 0.5 || cropHpx < sourceCanvas.height - 0.5;
-    if (precisaRecortar) {
-      recortado = document.createElement('canvas');
-      recortado.width = Math.round(cropWpx);
-      recortado.height = Math.round(cropHpx);
-      recortado
-        .getContext('2d')
-        .drawImage(sourceCanvas, cropX1, cropY1, cropWpx, cropHpx, 0, 0, recortado.width, recortado.height);
-    }
-
     const ROTACAO_DESPREZIVEL = (1 * Math.PI) / 180; // abaixo de 1°, não compensa rotacionar (perda de nitidez por reamostragem)
-    let finalCanvas = recortado;
+    let finalCanvas = sourceCanvas;
     if (Math.abs(rotApplied) > ROTACAO_DESPREZIVEL) {
-      const W = recortado.width, H = recortado.height;
+      const W = sourceCanvas.width, H = sourceCanvas.height;
       const cosR = Math.abs(Math.cos(rotApplied));
       const sinR = Math.abs(Math.sin(rotApplied));
       const newW = Math.ceil(W * cosR + H * sinR);
@@ -617,14 +612,18 @@
       const ctx = rotCanvas.getContext('2d');
       ctx.translate(newW / 2, newH / 2);
       ctx.rotate(rotApplied);
-      ctx.drawImage(recortado, -W / 2, -H / 2);
+      ctx.drawImage(sourceCanvas, -W / 2, -H / 2);
       finalCanvas = rotCanvas;
     }
 
-    // Limites geográficos finais: transforma os 4 cantos da área recortada
-    // (bbox) pela transformação ajustada — depois de corrigir a rotação,
-    // esses 4 cantos formam um retângulo alinhado aos eixos (checado
-    // numericamente: erro sub-milimétrico em qualquer ângulo testado).
+    // Limites geográficos finais: transforma os 4 cantos da FOLHA INTEIRA
+    // pela transformação ajustada — depois de corrigir a rotação, esses 4
+    // cantos formam um retângulo alinhado aos eixos (checado numericamente:
+    // erro sub-milimétrico em qualquer ângulo testado). Como a transformação
+    // foi calibrada só com os pontos de controle (dentro do Viewport, quando
+    // há um menor que a página), estender pra folha inteira extrapola a
+    // mesma escala/rotação pra fora dele — mesma lógica que o app já usava
+    // pro caso sem rotação, agora generalizada pro caso rotacionado também.
     const cosT = Math.cos(fit.theta), sinT = Math.sin(fit.theta);
     const paraLatLon = (xPts, yPts) => {
       const X = fit.scale * (cosT * (xPts - fit.sx) - sinT * (yPts - fit.sy));
@@ -632,10 +631,10 @@
       return { lat: fit.lat0 + Y / fit.mPerDegLat, lon: fit.lon0 + X / fit.mPerDegLon };
     };
     const cantos = [
-      paraLatLon(bbox.llx, bbox.lly),
-      paraLatLon(bbox.urx, bbox.lly),
-      paraLatLon(bbox.urx, bbox.ury),
-      paraLatLon(bbox.llx, bbox.ury),
+      paraLatLon(regiaoFinal.llx, regiaoFinal.lly),
+      paraLatLon(regiaoFinal.urx, regiaoFinal.lly),
+      paraLatLon(regiaoFinal.urx, regiaoFinal.ury),
+      paraLatLon(regiaoFinal.llx, regiaoFinal.ury),
     ];
     const lats = cantos.map((c) => c.lat);
     const lons = cantos.map((c) => c.lon);

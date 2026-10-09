@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v64';
+  const APP_BUILD_VERSION = 'v65';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -1777,8 +1777,8 @@
             closeSheet('overlay-import');
             if (Math.abs(rotationDeg) > 1) {
               toast(
-                `GeoPDF com Norte rotacionado detectado — rotação de ${Math.abs(rotationDeg).toFixed(1)}° corrigida automaticamente. Só a área do mapa foi importada (título/legenda da prancha, se houver, não giram junto no PDF original).`,
-                6000
+                `GeoPDF com Norte rotacionado detectado — rotação de ${Math.abs(rotationDeg).toFixed(1)}° corrigida automaticamente. A folha inteira foi importada; título/legenda/margens, se houver, giram junto com o mapa (não tem como manter só o mapa alinhado ao Norte sem girar a prancha toda junto).`,
+                7000
               );
             } else {
               toast('GeoPDF detectado — coordenadas lidas automaticamente do arquivo.');
