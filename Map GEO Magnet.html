@@ -59,16 +59,18 @@ details summary{cursor:pointer;color:var(--mu);margin:4px 0}
 </head>
 <body>
 <header>
-  <h1>Map GEO Magnet<small id="hSub">Editor de observações GNSS · abra um RINEX para começar</small></h1>
+  <h1>Map GEO Magnet <span id="verTag" style="font-size:10px;font-weight:600;background:#1f6feb;color:#fff;border-radius:8px;padding:1px 6px;vertical-align:middle;cursor:pointer"></span><small id="hSub">Editor de observações GNSS · abra um RINEX para começar</small></h1>
   <label class="btn primary" for="fileIn">📂 Abrir RINEX</label>
   <input id="fileIn" type="file" multiple hidden>
   <select id="verSel" title="Versão ativa" style="max-width:150px;display:none"></select>
+  <div id="sigBar" style="display:none;flex:1 0 100%;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;border-top:1px solid var(--bd);padding-top:6px;cursor:pointer" data-vact="sigPop"></div>
 </header>
 <main>
 <section class="tab on" id="tab-timeline">
   <div id="emptyMsg" class="card empty">
     <div style="font-size:42px">🛰️</div>
-    <p><b>Abra um arquivo RINEX de observação</b><br>(2.x ou 3.x, texto — <span class="mut">.rnx / .##o</span>).<br>Para PDOP e reprocessamento, abra também a navegação (<span class="mut">.nav / .##n / .rnx</span>) — ambos podem ser escolhidos juntos.</p>
+    <div style="border:2px dashed var(--bd);border-radius:12px;padding:14px;margin-bottom:10px"><b>📥 Arraste e solte aqui</b> os arquivos ou a pasta inteira<br><span class="mut" style="font-size:12px">base, rovers, navegação e relatório do IBGE-PPP (.txt) — de uma vez</span></div>
+    <p><b>Ou abra um arquivo RINEX de observação</b><br>(2.x ou 3.x, texto — <span class="mut">.rnx / .##o</span>).<br>Para PDOP e reprocessamento, abra também a navegação (<span class="mut">.nav / .##n / .rnx</span>) — ambos podem ser escolhidos juntos.</p>
     <p class="mut" style="font-size:12px">O arquivo original nunca é modificado: todas as edições são uma máscara versionada.</p>
   </div>
   <div id="tlBox" style="display:none">
@@ -84,6 +86,12 @@ details summary{cursor:pointer;color:var(--mu);margin:4px 0}
       <span style="color:#ff6b6b">▼ cycle slip</span><span style="color:#ff7ad9">▼ salto/LLI</span><span style="color:#ff9f43">▭ gap</span><span style="color:#b07cff">▬ perda de fase</span><span style="color:#f1c40f">▬ SNR baixo</span><span style="color:#5ac8fa">◆ anormal</span>
     </div>
     <div class="mut" style="font-size:11px;margin:0 2px 8px">Modo <b>Selecionar</b>: arraste sobre as linhas (horizontal = intervalo, vertical = satélites). Toque num marcador para decidir sobre o evento. Toque no rótulo do satélite para marcá-lo. Dois dedos / roda do mouse = zoom.</div>
+    <div class="card" id="tlVecCard">
+      <h3>Processar vetor <small class="mut" id="tlVecSub"></small></h3>
+      <div class="row"><button class="primary grow" data-vact="tlRun">▶ Processar este arquivo</button></div>
+      <label class="row" style="font-size:12px"><input type="checkbox" id="tlAuto"> reprocessar automaticamente após cada edição</label>
+      <div id="tlVecOut" class="scroll"></div>
+    </div>
     <div class="card" id="editCard">
       <h3>Editar observações</h3>
       <div class="row"><label>Satélites</label><div class="chips grow" id="selChips"></div></div>
@@ -162,8 +170,10 @@ details summary{cursor:pointer;color:var(--mu);margin:4px 0}
     <p class="mut" style="font-size:12px">O PPP roda no site do IBGE. Exporte o RINEX da base abaixo, envie ao IBGE-PPP e digite aqui as coordenadas e sigmas do relatório (PDF).</p>
     <div class="row"><label>Marcador</label><input id="vb_marker" class="grow" placeholder="nome (opcional)"><label>Antena</label><input id="vb_ant" class="grow" placeholder="ex.: TPSHIPER_GGD"></div>
     <div class="row"><label>Altura da antena da base (m)</label><input id="vb_hi" type="number" step="0.001" style="width:90px"><button class="small" data-vact="pppExp">⬇ RINEX da base p/ IBGE-PPP</button></div>
-    <div class="pgrid"><label>Latitude<input id="vb_lat" placeholder="-26 39 01,2345 ou -26,65"></label><label>Longitude<input id="vb_lon" placeholder="-53 ..."></label><label>Altura elipsoidal (m)<input id="vb_h" inputmode="decimal"></label>
-      <label>σ é<select id="vb_sconf"><option value="95">95% (IBGE)</option><option value="1">1σ</option></select></label><label>σ E (m)<input id="vb_sE" inputmode="decimal"></label><label>σ N (m)<input id="vb_sN" inputmode="decimal"></label><label>σ U (m)<input id="vb_sU" inputmode="decimal"></label></div>
+    <div class="pgrid"><label>Latitude<input id="vb_lat" placeholder="-26 39 01,2345 ou -26,65"></label><label>Longitude<input id="vb_lon" placeholder="-53 ..."></label><label>Altitude elipsoidal (m)<input id="vb_h" inputmode="decimal"></label>
+      <label>σ N (m)<input id="vb_sN" inputmode="decimal"></label><label>σ E (m)<input id="vb_sE" inputmode="decimal"></label><label>σ U (m)<input id="vb_sU" inputmode="decimal"></label>
+      <label>σ informado é<select id="vb_sconf"><option value="95">95% (IBGE)</option><option value="1">1σ</option></select></label></div>
+    <div id="vbWarn" class="bad" style="font-size:12px"></div>
     <details><summary>Colar texto do relatório</summary><textarea id="vPaste" rows="5" style="width:100%" placeholder="Cole aqui o texto copiado do PDF do IBGE-PPP"></textarea><button class="small" data-vact="parse">Interpretar texto</button> <span class="mut" style="font-size:11px">Leitura aproximada: confira os campos.</span></details>
     <button class="small" data-vact="useHdr" style="margin-top:6px">Usar posição do cabeçalho (só teste)</button></div>
   <div class="card"><h3>3 · Vetores base → rover</h3>
@@ -183,6 +193,7 @@ details summary{cursor:pointer;color:var(--mu);margin:4px 0}
 <div class="sheet" id="evSheet"><div class="in" id="evIn"></div></div>
 <div id="toast"></div>
 <script>
+const APP_VER="1.7.0",APP_BUILD="2026-10-05 23:35 (Cuiabá)";
 'use strict';
 /* ===================== NÚCLEO GNSS (sem DOM) ===================== */
 const CLIGHT = 299792458;
@@ -578,7 +589,7 @@ function exportRinex(ds,mask,edits,opts){
   const satsActive=ds.satList.filter(id=>counts[id].some(x=>x>0));
   const lab=(txt,l)=>txt.padEnd(60).slice(0,60)+l;
   const cmt=[];
-  cmt.push(lab('Editado por Map GEO Magnet - Editor GNSS (original preservado)','COMMENT'));
+  cmt.push(lab('Editado por Map GEO Magnet v'+APP_VER+' - Editor GNSS (original preservado)','COMMENT'));
   cmt.push(lab('Fonte: '+ds.name,'COMMENT'));
   const act=edits.filter(e=>!e.undone);
   cmt.push(lab(act.length+' edicao(oes) ativa(s); obs desativadas = valor em branco','COMMENT'));
@@ -1016,7 +1027,7 @@ function baselineSolve(dsB,maskB,dsR,maskR,nav,baseMarkerXYZ,opt){
   opt=Object.assign({},BL_DEF,opt||{});
   if(!nav)throw new Error('Carregue a navegação (broadcast) para processar linhas de base.');
   const pairs=pairEpochs(dsR,dsB,opt.tol);
-  if(pairs.length<opt.minEpochs)return {ok:false,status:'SEM ÉPOCAS COMUNS',reason:'Épocas comuns entre base e rover: '+pairs.length+' (mín. '+opt.minEpochs+').'};
+  if(pairs.length<opt.minEpochs)return {ok:false,status:'SEM ÉPOCAS COMUNS',reason:'Épocas comuns entre base e rover: '+pairs.length+' (mín. '+opt.minEpochs+'). Rover '+fmtT(dsR.tFirst)+'–'+fmtT(dsR.tLast)+' · base '+fmtT(dsB.tFirst)+'–'+fmtT(dsB.tLast)+(dsB.tLast-dsB.tFirst<dsR.tLast-dsR.tFirst?' — a base tem sessão mais curta que o rover: o arquivo marcado como BASE está correto?':'')};
   const [latB,lonB]=ecef2llh(baseMarkerXYZ[0],baseMarkerXYZ[1],baseMarkerXYZ[2]),upB=upVec(latB,lonB);
   const XB=[0,1,2].map(k=>baseMarkerXYZ[k]+upB[k]*opt.hiBase);
   let XR=opt.approxRover||dsR.approx;
@@ -1268,7 +1279,7 @@ function clampView(v){
 function recompute(){
   if(!S.ds)return;
   S.mask=curV().edits.length?buildMask(S.ds,curV().edits):S.maskOrig;S.counts=countObs(S.ds,S.mask);S.states={};
-  persist();renderAll();
+  persist();renderAll();if(typeof tlVecAuto==='function'){renderTlVec();tlVecAuto();}
 }
 function getState(id){return S.states[id]||(S.states[id]=satState(S.ds,S.mask,id));}
 function projKey(){const d=S.ds;return 'mapgeo-gnss:'+d.name+'|'+d.nE+'|'+d.tFirst+'|'+d.satList.length;}
@@ -1356,7 +1367,7 @@ function maxScroll(){return Math.max(0,visSats().length*TL.ROW-(S.th-rowTop()));
 function rowAt(y){const n=visSats().length;return Math.max(0,Math.min(n-1,Math.floor((y-rowTop()+S.scroll)/TL.ROW)));}
 function drawTL(){
   if(!S.ds||!$('#tlBox')||$('#tab-timeline').classList.contains('on')===false)return;
-  const cv=$('#tl');if(!S.tw||cv.width===0)tlSize();
+  const cv=$('#tl');{const bw=cv.parentElement.clientWidth;if(bw&&(bw!==S.tw||cv.width!==Math.round(bw*(window.devicePixelRatio||1))))tlSize();}
   const g=cv.getContext('2d'),w=S.tw,h=S.th,ds=S.ds,T=ds.t,dt=ds.intervalMs||1000;
   g.setTransform(S.dpr,0,0,S.dpr,0,0);g.fillStyle='#0b1015';g.fillRect(0,0,w,h);
   const span=S.view.t1-S.view.t0,rows=visSats();S.scroll=Math.max(0,Math.min(S.scroll,maxScroll()));
@@ -1567,6 +1578,7 @@ function dl(name,text,mime){const a=document.createElement('a');a.href=URL.creat
 /* ---------- abas ---------- */
 function goTab(t){$$('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+t));$$('#nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));window.scrollTo(0,0);
   if(!S.ds&&t!=='timeline'){}
+  if(typeof renderSigBar==='function')setTimeout(renderSigBar,0);
   if(S.ds){if(t==='timeline'){tlSize();drawTL();}if(t==='sats')renderSats();if(t==='alert'){renderParams();renderSugs();}if(t==='graf')initGraphs();if(t==='hist')renderHist();if(t==='ver')renderVers();if(t==='proc')renderProc();}
   if(t==='vet'&&typeof renderVet==='function'){renderBaseForm();renderVet();}}
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)goTab(b.dataset.tab);});
@@ -1800,8 +1812,35 @@ function makeReport(){
 window.MapGEO={registerEngine:(id,label,fn)=>{registerEngine(id,label,fn);if(S.ds)renderProc();},state:S,exportRinex:()=>exportRinex(S.ds,S.mask,curV().edits,{keepEmptyEpochs:true}),mask:()=>S.mask};
 renderParams();
 
+{const t=$('#verTag');t.textContent='v'+APP_VER;t.title='Versão '+APP_VER+' · compilada em '+APP_BUILD;t.addEventListener('click',()=>toast('Map GEO Magnet v'+APP_VER+' · build '+APP_BUILD));}
+
+try{new ResizeObserver(()=>{if(S.ds&&$('#tab-timeline').classList.contains('on')){tlSize();drawTL();}}).observe($('#tl').parentElement);}catch(e){}
+
+/* ---------- arrastar e soltar (arquivos e pastas inteiras) ---------- */
+(function(){
+  const ov=document.createElement('div');ov.id='dropOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(10,20,35,.88);border:3px dashed #4aa3ff;color:#fff;font-size:18px;text-align:center;padding:20px;pointer-events:none';
+  ov.innerHTML='<div><div style="font-size:42px">📥</div><b>Solte aqui os arquivos ou a pasta inteira</b><br><span style="font-size:13px;opacity:.8">RINEX de observação, navegação (.##n) e relatório IBGE-PPP (.txt). Outros formatos são ignorados.</span></div>';
+  document.body.appendChild(ov);
+  let depth=0;const hasFiles=e=>e.dataTransfer&&[...e.dataTransfer.types].includes('Files');
+  window.addEventListener('dragenter',e=>{if(!hasFiles(e))return;e.preventDefault();depth++;ov.style.display='flex';});
+  window.addEventListener('dragover',e=>{if(hasFiles(e)){e.preventDefault();e.dataTransfer.dropEffect='copy';}});
+  window.addEventListener('dragleave',e=>{if(!hasFiles(e))return;depth=Math.max(0,depth-1);if(!depth)ov.style.display='none';});
+  window.addEventListener('drop',async e=>{
+    if(!hasFiles(e))return;e.preventDefault();depth=0;ov.style.display='none';
+    const dt=e.dataTransfer,entries=[...dt.items].map(i=>i.webkitGetAsEntry?i.webkitGetAsEntry():null),plain=[...dt.files],files=[];
+    const walk=async en=>{
+      if(en.isFile){await new Promise(r=>en.file(f=>{files.push(f);r();},()=>r()));}
+      else if(en.isDirectory){const rd=en.createReader();let batch;do{batch=await new Promise(r=>rd.readEntries(r,()=>r([])));for(const c of batch)await walk(c);}while(batch.length);}
+    };
+    try{if(entries.length&&entries.every(Boolean)){for(const en of entries)await walk(en);}else files.push(...plain);}catch(err){files.push(...plain);}
+    if(!files.length)return toast('Nenhum arquivo recebido.');
+    toast(files.length+' arquivo(s) recebido(s)…');openFiles(files);
+  });
+})();
+
 /* ===================== VETORES BASE → ROVERS / COORDENADAS ABSOLUTAS ===================== */
-const V={files:[],base:{lat:'',lon:'',h:'',sE:'',sN:'',sU:'',hi:'0',ant:'',marker:''},res:{},opt:{ratio:3,elev:10},busy:false};
+const V={files:[],base:{lat:'',lon:'',h:'',sE:'',sN:'',sU:'',hi:'0',ant:'',marker:'',sconf:'95'},res:{},opt:{ratio:3,elev:10},busy:false};
 try{const s=localStorage.getItem('mapgeo-vet-base');if(s)Object.assign(V.base,JSON.parse(s));}catch(e){}
 const vsave=()=>{try{localStorage.setItem('mapgeo-vet-base',JSON.stringify(V.base));}catch(e){}};
 const vkey=ds=>ds.name+'|'+ds.nE+'|'+ds.tFirst;
@@ -1810,12 +1849,17 @@ function mergeNav(a,b){
   for(const id of Object.keys(b.eph)){const ex=n.eph[id]=(n.eph[id]||[]).slice();for(const e of b.eph[id])if(!ex.some(x=>x.toeAbs===e.toeAbs))ex.push(e);}
   n.n=Object.values(n.eph).reduce((s,l)=>s+l.length,0);n.klobA=a.klobA||b.klobA;n.klobB=a.klobB||b.klobB;n.name=a.name+' + '+b.name;return n;
 }
+function vecAutoRoles(){
+  const fs_=V.files.filter(f=>!f.roleManual);if(!fs_.length)return;
+  const dur=f=>f.ds.tLast-f.ds.tFirst,isB=f=>/base/i.test(f.ds.name)||/base/i.test(f.ds.station||'');
+  if(V.files.some(f=>f.roleManual&&f.role==='base')){fs_.forEach(f=>f.role='rover');return;}
+  let c=fs_.filter(isB);if(!c.length)c=fs_.length>1?fs_:[];   // sem "base" no nome: a sessão mais longa é a base
+  let best=c.sort((a,b)=>dur(b)-dur(a))[0];
+  fs_.forEach(f=>f.role=(f===best)?'base':'rover');
+}
 function vecAdd(ds){
-  if(V.files.some(f=>vkey(f.ds)===vkey(ds))){const f=V.files.find(f=>vkey(f.ds)===vkey(ds));f.ds=ds;return f;}
-  const isBase=/base/i.test(ds.name)||/base/i.test(ds.station||'');
-  const f={ds,role:isBase&&!V.files.some(x=>x.role==='base')?'base':'rover',hi:'0',ed:null};
-  V.files.push(f);if(!V.files.some(x=>x.role==='base')&&V.files.length===1)f.role='base';
-  renderVet();return f;
+  const ex=V.files.find(f=>vkey(f.ds)===vkey(ds));if(ex){ex.ds=ds;return ex;}
+  const f={ds,role:'rover',hi:'0',ed:null};V.files.push(f);vecAutoRoles();V.res={};renderVet();return f;
 }
 function vecSyncActive(){ // guarda as versões do editor no registro do arquivo ativo
   if(!S.ds)return;const f=V.files.find(f=>vkey(f.ds)===vkey(S.ds));if(f)f.ed={versions:S.versions,cur:S.cur,vCounter:S.vCounter};
@@ -1843,6 +1887,28 @@ function parsePPPText(t){
   const ib={lat:mm(/^\s*LAT\s+(.+)$/m),lon:mm(/^\s*LON\s+(.+)$/m),h:mm(/^\s*HGEO\s+([-+\d.,]+)/m),sN:mm(/^\s*SLAT\s+([\d.,]+)/m),sE:mm(/^\s*SLON\s+([\d.,]+)/m),sU:mm(/^\s*SHGEO\s+([\d.,]+)/m),hi:mm(/^\s*ALTANT\s+([\d.,]+)/m),marker:mm(/^\s*MARCO\s+(\S+)/m)};
   const okA=s=>s&&/^[-+]?\d+[\s°º]+\d+/.test(s);
   if(okA(ib.lat)&&okA(ib.lon)&&ib.h&&/\d/.test(ib.h)){ib.sconf='95';ib.ibge=true;return ib;}
+  { // texto copiado do PDF do IBGE-PPP: "Em 2000.4 (...)  -15° 34´ 40,0535˝  -56° 01´ 51,1323˝  174,10 ..." e "Sigma(95%) (m)  0,004  0,009  0,021"
+    const ang=/(-?\d+)\s*[°º]\s*(\d+)\s*[´'′‘’]\s*(\d+(?:[.,]\d+)?)\s*(?:˝|"|″|'')?/g;
+    { // colunas (texto copiado do PDF): valores logo após cada título
+      const iLa=t.search(/Latitude\s*\(gms\)/i),iLo=t.search(/Longitude\s*\(gms\)/i),iH=t.search(/Alt\.?\s*Geo\.?\s*\(m\)/i);
+      if(iLa>=0&&iLo>iLa&&iH>iLo){const A1=[...t.slice(iLa,iLo).matchAll(ang)],A2=[...t.slice(iLo,iH).matchAll(ang)],hm=/(-?\d+[.,]\d+)/.exec(t.slice(iH+10,iH+80));
+        if(A1.length&&A2.length&&hm){const out={lat:A1[0][1]+' '+A1[0][2]+' '+A1[0][3],lon:A2[0][1]+' '+A2[0][2]+' '+A2[0][3],h:hm[1],sconf:'95',ibge:true};
+          const j=t.search(/Sigma\s*\(?\s*95\s*%?\)?/i);
+          if(j>=0){const nums=[...t.slice(j,j+300).replace(/\(\s*m\s*\)/gi,' ').replace(/95\s*%?\)?\s*\d?/,' ').matchAll(/(\d+[.,]\d{3})(?!\d)/g)].map(m=>m[1]);if(nums.length>=3){out.sN=nums[0];out.sE=nums[1];out.sU=nums[2];}}
+          const al=/Altura\s+da\s+Antena\S*\s*\(m\)\s*:?\s*(\d+[.,]\d+)/i.exec(t);if(al)out.hi=al[1];
+          const mc=/marco:\s*(\S+)/i.exec(t);if(mc)out.marker=mc[1];
+          return out;}}
+    }
+    const i2=t.search(/Em\s*2000[.,]4/);
+    if(i2>=0){const seg=t.slice(i2,i2+600);const A=[...seg.matchAll(ang)];
+      if(A.length>=2){const after=seg.slice(A[1].index+A[1][0].length),hm=/(-?\d+[.,]\d+)/.exec(after);
+        const out={lat:A[0][1]+' '+A[0][2]+' '+A[0][3],lon:A[1][1]+' '+A[1][2]+' '+A[1][3],h:hm?hm[1]:null,sconf:'95',ibge:true};
+        const j=t.search(/Sigma\s*\(?\s*95\s*%?\)?/i);
+        if(j>=0){const nums=[...t.slice(j,j+300).replace(/\(\s*m\s*\)/gi,' ').replace(/95\s*%?\)?\s*\d?/,' ').matchAll(/(\d+[.,]\d{3})(?!\d)/g)].map(m=>m[1]);if(nums.length>=3){out.sN=nums[0];out.sE=nums[1];out.sU=nums[2];}}
+        const al=/Altura\s+da\s+Antena\S*\s*\(m\)\s*:?\s*(\d+[.,]\d+)/i.exec(t);if(al)out.hi=al[1];
+        const mc=/marco:\s*(\S+)/i.exec(t);if(mc)out.marker=mc[1];
+        if(out.h)return out;}}
+  }
   const out={},L=t.split(/\r?\n/);const grab=(re)=>{for(let i=0;i<L.length;i++){if(re.test(L[i])){return L[i].replace(re,'').trim()+' '+(L[i+1]||'');}}return null;};
   const ang=s=>{if(!s)return null;const m=/[-+]?\s*\d+\s*[°º:\s]\s*\d+\s*['′:\s]\s*\d+(?:[.,]\d+)?|[-+]?\d+(?:[.,]\d+)?/.exec(s);return m?m[0].trim():null;};
   const la=grab(/^.*Latitude[^:\d-]*[:\s]/i),lo=grab(/^.*Longitude[^:\d-]*[:\s]/i),hh=grab(/^.*(Altitude\s*elips|Altura\s*elips|Alt\.?\s*elips)[^:\d-]*[:\s]/i);
@@ -1880,7 +1946,8 @@ async function runVectors(only){
   const bf=V.files.find(f=>f.role==='base');if(!bf)return toast('Defina qual arquivo é a BASE.');
   const rv=only?[only]:V.files.filter(f=>f.role==='rover');if(!rv.length)return toast('Nenhum arquivo marcado como ROVER.');
   if(!S.nav)return toast('Carregue a navegação (.nav / .rnx de efemérides) na aba Processar ou no botão Abrir.');
-  const bx=baseXYZ(),Bm=vecMask(bf),B={ds:bf.ds,mask:Bm.mask};V.busy=true;if(!only)V.res={};
+  const bx=baseXYZ(),Bm=vecMask(bf),B={ds:bf.ds,mask:Bm.mask};
+  if(bx&&bf.ds.approx){const d=Math.hypot(bx.xyz[0]-bf.ds.approx[0],bx.xyz[1]-bf.ds.approx[1],bx.xyz[2]-bf.ds.approx[2]);if(d>300){toast('Atenção: as coordenadas informadas estão a '+Math.round(d)+' m da posição do cabeçalho de '+bf.ds.name+'. Confira se este é o arquivo da BASE.');}}V.busy=true;if(!only)V.res={};
   try{for(const f of rv){
     $('#vMsg').textContent='Calculando '+f.ds.name+'…';await new Promise(r=>setTimeout(r,30));
     let mk,rec={baseEdited:Bm.edited};
@@ -1953,12 +2020,13 @@ var renderVet=function(){
     return h+'</div>';}catch(err){console.error(err);return '<div class="card"><b>'+esc(f.ds.name)+'</b><p class="bad">Erro ao exibir: '+esc(err.message)+'</p></div>';}}).join('');
 };
 function renderBaseForm(){
-  const b=V.base;for(const k of ['lat','lon','h','sE','sN','sU','hi','ant','marker','sconf']){const e=$('#vb_'+k);if(e&&document.activeElement!==e)e.value=b[k]||'';}
+  const b=V.base;for(const k of ['lat','lon','h','sE','sN','sU','hi','ant','marker','sconf']){const e=$('#vb_'+k);if(e&&document.activeElement!==e)e.value=b[k]||(k==='sconf'?'95':'');}
+  const w=$('#vbWarn');if(w){const miss=[['sN','σ N'],['sE','σ E'],['sU','σ U']].filter(([k])=>!(num(b[k])>0)).map(x=>x[1]);w.textContent=(b.lat||b.lon||b.h)&&miss.length?'Falta informar: '+miss.join(', ')+' (sem sigma a precisão final da base fica 0).':'';}
 }
-document.addEventListener('input',e=>{const t=e.target;if(t.id&&t.id.startsWith('vb_')){V.base[t.id.slice(3)]=t.value;vsave();if(t.id==='vb_hi')renderVet();}
+document.addEventListener('input',e=>{const t=e.target;if(t.id&&t.id.startsWith('vb_')){V.base[t.id.slice(3)]=t.value;vsave();renderBaseForm();if(t.id==='vb_hi')renderVet();}
   if(t.dataset&&t.dataset.vf==='hi'){V.files[+t.dataset.i].hi=t.value;}
   if(t.id==='vOptRatio')V.opt.ratio=num(t.value)||3;if(t.id==='vOptElev')V.opt.elev=num(t.value)||10;});
-document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.vf==='role'){const f=V.files[+t.dataset.i];f.role=t.value;if(t.value==='base')V.files.forEach(o=>{if(o!==f&&o.role==='base')o.role='rover';});V.res={};renderVet();}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.vf==='role'){const f=V.files[+t.dataset.i];f.role=t.value;f.roleManual=true;if(t.value==='base')V.files.forEach(o=>{if(o!==f&&o.role==='base')o.role='rover';});V.res={};renderVet();}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-vact]');if(!b)return;const a=b.dataset.vact,i=+b.dataset.i;
   if(a==='edit')vecActivate(i);
   else if(a==='rm'){if(S.ds&&vkey(V.files[i].ds)===vkey(S.ds)){}V.files.splice(i,1);V.res={};renderVet();}
@@ -2066,6 +2134,63 @@ Object.assign(window.MapGEO,{vectors:V,runVectors});
 
 function importPPPReport(txt,name){const o=parsePPPText(txt);if(!o.ibge)return /IBGE-PPP|PPP/.test(txt.slice(0,3000));for(const k of ['lat','lon','h','sE','sN','sU','hi','marker','sconf'])if(o[k]!=null)V.base[k]=String(o[k]);vsave();renderBaseForm();V.res={};renderVet();
   toast('Relatório IBGE-PPP importado ('+name+'): base '+V.base.marker+'. Sigmas do IBGE são 95%.');return true;}
+
+/* ---- processar na própria tela da timeline ---- */
+function activeRec(){if(!S.ds)return null;return V.files.find(f=>vkey(f.ds)===vkey(S.ds))||null;}
+function renderTlVec(){
+  const box=$('#tlVecOut');if(!box)return;const f=activeRec();
+  if(!f){box.innerHTML='<p class="mut">Abra o arquivo pelo botão Abrir RINEX.</p>';return;}
+  const bf=V.files.find(x=>x.role==='base');
+  $('#tlVecSub').textContent=f.role==='base'?'· este arquivo é a BASE (recalcula todos os rovers)':'· rover '+(f.ds.station||f.ds.name);
+  if(!bf){box.innerHTML='<p class="mut">Abra também o RINEX da BASE.</p>';return;}
+  if(!S.nav){box.innerHTML='<p class="mut">Abra também o arquivo de navegação (.26n / .nav).</p>';return;}
+  if(f.role==='base'){const n=V.files.filter(x=>x.role==='rover').length;box.innerHTML='<p class="mut" style="font-size:12px">Você está editando a BASE: o botão recalcula os '+n+' rover(s) com as observações editadas da base.</p>';return;}
+  const rec=V.res[vkey(f.ds)];if(!rec||!rec.cur){box.innerHTML='<p class="mut" style="font-size:12px">Edite as observações e toque em <b>Processar</b> para ver o vetor. Sem edições, mostra o resultado do arquivo original.</p>';return;}
+  const o=rec.orig||(rec.edited?null:rec.cur),c=rec.cur,ver=rec.ver;
+  const cell=(r,fn)=>r&&r.ok?fn(r):(r?'falhou':'—');
+  const rows=[['Status',r=>`<b class="${r.rms>0.03?'bad':statCls(r.status)}">${esc(r.status)}</b>`,null],['Razão de fixação',r=>f2(r.ratio,1),'ratio',1],['Ambiguidades fixas',r=>r.nFix+' / '+r.nAmb,null],['Épocas usadas',r=>r.epochs,null],
+    ['Comprimento (m)',r=>f2(r.length,3),'length',0],['ΔE (m)',r=>f2(r.dE,3),'dE',0],['ΔN (m)',r=>f2(r.dN,3),'dN',0],['ΔU (m)',r=>f2(r.dU,3),'dU',0],
+    ['σ E (m)',r=>f2(r.sdENU[0],3),r=>r.sdENU[0],-1],['σ N (m)',r=>f2(r.sdENU[1],3),r=>r.sdENU[1],-1],['σ U (m)',r=>f2(r.sdENU[2],3),r=>r.sdENU[2],-1],['RMS fase (mm)',r=>f2(r.rms*1000,1),r=>r.rms*1000,-1]];
+  const g=(r,k)=>typeof k==='function'?k(r):r[k];
+  let h=`<table class="tbl"><tr><th></th><th>ORIGINAL</th>${rec.edited?`<th>EDITADO · ${esc(ver)}</th><th>Diferença</th>`:''}</tr>`;
+  for(const [l,fn,k,dir] of rows){
+    let d='';if(rec.edited&&k&&o&&o.ok&&c.ok){const dv=g(c,k)-g(o,k);d=(dv>0?'+':'')+f2(dv,Math.abs(dv)<1?3:1);const cls=dir&&Math.abs(dv)>1e-9?((dir<0?dv<0:dv>0)?'good':'bad'):'';d=`<td class="${cls}">${d}</td>`;}else if(rec.edited)d='<td>—</td>';
+    h+=`<tr><td>${l}</td><td>${cell(rec.edited?o:c,fn)}</td>${rec.edited?`<td>${cell(c,fn)}</td>${d}`:''}</tr>`;}
+  h+='</table>';
+  if(c.ok&&c.warn.length)h+=c.warn.map(w=>`<p class="bad" style="font-size:12px">⚠ ${esc(w)}</p>`).join('');
+  if(c.ok&&baseXYZ()&&c.absSig){const p=c.rover;h+=`<p style="font-size:12px" class="mut">Coordenadas ${rec.edited?'(editado)':''}: ${fmtDMS(p.lat,true)} · ${fmtDMS(p.lon,false)} · h ${f2(p.h,3)} m · σ final E/N/U ${c.absSig.map(x=>f2(x,3)).join(' / ')} m</p>`;
+    if(rec.edited&&o&&o.ok&&o.rover){const dd=Math.hypot(p.x-o.rover.x,p.y-o.rover.y,p.z-o.rover.z);h+=`<p style="font-size:12px" class="mut">A edição deslocou a coordenada do rover em ${f2(dd*100,1)} cm.</p>`;}}
+  box.innerHTML=h;
+}
+{const _rv2=renderVet;renderVet=function(){_rv2();try{renderTlVec();}catch(e){console.error(e);}};}
+let tlAutoT;function tlVecAuto(){const a=$('#tlAuto');if(!a||!a.checked)return;clearTimeout(tlAutoT);tlAutoT=setTimeout(()=>{const f=activeRec();if(f&&f.role==='rover')runVectors(f);},600);}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-vact=tlRun]');if(!b)return;const f=activeRec();if(!f)return;
+  if(!V.files.find(x=>x.role==='base'))return toast('Abra também o RINEX da BASE.');
+  vecSyncActive();$('#tlVecOut').innerHTML='<p class="mut">Processando…</p>';
+  if(f.role==='base')await runVectors();else await runVectors(f);renderTlVec();});
+renderTlVec();
+
+document.addEventListener('paste',e=>{if(e.target.id!=='vPaste')return;setTimeout(()=>{const o=parsePPPText($('#vPaste').value);if(o.ibge){for(const k of ['lat','lon','h','sE','sN','sU','hi','marker','sconf'])if(o[k]!=null)V.base[k]=String(o[k]);vsave();renderBaseForm();V.res={};renderVet();toast('Relatório lido: confira latitude, longitude, altitude e sigmas.');}},50);});
+
+function renderSigBar(){
+  const bar=$('#sigBar');if(!bar)return;
+  const f=activeRec(),on=$('#tab-timeline').classList.contains('on');
+  if(!f||!on||!V.files.find(x=>x.role==='base')||f.role!=='rover'){bar.style.display='none';return;}
+  bar.style.display='flex';
+  const rec=V.res[vkey(f.ds)],c=rec&&rec.cur,o=rec&&(rec.orig||(rec.edited?null:rec.cur));
+  if(!c||!c.ok){bar.innerHTML='<b>σ E / N / U</b><span class="mut">'+(c?esc(c.status):'ainda não processado')+'</span><button class="small primary" data-vact="tlRun">▶ Processar</button>';return;}
+  const chip=(l,k)=>{const a=c.sdENU[k],b0=o&&o.ok?o.sdENU[k]:null,show=rec.edited&&b0!=null;const d=show?a-b0:0,cls=!show||Math.abs(d)<5e-4?'':d<0?'good':'bad';
+    return `<span><b>${l}</b> ${show?f2(b0,3)+' → ':''}<b class="${cls}">${f2(a,3)}</b>${show&&Math.abs(d)>=5e-4?` <small class="${cls}">(${d>0?'+':''}${f2(d,3)})</small>`:''}</span>`;};
+  bar.innerHTML=chip('σE',0)+chip('σN',1)+chip('σU',2)+`<span class="${c.rms>0.03?'bad':statCls(c.status)}">${esc(c.status)} · razão ${f2(c.ratio,1)} · RMS ${f2(c.rms*1000,0)} mm</span><small class="mut">${rec.edited?esc(rec.ver)+' × original':'original'} · toque p/ detalhes</small>`;
+}
+{const _rt=renderTlVec;renderTlVec=function(){_rt();renderSigBar();};}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-vact=sigPop]');if(!b||e.target.closest('[data-vact=tlRun]'))return;
+  const f=activeRec();if(!f)return;const rec=V.res[vkey(f.ds)];const bx=baseXYZ();
+  let h=`<h2>Precisão do vetor · ${esc(f.ds.station||f.ds.name)}</h2>`+$('#tlVecOut').innerHTML;
+  if(rec&&rec.cur&&rec.cur.ok&&rec.cur.absSig)h+=`<p style="font-size:12px"><b>σ final do rover</b> (base + vetor, 1σ) E/N/U: ${rec.cur.absSig.map(x=>f2(x,3)).join(' / ')} m · 95%: ${rec.cur.absSig.map(x=>f2(x*1.96,3)).join(' / ')} m</p>`;
+  h+='<div class="row" style="margin-top:8px"><button class="primary grow" data-vact="tlRun">▶ Processar</button><button data-vact="popClose">Fechar</button></div>';
+  $('#vPopIn').innerHTML=h;$('#vPop').classList.add('on');});
+renderSigBar();
 
 </script>
 </body>
