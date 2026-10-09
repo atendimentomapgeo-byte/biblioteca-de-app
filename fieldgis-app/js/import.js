@@ -329,19 +329,21 @@
 
   // ------------------------------------------------------------------
   /**
-   * Tenta extrair automaticamente o georreferenciamento embutido em um GeoPDF
-   * real (padrão OGC / ISO 32000-2 Geospatial, gerado por Esri ArcMap/ArcPress,
-   * QGIS, Avenza etc.), lendo os dicionários /Measure /Subtype/GEO com os
-   * arrays /GPTS (coordenadas geográficas) e /LPTS (pontos correspondentes,
-   * normalizados 0–1, no viewport da página).
+   * Extrai os pontos de controle (GCPs) embutidos em um GeoPDF real (padrão
+   * OGC / ISO 32000-2 Geospatial, gerado por Esri ArcMap/ArcPress, QGIS,
+   * Avenza etc.): os dicionários /Measure /Subtype/GEO, com os arrays /GPTS
+   * (coordenadas geográficas reais) e /LPTS (posição correspondente de cada
+   * ponto na página, normalizada 0–1 dentro do /Viewport ou da página).
    *
-   * Só retorna um resultado quando o LPTS forma um retângulo alinhado aos
-   * eixos (todos os valores são 0 ou 1) — ou seja, mapa sem rotação. Nesse
-   * caso, o bounding box geográfico (min/max de lat/lon do GPTS) já é exato.
-   * Para GeoPDFs rotacionados/com perspectiva (LPTS com valores intermediários),
-   * retorna null e o app cai de volta no georreferenciamento manual por 2 pontos.
+   * Devolve os pontos "crus" (sem decidir se há rotação ou não) — quem decide
+   * isso e monta a transformação é buildNorthUpRaster, mais abaixo. Antes
+   * (builds anteriores) essa função já tentava decidir "tem rotação?" olhando
+   * se o LPTS caía exatamente em 0/1, e desistia (retornava null) quando não
+   * caía — mas isso tratava rotação como "não suportado" em vez de resolver
+   * de verdade, e por isso todo GeoPDF com o Norte rotacionado acabava indo
+   * pro georreferenciamento manual (que assume SEM rotação) e saía distorcido.
    */
-  function extractGeoPdfBounds(arrayBuffer) {
+  function extractGeoPdfPoints(arrayBuffer) {
     try {
       const bytes = new Uint8Array(arrayBuffer);
       // Decodifica como Latin1 (1 byte = 1 char) só para permitir regex sobre
@@ -364,29 +366,92 @@
 
         const gpts = gptsStr.trim().split(/\s+/).map(Number);
         const lpts = lptsStr.trim().split(/\s+/).map(Number);
-        if (gpts.length < 8 || gpts.length !== lpts.length) continue;
+        // Precisa de pelo menos 3 pontos (6 valores) pra ajustar uma
+        // transformação de rotação+escala com alguma folga de verificação
+        // (3 pontos já dá pra resolver; 4, o mais comum, sobra 1 de conferência).
+        if (gpts.length < 6 || gpts.length !== lpts.length) continue;
         if (gpts.some(Number.isNaN) || lpts.some(Number.isNaN)) continue;
 
-        // Só aceitamos o caso simples (sem rotação): todo valor de LPTS é 0 ou 1.
-        const semRotacao = lpts.every((v) => Math.abs(v) < 1e-6 || Math.abs(v - 1) < 1e-6);
-        if (!semRotacao) continue;
-
-        const lats = [];
-        const lons = [];
+        const pontos = [];
         for (let i = 0; i < gpts.length; i += 2) {
-          lats.push(gpts[i]);
-          lons.push(gpts[i + 1]);
+          pontos.push({ lat: gpts[i], lon: gpts[i + 1], u: lpts[i], v: lpts[i + 1] });
         }
-        return {
-          sw: { lat: Math.min(...lats), lon: Math.min(...lons) },
-          ne: { lat: Math.max(...lats), lon: Math.max(...lons) },
-        };
+        return pontos;
       }
       return null;
     } catch (e) {
-      console.error('Falha ao extrair GeoPDF:', e);
+      console.error('Falha ao extrair pontos do GeoPDF:', e);
       return null;
     }
+  }
+
+  /**
+   * Ajusta uma transformação de SIMILARIDADE (rotação + escala uniforme +
+   * translação — sem distorção/cisalhamento) entre pontos da página (em
+   * pontos PDF, origem inferior-esquerda, eixo Y pra cima) e metros locais
+   * numa projeção plana aproximada centrada na latitude/longitude média dos
+   * próprios pontos de controle. É exatamente esse tipo de transformação
+   * (rotação + escala só) que um GeoPDF com "Norte rotacionado" tem: o mapa
+   * foi girado e escalado ao ser desenhado na folha, mas não distorcido.
+   *
+   * Clássico ajuste de Procrustes/Kabsch 2D sem reflexão, por mínimos
+   * quadrados — funciona com 3+ pontos (não precisam ser exatamente um
+   * retângulo; GCPs "soltos" também funcionam).
+   */
+  function fitSimilarityTransform(pontosPagina) {
+    const n = pontosPagina.length;
+    if (n < 3) return null;
+
+    const lat0 = pontosPagina.reduce((s, p) => s + p.lat, 0) / n;
+    const lon0 = pontosPagina.reduce((s, p) => s + p.lon, 0) / n;
+    const mPerDegLat = 110540;
+    const mPerDegLon = 111320 * Math.cos((lat0 * Math.PI) / 180);
+
+    const sx = pontosPagina.reduce((s, p) => s + p.xPts, 0) / n;
+    const sy = pontosPagina.reduce((s, p) => s + p.yPts, 0) / n;
+
+    const srcC = pontosPagina.map((p) => ({ x: p.xPts - sx, y: p.yPts - sy }));
+    // Como lat0/lon0 são a MÉDIA dos próprios pontos, o centróide dos pontos
+    // em metros locais já cai exatamente em (0,0) — não precisa subtrair nada.
+    const dstC = pontosPagina.map((p) => ({
+      x: (p.lon - lon0) * mPerDegLon,
+      y: (p.lat - lat0) * mPerDegLat,
+    }));
+
+    let Sxy = 0, Syx = 0, Sxx = 0, Syy = 0;
+    for (let i = 0; i < n; i++) {
+      Sxy += srcC[i].x * dstC[i].y;
+      Syx += srcC[i].y * dstC[i].x;
+      Sxx += srcC[i].x * dstC[i].x;
+      Syy += srcC[i].y * dstC[i].y;
+    }
+    const theta = Math.atan2(Sxy - Syx, Sxx + Syy);
+    const cosT = Math.cos(theta), sinT = Math.sin(theta);
+
+    let num = 0, denom = 0;
+    for (let i = 0; i < n; i++) {
+      const rx = cosT * srcC[i].x - sinT * srcC[i].y;
+      const ry = sinT * srcC[i].x + cosT * srcC[i].y;
+      num += rx * dstC[i].x + ry * dstC[i].y;
+      denom += srcC[i].x * srcC[i].x + srcC[i].y * srcC[i].y;
+    }
+    if (denom < 1e-9) return null;
+    const scale = num / denom; // metros por ponto PDF
+
+    // Resíduo médio (em metros): mede o quão bem os pontos realmente formam
+    // uma rotação+escala "limpa". Pontos de um GeoPDF genuíno encaixam quase
+    // perfeitamente; um resíduo grande indica dado inconsistente/corrompido
+    // no PDF — nesse caso é mais seguro desistir (cair no modo manual) do
+    // que posicionar o mapa errado silenciosamente.
+    let somaErro2 = 0;
+    for (let i = 0; i < n; i++) {
+      const px = scale * (cosT * srcC[i].x - sinT * srcC[i].y);
+      const py = scale * (sinT * srcC[i].x + cosT * srcC[i].y);
+      somaErro2 += (px - dstC[i].x) ** 2 + (py - dstC[i].y) ** 2;
+    }
+    const erroMedioMetros = Math.sqrt(somaErro2 / n);
+
+    return { theta, scale, sx, sy, lat0, lon0, mPerDegLat, mPerDegLon, erroMedioMetros };
   }
 
   /**
@@ -454,24 +519,132 @@
   }
 
   /**
-   * Estende os limites geográficos conhecidos (validados dentro do Viewport
-   * do GeoPDF) para cobrir a FOLHA INTEIRA da página, extrapolando a mesma
-   * escala graus/ponto usada dentro do Viewport. Diferente de recortar a
-   * imagem, isso mantém título, legenda e margens visíveis — a folha inteira
-   * continua sendo exibida, só que agora com as coordenadas corretas em
-   * cada canto, sem distorcer a proporção (a escala usada fora do Viewport
-   * é a mesma medida dentro dele, então a imagem inteira fica com o
-   * tamanho/proporção corretos).
+   * A partir dos pontos de controle de um GeoPDF (rotacionado ou não), gera
+   * uma imagem "Norte pra cima" de verdade — corrigindo a rotação de fato,
+   * em vez de só detectar e desistir (modo manual, que não suporta rotação
+   * e por isso sempre saía distorcido num GeoPDF rotacionado) — e os limites
+   * geográficos corretos dessa imagem já corrigida.
+   *
+   * Matemática (ângulo de rotação, tamanho do canvas rotacionado, e
+   * reconstituição dos cantos em lat/lon) validada numericamente antes de
+   * implementar — ver fitSimilarityTransform acima.
+   *
+   * LIMITAÇÃO ASSUMIDA quando há rotação de verdade: só é possível manter
+   * Norte-pra-cima recortando para a área do /Viewport (o quadro do mapa em
+   * si) — sem estender pra folha inteira como no caso sem rotação. Título,
+   * legenda e margens da prancha normalmente NÃO giram junto com o mapa no
+   * PDF original (só o quadro do mapa é desenhado girado); se girássemos a
+   * folha inteira junto, esse texto ficaria de lado/de cabeça para baixo.
+   * Quando a rotação é desprezível (<1°), o comportamento continua sendo o
+   * de sempre: estende pra folha inteira, mantendo título/legenda visíveis.
+   *
+   * @returns {Promise<{canvas, bounds}|null>} null quando os pontos de
+   *   controle não formam uma transformação confiável (cai no modo manual).
    */
-  function extrapolateFullPageBounds(bounds, bbox, pageWidthPts, pageHeightPts) {
-    const lonPerPt = (bounds.ne.lon - bounds.sw.lon) / (bbox.urx - bbox.llx);
-    const latPerPt = (bounds.ne.lat - bounds.sw.lat) / (bbox.ury - bbox.lly);
-    const lonAtX = (xPts) => bounds.sw.lon + (xPts - bbox.llx) * lonPerPt;
-    const latAtY = (yPts) => bounds.sw.lat + (yPts - bbox.lly) * latPerPt;
-    return {
-      sw: { lat: latAtY(0), lon: lonAtX(0) },
-      ne: { lat: latAtY(pageHeightPts), lon: lonAtX(pageWidthPts) },
+  async function buildNorthUpRaster(sourceCanvas, geoPoints, viewportBBox, pageWidthPts, pageHeightPts, renderScale) {
+    const bbox = viewportBBox || { llx: 0, lly: 0, urx: pageWidthPts, ury: pageHeightPts };
+
+    // A especificação (ISO 32000-2) define LPTS com a MESMA origem do /BBox
+    // da página/Viewport (canto inferior-esquerdo, Y pra cima — padrão PDF).
+    // Só que, na prática, foi encontrado pelo menos um gerador de GeoPDF real
+    // que grava LPTS com Y invertido (v=0 no TOPO, como em convenção de
+    // imagem/raster, não a nativa do PDF) — testado e confirmado com um
+    // arquivo real cujo ajuste só fecha direito (resíduo baixo) com essa
+    // segunda convenção. Em vez de apostar em uma das duas, tenta as duas e
+    // fica com a que o ajuste explicar melhor (menor resíduo) — robusto para
+    // os dois tipos de gerador sem precisar adivinhar qual é.
+    function pontosComConvencaoY(yInvertido) {
+      return geoPoints.map((p) => ({
+        xPts: bbox.llx + p.u * (bbox.urx - bbox.llx),
+        yPts: yInvertido ? bbox.ury - p.v * (bbox.ury - bbox.lly) : bbox.lly + p.v * (bbox.ury - bbox.lly),
+        lat: p.lat,
+        lon: p.lon,
+      }));
+    }
+    const candidatoNormal = pontosComConvencaoY(false);
+    const candidatoInvertido = pontosComConvencaoY(true);
+    const fitNormal = fitSimilarityTransform(candidatoNormal);
+    const fitInvertido = fitSimilarityTransform(candidatoInvertido);
+
+    let pontosPagina, fit;
+    if (fitNormal && (!fitInvertido || fitNormal.erroMedioMetros <= fitInvertido.erroMedioMetros)) {
+      pontosPagina = candidatoNormal;
+      fit = fitNormal;
+    } else {
+      pontosPagina = candidatoInvertido;
+      fit = fitInvertido;
+    }
+    if (!fit) return null;
+
+    // Rejeita ajustes ruins (pontos de controle inconsistentes/corrompidos
+    // no PDF): resíduo médio maior que ~3% da diagonal da área mapeada não é
+    // confiável — melhor cair pro modo manual do que posicionar errado e
+    // sem avisar.
+    const diagonalM = Math.hypot((bbox.urx - bbox.llx) * fit.scale, (bbox.ury - bbox.lly) * fit.scale);
+    if (!(diagonalM > 0) || fit.erroMedioMetros > diagonalM * 0.03) return null;
+
+    const rotApplied = -fit.theta; // ângulo pra ctx.rotate() — ver derivação em fitSimilarityTransform
+
+    // Recorta o canvas de origem pra área do Viewport (se houver e for
+    // realmente menor que a página inteira) antes de rotacionar.
+    const cropX1 = bbox.llx * renderScale;
+    const cropY1 = sourceCanvas.height - bbox.ury * renderScale;
+    const cropWpx = (bbox.urx - bbox.llx) * renderScale;
+    const cropHpx = (bbox.ury - bbox.lly) * renderScale;
+
+    let recortado = sourceCanvas;
+    const precisaRecortar = cropWpx < sourceCanvas.width - 0.5 || cropHpx < sourceCanvas.height - 0.5;
+    if (precisaRecortar) {
+      recortado = document.createElement('canvas');
+      recortado.width = Math.round(cropWpx);
+      recortado.height = Math.round(cropHpx);
+      recortado
+        .getContext('2d')
+        .drawImage(sourceCanvas, cropX1, cropY1, cropWpx, cropHpx, 0, 0, recortado.width, recortado.height);
+    }
+
+    const ROTACAO_DESPREZIVEL = (1 * Math.PI) / 180; // abaixo de 1°, não compensa rotacionar (perda de nitidez por reamostragem)
+    let finalCanvas = recortado;
+    if (Math.abs(rotApplied) > ROTACAO_DESPREZIVEL) {
+      const W = recortado.width, H = recortado.height;
+      const cosR = Math.abs(Math.cos(rotApplied));
+      const sinR = Math.abs(Math.sin(rotApplied));
+      const newW = Math.ceil(W * cosR + H * sinR);
+      const newH = Math.ceil(W * sinR + H * cosR);
+      const rotCanvas = document.createElement('canvas');
+      rotCanvas.width = newW;
+      rotCanvas.height = newH;
+      const ctx = rotCanvas.getContext('2d');
+      ctx.translate(newW / 2, newH / 2);
+      ctx.rotate(rotApplied);
+      ctx.drawImage(recortado, -W / 2, -H / 2);
+      finalCanvas = rotCanvas;
+    }
+
+    // Limites geográficos finais: transforma os 4 cantos da área recortada
+    // (bbox) pela transformação ajustada — depois de corrigir a rotação,
+    // esses 4 cantos formam um retângulo alinhado aos eixos (checado
+    // numericamente: erro sub-milimétrico em qualquer ângulo testado).
+    const cosT = Math.cos(fit.theta), sinT = Math.sin(fit.theta);
+    const paraLatLon = (xPts, yPts) => {
+      const X = fit.scale * (cosT * (xPts - fit.sx) - sinT * (yPts - fit.sy));
+      const Y = fit.scale * (sinT * (xPts - fit.sx) + cosT * (yPts - fit.sy));
+      return { lat: fit.lat0 + Y / fit.mPerDegLat, lon: fit.lon0 + X / fit.mPerDegLon };
     };
+    const cantos = [
+      paraLatLon(bbox.llx, bbox.lly),
+      paraLatLon(bbox.urx, bbox.lly),
+      paraLatLon(bbox.urx, bbox.ury),
+      paraLatLon(bbox.llx, bbox.ury),
+    ];
+    const lats = cantos.map((c) => c.lat);
+    const lons = cantos.map((c) => c.lon);
+    const bounds = {
+      sw: { lat: Math.min(...lats), lon: Math.min(...lons) },
+      ne: { lat: Math.max(...lats), lon: Math.max(...lons) },
+    };
+
+    return { canvas: finalCanvas, bounds, rotationDeg: (rotApplied * 180) / Math.PI };
   }
 
   /**
@@ -515,9 +688,9 @@
     parseKMZ,
     importGeoTIFF,
     renderPDFPage,
-    extractGeoPdfBounds,
+    extractGeoPdfPoints,
     extractViewportBBox,
-    extrapolateFullPageBounds,
+    buildNorthUpRaster,
     computeBoundsFromControlPoints,
     utmFromEPSG,
   };

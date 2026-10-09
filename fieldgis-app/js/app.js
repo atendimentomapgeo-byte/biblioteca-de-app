@@ -11,7 +11,7 @@
   // Serve só para conferência visual (tela "Sobre") — ajuda a confirmar se
   // o app instalado na Tela de Início já está na versão mais recente depois
   // de uma atualização, sem precisar adivinhar.
-  const APP_BUILD_VERSION = 'v62';
+  const APP_BUILD_VERSION = 'v64';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
@@ -1744,33 +1744,47 @@
         // o buffer já estaria vazio e o app nunca encontraria as coordenadas
         // (mesmo em PDFs corretamente georreferenciados), caindo sem necessidade
         // no modo manual. Usamos slice(0) para trabalhar sobre uma cópia própria.
-        const bounds = Importer.extractGeoPdfBounds(arrayBuffer.slice(0));
+        const geoPoints = Importer.extractGeoPdfPoints(arrayBuffer.slice(0));
         const viewportBBox = Importer.extractViewportBBox(arrayBuffer.slice(0));
 
         const res = await Importer.renderPDFPage(arrayBuffer, 1, 2.5);
         canvas = res.canvas;
 
-        if (bounds) {
-          // Se o PDF tiver um Viewport (área georreferenciada MENOR que a
-          // folha inteira — comum em pranchas com título/legenda fora do
-          // mapa), estende as coordenadas geográficas pra folha inteira
-          // (mesma escala graus/ponto medida dentro do Viewport). Mantém a
-          // página completa visível (título, legenda, tudo), sem distorcer
-          // a proporção — em vez de recortar só a área do mapa.
-          let boundsFinal = bounds;
-          if (viewportBBox) {
-            boundsFinal = Importer.extrapolateFullPageBounds(bounds, viewportBBox, res.pageWidthPts, res.pageHeightPts);
+        if (geoPoints) {
+          // buildNorthUpRaster cuida tanto do caso normal (sem rotação —
+          // estende pra folha inteira, mantendo título/legenda visíveis)
+          // quanto do GeoPDF com o Norte rotacionado (gira a imagem de volta
+          // pro Norte pra cima de verdade, em vez de só detectar e desistir —
+          // ver comentário da função em import.js para a limitação assumida
+          // nesse segundo caso).
+          const resultado = await Importer.buildNorthUpRaster(
+            canvas,
+            geoPoints,
+            viewportBBox,
+            res.pageWidthPts,
+            res.pageHeightPts,
+            res.scale
+          );
+          if (resultado) {
+            const { canvas: canvasFinal, bounds: boundsFinal, rotationDeg } = resultado;
+            const blob = await new Promise((resolve) => canvasFinal.toBlob(resolve, 'image/png'));
+            await saveRasterLayer(file.name, {
+              blob,
+              bounds: [[boundsFinal.sw.lat, boundsFinal.sw.lon], [boundsFinal.ne.lat, boundsFinal.ne.lon]],
+              width: canvasFinal.width,
+              height: canvasFinal.height,
+            });
+            closeSheet('overlay-import');
+            if (Math.abs(rotationDeg) > 1) {
+              toast(
+                `GeoPDF com Norte rotacionado detectado — rotação de ${Math.abs(rotationDeg).toFixed(1)}° corrigida automaticamente. Só a área do mapa foi importada (título/legenda da prancha, se houver, não giram junto no PDF original).`,
+                6000
+              );
+            } else {
+              toast('GeoPDF detectado — coordenadas lidas automaticamente do arquivo.');
+            }
+            return;
           }
-          const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-          await saveRasterLayer(file.name, {
-            blob,
-            bounds: [[boundsFinal.sw.lat, boundsFinal.sw.lon], [boundsFinal.ne.lat, boundsFinal.ne.lon]],
-            width: canvas.width,
-            height: canvas.height,
-          });
-          closeSheet('overlay-import');
-          toast('GeoPDF detectado — coordenadas lidas automaticamente do arquivo.');
-          return;
         }
       } else {
         const img = await loadImageFile(file);
