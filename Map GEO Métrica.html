@@ -969,7 +969,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-04.52 — Tela CAD do Topcon agora usa um mapa real (fundo preto por padrão) com opção de ligar uma camada de satélite, ajudando a vetorizar o polígono sobre o terreno real</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-11.72 — O formulário "Novo/Editar imóvel" virou um acordeão retrátil: começa fechado (só o título), abre sozinho ao clicar em "Editar" num imóvel, ou clicando no título a qualquer momento</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1137,8 +1137,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <strong>Se o arquivo tiver mais de uma geometria</strong> (mais de um Placemark/polígono), você escolhe qual delas é o polígono ativo antes de importar.
         </div></span></h2>
         <div class="field"><label></label><input type="file" id="kml-file-imo" accept=".kml,.kmz,.xml,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz,application/xml,text/xml,*/*"></div>
-        <button class="btn btn-primary" id="btn-import-kml-imo">Importar KML/KMZ para este imóvel</button>
         <div class="kml-info" id="imo-kml-info" style="display:none;"></div>
+        <div id="kml-imo-preview-slot"></div>
       </div>
 
       <div class="card" style="margin-bottom:0;">
@@ -1146,7 +1146,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           Envie um único arquivo .zip com os componentes do shapefile (.shp, .shx, .dbf e, de preferência, .prj com a projeção). O <strong>nome do imóvel é definido automaticamente a partir do nome do arquivo .zip</strong> importado (substituindo o nome atual, se houver) — renomeie depois se quiser. Sem o .prj, as coordenadas são tratadas como já estando em graus (WGS84) — com .prj, coordenadas projetadas (ex.: UTM) são convertidas automaticamente. Segue o mesmo processo de importação do KML (substitui os marcos existentes deste imóvel). <strong>Se o arquivo tiver mais de uma geometria</strong> (mais de um registro no .shp), você escolhe qual delas é o polígono ativo antes de importar. Requer conexão com a internet na primeira vez, para carregar a biblioteca de leitura.
         </div></span></h2>
         <div class="field"><label></label><input type="file" id="shp-file-imo" accept=".zip,application/zip,application/x-zip-compressed,multipart/x-zip,*/*"></div>
-        <button class="btn btn-primary" id="btn-import-shp-imo">Importar Shapefile para este imóvel</button>
+        <div id="shp-imo-preview-slot"></div>
       </div>
 
       <div class="card" style="margin-bottom:0;">
@@ -1228,38 +1228,44 @@ svg.leaflet-image-layer.leaflet-interactive path {
     </div>
 
     <div class="card" id="card-topcon-cad" style="display:none;">
-      <h2>Desenhar o polígono (tela estilo CAD)<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup">
-        O <strong>Tipo de limite</strong> e o <strong>Método de posicionamento</strong> de cada ponto são opcionais, mas definem a precisão exigida pela 3ª Norma de Georreferenciamento do INCRA/SIGEF: Artificial ≤ 0,50 m, Natural ≤ 3,00 m, Inacessível ≤ 7,50 m (precisão posicional = raiz de Sigma N² + Sigma E²). Pontos com a precisão importada fora desse limite ficam destacados — isso é só um aviso, a importação não é bloqueada. O método mostrado é filtrado pelos que a norma permite para o tipo escolhido (ex.: PG5/PG8 só valem para limite Natural; só PS1-4 valem para limite Inacessível). Ao importar, "Artificial"/"Natural" preenchem o código genérico do marco (LA7/LN6, respectivamente) — refine depois para um código mais específico (ex.: LA3 — Estrada) se souber qual é; "Inacessível" não tem código correspondente no SIGEF e fica em branco.
-      </div></span></h2>
-      <div class="note" id="topcon-cad-nota" style="margin-top:0;">Clique perto de um ponto e depois perto do próximo para ligá-los com uma linha — o clique sempre "gruda" no ponto mais próximo. Continue ligando os pontos na ordem do contorno do imóvel e feche o polígono ao final (clicando de volta no primeiro ponto ou no botão "Fechar polígono"). Edite nome/coordenadas na tabela ou exclua pontos que não fazem parte do limite (ex.: RN, apoio).</div>
-      <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;">
-        <div class="field" style="margin-bottom:0;"><label>Tipo de limite (aplicar a todos)</label>
-          <select id="topcon-cad-tipo-todos">
-            <option value="">—</option>
-            <option value="Artificial">Artificial (≤ 0,50 m)</option>
-            <option value="Natural">Natural (≤ 3,00 m)</option>
-            <option value="Inacessivel">Inacessível (≤ 7,50 m)</option>
-          </select>
-        </div>
-        <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-aplicar-tipo-todos">Aplicar tipo a todos</button>
-        <div class="field" style="margin-bottom:0;"><label>Método (aplicar aos compatíveis)</label>
-          <select id="topcon-cad-metodo-todos"></select>
-        </div>
-        <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-aplicar-metodo-todos">Aplicar método a todos</button>
-      </div>
-      <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start;">
-        <div style="flex:2 1 460px; min-width:380px;">
-          <div style="max-height:320px; overflow:auto; border:1px solid rgba(220,238,245,0.14); border-radius:6px; margin-bottom:10px;">
-            <table style="width:100%; border-collapse:collapse; font-size:0.68rem;">
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:stretch;">
+        <!-- Coluna esquerda: TUDO que é texto/dados (título, ações em massa, tabela de pontos, botões finais) -->
+        <div style="flex:1 1 460px; min-width:380px; display:flex; flex-direction:column;">
+          <h2 style="margin-top:0;">Desenhar o polígono (tela estilo CAD)<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup" style="max-height:70vh; overflow:auto;">
+            Clique perto de um ponto e depois perto do próximo para ligá-los com uma linha — o clique sempre "gruda" no ponto mais próximo. Continue ligando os pontos na ordem do contorno do imóvel e feche o polígono ao final (clicando de volta no primeiro ponto ou no botão "Fechar polígono"). Edite nome/coordenadas na tabela ou exclua pontos que não fazem parte do limite (ex.: RN, apoio).
+            <br><br>
+            O <strong>Tipo de limite</strong> e o <strong>Método de posicionamento</strong> de cada ponto são opcionais, mas definem a precisão exigida pela 3ª Norma de Georreferenciamento do INCRA/SIGEF: Artificial ≤ 0,50 m, Natural ≤ 3,00 m, Inacessível ≤ 7,50 m (precisão posicional = raiz de Sigma N² + Sigma E²). Pontos com a precisão importada fora desse limite ficam destacados — isso é só um aviso, a importação não é bloqueada. O método mostrado é filtrado pelos que a norma permite para o tipo escolhido (ex.: PG5/PG8 só valem para limite Natural; só PS1-4 valem para limite Inacessível). Ao importar, "Artificial"/"Natural" preenchem o código genérico do marco (LA7/LN6, respectivamente) — refine depois para um código mais específico (ex.: LA3 — Estrada) se souber qual é; "Inacessível" não tem código correspondente no SIGEF e fica em branco.
+          </div></span></h2>
+          <div style="background:rgba(0,0,0,0.15); border:1px solid rgba(220,238,245,0.12); border-radius:4px; padding:10px 14px; margin-bottom:12px;">
+            <div style="font-size:0.72rem; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Aplicar a todos os pontos</div>
+            <div style="display:grid; grid-template-columns:88px 1fr auto; gap:8px 10px; align-items:center;">
+              <span style="font-size:0.72rem; color:var(--chalk-dim); text-align:right;">Tipo de limite</span>
+              <select id="topcon-cad-tipo-todos" style="width:100%; box-sizing:border-box; padding:6px 8px; font-size:0.85rem; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+                <option value="">Tipo de limite —</option>
+                <option value="Artificial">Artificial (≤ 0,50 m)</option>
+                <option value="Natural">Natural (≤ 3,00 m)</option>
+                <option value="Inacessivel">Inacessível (≤ 7,50 m)</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-aplicar-tipo-todos">Aplicar</button>
+              <span style="font-size:0.72rem; color:var(--chalk-dim); text-align:right;">Método</span>
+              <select id="topcon-cad-metodo-todos" style="width:100%; box-sizing:border-box; padding:6px 8px; font-size:0.85rem; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;"></select>
+              <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-aplicar-metodo-todos">Aplicar</button>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; height:20px; margin-bottom:4px;">
+            <span style="font-size:0.72rem; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em;">Pontos importados</span>
+          </div>
+          <div style="height:560px; overflow:auto; border:1px solid rgba(220,238,245,0.14); border-radius:6px; margin-bottom:10px;">
+            <table style="width:100%; min-width:620px; border-collapse:collapse; font-size:0.68rem;">
               <thead>
                 <tr style="position:sticky; top:0; background:var(--navy); z-index:1;">
-                  <th style="padding:5px 5px; text-align:left;">Ponto</th>
-                  <th style="padding:5px 3px; text-align:right;">Norte</th>
-                  <th style="padding:5px 3px; text-align:right;">Leste</th>
-                  <th style="padding:5px 3px; text-align:right;">Elevação</th>
-                  <th style="padding:5px 3px; text-align:left;">Tipo de limite</th>
-                  <th style="padding:5px 3px; text-align:left;">Método</th>
-                  <th style="padding:5px 6px; text-align:right;" title="Precisão posicional = raiz de Sigma N² + Sigma E², comparada ao máximo exigido pela 3ª Norma SIGEF/INCRA para o tipo de limite escolhido">Precisão</th>
+                  <th style="padding:5px 5px; text-align:left; white-space:nowrap;">Ponto</th>
+                  <th style="padding:5px 3px; text-align:left; white-space:nowrap;">Norte</th>
+                  <th style="padding:5px 3px; text-align:left; white-space:nowrap;">Leste</th>
+                  <th style="padding:5px 3px; text-align:left; white-space:nowrap;">Elevação</th>
+                  <th style="padding:5px 3px; text-align:left; white-space:nowrap;">Tipo de limite</th>
+                  <th style="padding:5px 3px; text-align:left; white-space:nowrap;">Método</th>
+                  <th style="padding:5px 6px; text-align:left; white-space:nowrap;">Precisão<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda" style="width:14px; height:14px; font-size:0.6rem; margin-left:3px;">?</button><div class="help-popup">Precisão posicional = raiz de Sigma N² + Sigma E², comparada ao máximo exigido pela 3ª Norma SIGEF/INCRA para o tipo de limite escolhido.</div></span></th>
                   <th style="padding:5px 4px;"></th>
                 </tr>
               </thead>
@@ -1268,36 +1274,65 @@ svg.leaflet-image-layer.leaflet-interactive path {
           </div>
           <div id="topcon-cad-resumo" style="font-size:0.8rem; color:var(--chalk-dim); margin-bottom:4px;"></div>
           <div id="topcon-cad-aviso-precisao" style="font-size:0.8rem; color:#E0C36B; margin-bottom:8px; display:none;"></div>
+          <div>
+            <button class="btn btn-primary" id="btn-confirmar-topcon-cad" disabled>Importar polígono desenhado</button>
+            <button class="btn btn-ghost" id="btn-cancelar-topcon-cad">Cancelar</button>
+          </div>
         </div>
-        <div style="flex:1 1 360px; min-width:300px;">
-          <label style="display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--chalk-dim); margin-bottom:6px; cursor:pointer;">
-            <input type="checkbox" id="topcon-cad-satelite"> Mostrar imagem de satélite (ajuda a vetorizar sobre o terreno real)
-          </label>
-          <div id="topcon-cad-svg-wrap" style="background:#000; border-radius:6px; height:360px; margin-bottom:10px; cursor:crosshair;"></div>
+        <!-- Coluna direita: TUDO que é a ferramenta CAD (controles do mapa, área de desenho, ações do desenho) -->
+        <div style="flex:1 1 460px; min-width:380px; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; justify-content:space-between; height:20px; margin-bottom:4px;">
+            <span style="font-size:0.72rem; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em;">Mapa</span>
+            <div style="display:flex; align-items:center; gap:14px;">
+              <label style="display:flex; align-items:center; gap:5px; font-size:0.72rem; color:var(--chalk-dim); text-transform:none; letter-spacing:0; cursor:pointer; margin-bottom:0;">
+                <input type="checkbox" id="topcon-cad-satelite"> Satélite<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda" style="width:14px; height:14px; font-size:0.6rem;">?</button><div class="help-popup">Mostra a imagem de satélite (Esri World Imagery) por cima do mapa, pra ajudar a vetorizar o polígono alinhado com o terreno real.</div></span>
+              </label>
+              <label style="display:flex; align-items:center; gap:5px; font-size:0.72rem; color:var(--chalk-dim); text-transform:none; letter-spacing:0; cursor:pointer; margin-bottom:0;">
+                <input type="checkbox" id="topcon-cad-mostrar-nomes"> Nomes<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda" style="width:14px; height:14px; font-size:0.6rem;">?</button><div class="help-popup">Por padrão, passe o mouse sobre um ponto pra ver o nome dele. Ligue esta opção pra fixar o nome de TODOS os pontos no mapa — útil com poucos pontos ou já com bastante zoom; com muitos pontos próximos, os rótulos fixos se sobrepõem uns aos outros.</div></span>
+              </label>
+            </div>
+          </div>
+          <div id="topcon-cad-svg-wrap" style="background:#000; border-radius:6px; flex:1 1 auto; min-height:560px; margin-bottom:10px; cursor:crosshair;"></div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-centralizar" title="Reenquadra o mapa pra mostrar todos os pontos de novo">Centralizar</button>
             <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-desfazer">Desfazer último</button>
             <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-fechar">Fechar polígono</button>
             <button type="button" class="btn btn-sm btn-ghost" id="btn-topcon-cad-limpar">Limpar desenho</button>
           </div>
         </div>
       </div>
-      <button class="btn btn-primary" id="btn-confirmar-topcon-cad" disabled>Importar polígono desenhado</button>
-      <button class="btn btn-ghost" id="btn-cancelar-topcon-cad">Cancelar</button>
     </div>
 
-    <div class="card" id="card-geometria-ativa" style="display:none;">
-      <h2>Pré-visualizar antes de importar</h2>
+    <div id="card-geometria-ativa" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid rgba(220,238,245,0.14);">
+      <div style="font-size:0.72rem; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Pré-visualizar antes de importar</div>
       <div class="note" id="geometria-ativa-nota" style="margin-top:0;">Confira o polígono antes de confirmar a importação.</div>
       <div class="field" id="geometria-ativa-select-field"><label>Geometria</label><select id="geometria-ativa-select"></select></div>
-      <div id="geometria-ativa-svg" style="background:#fff; border-radius:6px; padding:8px; margin-bottom:10px; max-width:420px;"></div>
+      <div id="geometria-ativa-svg" style="background:#fff; border-radius:6px; padding:8px; margin-bottom:10px;"></div>
       <div id="geometria-ativa-preview" style="font-size:0.8rem; color:var(--chalk-dim); margin-bottom:10px;"></div>
       <div id="geometria-ativa-atributos" style="margin-bottom:10px;"></div>
-      <button class="btn btn-primary" id="btn-confirmar-geometria-ativa">Importar geometria selecionada</button>
-      <button class="btn btn-ghost" id="btn-cancelar-geometria-ativa">Cancelar</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btn-confirmar-geometria-ativa">Importar geometria selecionada</button>
+        <button class="btn btn-ghost" id="btn-cancelar-geometria-ativa">Cancelar</button>
+      </div>
     </div>
 
     <div class="card">
-      <h2 id="form-imo-title">Novo imóvel</h2>
+      <div id="form-imo-header" style="cursor:pointer; user-select:none; display:flex; align-items:center; gap:10px; margin-bottom:16px;" onclick="toggleFormImoColapsado()">
+        <span id="form-imo-chevron" style="display:inline-block; color:var(--brass-light); font-size:0.75rem; transition:transform 0.15s; transform:rotate(0deg);">▶</span>
+        <h2 id="form-imo-title" style="margin:0;">Novo imóvel</h2>
+      </div>
+      <div id="form-imo-colapsavel" style="display:none;">
+      <div id="imo-exportar-row" style="display:none; margin-bottom:14px; padding:10px 14px; background:rgba(0,0,0,0.15); border:1px solid rgba(220,238,245,0.12); border-radius:6px; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span style="font-size:0.72rem; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em;">Exportar polígono deste imóvel<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup" style="text-transform:none; letter-spacing:normal; font-size:0.78rem;">
+          Baixa o contorno (polígono) deste imóvel a partir dos marcos já cadastrados — funciona não importa como eles foram cadastrados (KML, Shapefile, Topcon ou digitação manual). É necessário ter ao menos 3 marcos cadastrados.
+          KML, Shapefile e GeoJSON saem em coordenadas geográficas (WGS84) — para isso a <strong>Zona UTM</strong> (abaixo) precisa estar definida. O DXF sai em coordenadas UTM (metros), sem precisar da zona definida.
+          Isto exporta só o contorno externo (sem os atributos de cada marco individual) — para um pacote completo com todos os campos de cada marco, use "Baixar modelo (.zip)" na importação.
+        </div></span></span>
+        <button type="button" class="btn btn-sm btn-ghost" id="imo-btn-export-kml">KML</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="imo-btn-export-shp">Shapefile (.zip)</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="imo-btn-export-dxf">DXF</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="imo-btn-export-geojson">GeoJSON</button>
+      </div>
       <form id="form-imo">
         <input type="hidden" id="imo-id">
         <div class="grid">
@@ -1332,31 +1367,36 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <div class="field"><label>Código INCRA (CCIR)</label><input id="imo-codigo-incra" placeholder="Ex.: 123.456.789.012-3" inputmode="numeric" maxlength="17"></div>
           <div class="field"><label>Lei / Decreto de referência (opcional, para a planta)</label><input id="imo-lei-decreto" placeholder="Ex.: Lei nº 10.267/01 e Decretos nºs 4.449/02 e 5.570/05"></div>
         </div>
-        <div class="grid g3">
-          <div class="field"><label>Parcela SIGEF</label><input id="imo-parcela-sigef" placeholder="Código da parcela"></div>
-          <div class="field"><label>Situação (Parcela SIGEF)</label><input id="imo-parcela-sigef-situacao" placeholder="Ex.: Certificado, Registrado..." list="dl-sigef-situacao"></div>
-          <div></div>
-        </div>
-        <div class="grid g3">
-          <div class="field"><label>Situação Registral (planilha do SIGEF)</label>
-            <select id="imo-situacao-registral">
-              <option value="Imóvel Registrado">Imóvel Registrado</option>
-              <option value="Área Titulada não Registrada">Área Titulada não Registrada</option>
-              <option value="Área não Titulada">Área não Titulada</option>
-            </select>
+        <div style="display:flex; gap:16px; align-items:stretch; flex-wrap:wrap;">
+          <div style="flex:1 1 420px; min-width:280px;">
+            <div class="grid">
+              <div class="field"><label>Parcela SIGEF</label><input id="imo-parcela-sigef" placeholder="Código da parcela"></div>
+              <div class="field"><label>Situação (Parcela SIGEF)</label><input id="imo-parcela-sigef-situacao" placeholder="Ex.: Certificado, Registrado..." list="dl-sigef-situacao"></div>
+            </div>
+            <div class="grid">
+              <div class="field"><label>Situação Registral (planilha do SIGEF)</label>
+                <select id="imo-situacao-registral">
+                  <option value="Imóvel Registrado">Imóvel Registrado</option>
+                  <option value="Área Titulada não Registrada">Área Titulada não Registrada</option>
+                  <option value="Área não Titulada">Área não Titulada</option>
+                </select>
+              </div>
+              <div class="field"><label>Código do cartório (CNS)</label><input id="imo-cns" placeholder="Código Nacional de Serventias do cartório de registro"></div>
+            </div>
+            <div class="grid">
+              <div class="field"><label>Responsável técnico (declarado no SIGEF)</label><input id="imo-sigef-resp-tecnico" placeholder="Nome do responsável técnico que certificou a parcela"></div>
+              <div class="field"><label>Data de certificação (SIGEF)</label><input id="imo-sigef-data-cert" placeholder="Ex.: 15/01/2020"></div>
+            </div>
+            <div class="grid" style="margin-bottom:0;">
+              <div class="field"><label>SIMCAR</label><input id="imo-simcar" placeholder="Número do SIMCAR"></div>
+              <div class="field"><label>Situação (SIMCAR)</label><input id="imo-simcar-situacao" placeholder="Ex.: Ativo, Suspenso..." list="dl-simcar-situacao"></div>
+            </div>
           </div>
-          <div class="field"><label>Código do cartório (CNS)</label><input id="imo-cns" placeholder="Código Nacional de Serventias do cartório de registro"></div>
-          <div></div>
-        </div>
-        <div class="grid g3">
-          <div class="field"><label>Responsável técnico (declarado no SIGEF)</label><input id="imo-sigef-resp-tecnico" placeholder="Nome do responsável técnico que certificou a parcela"></div>
-          <div class="field"><label>Data de certificação (SIGEF)</label><input id="imo-sigef-data-cert" placeholder="Ex.: 15/01/2020"></div>
-          <div></div>
-        </div>
-        <div class="grid g3">
-          <div class="field"><label>SIMCAR</label><input id="imo-simcar" placeholder="Número do SIMCAR"></div>
-          <div class="field"><label>Situação (SIMCAR)</label><input id="imo-simcar-situacao" placeholder="Ex.: Ativo, Suspenso..." list="dl-simcar-situacao"></div>
-          <div></div>
+          <div style="flex:1 1 220px; min-width:200px; max-width:260px; display:flex; flex-direction:column;">
+            <label style="font-size:0.72rem; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Croqui do polígono<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda" style="width:14px; height:14px; font-size:0.6rem; margin-left:3px;">?</button><div class="help-popup" style="text-transform:none; letter-spacing:normal; font-size:0.78rem;">Prévia esquemática (fora de escala de papel) do contorno a partir dos marcos já cadastrados — atualiza sozinha ao abrir ou reimportar este imóvel. Não substitui a planta: é só uma conferência visual rápida.</div></span></label>
+            <div id="imo-croqui-svg" style="flex:1 1 auto; min-height:180px; background:#fff; border-radius:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;"><div class="note" style="padding:14px; text-align:center; margin:0; color:#2B2417;">Salve o imóvel e cadastre os marcos<br>para ver o croqui do polígono.</div></div>
+            <div id="imo-croqui-info" class="note" style="margin:6px 0 0; text-align:center;"></div>
+          </div>
         </div>
         <datalist id="dl-sigef-situacao">
           <option value="Certificado"></option>
@@ -1375,6 +1415,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button type="submit" class="btn btn-primary" id="imo-submit">Salvar imóvel</button>
         </div>
       </form>
+      </div>
     </div>
 
 
@@ -2329,7 +2370,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <div style="display:flex; align-items:center; gap:2px; margin-bottom:10px;">
           <span style="font-size:0.72rem; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:0.05em;">Como funciona</span>
           <span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup" style="max-height:70vh; overflow:auto;">
-            Compara o polígono do imóvel selecionado com todas as camadas do Acervo Fundiário/i3Geo do INCRA (<code>certificada_sigef_particular</code>, <code>certificada_sigef_publico</code>, <code>imoveiscertificados_privado</code>, <code>imoveiscertificados_publico</code>, <code>parcelageo</code>, <code>assentamentos</code>, <code>reconhecimento</code> e <code>quilombolas</code>, cada uma pelo estado — <code>&lt;uf&gt;</code> — do imóvel) e sugere, lado a lado, quem são os confrontantes, com a origem (camada) de cada um indicada — pronto para atribuir aos marcos com um clique. Escolha uma das opções abaixo.
+            Compara o polígono do imóvel selecionado com todas as camadas do Acervo Fundiário/i3Geo do INCRA (<code>certificada_sigef_particular</code>, <code>certificada_sigef_publico</code>, <code>imoveiscertificados_privado</code>, <code>imoveiscertificados_publico</code>, <code>parcelageo</code>, <code>assentamentos</code> e <code>quilombolas</code>, cada uma pelo estado — <code>&lt;uf&gt;</code> — do imóvel) e sugere, lado a lado, quem são os confrontantes, com a origem (camada) de cada um indicada — pronto para atribuir aos marcos com um clique. Escolha uma das opções abaixo.
             <br><br>
             Parcelas que parecem ser o próprio imóvel (contorno e área muito parecidos) são identificadas e ignoradas automaticamente. Atribuir um confrontante não sobrescreve lados que já tenham outro confrontante cadastrado sem confirmar antes.
           </div></span>
@@ -2434,6 +2475,18 @@ svg.leaflet-image-layer.leaflet-interactive path {
 const STORAGE_PREFIX = 'marcos-georref:';
 let state = { proprietarios:[], tecnicos:[], imoveis:[], marcos:[], tiposRegistro:[], marcosCatalogo:[], config:{}, rotulosExtras:[] };
 let editing = { prop:null, tec:null, imo:null, marco:null };
+// Formulário "Novo/Editar imóvel" vira um acordeão retrátil — começa fechado (só o título) pra
+// não ocupar a tela toda quando você só quer ver a tabela de imóveis já cadastrados; abre sozinho
+// ao clicar em "Editar" num imóvel existente (editImo), ou manualmente clicando no título.
+function toggleFormImoColapsado(forcarAberto){
+  const corpo = document.getElementById('form-imo-colapsavel');
+  const chevron = document.getElementById('form-imo-chevron');
+  if(!corpo) return;
+  const estaFechado = corpo.style.display==='none';
+  const abrir = forcarAberto!==undefined ? forcarAberto : estaFechado;
+  corpo.style.display = abrir ? 'block' : 'none';
+  chevron.style.transform = abrir ? 'rotate(90deg)' : 'rotate(0deg)';
+}
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function showToast(msg){
@@ -3416,7 +3469,12 @@ function resetForm(kind){
   const campoId = document.getElementById(kind+'-id');
   if(campoId) campoId.value='';
   if(kind==='tec'){ tecExtra=[]; renderTecExtra(); }
-  if(kind==='imo'){ atualizarKmlInfo(null); }
+  if(kind==='imo'){
+    atualizarKmlInfo(null);
+    document.getElementById('imo-exportar-row').style.display='none';
+    document.getElementById('imo-croqui-svg').innerHTML = '<div class="note" style="padding:14px; text-align:center; margin:0; color:#2B2417;">Salve o imóvel e cadastre os marcos<br>para ver o croqui do polígono.</div>';
+    document.getElementById('imo-croqui-info').textContent = '';
+  }
   if(kind==='marco'){ document.getElementById('marco-status-implantacao-wrap').style.display='none'; document.getElementById('marco-tipo').disabled=false; setMarcoCoordFormato('dms'); }
   const titles={prop:'Novo proprietário',tec:'Novo responsável técnico',imo:'Novo imóvel',marco:'Novo marco / vértice'};
   const btns={prop:'Salvar proprietário',tec:'Salvar responsável técnico',imo:'Salvar imóvel',marco:'Salvar marco'};
@@ -3727,6 +3785,7 @@ if(document.getElementById('btn-resumo-ir-confrontantes')){
 window.editImo = id=>{
   const im = state.imoveis.find(x=>x.id===id); if(!im) return;
   editing.imo=id;
+  toggleFormImoColapsado(true);
   document.getElementById('imo-id').value=id;
   document.getElementById('imo-nome').value=im.nome||'';
   document.getElementById('imo-matricula').value=im.matricula||'';
@@ -3755,6 +3814,8 @@ window.editImo = id=>{
   document.getElementById('form-imo-title').textContent='Editar imóvel';
   document.getElementById('imo-submit').textContent='Atualizar imóvel';
   document.getElementById('imo-cancel').style.display='inline-block';
+  document.getElementById('imo-exportar-row').style.display='flex';
+  renderCroquiImovel(id);
   atualizarKmlInfo(im);
   if(typeof atualizarAlvoImport==='function') atualizarAlvoImport();
   window.scrollTo({top:0,behavior:'smooth'});
@@ -5690,7 +5751,7 @@ const SIGEF_CORS_PROXY = 'https://mapgeo-cors-proxy.fagner-agri.workers.dev/?url
 // entraram aqui porque não achamos uma camada própria delas nesse mesmo endpoint do INCRA (podem
 // só existir como camada de visualização dentro do i3Geo, sem WFS próprio) — se o INCRA vier a
 // expor uma, é só adicionar a base aqui embaixo.
-const SIGEF_CAMADAS_BASE = ['certificada_sigef_particular','certificada_sigef_publico','imoveiscertificados_privado','imoveiscertificados_publico','parcelageo','assentamentos','reconhecimento','quilombolas'];
+const SIGEF_CAMADAS_BASE = ['certificada_sigef_particular','certificada_sigef_publico','imoveiscertificados_privado','imoveiscertificados_publico','parcelageo','assentamentos','quilombolas'];
 const SIGEF_CAMADAS_LABEL = {
   certificada_sigef_particular: 'Imóvel certificado (SIGEF, particular)',
   certificada_sigef_publico: 'Imóvel certificado (SIGEF, público)',
@@ -5698,7 +5759,6 @@ const SIGEF_CAMADAS_LABEL = {
   imoveiscertificados_publico: 'Imóvel certificado (sistema antigo/SNCI, público)',
   parcelageo: 'Parcela georreferenciada (SIGEF, em processamento)',
   assentamentos: 'Assentamento (INCRA)',
-  reconhecimento: 'Território em reconhecimento',
   quilombolas: 'Território quilombola',
   // Não é uma camada do INCRA — é o "carimbo de origem" usado quando o confrontante vem da busca
   // geométrica contra os imóveis já cadastrados na própria base local (ver
@@ -7105,6 +7165,8 @@ async function importarPontosParaImovel(points, opts){
     document.getElementById('form-imo-title').textContent='Editar imóvel';
     document.getElementById('imo-submit').textContent='Atualizar imóvel';
     document.getElementById('imo-cancel').style.display='inline-block';
+    document.getElementById('imo-exportar-row').style.display='flex';
+    toggleFormImoColapsado(true);
   }
 
   const existentes = state.marcos.filter(m=>m.imovelId===imId).length;
@@ -7163,6 +7225,7 @@ async function importarPontosParaImovel(points, opts){
     document.getElementById('imo-perimetro').value = im.perimetro;
     document.getElementById('imo-utm-zona').value = im.utmZona;
     atualizarKmlInfo(im);
+    renderCroquiImovel(imId);
   }
   renderImo();
   atualizarAlvoImport();
@@ -7194,6 +7257,42 @@ function svgPreviewPoligono(pontos, w, h){
     <text x="${toX(primeiro.lon).toFixed(1)}" y="${(toY(primeiro.lat)-6).toFixed(1)}" font-size="9" fill="#B5533C" font-family="IBM Plex Mono, monospace">início</text>
   </svg>`;
 }
+// Mesma ideia do svgPreviewPoligono acima, mas direto em coordenadas UTM (metros) — sem a
+// correção por cos(latitude), que só faz sentido para graus decimais. Usada no croqui da tela
+// de edição do imóvel (card "Imóveis"), a partir dos marcos (coordE/coordN) diretamente, sem
+// depender da Zona UTM estar definida (ao contrário dos formatos de exportação geográficos).
+function svgPreviewPoligonoUTM(pontos, w, h){
+  if(!pontos || pontos.length < 3) return '<div class="note" style="padding:14px; text-align:center; margin:0; color:#2B2417;">Cadastre ao menos 3 marcos<br>para ver o croqui do polígono.</div>';
+  const es = pontos.map(p=>p.coordE), ns = pontos.map(p=>p.coordN);
+  const minE = Math.min(...es), maxE = Math.max(...es);
+  const minN = Math.min(...ns), maxN = Math.max(...ns);
+  const spanE = (maxE-minE) || 0.001, spanN = (maxN-minN) || 0.001;
+  const pad = 16;
+  const scale = Math.min((w-2*pad)/spanE, (h-2*pad)/spanN);
+  const drawW = spanE*scale, drawH = spanN*scale;
+  const offX = (w-drawW)/2, offY = (h-drawH)/2;
+  const toX = e => offX + (e-minE)*scale;
+  const toY = n => h-offY-(n-minN)*scale;
+  const pts = pontos.map(p=>`${toX(p.coordE).toFixed(1)},${toY(p.coordN).toFixed(1)}`).join(' ');
+  const primeiro = pontos[0];
+  const marcadores = pontos.map((p,i)=>`<circle cx="${toX(p.coordE).toFixed(1)}" cy="${toY(p.coordN).toFixed(1)}" r="${i===0?3:2}" fill="${i===0?'#B5533C':'#16324A'}"/>`).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="display:block;">
+    <polygon points="${pts}" fill="rgba(200,155,60,0.22)" stroke="#16324A" stroke-width="1.5"/>
+    ${marcadores}
+    <text x="${toX(primeiro.coordE).toFixed(1)}" y="${(toY(primeiro.coordN)-6).toFixed(1)}" font-size="9" fill="#B5533C" font-family="IBM Plex Mono, monospace">início</text>
+  </svg>`;
+}
+// Atualiza o croqui (e a linha de área/perímetro) na tela de edição do imóvel — chamada sempre
+// que o formulário passa a representar um imóvel já salvo (editImo, ou logo depois que um
+// import cria/atualiza os marcos de um imóvel que já está aberto para edição).
+function renderCroquiImovel(imId){
+  const box = document.getElementById('imo-croqui-svg');
+  const info = document.getElementById('imo-croqui-info');
+  if(!box) return;
+  const lista = marcosOrdenados(imId);
+  box.innerHTML = svgPreviewPoligonoUTM(lista, 220, 220);
+  info.textContent = lista.length>=3 ? `Área: ${fmtNum(calcAreaHa(lista),4)} ha | Perímetro: ${fmtNum(calcPerimetro(lista),2)} m` : '';
+}
 
 let geometriasPendentes = null; // { lista: [{nome,pontos}], opts: {...} } — aguardando confirmação do usuário
 function mostrarSeletorGeometrias(geometrias, opts){
@@ -7211,8 +7310,15 @@ function mostrarSeletorGeometrias(geometrias, opts){
   sel.innerHTML = geometrias.map((g,i)=>`<option value="${i}">${escXml(g.nome)} (${g.pontos.length} vértices)</option>`).join('');
   atualizarPreviewGeometriaAtiva();
   sel.onchange = atualizarPreviewGeometriaAtiva;
-  document.getElementById('card-geometria-ativa').style.display = 'block';
-  document.getElementById('card-geometria-ativa').scrollIntoView({behavior:'smooth', block:'center'});
+  // A prévia é um único bloco compartilhado (KML e Shapefile usam a mesma lógica) que é
+  // encaixado dentro do card de origem (KML ou Shapefile) em vez de aparecer como um card
+  // separado lá embaixo — preenche o espaço vazio que sobrava ali, logo abaixo do botão de
+  // importar, e já fica visível sem precisar rolar a página pra achar a prévia.
+  const card = document.getElementById('card-geometria-ativa');
+  const slot = document.getElementById(opts.origemSlot || 'kml-imo-preview-slot');
+  slot.appendChild(card);
+  card.style.display = 'block';
+  card.scrollIntoView({behavior:'smooth', block:'center'});
 }
 function atualizarPreviewGeometriaAtiva(){
   if(!geometriasPendentes) return;
@@ -7246,10 +7352,14 @@ document.getElementById('btn-cancelar-geometria-ativa').addEventListener('click'
   document.getElementById('card-geometria-ativa').style.display = 'none';
 });
 
-document.getElementById('btn-import-kml-imo').addEventListener('click', async ()=>{
+// Dispara sozinho ao escolher o arquivo (evento "change" do input), sem precisar de um botão
+// "Importar" separado — assim que o arquivo é selecionado, já lê e mostra a prévia da geometria
+// (dentro do próprio card, no slot "kml-imo-preview-slot"), pronta pra conferir e confirmar.
+document.getElementById('kml-file-imo').addEventListener('change', async ()=>{
   const fileInput = document.getElementById('kml-file-imo');
   const file = fileInput.files[0];
-  if(!file){ showToast('Escolha um arquivo .kml ou .kmz.'); return; }
+  if(!file) return;
+  showToast('Lendo arquivo…');
   try{
     const isKmz = /\.kmz$/i.test(file.name);
     const text = isKmz ? await extrairKMLdeKMZ(file) : await file.text();
@@ -7259,25 +7369,29 @@ document.getElementById('btn-import-kml-imo').addEventListener('click', async ()
       kmlNomeArquivo: file.name.replace(/\.kmz$/i,'.kml'),
       origemLabel: isKmz ? 'KMZ' : 'KML',
       nomeSugerido: file.name,
+      origemSlot: 'kml-imo-preview-slot',
     };
     mostrarSeletorGeometrias(geometrias, opts);
     fileInput.value='';
   }catch(e){
     showToast('Erro ao importar KML/KMZ: '+e.message);
+    fileInput.value='';
   }
 });
-document.getElementById('btn-import-shp-imo').addEventListener('click', async ()=>{
+document.getElementById('shp-file-imo').addEventListener('change', async ()=>{
   const fileInput = document.getElementById('shp-file-imo');
   const file = fileInput.files[0];
-  if(!file){ showToast('Escolha um arquivo .zip do shapefile.'); return; }
+  if(!file) return;
+  showToast('Lendo arquivo…');
   try{
     const geometrias = await extrairGeometriasDeShapefile(file);
-    const opts = {origemLabel:'Shapefile', nomeSugerido: file.name};
+    const opts = {origemLabel:'Shapefile', nomeSugerido: file.name, origemSlot: 'shp-imo-preview-slot'};
     mostrarSeletorGeometrias(geometrias, opts);
     fileInput.value='';
   }catch(e){
     console.error('Erro ao importar Shapefile:', e);
     showToast('Erro ao importar Shapefile: '+e.message);
+    fileInput.value='';
   }
 });
 
@@ -7602,6 +7716,9 @@ function ativarSateliteTopconCad(ativo){
 document.getElementById('topcon-cad-satelite').addEventListener('change', e=>{
   ativarSateliteTopconCad(e.target.checked);
 });
+document.getElementById('topcon-cad-mostrar-nomes').addEventListener('change', ()=>{
+  if(topconImportState && topconCadState) atualizarSvgTopconCad();
+});
 function topconPontoPorId(id){ return topconImportState.pontos.find(p=>p.id===id); }
 function renderTopconCadTabela(){
   const tbody = document.getElementById('topcon-cad-tbody');
@@ -7621,9 +7738,9 @@ function renderTopconCadTabela(){
     return `
     <tr data-id="${p.id}">
       <td style="padding:3px 5px;"><input type="text" class="topcon-cad-nome" data-id="${p.id}" value="${escXml(p.nome)}" title="${escXml(p.nome)}" style="width:82px; ${estiloCampo}"></td>
-      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-norte" data-id="${p.id}" value="${p.norte}" style="width:88px; text-align:right; ${estiloCampo}"></td>
-      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-leste" data-id="${p.id}" value="${p.leste}" style="width:82px; text-align:right; ${estiloCampo}"></td>
-      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-elevacao" data-id="${p.id}" value="${p.elevacao!=null && !isNaN(p.elevacao) ? p.elevacao : ''}" style="width:62px; text-align:right; ${estiloCampo}"></td>
+      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-norte" data-id="${p.id}" value="${p.norte}" style="width:88px; text-align:left; ${estiloCampo}"></td>
+      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-leste" data-id="${p.id}" value="${p.leste}" style="width:82px; text-align:left; ${estiloCampo}"></td>
+      <td style="padding:3px 3px;"><input type="number" step="any" class="topcon-cad-elevacao" data-id="${p.id}" value="${p.elevacao!=null && !isNaN(p.elevacao) ? p.elevacao : ''}" style="width:62px; text-align:left; ${estiloCampo}"></td>
       <td style="padding:3px 3px;">
         <select class="topcon-cad-tipo" data-id="${p.id}" style="width:92px; ${estiloCampo}">
           <option value="" ${!p.tipoLimite?'selected':''}>—</option>
@@ -7633,7 +7750,7 @@ function renderTopconCadTabela(){
       <td style="padding:3px 3px;">
         <select class="topcon-cad-metodo" data-id="${p.id}" style="width:132px; ${estiloCampo}">${topconOpcoesMetodoHtml(p.tipoLimite, p.metodoPosicionamento)}</select>
       </td>
-      <td style="padding:3px 6px; text-align:right; white-space:nowrap; font-size:0.72rem;">${celulaPrecisao}</td>
+      <td style="padding:3px 6px; text-align:left; white-space:nowrap; font-size:0.72rem;">${celulaPrecisao}</td>
       <td style="padding:3px 4px; text-align:center;"><button type="button" class="btn btn-sm btn-ghost topcon-cad-excluir" data-id="${p.id}" title="Excluir ponto" style="padding:2px 7px; font-size:0.7rem;">✕</button></td>
     </tr>`;
   }).join('');
@@ -7732,14 +7849,20 @@ function atualizarSvgTopconCad(){
       L.polyline(latlngs, {color:'#1a8cb4', weight:2}).addTo(_topconCadCamadaLinha);
     }
   }
+  // Por padrão os rótulos só aparecem ao passar o mouse (permanent:false) — com muitos pontos
+  // próximos (comum em levantamentos reais, como margens de córrego com um ponto a cada poucos
+  // metros), nomes fixos de todos os pontos se sobrepõem uns aos outros e aos próprios marcadores.
+  // O checkbox "Fixar nomes de todos os pontos" liga o modo permanente quando há poucos pontos
+  // ou o usuário já deu zoom o bastante pra eles não colidirem.
+  const mostrarNomes = document.getElementById('topcon-cad-mostrar-nomes').checked;
   pontos.forEach(p=>{
     const noCaminho = caminho.includes(p.id);
     const ordem = caminho.indexOf(p.id);
     const marker = L.circleMarker([p.lat, p.lon], {
-      radius:6, color:'#223', weight:1, fillColor: noCaminho?'#1a8cb4':'#f2a93b', fillOpacity:1,
+      radius:5, color:'#223', weight:1, fillColor: noCaminho?'#1a8cb4':'#f2a93b', fillOpacity:1,
     }).addTo(_topconCadCamadaPontos);
     marker.bindTooltip(`${escXml(p.nome)}${ordem>=0?` (${ordem+1})`:''}`, {
-      permanent:true, direction:'top', offset:[0,-6], className:'topcon-cad-tooltip',
+      permanent:mostrarNomes, direction:'top', offset:[0,-6], className:'topcon-cad-tooltip',
     });
     _topconCadMarcadoresPorId[p.id] = marker;
   });
@@ -7748,13 +7871,14 @@ function abrirCadTopcon(){
   topconImportState.pontos.forEach((p,i)=>{ p.id = i; p.tipoLimite = p.tipoLimite || ''; p.metodoPosicionamento = p.metodoPosicionamento || ''; });
   topconCadState = {caminho: [], fechado: false};
   document.getElementById('topcon-cad-tipo-todos').value = '';
-  document.getElementById('topcon-cad-metodo-todos').innerHTML = `<option value="">Selecione…</option>` +
+  document.getElementById('topcon-cad-metodo-todos').innerHTML = `<option value="">Método —</option>` +
     TOPCON_METODOS.map(m=>`<option value="${m.codigo}">${m.codigo} — ${escXml(m.nome)}</option>`).join('');
   // Começa sempre com o mapa "limpo" (fundo preto, sem satélite) e o display:block ANTES de criar o
   // mapa Leaflet: ele precisa medir um container já visível e com tamanho real pra se inicializar
   // corretamente — criar antes disso deixa o mapa cinza/quebrado até o primeiro resize da janela.
   destruirMapaTopconCad();
   document.getElementById('topcon-cad-satelite').checked = false;
+  document.getElementById('topcon-cad-mostrar-nomes').checked = false;
   document.getElementById('card-topcon-cad').style.display = 'block';
   renderTopconCadTabela();
   atualizarSvgTopconCad();
@@ -7903,6 +8027,14 @@ document.getElementById('btn-confirmar-topcon-mapeamento').addEventListener('cli
   topconMapeamentoState = null;
   abrirCadTopcon();
 });
+document.getElementById('btn-topcon-cad-centralizar').addEventListener('click', ()=>{
+  // Reenquadra o mapa pra mostrar todos os pontos de novo — útil depois que o usuário deu zoom/pan
+  // pra vetorizar um trecho específico e perdeu a visão geral do levantamento.
+  if(!topconImportState || !_topconCadMapa) return;
+  const pontos = topconImportState.pontos.filter(p=>p.lat!=null && p.lon!=null);
+  if(!pontos.length) return;
+  _topconCadMapa.fitBounds(L.latLngBounds(pontos.map(p=>[p.lat, p.lon])), {padding:[30,30]});
+});
 document.getElementById('btn-topcon-cad-desfazer').addEventListener('click', ()=>{
   if(!topconCadState) return;
   if(topconCadState.fechado) topconCadState.fechado = false;
@@ -8016,6 +8148,154 @@ document.getElementById('btn-import-modelo').addEventListener('click', async ()=
     showToast('Erro ao importar modelo: '+e.message);
   }
 });
+
+// ---------- EXPORTAR POLÍGONO (KML / Shapefile / DXF / GeoJSON) ----------
+// Exporta só o contorno externo do imóvel (sem os atributos de cada marco individual — isso já
+// é coberto pelo "Modelo de importação completo" acima). Funciona com qualquer imóvel, não
+// importa como os marcos foram cadastrados (KML, Shapefile, Topcon ou digitação manual).
+function dadosBaseExportacaoImovel(imId){
+  const im = state.imoveis.find(x=>x.id===imId);
+  if(!im) throw new Error('Selecione um imóvel.');
+  const lista = marcosOrdenados(imId);
+  if(lista.length<3) throw new Error(`O imóvel "${im.nome}" tem menos de 3 marcos cadastrados — não é possível gerar um polígono.`);
+  const areaHa = calcAreaHa(lista);
+  const perimetro = calcPerimetro(lista);
+  return {im, lista, areaHa, perimetro};
+}
+// Converte os marcos (UTM) para lon/lat — usado pelos formatos geográficos (KML/Shapefile/GeoJSON).
+// Lança erro se a zona UTM do imóvel não estiver definida (não há como converter sem ela).
+function pontosLonLatExportacaoImovel(im, lista){
+  const {zona, sul} = inferirZonaHemisferio(im, lista);
+  if(!zona) throw new Error(`A zona UTM do imóvel "${im.nome}" não está definida — informe a "Zona UTM" no cadastro do imóvel (seção Imóveis → Editar) antes de exportar neste formato. O DXF não precisa da zona, pois já é exportado em UTM.`);
+  return lista.map(m=>{ const geo = utmParaLatLon(m.coordE, m.coordN, zona, sul); return {lon:geo.lon, lat:geo.lat}; });
+}
+function gerarKMLExportacaoImovel(im, pontosLonLat, areaHa, perimetro){
+  const anelFechado = pontosLonLat.concat([pontosLonLat[0]]);
+  const coords = anelFechado.map(p=>`${p.lon},${p.lat},0`).join(' ');
+  const desc = `Área: ${fmtNum(areaHa,4)} ha | Perímetro: ${fmtNum(perimetro,2)} m`;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>${escXml(im.nome||'Imóvel')}</name>
+  <Placemark>
+    <name>${escXml(im.nome||'Imóvel')}</name>
+    <description>${escXml(desc)}</description>
+    <ExtendedData>
+      <Data name="Matricula"><value>${escXml(im.matricula||'')}</value></Data>
+      <Data name="UF"><value>${escXml(im.uf||'')}</value></Data>
+      <Data name="Municipio"><value>${escXml(im.municipio||'')}</value></Data>
+      <Data name="Area_ha"><value>${fmtNum(areaHa,4)}</value></Data>
+      <Data name="Perimetro_m"><value>${fmtNum(perimetro,2)}</value></Data>
+    </ExtendedData>
+    <Polygon><outerBoundaryIs><LinearRing><coordinates>${coords}</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+</Document>
+</kml>`;
+}
+function gerarGeoJSONExportacaoImovel(im, pontosLonLat, areaHa, perimetro){
+  const anelFechado = pontosLonLat.concat([pontosLonLat[0]]).map(p=>[p.lon, p.lat]);
+  const geojson = {
+    type:'FeatureCollection',
+    features:[{
+      type:'Feature',
+      properties:{
+        nome: im.nome||'', matricula: im.matricula||'', uf: im.uf||'', municipio: im.municipio||'',
+        area_ha: Number(areaHa.toFixed(4)), perimetro_m: Number(perimetro.toFixed(2)),
+      },
+      geometry:{ type:'Polygon', coordinates:[anelFechado] },
+    }],
+  };
+  return JSON.stringify(geojson, null, 2);
+}
+// Monta um Shapefile (.shp/.shx/.dbf/.prj) com o polígono do imóvel, zipado — reaproveita as
+// mesmas rotinas de escrita binária usadas no "Modelo de importação completo".
+async function gerarShapefileExportacaoImovel(im, pontosLonLat, areaHa, perimetro){
+  if(typeof JSZip === 'undefined'){
+    try{ await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'); }catch(e){ /* segue para o erro abaixo */ }
+    if(typeof JSZip === 'undefined') throw new Error('Biblioteca de compactação (JSZip) não carregou — verifique sua conexão com a internet e recarregue a página.');
+  }
+  const campos = [
+    {dbf:'NOME', tipo:'C', tamanho:100},
+    {dbf:'MATRICULA', tipo:'C', tamanho:30},
+    {dbf:'UF', tipo:'C', tamanho:2},
+    {dbf:'MUNICIPIO', tipo:'C', tamanho:60},
+    {dbf:'AREA_HA', tipo:'N', tamanho:14, decimais:4},
+    {dbf:'PERIM_M', tipo:'N', tamanho:14, decimais:2},
+  ];
+  const registro = { NOME:im.nome||'', MATRICULA:im.matricula||'', UF:im.uf||'', MUNICIPIO:im.municipio||'', AREA_HA:Number(areaHa.toFixed(4)), PERIM_M:Number(perimetro.toFixed(2)) };
+  const poli = construirShapefilePoligono(pontosLonLat.map(p=>({lon:p.lon, lat:p.lat})));
+  const dbf = construirDBF(campos, [registro]);
+  const base = (im.nome||'imovel').replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-+|-+$/g,'') || 'imovel';
+  const zip = new JSZip();
+  zip.file(`${base}.shp`, poli.shp);
+  zip.file(`${base}.shx`, poli.shx);
+  zip.file(`${base}.dbf`, dbf);
+  zip.file(`${base}.prj`, SHP_PRJ_WGS84);
+  return await zip.generateAsync({type:'blob'});
+}
+// Escreve um DXF ASCII (R12 — compatível com praticamente qualquer leitor de CAD) com o contorno
+// do imóvel como uma única POLYLINE fechada, em coordenadas UTM (metros) — a mesma convenção de
+// coordenadas planas usada nas plantas/desenhos do app. Não existia nenhuma rotina de ESCRITA de
+// DXF no app (só leitura, via DxfParser) — esta função monta o arquivo grupo a grupo, seguindo a
+// especificação DXF da Autodesk.
+function construirDXFPoligono(pontosUTM, nomeCamada){
+  const camada = String(nomeCamada||'IMOVEL').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9_]/g,'_').slice(0,31) || 'IMOVEL';
+  const linhas = [];
+  const add = (codigo, valor) => { linhas.push(String(codigo)); linhas.push(String(valor)); };
+  add(0,'SECTION'); add(2,'HEADER');
+  add(9,'$ACADVER'); add(1,'AC1009');
+  add(0,'ENDSEC');
+  add(0,'SECTION'); add(2,'TABLES');
+  add(0,'TABLE'); add(2,'LAYER'); add(70,1);
+  add(0,'LAYER'); add(2,camada); add(70,0); add(62,7); add(6,'CONTINUOUS');
+  add(0,'ENDTAB');
+  add(0,'ENDSEC');
+  add(0,'SECTION'); add(2,'ENTITIES');
+  add(0,'POLYLINE'); add(8,camada); add(66,1); add(70,1);
+  pontosUTM.forEach(p=>{
+    add(0,'VERTEX'); add(8,camada);
+    add(10, p.coordE.toFixed(3)); add(20, p.coordN.toFixed(3)); add(30,'0.0');
+  });
+  add(0,'SEQEND'); add(8,camada);
+  add(0,'ENDSEC');
+  add(0,'EOF');
+  return linhas.join('\n')+'\n';
+}
+async function executarExportacaoPoligono(formato, btn, imId){
+  if(!imId){ showToast('Salve o imóvel antes de exportar.'); return; }
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando...';
+  try{
+    const {im, lista, areaHa, perimetro} = dadosBaseExportacaoImovel(imId);
+    const base = (im.nome||'imovel').replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-+|-+$/g,'') || 'imovel';
+    if(formato==='dxf'){
+      const dxf = construirDXFPoligono(lista, base);
+      baixarBlobComoArquivo(new Blob([dxf], {type:'application/dxf'}), `${base}.dxf`);
+    } else if(formato==='kml'){
+      const pontosLonLat = pontosLonLatExportacaoImovel(im, lista);
+      const kml = gerarKMLExportacaoImovel(im, pontosLonLat, areaHa, perimetro);
+      baixarBlobComoArquivo(new Blob([kml], {type:'application/vnd.google-earth.kml+xml'}), `${base}.kml`);
+    } else if(formato==='geojson'){
+      const pontosLonLat = pontosLonLatExportacaoImovel(im, lista);
+      const geojson = gerarGeoJSONExportacaoImovel(im, pontosLonLat, areaHa, perimetro);
+      baixarBlobComoArquivo(new Blob([geojson], {type:'application/geo+json'}), `${base}.geojson`);
+    } else if(formato==='shp'){
+      const pontosLonLat = pontosLonLatExportacaoImovel(im, lista);
+      const blob = await gerarShapefileExportacaoImovel(im, pontosLonLat, areaHa, perimetro);
+      baixarBlobComoArquivo(blob, `${base}-shapefile.zip`);
+    }
+    showToast(`Arquivo exportado: ${im.nome}.`);
+  }catch(e){
+    console.error('Erro ao exportar polígono:', e);
+    showToast('Erro ao exportar: '+e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+}
+document.getElementById('imo-btn-export-kml').addEventListener('click', ()=>executarExportacaoPoligono('kml', document.getElementById('imo-btn-export-kml'), editing.imo));
+document.getElementById('imo-btn-export-shp').addEventListener('click', ()=>executarExportacaoPoligono('shp', document.getElementById('imo-btn-export-shp'), editing.imo));
+document.getElementById('imo-btn-export-dxf').addEventListener('click', ()=>executarExportacaoPoligono('dxf', document.getElementById('imo-btn-export-dxf'), editing.imo));
+document.getElementById('imo-btn-export-geojson').addEventListener('click', ()=>executarExportacaoPoligono('geojson', document.getElementById('imo-btn-export-geojson'), editing.imo));
 
 // ---------- DOCUMENTOS ----------
 function dms(deg){
