@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-11T12:29:47.511Z",
+  "exportadoEm": "2026-10-11T12:38:16.592Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -387,6 +387,18 @@
     },
     {
       "id": "mv3sw1p3kd7m1",
+      "nome": "AIR PLANTA MEMORIAL",
+      "matricula": "",
+      "area": "",
+      "municipio": "",
+      "uf": "",
+      "comarca": "",
+      "proprietarioId": "",
+      "tecnicoId": "",
+      "datum": "SIRGAS2000"
+    },
+    {
+      "id": "mv3t6yice0afi",
       "nome": "AIR PLANTA MEMORIAL",
       "matricula": "",
       "area": "633.5195",
@@ -1825,8 +1837,8 @@
       "coordN": 8628956.309
     },
     {
-      "id": "mv3sw1p89feh1",
-      "imovelId": "mv3sw1p3kd7m1",
+      "id": "mv3t6yiih68wr",
+      "imovelId": "mv3t6yice0afi",
       "tipo": "V",
       "ordem": 1,
       "confrontante": "",
@@ -1845,8 +1857,8 @@
       "coordN": 8629943.199
     },
     {
-      "id": "mv3sw1p8qpy8q",
-      "imovelId": "mv3sw1p3kd7m1",
+      "id": "mv3t6yijydo57",
+      "imovelId": "mv3t6yice0afi",
       "tipo": "V",
       "ordem": 6,
       "confrontante": "",
@@ -1865,8 +1877,8 @@
       "coordN": 8629587.637
     },
     {
-      "id": "mv3sw1p9vwmsu",
-      "imovelId": "mv3sw1p3kd7m1",
+      "id": "mv3t6yijagaht",
+      "imovelId": "mv3t6yice0afi",
       "tipo": "V",
       "ordem": 5,
       "confrontante": "",
@@ -1885,8 +1897,8 @@
       "coordN": 8629563.365
     },
     {
-      "id": "mv3sw1p90kbe5",
-      "imovelId": "mv3sw1p3kd7m1",
+      "id": "mv3t6yijh23fs",
+      "imovelId": "mv3t6yice0afi",
       "tipo": "V",
       "ordem": 4,
       "confrontante": "",
@@ -1905,8 +1917,8 @@
       "coordN": 8627048.18
     },
     {
-      "id": "mv3sw1p9ewcd7",
-      "imovelId": "mv3sw1p3kd7m1",
+      "id": "mv3t6yijb44si",
+      "imovelId": "mv3t6yice0afi",
       "tipo": "V",
       "ordem": 3,
       "confrontante": "",
@@ -1925,8 +1937,8 @@
       "coordN": 8627298.63
     },
     {
-      "id": "mv3sw1p927pnn",
-      "imovelId": "mv3sw1p3kd7m1",
+      "id": "mv3t6yij1jz21",
+      "imovelId": "mv3t6yice0afi",
       "tipo": "V",
       "ordem": 2,
       "confrontante": "",
