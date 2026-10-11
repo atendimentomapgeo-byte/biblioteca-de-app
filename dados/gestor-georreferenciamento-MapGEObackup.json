@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-11T12:46:44.354Z",
+  "exportadoEm": "2026-10-11T12:48:11.769Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -222,7 +222,7 @@
       "uf": "MT",
       "comarca": "Cuiaba",
       "proprietarioId": "muhviy71a3kkq",
-      "tecnicoId": "muhvqhwk2bblh",
+      "tecnicoId": "",
       "artTipo": "TRT",
       "art": "0123456789",
       "datum": "SIRGAS2000",
@@ -235,7 +235,9 @@
       "sigefDataCertificacao": "2026-09-26",
       "sigefResponsavelTecnico": "",
       "simcar": "MT00000/2026",
-      "simcarSituacao": "Ativo"
+      "simcarSituacao": "Ativo",
+      "situacaoRegistral": "",
+      "cns": ""
     },
     {
       "id": "muvjjwrxpqk6v",
@@ -273,9 +275,21 @@
       "comarca": "",
       "proprietarioId": "",
       "tecnicoId": "",
+      "artTipo": "ART",
+      "art": "",
       "datum": "SIRGAS2000",
       "perimetro": "10098.42",
       "utmZona": "21S",
+      "codigoIncra": "",
+      "leiDecreto": "",
+      "parcelaSigef": "",
+      "parcelaSigefSituacao": "",
+      "sigefDataCertificacao": "",
+      "sigefResponsavelTecnico": "",
+      "simcar": "",
+      "simcarSituacao": "",
+      "situacaoRegistral": "",
+      "cns": "",
       "kmlRaw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:globalmapper=\"https://www.bluemarblegeo.com/globalmapper\">\r\n<Document>\r\n  <!-- Begin Style Definitions -->\r\n  <Style id=\"area1\">\r\n    <LineStyle>\r\n      <color>FF0065CC</color>\r\n      <width>1</width>\r\n    </LineStyle>\r\n    <PolyStyle>\r\n      <color>BF007FFF</color>\r\n      <fill>1</fill>\r\n      <outline>1</outline>\r\n    </PolyStyle>\r\n  </Style>\r\n  <Folder>\r\n    <name>Area Features</name>\r\n    <description>Area Features</description>\r\n    <Placemark>\r\n      <description>Unknown Area Type</description>\r\n      <styleUrl>#area1</styleUrl>\r\n      <Polygon>\r\n        <altitudeMode>relativeToGround</altitudeMode>\r\n        <extrude>1</extrude>\r\n        <outerBoundaryIs>\r\n          <LinearRing>\r\n            <coordinates>\r\n              -54.541690560,-12.382285560,0\r\n              -54.563152220,-12.385691670,0\r\n              -54.564621670,-12.385924170,0\r\n              -54.561009720,-12.408618060,0\r\n              -54.539332026,-12.406159227,0\r\n              -54.541002220,-12.391196390,0\r\n              -54.541690560,-12.382285560,0\r\n            </coordinates>\r\n          </LinearRing>\r\n        </outerBoundaryIs>\r\n      </Polygon>\r\n    </Placemark>\r\n  </Folder>\r\n</Document>\r\n</kml>\r\n",
       "kmlNomeArquivo": "AIR_PLANTA_MEMORIAL.kml"
     }
