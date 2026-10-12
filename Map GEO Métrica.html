@@ -969,7 +969,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-11.72 — O formulário "Novo/Editar imóvel" virou um acordeão retrátil: começa fechado (só o título), abre sozinho ao clicar em "Editar" num imóvel, ou clicando no título a qualquer momento</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-12.77 — Novas tags no "Layout externo (DXF)" para o documento do proprietário: {{CPF_CNPJ}} (só o número), {{CPF_CNPJ_ROTULO}} ("CPF:" ou "CNPJ:") e {{CPF_CNPJ_COMPLETO}} (rótulo + número prontos)</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -1839,6 +1839,22 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <!-- PLANTA -->
   <section class="panel" id="panel-doc-planta">
     <div class="card">
+      <h2>Modelos de layout DXF (embutidos neste arquivo)<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup" style="max-height:70vh; overflow:auto;">
+        O DXF escolhido abaixo nunca sai do seu navegador — ele só é lido aqui, na hora. Ao clicar em "Adicionar à lista" ele entra numa lista temporária (ainda não salva); clique em "Salvar modelos no arquivo" para gravar essa lista dentro do próprio HTML. Isso abre a janela de salvar do navegador — escolha o mesmo arquivo "Map GEO Métrica.html" que você já está usando para sobrescrevê-lo (se o navegador não suportar sobrescrita direta, ele baixa uma cópia nova pra você trocar manualmente). Os modelos salvos aparecem como opções prontas no menu "Formato da planta", sem precisar selecionar arquivo a cada geração. Você pode remover um modelo da lista quando quiser — a remoção também só é gravada de verdade depois de "Salvar modelos no arquivo".
+      </div></span></h2>
+      <div class="note" id="modelos-dxf-vazio">Nenhum modelo embutido ainda.</div>
+      <div id="modelos-dxf-lista"></div>
+      <div class="grid g3" style="margin-top:12px;">
+        <div class="field"><label>Nome do modelo (aparece no menu)</label><input type="text" id="modelos-dxf-novo-nome" placeholder="Ex.: Layout Map GEO A3"></div>
+        <div class="field"><label>Arquivo .dxf</label><input type="file" id="modelos-dxf-novo-file" accept=".dxf,.DXF,application/dxf,image/vnd.dxf,application/octet-stream,*/*"></div>
+        <div class="field" style="align-self:end;"><button type="button" class="btn btn-ghost" id="btn-modelos-dxf-adicionar" style="width:100%;">Adicionar à lista</button></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="btn-modelos-dxf-salvar">Salvar modelos no arquivo</button>
+        <span class="note" id="modelos-dxf-status" style="margin:0;">Nenhuma alteração pendente.</span>
+      </div>
+    </div>
+    <div class="card">
       <h2>Gerar Planta do Imóvel<span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup">
         Mesmo gerador da aba Memorial (gera os três documentos juntos) — repetido aqui pra sua conveniência.
       </div></span></h2>
@@ -1869,7 +1885,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <label style="margin-bottom:0;">Arquivo DXF do layout externo</label>
           <span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup" style="max-height:70vh; overflow:auto;">
             O traçado do DXF (linhas, polilinhas, círculos, arcos, elipses e textos/ATTDEF da seção ENTITIES, sem blocos/inserts) é reproduzido tal como está. Para plugar os dados do imóvel automaticamente:
-            <br>• Em textos (TEXT/MTEXT) ou atributos (ATTDEF) do DXF, use marcadores como <code>{{IMOVEL}}</code>, <code>{{INTERESSADO}}</code>, <code>{{MUNICIPIO}}</code> ou <code>{{MUNICIPIO_UF}}</code>, <code>{{UF}}</code>, <code>{{DATA}}</code>, <code>{{AREA_HA}}</code>, <code>{{PERIMETRO}}</code> ou <code>{{PERIMETRO_M}}</code>, <code>{{MATRICULA}}</code>, <code>{{CARTORIO}}</code>, <code>{{CODIGO_INCRA}}</code> ou <code>{{INCRA_COD}}</code>, <code>{{RESPONSAVEL_TECNICO}}</code> ou <code>{{RESP_TECNICO}}</code>, <code>{{REGISTRO}}</code> ou <code>{{CREA_REGISTRO}}</code>, <code>{{CONSELHO}}</code>, <code>{{TITULO}}</code>, <code>{{ART}}</code> ou <code>{{ART_TIPO}}</code> (mostra "ART" ou "TRT", conforme escolhido no cadastro do imóvel), <code>{{COD_CRED}}</code>, <code>{{DATUM}}</code>, <code>{{ZONA_UTM}}</code>, <code>{{CONVERGENCIA_MERIDIANA}}</code>, <code>{{ASSUNTO}}</code> ou <code>{{ESCALA}}</code> — eles são substituídos pelo valor real (funciona tanto num TEXT comum quanto num ATTDEF de bloco de título).
+            <br>• Em textos (TEXT/MTEXT) ou atributos (ATTDEF) do DXF, use marcadores como <code>{{IMOVEL}}</code>, <code>{{INTERESSADO}}</code>, <code>{{MUNICIPIO}}</code> ou <code>{{MUNICIPIO_UF}}</code>, <code>{{UF}}</code>, <code>{{DATA}}</code>, <code>{{AREA_HA}}</code>, <code>{{PERIMETRO}}</code> ou <code>{{PERIMETRO_M}}</code>, <code>{{MATRICULA}}</code>, <code>{{CARTORIO}}</code>, <code>{{CODIGO_INCRA}}</code> ou <code>{{INCRA_COD}}</code>, <code>{{CPF_CNPJ}}</code> (só o número do proprietário), <code>{{CPF_CNPJ_ROTULO}}</code> ("CPF:" ou "CNPJ:", conforme a quantidade de dígitos) ou <code>{{CPF_CNPJ_COMPLETO}}</code> (rótulo + número já prontos), <code>{{RESPONSAVEL_TECNICO}}</code> ou <code>{{RESP_TECNICO}}</code>, <code>{{REGISTRO}}</code> ou <code>{{CREA_REGISTRO}}</code>, <code>{{CONSELHO}}</code>, <code>{{TITULO}}</code>, <code>{{ART}}</code> ou <code>{{ART_TIPO}}</code> (mostra "ART" ou "TRT", conforme escolhido no cadastro do imóvel), <code>{{COD_CRED}}</code>, <code>{{DATUM}}</code>, <code>{{ZONA_UTM}}</code>, <code>{{CONVERGENCIA_MERIDIANA}}</code>, <code>{{ASSUNTO}}</code> ou <code>{{ESCALA}}</code> — eles são substituídos pelo valor real (funciona tanto num TEXT comum quanto num ATTDEF de bloco de título).
             <br>• Desenhe um retângulo (polilinha fechada ou 4 linhas) numa camada chamada <code>GEO_MAPA</code> (ou <code>AREA_DESENHO</code>/<code>MAPA</code>/<code>DESENHO</code>) onde quer que o polígono do imóvel, com marcos e confrontações, seja desenhado e escalado automaticamente.
             <br>• Desenhe um retângulo numa camada chamada <code>GEO_QUADRO_COORDENADAS</code> (ou <code>QUADRO_COORDENADAS</code>/<code>COORDENADAS</code>) onde quer que a tabela de vértices apareça.
             <br>• Opcional: um retângulo/círculo pequeno na camada <code>GEO_NORTE</code> (ou <code>NORTE</code>) define onde fica a rosa dos ventos.
@@ -2202,6 +2218,25 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <input type="file" id="dxfpdf-fileInput" accept=".dxf,application/dxf,image/vnd.dxf,application/octet-stream,*/*" style="display:none">
           <div id="dxfpdf-fileInfo"></div>
           <div id="dxfpdf-warnings"></div>
+
+          <div class="field" id="dxfpdf-modelos-wrap" style="margin-top:14px; border-top:1px solid rgba(220,238,245,0.12); padding-top:12px;">
+            <div style="display:flex; align-items:center; gap:2px;">
+              <label style="margin-bottom:0;">Modelos DXF salvos no app</label>
+              <span class="help-wrap"><button type="button" class="help-btn" aria-label="Ajuda">?</button><div class="help-popup" style="max-height:70vh; overflow:auto;">
+                Depois de carregar um .dxf acima (upload, arraste ou um modelo já salvo), dê um nome e clique em "Salvar desenho carregado como modelo" para deixá-lo guardado aqui mesmo — ele nunca sai do seu navegador. Clique em "Salvar modelos no arquivo" para gravar de vez dentro deste HTML (abre a janela de salvar do navegador — escolha o mesmo "Map GEO Métrica.html" para sobrescrevê-lo). Essa lista é a mesma usada na aba Planta.
+              </div></span>
+            </div>
+            <div class="note" id="dxfpdf-modelos-vazio">Nenhum modelo embutido ainda.</div>
+            <div id="dxfpdf-modelos-lista"></div>
+            <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center;">
+              <input type="text" id="dxfpdf-modelo-novo-nome" placeholder="Nome para salvar o desenho carregado" style="flex:1; min-width:200px;">
+              <button type="button" class="btn btn-sm btn-ghost" id="dxfpdf-btn-salvar-como-modelo" disabled>Salvar desenho carregado como modelo</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary btn-sm" id="dxfpdf-btn-salvar-modelos-arquivo">Salvar modelos no arquivo</button>
+              <span class="note" id="dxfpdf-modelos-status" style="margin:0;">Nenhuma alteração pendente.</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2465,6 +2500,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
 </main>
 
 <div class="toast" id="toast"></div>
+
+<!-- Modelos de layout DXF embutidos neste próprio arquivo (ver "Modelos de layout DXF" na
+     aba Planta). Fica vazio ([]) até você adicionar e salvar um modelo — a função
+     salvarModelosDxfNoArquivo() reescreve só o conteúdo desta tag ao gravar o HTML atualizado,
+     o resto do arquivo permanece igual. Nunca edite isto manualmente. -->
+<script type="application/json" id="modelos-dxf-embutidos-dados">[]</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://unpkg.com/[email protected]/dist/shp.js"></script>
@@ -10517,13 +10558,20 @@ function parseDXF(texto){
       if(x!=null&&mx!=null){ const rmax=Math.hypot(mx,my); upd(x-rmax,y-rmax); upd(x+rmax,y+rmax); brutos.push({type:'ELLIPSE', layer, x,y,mx,my,ratio,t1,t2}); }
     } else if(b.tipo==='TEXT' || b.tipo==='MTEXT' || b.tipo==='ATTDEF' || b.tipo==='ATTRIB'){
       let x,y,h,rot=0,valor='',tag='';
+      let x2,y2, halign=0, valign=0, attachMtext=0;
       b.codigos.forEach(([c,v])=>{
         if(c===10) x=parseFloat(v);
         if(c===20) y=parseFloat(v);
+        if(c===11) x2=parseFloat(v);
+        if(c===21) y2=parseFloat(v);
         if(c===40) h=parseFloat(v);
         if(c===50) rot=parseFloat(v);
         if(c===1 || c===3) valor += (v||'');
         if(c===2) tag += (v||'');
+        if(c===72 && b.tipo!=='MTEXT') halign = parseInt(v,10)||0;
+        if(c===73 && b.tipo==='TEXT') valign = parseInt(v,10)||0;
+        if(c===74 && (b.tipo==='ATTDEF' || b.tipo==='ATTRIB')) valign = parseInt(v,10)||0;
+        if(c===71 && b.tipo==='MTEXT') attachMtext = parseInt(v,10)||0;
       });
       // Em ATTDEF/ATTRIB o texto visível é o valor padrão (código 1); quando ele vem vazio
       // (comum em blocos exportados como atributo "modelo"), usa-se a TAG (código 2) como
@@ -10531,7 +10579,20 @@ function parseDXF(texto){
       let txt = valor;
       if((b.tipo==='ATTDEF' || b.tipo==='ATTRIB') && !valor.trim() && tag.trim()) txt = tag;
       if(b.tipo==='MTEXT'){ txt = txt.replace(/\\P/g,'\n').replace(/\{|\}/g,'').replace(/\\[A-Za-z][^;]*;/g,''); }
-      if(x!=null){ upd(x,y); brutos.push({type:'TEXT', layer, x, y, h:h||2.5, rot, txt}); }
+      // MTEXT grava o alinhamento no grupo 71 (1-9: Topo/Meio/Base × Esquerda/Centro/Direita)
+      // já combinado com o ponto de inserção (10/20). TEXT/ATTDEF/ATTRIB, quando justificados
+      // (diferente de "à esquerda/base"), gravam o ponto de referência real no segundo ponto
+      // (11/21) — e não no 10/20. Ignorar isso é o que fazia o texto "perder o alinhamento"
+      // ao combinar um rótulo fixo com uma tag {{...}} num único texto centralizado/à direita.
+      if(b.tipo==='MTEXT' && attachMtext){
+        const col=(attachMtext-1)%3, lin=Math.floor((attachMtext-1)/3);
+        halign = col; // 0 esquerda, 1 centro, 2 direita
+        valign = lin===0?3:(lin===1?2:1); // 3 topo, 2 meio, 1 base
+      }
+      const usarPonto2 = (b.tipo!=='MTEXT') && (halign!==0 || valign!==0) && x2!=null && y2!=null;
+      const px = usarPonto2 ? x2 : x;
+      const py = usarPonto2 ? y2 : y;
+      if(px!=null){ upd(px,py); brutos.push({type:'TEXT', layer, x:px, y:py, h:h||2.5, rot, txt, halign, valign}); }
     }
   });
   const entities=[];
@@ -10550,6 +10611,8 @@ function parseDXF(texto){
 function dxfToSvgFragment(dxf){
   const minX=dxf.min.x, maxY=dxf.max.y;
   const toSx = x => x-minX, toSy = y => maxY-y;
+  const HALIGN_ANCHOR_LE = { 0:'start', 1:'middle', 2:'end', 3:'start', 4:'middle', 5:'start' };
+  const VALIGN_BASELINE_LE = { 0:'alphabetic', 1:'text-after-edge', 2:'central', 3:'hanging' };
   let out='';
   dxf.entities.forEach(e=>{
     if(e.type==='LINE'){
@@ -10583,7 +10646,9 @@ function dxfToSvgFragment(dxf){
     } else if(e.type==='TEXT'){
       const sx=toSx(e.x), sy=toSy(e.y), rot=-(e.rot||0);
       const conteudo = e.txtResolved!=null ? e.txtResolved : e.txt;
-      out += `<text x="${sx.toFixed(3)}" y="${sy.toFixed(3)}" transform="rotate(${rot.toFixed(2)} ${sx.toFixed(3)} ${sy.toFixed(3)})" font-family="IBM Plex Mono, monospace" font-size="${(e.h*0.8).toFixed(2)}" fill="#2B2417">${escXml(conteudo)}</text>`;
+      const anchor = HALIGN_ANCHOR_LE[e.halign||0] || 'start';
+      const baseline = VALIGN_BASELINE_LE[e.valign||0] || 'alphabetic';
+      out += `<text x="${sx.toFixed(3)}" y="${sy.toFixed(3)}" transform="rotate(${rot.toFixed(2)} ${sx.toFixed(3)} ${sy.toFixed(3)})" font-family="IBM Plex Mono, monospace" font-size="${(e.h*0.8).toFixed(2)}" text-anchor="${anchor}" dominant-baseline="${baseline}" fill="#2B2417">${escXml(conteudo)}</text>`;
     }
   });
   return out;
@@ -10627,6 +10692,14 @@ function tokensLayoutExterno(imovel, prop, tec, lista){
     '{{IMOVEL}}': (imovel.nome||'—').toUpperCase(),
     '{{INTERESSADO}}': prop && prop.nome? prop.nome.toUpperCase() : '—',
     '{{PROPRIETARIO}}': prop && prop.nome? prop.nome.toUpperCase() : '—',
+    // Documento do proprietário (campo "CPF ou CNPJ" do cadastro, prop.doc). {{CPF_CNPJ}} é só
+    // o número formatado; {{CPF_CNPJ_ROTULO}} é "CPF:" ou "CNPJ:" conforme a quantidade de
+    // dígitos (mesma lógica usada no quadro de informações do imóvel da planta); {{CPF_CNPJ_COMPLETO}}
+    // já vem pronto como "CPF: 000.000.000-00" / "CNPJ: 00.000.000/0000-00", pra quem quer um
+    // único texto sem precisar combinar rótulo + número no DXF.
+    '{{CPF_CNPJ}}': prop && prop.doc ? maskCpfCnpj(prop.doc) : '—',
+    '{{CPF_CNPJ_ROTULO}}': prop && prop.doc ? (prefixoCpfCnpj(prop.doc) || '—') : '—',
+    '{{CPF_CNPJ_COMPLETO}}': prop && prop.doc ? `${prefixoCpfCnpj(prop.doc)} ${maskCpfCnpj(prop.doc)}` : '—',
     '{{MUNICIPIO}}': (imovel.municipio||'—').toUpperCase(),
     '{{UF}}': imovel.uf||'—',
     '{{DATA}}': hoje,
@@ -10892,6 +10965,163 @@ if(_fileInputPlanta){
       : 'Nenhum arquivo selecionado. Esse DXF é lido apenas no seu navegador, a cada clique em "Gerar documentos" — ele não fica embutido/salvo neste arquivo HTML, então você troca o layout quando quiser sem editar o gestor.';
   });
 }
+
+// ---- Modelos de layout DXF embutidos neste próprio arquivo -----------------------------
+// Carrega a lista gravada na tag <script id="modelos-dxf-embutidos-dados"> (perto do <body>,
+// comentário lá explica). Cada item: {id, nome, dxf} — "dxf" é o texto inteiro do arquivo
+// .dxf, igual ao que seria lido de um upload manual no "Layout externo".
+let modelosDxfEmbutidos = [];
+let modelosDxfPendentesNaoSalvos = false;
+try{
+  const _tagModelosDxf = document.getElementById('modelos-dxf-embutidos-dados');
+  if(_tagModelosDxf) modelosDxfEmbutidos = JSON.parse(_tagModelosDxf.textContent || '[]') || [];
+}catch(err){ console.error('Falha ao ler modelos DXF embutidos:', err); modelosDxfEmbutidos = []; }
+
+function renderModelosDxfLista(){
+  const vazio = document.getElementById('modelos-dxf-vazio');
+  const lista = document.getElementById('modelos-dxf-lista');
+  if(!lista) return;
+  if(!modelosDxfEmbutidos.length){
+    if(vazio) vazio.style.display = 'block';
+    lista.innerHTML = '';
+    return;
+  }
+  if(vazio) vazio.style.display = 'none';
+  lista.innerHTML = modelosDxfEmbutidos.map(m => `
+    <div class="kml-info" style="margin-bottom:6px;">
+      <span class="mono" style="font-size:0.78rem;">${escXml(m.nome)} <span style="opacity:0.6;">(${(m.dxf.length/1024).toFixed(1)} KB)</span></span>
+      <button type="button" class="btn btn-sm btn-danger" data-remover-modelo-dxf="${escXml(m.id)}">Remover</button>
+    </div>
+  `).join('');
+  lista.querySelectorAll('[data-remover-modelo-dxf]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-remover-modelo-dxf');
+      modelosDxfEmbutidos = modelosDxfEmbutidos.filter(m=>m.id!==id);
+      modelosDxfPendentesNaoSalvos = true;
+      atualizarTodaUiModelosDxf();
+    });
+  });
+}
+
+function popularOpcoesModelosDxfEmbutidos(){
+  const sel = document.getElementById('doc-planta-formato');
+  if(!sel) return;
+  const valorAtual = sel.value;
+  sel.querySelectorAll('option[value^="EMBUTIDO:"]').forEach(op=>op.remove());
+  const refOpcao = sel.querySelector('option[value="LAYOUT-EXTERNO-DXF"]');
+  modelosDxfEmbutidos.forEach(m=>{
+    const op = document.createElement('option');
+    op.value = `EMBUTIDO:${m.id}`;
+    op.textContent = `${m.nome} — modelo embutido`;
+    if(refOpcao) sel.insertBefore(op, refOpcao); else sel.appendChild(op);
+  });
+  // Se a opção que estava selecionada ainda existir, mantém — uma option removida some do
+  // <select> sozinha, então nesse caso ele recai no primeiro item (comportamento esperado).
+  if([...sel.options].some(o=>o.value===valorAtual)) sel.value = valorAtual;
+}
+
+function atualizarStatusModelosDxf(){
+  const texto = modelosDxfPendentesNaoSalvos
+    ? 'Há alterações ainda não salvas no arquivo — clique em "Salvar modelos no arquivo" para gravar.'
+    : 'Nenhuma alteração pendente.';
+  const statusEl = document.getElementById('modelos-dxf-status');
+  if(statusEl) statusEl.textContent = texto;
+  // A aba "DXF → PDF" tem seu próprio aviso de status, mesma lista/estado por baixo.
+  const statusEl2 = document.getElementById('dxfpdf-modelos-status');
+  if(statusEl2) statusEl2.textContent = texto;
+}
+
+// Único ponto que atualiza TUDO relacionado aos modelos DXF embutidos de uma vez: a lista e o
+// menu da aba Planta, o status (nas duas abas) e a lista da aba "DXF → PDF" (montada num
+// <script> mais abaixo, que expõe renderModelosDxfListaDxfPdf em window por estar fora deste
+// escopo). Chame esta função — não as individuais — depois de qualquer adição/remoção/carga.
+function atualizarTodaUiModelosDxf(){
+  renderModelosDxfLista();
+  popularOpcoesModelosDxfEmbutidos();
+  atualizarStatusModelosDxf();
+  if(typeof window.renderModelosDxfListaDxfPdf === 'function') window.renderModelosDxfListaDxfPdf();
+}
+
+const _btnModelosDxfAdicionar = document.getElementById('btn-modelos-dxf-adicionar');
+if(_btnModelosDxfAdicionar){
+  _btnModelosDxfAdicionar.addEventListener('click', async ()=>{
+    const nomeInput = document.getElementById('modelos-dxf-novo-nome');
+    const fileInput = document.getElementById('modelos-dxf-novo-file');
+    const nome = (nomeInput.value||'').trim();
+    const file = fileInput.files && fileInput.files[0];
+    if(!nome){ showToast('Dê um nome para o modelo.'); return; }
+    if(!file){ showToast('Selecione um arquivo .dxf.'); return; }
+    try{
+      const texto = await file.text();
+      modelosDxfEmbutidos.push({ id: 'dxf-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,7), nome, dxf: texto });
+      modelosDxfPendentesNaoSalvos = true;
+      nomeInput.value = '';
+      fileInput.value = '';
+      atualizarTodaUiModelosDxf();
+      showToast('Adicionado à lista — clique em "Salvar modelos no arquivo" para gravar de vez.');
+    }catch(err){
+      showToast('Erro ao ler o DXF: ' + (err.message||String(err)));
+    }
+  });
+}
+
+// Grava a lista atual de modelos dentro do próprio HTML, reescrevendo só o conteúdo da tag
+// #modelos-dxf-embutidos-dados (o resto do arquivo permanece igual). Usa a File System Access
+// API (showSaveFilePicker) quando disponível, pra você escolher sobrescrever o mesmo
+// "Map GEO Métrica.html" que já está usando; sem suporte (ou se você cancelar a escolha), cai
+// para um download normal — aí é só trocar o arquivo antigo pelo baixado.
+async function salvarModelosDxfNoArquivo(){
+  const clone = document.documentElement.cloneNode(true);
+  // Reseta estados visuais transitórios no clone antes de salvar, pra sempre gravar com a
+  // mesma aparência de "recém-aberto" — nada do que você está editando na aba atual é
+  // perdido aqui, só não fica congelado dentro do novo arquivo.
+  ['doc-results','doc-planta-dxf-externo-wrap','form-imo-colapsavel','imo-exportar-row','form-imo-chevron']
+    .forEach(id=>{ const el = clone.querySelector('#'+id); if(el) el.removeAttribute('style'); });
+  const toastClone = clone.querySelector('#toast');
+  if(toastClone){ toastClone.removeAttribute('style'); toastClone.textContent=''; }
+  const tagModelos = clone.querySelector('#modelos-dxf-embutidos-dados');
+  if(tagModelos){
+    let json = JSON.stringify(modelosDxfEmbutidos);
+    json = json.replace(/<\/script/gi, '<\\/script'); // nunca deixar fechar a tag <script> de fato
+    tagModelos.textContent = json;
+  }
+  const htmlFinal = '<!DOCTYPE html>\n' + clone.outerHTML;
+
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'Map GEO Métrica.html',
+        types: [{ description: 'Página HTML', accept: {'text/html': ['.html']} }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(htmlFinal);
+      await writable.close();
+      modelosDxfPendentesNaoSalvos = false;
+      atualizarStatusModelosDxf();
+      showToast('Modelos salvos no arquivo.');
+      return;
+    }catch(err){
+      if(err && err.name === 'AbortError') return; // você cancelou a janela de salvar
+      console.error('Falha ao salvar via showSaveFilePicker, caindo para download:', err);
+    }
+  }
+  const blob = new Blob([htmlFinal], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'Map GEO Métrica.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  modelosDxfPendentesNaoSalvos = false;
+  atualizarStatusModelosDxf();
+  showToast('Arquivo atualizado baixado — troque o antigo por este.');
+}
+const _btnModelosDxfSalvar = document.getElementById('btn-modelos-dxf-salvar');
+if(_btnModelosDxfSalvar) _btnModelosDxfSalvar.addEventListener('click', salvarModelosDxfNoArquivo);
+
+renderModelosDxfLista();
+popularOpcoesModelosDxfEmbutidos();
+atualizarStatusModelosDxf();
+
 async function gerarDocumentosDe(g){
   const imId = document.getElementById(g.imovel).value;
   const imovel = state.imoveis.find(x=>x.id===imId);
@@ -10917,6 +11147,18 @@ async function gerarDocumentosDe(g){
       plantaHtml = gerarPlantaLayoutExterno(texto, imovel, prop, tec, lista);
     }catch(err){
       plantaHtml = `<p class="note">Erro ao ler o DXF selecionado: ${escXml(err.message||String(err))}</p>`;
+    }
+  } else if(formato && formato.startsWith('EMBUTIDO:')){
+    const modeloId = formato.slice('EMBUTIDO:'.length);
+    const modelo = modelosDxfEmbutidos.find(m=>m.id===modeloId);
+    if(!modelo){
+      plantaHtml = `<p class="note">Esse modelo embutido não existe mais (pode ter sido removido) — escolha outro formato em "Formato da planta".</p>`;
+    } else {
+      try{
+        plantaHtml = gerarPlantaLayoutExterno(modelo.dxf, imovel, prop, tec, lista);
+      }catch(err){
+        plantaHtml = `<p class="note">Erro ao processar o modelo "${escXml(modelo.nome)}": ${escXml(err.message||String(err))}</p>`;
+      }
     }
   } else if(formato==='A2-TOPOGEO'){
     plantaHtml = gerarPlantaTopoGeo(imovel, prop, tec, lista);
@@ -12297,6 +12539,7 @@ function exportPDF(scene, sheet, filename) {
 
   let SCENE = null;
   let DXF_RAW = null;
+  let DXF_TEXTO_BRUTO = null; // texto cru do DXF atualmente carregado, pra "Salvar como modelo"
   let FILE_NAME = 'desenho';
   let hiddenLayers = new Set();
   let sceneWithHidden = null;
@@ -13823,59 +14066,140 @@ function exportPDF(scene, sheet, filename) {
     });
   }
 
-  function handleFile(file) {
-    FILE_NAME = file.name.replace(/\.dxf$/i, '');
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target.result;
-      let dxf;
-      try {
-        dxf = new window.DxfParser().parseSync(text);
-      } catch (err) {
-        infoBox.textContent = 'Erro ao ler o DXF: ' + err.message;
-        if (typeof showToast === 'function') showToast('Erro ao ler o DXF selecionado.');
-        return;
-      }
-      if (!dxf) { infoBox.textContent = 'Não foi possível interpretar o arquivo.'; return; }
-      DXF_RAW = dxf;
-      hiddenLayers = new Set();
+  // Processa o texto de um DXF já em mãos — venha ele de um upload/arraste (lido via
+  // FileReader) ou de um modelo embutido neste próprio arquivo (texto já guardado em
+  // memória, ver modelosDxfEmbutidos). "nomeExibicao" é só o que aparece em negrito na
+  // caixa de informações; "nomeBaseArquivo" vira o nome do PDF gerado ao final.
+  function processarTextoDxf(text, nomeExibicao, nomeBaseArquivo) {
+    FILE_NAME = (nomeBaseArquivo || nomeExibicao || 'desenho').replace(/\.dxf$/i, '');
+    let dxf;
+    try {
+      dxf = new window.DxfParser().parseSync(text);
+    } catch (err) {
+      infoBox.textContent = 'Erro ao ler o DXF: ' + err.message;
+      if (typeof showToast === 'function') showToast('Erro ao ler o DXF selecionado.');
+      return;
+    }
+    if (!dxf) { infoBox.textContent = 'Não foi possível interpretar o arquivo.'; return; }
+    DXF_RAW = dxf;
+    DXF_TEXTO_BRUTO = text; // guardado pra permitir "Salvar desenho carregado como modelo" sem reler arquivo
+    const btnSalvarComoModeloEl = $('#dxfpdf-btn-salvar-como-modelo');
+    if (btnSalvarComoModeloEl) btnSalvarComoModeloEl.disabled = false;
+    hiddenLayers = new Set();
 
-      sceneWithHidden = (hidden) => {
-        const layersRaw = (dxf.tables && dxf.tables.layer && dxf.tables.layer.layers) || {};
-        const savedVisible = {};
-        Object.keys(layersRaw).forEach(n => savedVisible[n] = layersRaw[n].visible);
-        Object.keys(layersRaw).forEach(n => { layersRaw[n].visible = !hidden.has(n); });
-        const s = buildScene(dxf);
-        Object.keys(layersRaw).forEach(n => { layersRaw[n].visible = savedVisible[n]; });
-        return s;
-      };
-
-      SCENE = buildScene(dxf);
-      populateLayers(dxf, SCENE);
-      ensureLogoAspect();
-
-      const box = SCENE.bbox || SCENE.hdrExt;
-      const uf = SCENE.unitFactor;
-      const areasEncontradas = ['AREA_DESENHO', 'AREA_SITUACAO', 'AREA_LOGO', 'AREA_CARIMBO', 'AREA_ASSINATURA', 'AREA_ORIENTACAO', 'AREA_COORDENADAS']
-        .filter(n => dxfpdfFindLayerBBox(DXF_RAW, SCENE.unitFactor || 1, [n]));
-      infoBox.innerHTML = `<b>${file.name}</b><br>` +
-        (box ? `Área do desenho: ${(box.maxX - box.minX).toFixed(1)} × ${(box.maxY - box.minY).toFixed(1)} mm<br>` : '') +
-        `Unidades detectadas: fator ${uf}x → mm<br>` +
-        `Entidades: ${dxf.entities.length}` +
-        (areasEncontradas.length ? `<br>Áreas especiais encontradas: ${areasEncontradas.join(', ')}` : '');
-
-      if (SCENE.warnings.size) {
-        warningsBox.style.display = 'block';
-        warningsBox.innerHTML = '<b>Atenção:</b> entidades não suportadas/ignoradas: ' + Array.from(SCENE.warnings).join(', ');
-      } else {
-        warningsBox.style.display = 'none';
-      }
-
-      btnGenerate.disabled = false;
-      refreshPreview();
+    sceneWithHidden = (hidden) => {
+      const layersRaw = (dxf.tables && dxf.tables.layer && dxf.tables.layer.layers) || {};
+      const savedVisible = {};
+      Object.keys(layersRaw).forEach(n => savedVisible[n] = layersRaw[n].visible);
+      Object.keys(layersRaw).forEach(n => { layersRaw[n].visible = !hidden.has(n); });
+      const s = buildScene(dxf);
+      Object.keys(layersRaw).forEach(n => { layersRaw[n].visible = savedVisible[n]; });
+      return s;
     };
+
+    SCENE = buildScene(dxf);
+    populateLayers(dxf, SCENE);
+    ensureLogoAspect();
+
+    const box = SCENE.bbox || SCENE.hdrExt;
+    const uf = SCENE.unitFactor;
+    const areasEncontradas = ['AREA_DESENHO', 'AREA_SITUACAO', 'AREA_LOGO', 'AREA_CARIMBO', 'AREA_ASSINATURA', 'AREA_ORIENTACAO', 'AREA_COORDENADAS']
+      .filter(n => dxfpdfFindLayerBBox(DXF_RAW, SCENE.unitFactor || 1, [n]));
+    infoBox.innerHTML = `<b>${nomeExibicao}</b><br>` +
+      (box ? `Área do desenho: ${(box.maxX - box.minX).toFixed(1)} × ${(box.maxY - box.minY).toFixed(1)} mm<br>` : '') +
+      `Unidades detectadas: fator ${uf}x → mm<br>` +
+      `Entidades: ${dxf.entities.length}` +
+      (areasEncontradas.length ? `<br>Áreas especiais encontradas: ${areasEncontradas.join(', ')}` : '');
+
+    if (SCENE.warnings.size) {
+      warningsBox.style.display = 'block';
+      warningsBox.innerHTML = '<b>Atenção:</b> entidades não suportadas/ignoradas: ' + Array.from(SCENE.warnings).join(', ');
+    } else {
+      warningsBox.style.display = 'none';
+    }
+
+    btnGenerate.disabled = false;
+    refreshPreview();
+  }
+
+  function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = (ev) => processarTextoDxf(ev.target.result, file.name, file.name);
     reader.readAsText(file);
   }
+
+  // ---- Modelos DXF salvos no app — tudo nesta mesma aba -----------------------------------
+  // Mesma lista global (modelosDxfEmbutidos) usada no card "Modelos de layout DXF" da aba
+  // Planta: aqui dá pra carregar, salvar o desenho atual como novo modelo, remover e gravar
+  // tudo no arquivo, sem precisar sair da aba DXF → PDF.
+  function renderModelosDxfListaDxfPdf() {
+    const vazio = $('#dxfpdf-modelos-vazio');
+    const lista = $('#dxfpdf-modelos-lista');
+    if (!lista) return;
+    const modelos = (typeof modelosDxfEmbutidos !== 'undefined' ? modelosDxfEmbutidos : []);
+    if (!modelos.length) {
+      if (vazio) vazio.style.display = 'block';
+      lista.innerHTML = '';
+      return;
+    }
+    if (vazio) vazio.style.display = 'none';
+    lista.innerHTML = modelos.map(m => `
+      <div class="kml-info" style="margin-bottom:6px;">
+        <span class="mono" style="font-size:0.78rem;">${escXml(m.nome)} <span style="opacity:0.6;">(${(m.dxf.length/1024).toFixed(1)} KB)</span></span>
+        <span style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-sm btn-ghost" data-carregar-modelo-dxf="${escXml(m.id)}">Carregar</button>
+          <button type="button" class="btn btn-sm btn-danger" data-remover-modelo-dxf="${escXml(m.id)}">Remover</button>
+        </span>
+      </div>
+    `).join('');
+    lista.querySelectorAll('[data-carregar-modelo-dxf]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-carregar-modelo-dxf');
+        const modelo = modelosDxfEmbutidos.find(m => m.id === id);
+        if (!modelo) return;
+        DXFPDF_DESENHO_OFFSET = { x: 0, y: 0 };
+        processarTextoDxf(modelo.dxf, `${modelo.nome} (modelo embutido)`, modelo.nome);
+        if (typeof showToast === 'function') showToast(`Modelo "${modelo.nome}" carregado.`);
+      });
+    });
+    lista.querySelectorAll('[data-remover-modelo-dxf]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-remover-modelo-dxf');
+        modelosDxfEmbutidos = modelosDxfEmbutidos.filter(m => m.id !== id);
+        modelosDxfPendentesNaoSalvos = true;
+        if (typeof atualizarTodaUiModelosDxf === 'function') atualizarTodaUiModelosDxf();
+      });
+    });
+  }
+  // Exposta em window pra aba Planta (onde modelosDxfEmbutidos/atualizarTodaUiModelosDxf são
+  // definidos, num <script> anterior a este) conseguir atualizar esta lista também, sempre
+  // que um modelo é adicionado/removido/salvo por lá.
+  window.renderModelosDxfListaDxfPdf = renderModelosDxfListaDxfPdf;
+
+  const btnSalvarComoModelo = $('#dxfpdf-btn-salvar-como-modelo');
+  const nomeNovoModeloInput = $('#dxfpdf-modelo-novo-nome');
+  if (btnSalvarComoModelo) {
+    btnSalvarComoModelo.addEventListener('click', () => {
+      const nome = (nomeNovoModeloInput.value || '').trim();
+      if (!nome) { if (typeof showToast === 'function') showToast('Dê um nome para o modelo.'); return; }
+      if (!DXF_TEXTO_BRUTO) { if (typeof showToast === 'function') showToast('Carregue um desenho primeiro.'); return; }
+      modelosDxfEmbutidos.push({
+        id: 'dxf-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7),
+        nome, dxf: DXF_TEXTO_BRUTO
+      });
+      modelosDxfPendentesNaoSalvos = true;
+      nomeNovoModeloInput.value = '';
+      if (typeof atualizarTodaUiModelosDxf === 'function') atualizarTodaUiModelosDxf();
+      if (typeof showToast === 'function') showToast('Adicionado à lista — clique em "Salvar modelos no arquivo" para gravar de vez.');
+    });
+  }
+  const btnSalvarModelosArquivoDxfPdf = $('#dxfpdf-btn-salvar-modelos-arquivo');
+  if (btnSalvarModelosArquivoDxfPdf) {
+    btnSalvarModelosArquivoDxfPdf.addEventListener('click', () => {
+      if (typeof salvarModelosDxfNoArquivo === 'function') salvarModelosDxfNoArquivo();
+    });
+  }
+  renderModelosDxfListaDxfPdf();
 
   fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
   // O dropzone (prompt "Clique ou arraste...") só existe enquanto nenhum arquivo foi carregado —
