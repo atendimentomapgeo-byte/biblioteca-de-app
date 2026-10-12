@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-12T18:45:43.508Z",
+  "exportadoEm": "2026-10-12T18:59:00.833Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -35,11 +35,11 @@
       "id": "mud8zucjrpduy",
       "nome": "Brunno Cesar de Paula Caldas",
       "titulo": "Téc. em Geomensura",
-      "registroTipo": "CREA",
+      "registroTipo": "CFT",
       "registroNumero": "01769562125",
       "registros": [
         {
-          "tipo": "CREA",
+          "tipo": "CFT",
           "numero": "01769562125"
         }
       ],
