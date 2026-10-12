@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-12T14:05:17.011Z",
+  "exportadoEm": "2026-10-12T14:06:11.533Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -113,8 +113,8 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": "",
-      "infoImovelOffE": 167.63599999999997,
-      "infoImovelOffN": 116.32999999999998,
+      "infoImovelOffE": 49.635999999999996,
+      "infoImovelOffN": 35.23000000000002,
       "infoImovelAng": 37
     },
     {
@@ -336,8 +336,9 @@
       "implantado": true,
       "numeroCatalogo": 1,
       "codigoCompleto": "GHH-M-0001",
-      "rotOffConfE": 26.114999999999988,
-      "rotOffConfN": 280.57499999999993
+      "rotOffConfE": 517.975,
+      "rotOffConfN": 782.0799999999998,
+      "rotAngConf": 0
     },
     {
       "id": "mud8pxpkseylk",
@@ -441,8 +442,8 @@
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
-      "rotOffConfE": 472.355,
-      "rotOffConfN": 163.04499999999996,
+      "rotOffConfE": -4.655000000000101,
+      "rotOffConfN": 157.18999999999994,
       "rotAngConf": 15
     },
     {
@@ -585,8 +586,8 @@
       "coordE": 511849.469,
       "coordN": 8754800.87,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -104.58900000000003,
-      "rotOffConfN": 16.85900000000001,
+      "rotOffConfE": -98.31900000000003,
+      "rotOffConfN": 24.384000000000007,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
@@ -606,8 +607,8 @@
       "coordE": 511750.554,
       "coordN": 8754928.276,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -196.60899999999998,
-      "rotOffConfN": 379.1739999999999,
+      "rotOffConfE": -139.57399999999998,
+      "rotOffConfN": 69.8789999999999,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
