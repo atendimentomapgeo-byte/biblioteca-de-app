@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-12T02:06:16.500Z",
+  "exportadoEm": "2026-10-12T02:40:51.458Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -35,11 +35,11 @@
       "id": "mud8zucjrpduy",
       "nome": "Brunno Cesar de Paula Caldas",
       "titulo": "Téc. em Geomensura",
-      "registroTipo": "CFT",
+      "registroTipo": "CREA",
       "registroNumero": "01769562125",
       "registros": [
         {
-          "tipo": "CFT",
+          "tipo": "CREA",
           "numero": "01769562125"
         }
       ],
@@ -737,8 +737,8 @@
       "confrontanteOrigem": "cadastro",
       "confrontanteTipo": "rio",
       "confrontanteAssinanteNome": "",
-      "rotOffConfE": 1912.925,
-      "rotOffConfN": 119.95000000000005
+      "rotOffConfE": -2774.5499999999993,
+      "rotOffConfN": 524.8
     },
     {
       "id": "mud93vdtrqdg2",
@@ -773,8 +773,8 @@
       "confrontanteOrigem": "cadastro",
       "confrontanteTipo": "rio",
       "confrontanteAssinanteNome": "",
-      "rotOffConfE": -633.025,
-      "rotOffConfN": -594.675
+      "rotOffConfE": -2676.275,
+      "rotOffConfN": -272.04999999999995
     },
     {
       "id": "mud93vdtqcwor",
