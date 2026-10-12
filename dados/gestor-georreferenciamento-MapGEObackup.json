@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-12T02:04:14.683Z",
+  "exportadoEm": "2026-10-12T02:05:14.968Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -140,7 +140,7 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": "",
-      "infoImovelAng": 30
+      "infoImovelAng": 32
     },
     {
       "id": "mud95j71y7nh3",
@@ -626,7 +626,10 @@
       "codigoCompleto": null,
       "coordE": 511750.554,
       "coordN": 8754928.276,
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": -50.77500000000032,
+      "rotOffConfN": 36.27499999999992,
+      "rotAngConf": 90
     },
     {
       "id": "mud93vdtxcx5r",
@@ -642,8 +645,8 @@
       "coordE": 511849.469,
       "coordN": 8754800.87,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -1994.15,
-      "rotOffConfN": 1279.25
+      "rotOffConfE": -1609.775,
+      "rotOffConfN": 604.7750000000001
     },
     {
       "id": "mud93vdt8mczg",
@@ -660,7 +663,9 @@
       "coordN": 8754642.287,
       "confrontanteTipo": "estrada",
       "confrontanteAssinanteNome": "",
-      "confrontanteOrigem": "cadastro"
+      "confrontanteOrigem": "cadastro",
+      "rotOffConfE": -43.49999999999997,
+      "rotOffConfN": 29.025
     },
     {
       "id": "mud93vdtmhe8e",
