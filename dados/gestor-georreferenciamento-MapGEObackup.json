@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-12T14:06:11.533Z",
+  "exportadoEm": "2026-10-12T14:09:16.329Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -113,9 +113,8 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": "",
-      "infoImovelOffE": 49.635999999999996,
-      "infoImovelOffN": 35.23000000000002,
-      "infoImovelAng": 37
+      "situacaoRegistral": "",
+      "cns": ""
     },
     {
       "id": "mud93vdrk068q",
