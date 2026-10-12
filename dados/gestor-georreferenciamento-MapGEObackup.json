@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-12T01:52:26.996Z",
+  "exportadoEm": "2026-10-12T02:04:14.683Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -113,8 +113,8 @@
       "sigefResponsavelTecnico": "",
       "simcar": "",
       "simcarSituacao": "",
-      "infoImovelOffE": 283.89599999999996,
-      "infoImovelOffN": -72.32,
+      "infoImovelOffE": 167.63599999999997,
+      "infoImovelOffN": 116.32999999999998,
       "infoImovelAng": 37
     },
     {
@@ -139,7 +139,8 @@
       "sigefDataCertificacao": "",
       "sigefResponsavelTecnico": "",
       "simcar": "",
-      "simcarSituacao": ""
+      "simcarSituacao": "",
+      "infoImovelAng": 30
     },
     {
       "id": "mud95j71y7nh3",
@@ -440,8 +441,8 @@
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
-      "rotOffConfE": -1.4549999999999903,
-      "rotOffConfN": 145.49499999999998,
+      "rotOffConfE": 472.355,
+      "rotOffConfN": 163.04499999999996,
       "rotAngConf": 15
     },
     {
@@ -563,8 +564,8 @@
       "coordE": 512958.09,
       "coordN": 8755589.855,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -162.77100000000004,
-      "rotOffConfN": 66.07000000000002,
+      "rotOffConfE": -77.22100000000003,
+      "rotOffConfN": -63.34999999999995,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
@@ -584,8 +585,8 @@
       "coordE": 511849.469,
       "coordN": 8754800.87,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -97.18900000000001,
-      "rotOffConfN": 15.793999999999993,
+      "rotOffConfE": -134.68900000000002,
+      "rotOffConfN": -57.76599999999999,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
@@ -605,8 +606,8 @@
       "coordE": 511750.554,
       "coordN": 8754928.276,
       "confrontanteOrigem": "cadastro",
-      "rotOffConfE": -149.009,
-      "rotOffConfN": 77.73399999999998,
+      "rotOffConfE": -196.60899999999998,
+      "rotOffConfN": 379.1739999999999,
       "rotOffE": 0,
       "rotOffN": 0,
       "rotAngM": 0,
