@@ -969,7 +969,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.81 — Corrigido "Salvar configuração" do Firebase: colar o bloco inteiro do console (com as linhas de "import" antes do firebaseConfig) dava erro — agora reconhece o objeto certo mesmo colando a página toda</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.82 — Corrigido erro "Não entendi o texto colado" ao salvar a configuração do Firebase quando, na verdade, era o armazenamento do navegador que estava cheio (geralmente por modelos DXF grandes); agora conecta mesmo assim e avisa certo, além de um botão "Verificar espaço usado" na aba Configurações</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -2479,6 +2479,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <textarea id="fb-config-texto" rows="5" placeholder='const firebaseConfig = { apiKey: "...", authDomain: "...", projectId: "...", ... };' style="font-family:'IBM Plex Mono',monospace; font-size:0.8rem;"></textarea>
         </div>
         <div class="row-end">
+          <button type="button" class="btn btn-sm btn-ghost" id="btn-fb-diag-espaco">Verificar espaço usado</button>
           <button type="button" class="btn btn-sm btn-primary" id="btn-fb-salvar-config">Salvar configuração</button>
         </div>
         <div id="fb-login-wrap" style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:end;">
@@ -2809,9 +2810,39 @@ async function loadAll(){
     state.config = rawCfg ? JSON.parse(rawCfg) : {};
   }catch(e){ state.config = {}; }
 }
+function ehErroDeQuotaStorage(e){
+  return !!(e && (e.name === 'QuotaExceededError' || e.code === 22 || /quota/i.test(e.message||'')));
+}
+function mensagemArmazenamentoCheio(){
+  return 'O armazenamento deste navegador está cheio — o motivo mais comum são modelos de layout DXF grandes salvos (aba Planta → "Modelos de layout DXF"). Remova modelos antigos que não usa mais para liberar espaço, ou limpe o armazenamento deste site nas configurações do navegador. Use o botão "Verificar espaço usado" (aba Configurações) pra ver o que está ocupando mais espaço.';
+}
+window.mensagemArmazenamentoCheio = mensagemArmazenamentoCheio;
+function diagnosticoEspacoLocalStorage(){
+  let totalBytes = 0;
+  const itens = [];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      const v = localStorage.getItem(k) || '';
+      const bytes = k.length + v.length;
+      totalBytes += bytes;
+      if(k.indexOf(STORAGE_PREFIX) === 0 || bytes > 20000) itens.push({chave:k, bytes});
+    }
+  }catch(e){}
+  itens.sort((a,b)=>b.bytes-a.bytes);
+  let detalheDxf = '';
+  try{
+    if(Array.isArray(state.modelosDxf) && state.modelosDxf.length){
+      const porModelo = state.modelosDxf.map(m=>({nome:m.nome||m.id, bytes:(m.dxf||'').length})).sort((a,b)=>b.bytes-a.bytes);
+      detalheDxf = '\n\nModelos de layout DXF salvos (aba Planta):\n' + porModelo.map(m=>`- "${m.nome}": ${(m.bytes/1024).toFixed(0)} KB`).join('\n');
+    }
+  }catch(e){}
+  const resumo = itens.slice(0,8).map(it=>`${it.chave}: ${(it.bytes/1024).toFixed(0)} KB`).join('\n');
+  alert(`Uso aproximado de armazenamento neste navegador: ${(totalBytes/1024/1024).toFixed(2)} MB.\n\nMaiores itens:\n${resumo}${detalheDxf}\n\nA maioria dos navegadores só permite uns 5 a 10 MB por site. Se estiver perto do limite, remova modelos de layout DXF antigos que não usa mais (aba Planta → "Modelos de layout DXF") para liberar espaço.`);
+}
 async function save(key){
   try{ localStorage.setItem(STORAGE_PREFIX+key, JSON.stringify(state[key])); }
-  catch(e){ showToast('Erro ao salvar. Verifique o espaço de armazenamento do navegador.'); }
+  catch(e){ showToast(ehErroDeQuotaStorage(e) ? mensagemArmazenamentoCheio() : 'Erro ao salvar. Verifique o espaço de armazenamento do navegador.'); }
   agendarSalvarNaPasta();
   if(!_suprimirProximoSalvamentoRemoto && typeof agendarSalvarNoFirebase==='function') agendarSalvarNoFirebase();
 }
@@ -3066,20 +3097,32 @@ if(_btnFbSalvarConfig){
   _btnFbSalvarConfig.addEventListener('click', ()=>{
     const texto = document.getElementById('fb-config-texto').value.trim();
     if(!texto){ showToast('Cole a configuração copiada do Firebase primeiro.'); return; }
+    // Separado em duas etapas de propósito: erros AQUI são sobre não entender o texto colado;
+    // erros ao conectar (abaixo) são outra coisa (ex.: armazenamento cheio) e não devem aparecer
+    // como se o texto colado estivesse errado.
+    let cfg;
     try{
-      const cfg = extrairConfigFirebaseColada(texto);
-      if(!cfg.apiKey || !cfg.authDomain || !cfg.projectId){ showToast('Faltam campos no objeto colado (apiKey, authDomain e projectId são obrigatórios).'); return; }
-      if(typeof window.firebaseConectarComConfig === 'function'){
-        window.firebaseConectarComConfig(cfg);
-        showToast('Configuração do Firebase salva — conectando...');
-      } else {
-        showToast('O módulo do Firebase ainda não carregou — aguarde um instante e tente de novo.');
-      }
+      cfg = extrairConfigFirebaseColada(texto);
+      if(!cfg.apiKey || !cfg.authDomain || !cfg.projectId) throw new Error('Faltam campos no objeto colado (apiKey, authDomain e projectId são obrigatórios).');
     }catch(err){
       showToast('Não entendi o texto colado: ' + (err.message||String(err)));
+      return;
+    }
+    if(typeof window.firebaseConectarComConfig !== 'function'){
+      showToast('O módulo do Firebase ainda não carregou — aguarde um instante e tente de novo.');
+      return;
+    }
+    try{
+      const resultado = window.firebaseConectarComConfig(cfg);
+      if(resultado && resultado.persistida === false) showToast(resultado.erroPersistencia);
+      else showToast('Configuração do Firebase salva — conectando...');
+    }catch(erroConexao){
+      showToast('Erro ao conectar ao Firebase: ' + (erroConexao.message||String(erroConexao)));
     }
   });
 }
+const _btnFbDiagEspaco = document.getElementById('btn-fb-diag-espaco');
+if(_btnFbDiagEspaco) _btnFbDiagEspaco.addEventListener('click', diagnosticoEspacoLocalStorage);
 const _btnFbEntrar = document.getElementById('btn-fb-entrar');
 if(_btnFbEntrar){
   _btnFbEntrar.addEventListener('click', ()=>{
@@ -11331,9 +11374,28 @@ document.getElementById('input-import').addEventListener('change', e=>{
   }
 
   // ---- Exposto pro resto do app (os <script> clássicos) chamar ----
+  // Tenta lembrar a configuração neste navegador (localStorage), mas NUNCA deixa isso impedir a
+  // conexão: se o armazenamento estiver no limite (comum quando há modelos DXF grandes salvos),
+  // tenta liberar um pouco removendo só caches que podem ser reconstruídos sozinhos (nunca dados
+  // do cadastro) e tenta de novo; se mesmo assim não couber, conecta ao Firebase do mesmo jeito e
+  // só avisa (via o retorno) que não vai lembrar a configuração na próxima vez que a página
+  // carregar — isso evita que um erro de armazenamento seja confundido com "texto colado inválido".
   window.firebaseConectarComConfig = function(cfg){
-    localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg));
+    const resultado = { persistida: true, erroPersistencia: null };
+    try{
+      localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg));
+    }catch(erroQuota){
+      try{
+        localStorage.removeItem('gestorgeo_municipio_por_codigo_cache_v1');
+        localStorage.removeItem('gestorgeo_municipios_cache_v1');
+        localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg));
+      }catch(erroQuota2){
+        resultado.persistida = false;
+        resultado.erroPersistencia = 'Conectado ao Firebase, mas o armazenamento deste navegador está cheio e não foi possível lembrar essa configuração — se a página for recarregada, será preciso colá-la de novo. ' + (typeof window.mensagemArmazenamentoCheio === 'function' ? window.mensagemArmazenamentoCheio() : 'Para liberar espaço, veja na aba "Planta" (card "Modelos de layout DXF") se há modelos antigos que não usa mais e remova-os.');
+      }
+    }
     conectar(cfg);
+    return resultado;
   };
   window.agendarSalvarNoFirebase = agendarSalvar;
   window.firebaseSalvarAgora = () => salvarAgora(true);
