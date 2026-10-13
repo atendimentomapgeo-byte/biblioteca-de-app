@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-13T01:16:04.272Z",
+  "exportadoEm": "2026-10-13T01:44:05.393Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -1595,5 +1595,6 @@
     "sigefTemplateNome": "sigef_planilha_modelo_1.4_rc5.ods",
     "coordFormatoPadrao": "dms"
   },
-  "rotulosExtras": []
+  "rotulosExtras": [],
+  "modelosDxf": []
 }
