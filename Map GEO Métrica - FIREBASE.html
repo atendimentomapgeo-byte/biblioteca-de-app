@@ -969,7 +969,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.83 — A configuração do Firebase agora é lembrada via IndexedDB (limite bem maior que o do localStorage) em vez de localStorage — corrige ter que colar a configuração toda vez que o app é aberto quando o armazenamento do navegador está cheio</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.84 — Corrigido "Erro ao salvar: ... Unsupported field value: undefined" no Firebase: o cadastro agora é limpo de campos undefined antes de enviar ao banco de dados compartilhado (o Firestore não aceita esse valor, diferente do backup antigo em arquivo)</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -11408,7 +11408,14 @@ document.getElementById('input-import').addEventListener('change', e=>{
     if(!db || !auth || !auth.currentUser) return;
     try{
       status('Salvando...');
-      const payload = { ...(window.state||{}), atualizadoPor: auth.currentUser.email, atualizadoEm: new Date().toISOString() };
+      const payloadBruto = { ...(window.state||{}), atualizadoPor: auth.currentUser.email, atualizadoEm: new Date().toISOString() };
+      // O Firestore recusa qualquer campo com valor "undefined" literal (erro "Unsupported field
+      // value: undefined") — diferente do backup antigo em arquivo/GitHub, que usava
+      // JSON.stringify e por isso já omitia esses campos sozinho sem erro nenhum. Faz o mesmo
+      // aqui: um round-trip de JSON.stringify/parse antes de enviar remove qualquer "undefined"
+      // (campo some, ou vira null dentro de um array) sem mudar mais nada dos dados — é exatamente
+      // o que já acontece com esses mesmos dados ao salvar no localStorage/pasta local.
+      const payload = JSON.parse(JSON.stringify(payloadBruto));
       ultimoEnvioTexto = JSON.stringify(payload);
       await setDoc(doc(db, ...DOC_CAMINHO), payload);
       pendente = false;
