@@ -969,7 +969,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.82 — Corrigido erro "Não entendi o texto colado" ao salvar a configuração do Firebase quando, na verdade, era o armazenamento do navegador que estava cheio (geralmente por modelos DXF grandes); agora conecta mesmo assim e avisa certo, além de um botão "Verificar espaço usado" na aba Configurações</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.83 — A configuração do Firebase agora é lembrada via IndexedDB (limite bem maior que o do localStorage) em vez de localStorage — corrige ter que colar a configuração toda vez que o app é aberto quando o armazenamento do navegador está cheio</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -3050,12 +3050,40 @@ document.getElementById('btn-salvar-pasta-agora').addEventListener('click', ()=>
 // CDN) — ele expõe as funções que usamos aqui como window.firebaseXxx. Este bloco só cuida da
 // tela: pré-popular o campo de configuração salvo e ligar os botões aos cliques.
 const FIREBASE_CFG_KEY = STORAGE_PREFIX+'firebaseConfig';
-function carregarConfigFirebaseSalva(){
+const FIREBASE_IDB_NOME = 'marcos-georref-db', FIREBASE_IDB_STORE = 'kv';
+// A configuração do Firebase é lembrada via IndexedDB (não localStorage): localStorage tem um
+// limite baixo por navegador (uns 5-10 MB, compartilhado com o resto do cadastro e com modelos
+// DXF grandes) — é fácil esse limite estourar e, quando estourava, o navegador "esquecia" a
+// configuração a cada vez que a página recarregava, obrigando a colar tudo de novo. IndexedDB
+// tem um limite bem maior (não compartilha o mesmo teto apertado), então a configuração fica
+// guardada de verdade mesmo com o resto do armazenamento cheio.
+function _fbAbrirIdb(){
+  return new Promise((resolve, reject)=>{
+    if(!window.indexedDB){ reject(new Error('IndexedDB indisponível neste navegador.')); return; }
+    const req = indexedDB.open(FIREBASE_IDB_NOME, 1);
+    req.onupgradeneeded = ()=>{ try{ req.result.createObjectStore(FIREBASE_IDB_STORE); }catch(e){} };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function carregarConfigFirebaseSalva(){
+  try{
+    const db = await _fbAbrirIdb();
+    const viaIdb = await new Promise((resolve, reject)=>{
+      const tx = db.transaction(FIREBASE_IDB_STORE, 'readonly');
+      const req = tx.objectStore(FIREBASE_IDB_STORE).get(FIREBASE_CFG_KEY);
+      req.onsuccess = ()=>resolve(req.result);
+      req.onerror = ()=>reject(req.error);
+    });
+    if(viaIdb && viaIdb.apiKey) return viaIdb;
+  }catch(e){ /* IndexedDB indisponível ou vazio — cai pro localStorage abaixo. */ }
+  // Compatibilidade com uma configuração salva por uma versão anterior deste arquivo (que só
+  // usava localStorage) — se achar algo lá, usa, mesmo que o IndexedDB esteja vazio.
   try{ return JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY) || 'null'); }
   catch(e){ return null; }
 }
-(function preencherConfigFirebaseNaTela(){
-  const cfg = carregarConfigFirebaseSalva();
+(async function preencherConfigFirebaseNaTela(){
+  const cfg = await carregarConfigFirebaseSalva();
   const txt = document.getElementById('fb-config-texto');
   if(cfg && txt) txt.value = JSON.stringify(cfg, null, 2);
 })();
@@ -3094,7 +3122,7 @@ function extrairConfigFirebaseColada(texto){
 }
 const _btnFbSalvarConfig = document.getElementById('btn-fb-salvar-config');
 if(_btnFbSalvarConfig){
-  _btnFbSalvarConfig.addEventListener('click', ()=>{
+  _btnFbSalvarConfig.addEventListener('click', async ()=>{
     const texto = document.getElementById('fb-config-texto').value.trim();
     if(!texto){ showToast('Cole a configuração copiada do Firebase primeiro.'); return; }
     // Separado em duas etapas de propósito: erros AQUI são sobre não entender o texto colado;
@@ -3113,7 +3141,7 @@ if(_btnFbSalvarConfig){
       return;
     }
     try{
-      const resultado = window.firebaseConectarComConfig(cfg);
+      const resultado = await window.firebaseConectarComConfig(cfg);
       if(resultado && resultado.persistida === false) showToast(resultado.erroPersistencia);
       else showToast('Configuração do Firebase salva — conectando...');
     }catch(erroConexao){
@@ -11258,6 +11286,7 @@ document.getElementById('input-import').addEventListener('change', e=>{
 
   const DOC_CAMINHO = ['escritorio', 'dados']; // coleção "escritorio", documento fixo "dados" — um só documento compartilhado por todo mundo do escritório.
   const FIREBASE_CFG_KEY = 'marcos-georref:firebaseConfig'; // mesma chave que o <script> clássico usa (STORAGE_PREFIX já vale 'marcos-georref:' lá)
+  const FIREBASE_IDB_NOME = 'marcos-georref-db', FIREBASE_IDB_STORE = 'kv'; // mesmo banco/loja que o <script> clássico usa pra pré-popular o campo
 
   let app = null, auth = null, db = null;
   let pararEscuta = null;       // cancela o onSnapshot anterior ao reconectar (troca de conta/config)
@@ -11272,7 +11301,42 @@ document.getElementById('input-import').addEventListener('change', e=>{
     if(el){ el.textContent = msg; el.style.color = erro ? '#E08A73' : ''; }
   }
   function configValida(cfg){ return !!(cfg && cfg.apiKey && cfg.authDomain && cfg.projectId); }
-  function carregarConfigSalva(){
+
+  // IndexedDB em vez de localStorage pra lembrar a configuração: localStorage tem um teto baixo
+  // (uns 5-10 MB) compartilhado com o resto do cadastro e com modelos DXF grandes — quando esse
+  // teto estourava, o navegador "esquecia" a configuração a cada recarregamento da página,
+  // obrigando a pessoa a colar tudo de novo toda vez que abria o app. IndexedDB tem um limite bem
+  // maior, então a configuração passa a ficar guardada de verdade.
+  function abrirIdb(){
+    return new Promise((resolve, reject)=>{
+      if(!window.indexedDB){ reject(new Error('IndexedDB indisponível neste navegador.')); return; }
+      const req = indexedDB.open(FIREBASE_IDB_NOME, 1);
+      req.onupgradeneeded = ()=>{ try{ req.result.createObjectStore(FIREBASE_IDB_STORE); }catch(e){} };
+      req.onsuccess = ()=>resolve(req.result);
+      req.onerror = ()=>reject(req.error);
+    });
+  }
+  async function idbSalvarConfig(cfg){
+    const db = await abrirIdb();
+    await new Promise((resolve, reject)=>{
+      const tx = db.transaction(FIREBASE_IDB_STORE, 'readwrite');
+      tx.objectStore(FIREBASE_IDB_STORE).put(cfg, FIREBASE_CFG_KEY);
+      tx.oncomplete = resolve;
+      tx.onerror = ()=>reject(tx.error);
+    });
+  }
+  async function carregarConfigSalva(){
+    try{
+      const db = await abrirIdb();
+      const viaIdb = await new Promise((resolve, reject)=>{
+        const tx = db.transaction(FIREBASE_IDB_STORE, 'readonly');
+        const req = tx.objectStore(FIREBASE_IDB_STORE).get(FIREBASE_CFG_KEY);
+        req.onsuccess = ()=>resolve(req.result);
+        req.onerror = ()=>reject(req.error);
+      });
+      if(configValida(viaIdb)) return viaIdb;
+    }catch(e){ /* IndexedDB indisponível ou vazio — cai pro localStorage abaixo. */ }
+    // Compatibilidade com uma configuração salva por uma versão anterior (só localStorage).
     try{ return JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY) || 'null'); }
     catch(e){ return null; }
   }
@@ -11380,18 +11444,26 @@ document.getElementById('input-import').addEventListener('change', e=>{
   // do cadastro) e tenta de novo; se mesmo assim não couber, conecta ao Firebase do mesmo jeito e
   // só avisa (via o retorno) que não vai lembrar a configuração na próxima vez que a página
   // carregar — isso evita que um erro de armazenamento seja confundido com "texto colado inválido".
-  window.firebaseConectarComConfig = function(cfg){
+  window.firebaseConectarComConfig = async function(cfg){
     const resultado = { persistida: true, erroPersistencia: null };
     try{
-      localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg));
-    }catch(erroQuota){
+      // Caminho principal: IndexedDB, que não esbarra no teto baixo do localStorage.
+      await idbSalvarConfig(cfg);
+    }catch(erroIdb){
+      // IndexedDB indisponível (raro) — tenta localStorage como alternativa, com uma segunda
+      // tentativa depois de liberar só caches que podem ser reconstruídos sozinhos (nunca dados
+      // do cadastro).
       try{
-        localStorage.removeItem('gestorgeo_municipio_por_codigo_cache_v1');
-        localStorage.removeItem('gestorgeo_municipios_cache_v1');
         localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg));
-      }catch(erroQuota2){
-        resultado.persistida = false;
-        resultado.erroPersistencia = 'Conectado ao Firebase, mas o armazenamento deste navegador está cheio e não foi possível lembrar essa configuração — se a página for recarregada, será preciso colá-la de novo. ' + (typeof window.mensagemArmazenamentoCheio === 'function' ? window.mensagemArmazenamentoCheio() : 'Para liberar espaço, veja na aba "Planta" (card "Modelos de layout DXF") se há modelos antigos que não usa mais e remova-os.');
+      }catch(erroQuota){
+        try{
+          localStorage.removeItem('gestorgeo_municipio_por_codigo_cache_v1');
+          localStorage.removeItem('gestorgeo_municipios_cache_v1');
+          localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg));
+        }catch(erroQuota2){
+          resultado.persistida = false;
+          resultado.erroPersistencia = 'Conectado ao Firebase, mas não foi possível lembrar essa configuração neste navegador — se a página for recarregada, será preciso colá-la de novo. ' + (typeof window.mensagemArmazenamentoCheio === 'function' ? window.mensagemArmazenamentoCheio() : 'Para liberar espaço, veja na aba "Planta" (card "Modelos de layout DXF") se há modelos antigos que não usa mais e remova-os.');
+        }
       }
     }
     conectar(cfg);
@@ -11417,9 +11489,11 @@ document.getElementById('input-import').addEventListener('change', e=>{
   // Se este navegador já tinha uma configuração salva, reconecta sozinho ao carregar a página —
   // o próprio Firebase Auth lembra a sessão de login automaticamente (fica guardada no
   // navegador), então normalmente nem pede e-mail/senha de novo.
-  const cfgSalva = carregarConfigSalva();
-  if(configValida(cfgSalva)) conectar(cfgSalva);
-  else status('Cole a configuração do Firebase (copiada do console) e clique em "Salvar configuração".');
+  (async function(){
+    const cfgSalva = await carregarConfigSalva();
+    if(configValida(cfgSalva)) conectar(cfgSalva);
+    else status('Cole a configuração do Firebase (copiada do console) e clique em "Salvar configuração".');
+  })();
 </script>
 
 <!-- ===== DXF -> PDF: bibliotecas de terceiros (dxf-parser e jsPDF, ambos MIT) ===== -->
