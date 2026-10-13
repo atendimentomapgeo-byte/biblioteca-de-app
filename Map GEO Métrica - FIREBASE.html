@@ -969,7 +969,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.84 — Corrigido "Erro ao salvar: ... Unsupported field value: undefined" no Firebase: o cadastro agora é limpo de campos undefined antes de enviar ao banco de dados compartilhado (o Firestore não aceita esse valor, diferente do backup antigo em arquivo)</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.85 — Corrigido "Salvando..." travado pra sempre no Firebase: a conexão com o banco de dados agora usa "long polling" (bem mais compatível com firewall/antivírus de rede de escritório) e, se mesmo assim não responder em 20s, mostra um erro com o que verificar, em vez de travar sem aviso</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -11282,7 +11282,7 @@ document.getElementById('input-import').addEventListener('change', e=>{
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js';
-  import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js';
+  import { initializeFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js';
 
   const DOC_CAMINHO = ['escritorio', 'dados']; // coleção "escritorio", documento fixo "dados" — um só documento compartilhado por todo mundo do escritório.
   const FIREBASE_CFG_KEY = 'marcos-georref:firebaseConfig'; // mesma chave que o <script> clássico usa (STORAGE_PREFIX já vale 'marcos-georref:' lá)
@@ -11417,13 +11417,22 @@ document.getElementById('input-import').addEventListener('change', e=>{
       // o que já acontece com esses mesmos dados ao salvar no localStorage/pasta local.
       const payload = JSON.parse(JSON.stringify(payloadBruto));
       ultimoEnvioTexto = JSON.stringify(payload);
-      await setDoc(doc(db, ...DOC_CAMINHO), payload);
+      // Timeout de segurança: numa rede que bloqueia/trava a conexão do Firestore (ver o
+      // "experimentalForceLongPolling" em conectar(), que já evita a causa mais comum disso), sem
+      // isso o "await setDoc" pode ficar pendurado pra sempre, sem erro nenhum, deixando a tela
+      // travada em "Salvando..." indefinidamente e sem pista nenhuma do que fazer. Depois de 20s
+      // sem resposta, desiste de esperar e avisa de um jeito que dá pra agir.
+      let timerTimeout;
+      const timeoutPromise = new Promise((_, rejeita)=>{ timerTimeout = setTimeout(()=>rejeita(new Error('Sem resposta do banco de dados em 20 segundos.')), 20000); });
+      await Promise.race([ setDoc(doc(db, ...DOC_CAMINHO), payload), timeoutPromise ]);
+      clearTimeout(timerTimeout);
       pendente = false;
       status(`Salvo às ${new Date().toLocaleTimeString('pt-BR')}.`);
       if(mostrarToast && typeof window.showToast === 'function') window.showToast('Dados salvos.');
     } catch(erro){
-      status('Erro ao salvar: ' + (erro.message||erro), true);
-      if(mostrarToast && typeof window.showToast === 'function') window.showToast('Erro ao salvar: ' + (erro.message||erro));
+      const msg = 'Erro ao salvar: ' + (erro.message||erro) + ' — verifique a internet deste computador; se persistir, pode ser antivírus/firewall da rede bloqueando a conexão com o Firestore, ou o banco de dados ainda não foi criado no projeto do Firebase (Build → Firestore Database).';
+      status(msg, true);
+      if(mostrarToast && typeof window.showToast === 'function') window.showToast(msg);
     }
   }
   function agendarSalvar(){
@@ -11436,7 +11445,13 @@ document.getElementById('input-import').addEventListener('change', e=>{
   function conectar(cfg){
     app = initializeApp(cfg);
     auth = getAuth(app);
-    db = getFirestore(app);
+    // getFirestore(app) usa, por padrão, uma conexão "em stream" (WebChannel) que alguns
+    // firewalls/antivírus/proxies de rede corporativa bloqueiam ou travam sem avisar erro nenhum
+    // — o pedido de gravação fica pendurado pra sempre em "Salvando..." (nem confirma, nem dá
+    // erro), mesmo com o login (que usa uma conexão mais simples) funcionando normalmente.
+    // initializeFirestore com "long polling" forçado evita esse tipo de conexão e é bem mais
+    // compatível com redes de escritório restritas.
+    db = initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false });
     onAuthStateChanged(auth, (usuario)=>{
       atualizarUiLogin(usuario);
       if(usuario) iniciarEscuta();
