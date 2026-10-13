@@ -1,5 +1,5 @@
 {
-  "exportadoEm": "2026-10-13T01:51:20.145Z",
+  "exportadoEm": "2026-10-13T01:59:15.834Z",
   "proprietarios": [
     {
       "id": "mud8xhloqw8e6",
@@ -115,7 +115,9 @@
       "simcarSituacao": "",
       "situacaoRegistral": "",
       "cns": "",
-      "infoImovelAng": 45
+      "infoImovelAng": 36.5,
+      "infoImovelOffE": 168.9,
+      "infoImovelOffN": 114.05999999999999
     },
     {
       "id": "mud93vdrk068q",
