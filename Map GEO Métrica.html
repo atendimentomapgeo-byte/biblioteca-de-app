@@ -969,7 +969,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <!-- Versão do arquivo: atualizar esta linha (data/hora + resumo curto) toda vez que uma nova
          cópia deste HTML for entregue, pra dar pro usuário conferir, olhando só a tela do app, se
          está mesmo na versão mais recente (sem precisar comparar arquivos por fora). -->
-    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-13.85 — Corrigido "Salvando..." travado pra sempre no Firebase: a conexão com o banco de dados agora usa "long polling" (bem mais compatível com firewall/antivírus de rede de escritório) e, se mesmo assim não responder em 20s, mostra um erro com o que verificar, em vez de travar sem aviso</span>
+    <span id="app-version" title="Versão deste arquivo MapGEO.html" style="display:block; font-size:0.68rem; opacity:0.55; margin-top:2px; font-family:'IBM Plex Mono',monospace;">v2026-10-14.86 — Confrontante atribuído a partir da consulta ao SIGEF/INCRA agora nasce com a geometria (marcos) dele também, não só nome/matrícula — área, perímetro e zona UTM são preenchidos automaticamente a partir dos limites já trazidos pela própria consulta</span>
   </p>
   <div style="margin-left:auto; display:flex; gap:8px;">
     <button class="btn btn-sm btn-ghost" id="btn-export" title="Salva um arquivo .json com todos os cadastros">Exportar backup</button>
@@ -5927,6 +5927,36 @@ function renderResultadoSigef(encontrados, totalParcelas, ignoradosMesmoImovel, 
     });
   });
 }
+// Cria os marcos (vértices) de um imóvel confrontante a partir da geometria que a própria consulta
+// ao SIGEF/INCRA já trouxe (r.pontosGeo, em lon/lat) — sem isso, um confrontante atribuído a partir
+// do SIGEF nascia como um registro "vazio" (só nome/matrícula/situação etc., sem nenhum marco),
+// mesmo a geometria dele já tendo sido baixada nessa mesma consulta só para comparar os limites e
+// depois ser descartada. Reprojeta pro MESMO fuso/hemisfério do imóvel de referência
+// (lonLatParaUTMFusoFixo — igual já é feito em compararGeometriasComImovel), pra ficar
+// geometricamente consistente com ele. Só roda quando o imóvel confrontante ainda não tem
+// geometria própria — nunca sobrescreve marcos que o usuário já tenha editado/implantado depois
+// (ver chamada mais abaixo, que só entra aqui se marcosOrdenados(imC.id).length<3).
+function criarMarcosConfrontanteSigef(imC, pontosGeo, zona, sul){
+  if(!pontosGeo || pontosGeo.length<3 || !zona) return false;
+  const novos = pontosGeo.map((p,i)=>{
+    const utm = lonLatParaUTMFusoFixo(p.lon, p.lat, zona, sul);
+    return {
+      id: uid(), imovelId: imC.id, tipo:'V', ordem:i+1,
+      confrontante:'', confrontanteImovelId:null, codigoSigef:'',
+      sigmaE:null, sigmaN:null, alturaElipsoidal:null, sigmaH:null,
+      metodoPosicionamento:'', tipoLimite:'',
+      implantado:false, numeroCatalogo:null, codigoCompleto:null,
+      coordE: Math.round(utm.x*1000)/1000,
+      coordN: Math.round(utm.y*1000)/1000,
+    };
+  });
+  state.marcos.push(...novos);
+  if(!imC.utmZona) imC.utmZona = `${zona}${sul?'S':'N'}`;
+  const ordenados = marcosOrdenados(imC.id);
+  if(!imC.area) imC.area = calcAreaHa(ordenados).toFixed(4);
+  if(!imC.perimetro) imC.perimetro = calcPerimetro(ordenados).toFixed(2);
+  return true;
+}
 async function atribuirConfrontanteSigef(r){
   const nomeExibicao = r.nome || (r.parcela? `Parcela SIGEF ${r.parcela}` : 'Imóvel confrontante (SIGEF)');
   if(!confirmarSobrescritaConfrontante(r.marcoIds, nomeExibicao)){
@@ -5983,6 +6013,19 @@ async function atribuirConfrontanteSigef(r){
     await save('imoveis');
     renderImo(); refreshSelects();
   }
+  // Preenche a geometria do confrontante se ele ainda não tiver (recém-criado agora, ou um
+  // registro antigo de antes dessa correção que nunca ganhou marcos) — usa o fuso/hemisfério do
+  // imóvel de referência (o mesmo que r.marcoIds pertence), já validado antes da consulta rodar.
+  let geometriaPreenchidaAgora = false;
+  if(marcosOrdenados(imC.id).length<3 && r.pontosGeo && r.pontosGeo.length>=3){
+    const marcoRef = state.marcos.find(x=>x.id===r.marcoIds[0]);
+    const imRef = marcoRef ? state.imoveis.find(x=>x.id===marcoRef.imovelId) : null;
+    if(imRef){
+      const {zona, sul} = inferirZonaHemisferio(imRef, marcosOrdenados(imRef.id));
+      if(zona) geometriaPreenchidaAgora = criarMarcosConfrontanteSigef(imC, r.pontosGeo, zona, sul);
+    }
+    if(geometriaPreenchidaAgora) await save('imoveis');
+  }
   r.marcoIds.forEach(marcoId=>{
     const m = state.marcos.find(x=>x.id===marcoId);
     if(m){ m.confrontante = imC.nome; m.confrontanteImovelId = imC.id; m.confrontanteOrigem = 'sigef'; }
@@ -5991,7 +6034,7 @@ async function atribuirConfrontanteSigef(r){
   renderMarcos();
   if(typeof renderConfrontantePoligono==='function') renderConfrontantePoligono();
   if(typeof renderConfrontantesHub==='function') renderConfrontantesHub();
-  showToast(`Confrontante "${imC.nome}" atribuído a ${r.marcoIds.length} lado(s).`);
+  showToast(`Confrontante "${imC.nome}" atribuído a ${r.marcoIds.length} lado(s).`+(geometriaPreenchidaAgora? ` Geometria própria (${r.pontosGeo.length} vértices) importada do SIGEF.` : ''));
 }
 
 function renderMarcos(){
