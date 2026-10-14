@@ -133,6 +133,8 @@
   tbody tr:hover{ background: rgba(99,216,214,0.06); }
   tbody td{ padding:11px 12px; font-size:13px; vertical-align:middle; }
   td.propriedade{ font-weight:600; }
+  .propriedade-nome{ font-weight:600; line-height:1.35; }
+  .propriedade-sub{ font-weight:400; font-size:12.5px; line-height:1.3; color: var(--ink-faint); margin-top:4px; letter-spacing:0.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
   td.car{ font-family:'IBM Plex Mono', monospace; color: var(--ink-dim); font-size:12px; }
   .deadline-pill{
     display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:11.5px;
@@ -147,6 +149,8 @@
   .progress-fill{ height:100%; background: var(--ok); }
   .progress-mini span{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-dim); }
   .row-alert{ color: var(--bad); font-size:14px; }
+  td.col-flag, td.col-pdf, td.col-complete, th.col-flag, th.col-pdf, th.col-complete{ white-space:nowrap; width:34px; min-width:34px; text-align:center; padding-left:4px; padding-right:4px; }
+  .pdf-icon{ font-size:13px; }
   td.processado{ font-size:12.5px; color: var(--ink-dim); }
   .empty-row td{ text-align:center; padding:38px 10px; color: var(--ink-faint); font-family:'IBM Plex Mono', monospace; font-size:13px; }
 
@@ -359,7 +363,7 @@
   </div>
 
   <section class="toolbar">
-    <input type="text" id="searchInput" placeholder="Buscar por propriedade ou CAR estadual…">
+    <input type="text" id="searchInput" placeholder="Buscar por propriedade, proprietário ou CAR estadual…">
     <select id="filterStatus">
       <option value="todos">Todos os prazos</option>
       <option value="vencido">Vencidos</option>
@@ -384,7 +388,9 @@
     <table>
       <thead>
         <tr>
-          <th title="Marca processos com pelo menos um bloco 'Não Aprovado'">Alerta</th>
+          <th title="Marca processos com pelo menos um bloco 'Não Aprovado'" class="col-flag">Alerta</th>
+          <th title="PDF anexado" class="col-pdf"></th>
+          <th title="100% concluído" class="col-complete"></th>
           <th>Propriedade</th>
           <th>CAR Estadual</th>
           <th>Prazo para envio</th>
@@ -408,13 +414,21 @@
       <label>Propriedade</label>
       <input type="text" id="fPropriedade" placeholder="Ex: Fazenda Santa Catarina">
     </div>
+    <div class="field">
+      <label>Proprietário</label>
+      <input type="text" id="fProprietario" placeholder="Ex: João da Silva">
+    </div>
+    <div class="field">
+      <label>Analista responsável</label>
+      <input type="text" id="fAnalista" placeholder="Ex: Fagner">
+    </div>
     <div class="field-row">
       <div class="field">
         <label>CAR Estadual</label>
         <input type="text" id="fCar" placeholder="Ex: MT24603/2018">
       </div>
       <div class="field">
-        <label>Processado no SIMCAR (quem)</label>
+        <label>Processado no SIMCAR (quem mexeu nas geometrias)</label>
         <input type="text" id="fProcessado" placeholder="Ex: Brunno">
       </div>
     </div>
@@ -1032,6 +1046,8 @@ function normalizeRecord(r){
   r.results = migrateResults(r.results);
   if(typeof r.arquivado !== 'boolean') r.arquivado = false;
   if(r.arquivadoEm === undefined) r.arquivadoEm = null;
+  if(r.proprietario === undefined) r.proprietario = '';
+  if(r.analista === undefined) r.analista = '';
   if(r._pendTextos){
     Object.keys(r._pendTextos).forEach(key => {
       if(r.results[key]) r.results[key].texto = r._pendTextos[key];
@@ -1177,7 +1193,7 @@ function applyFiltersSort(list){
   let out = list.filter(r => viewMode === 'historico' ? !!r.arquivado : !r.arquivado);
 
   out = out.filter(r => {
-    if(q && !(r.propriedade.toLowerCase().includes(q) || r.car.toLowerCase().includes(q))) return false;
+    if(q && !(r.propriedade.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.proprietario||'').toLowerCase().includes(q) || (r.analista||'').toLowerCase().includes(q))) return false;
     if(filt !== 'todos'){
       const d = daysUntil(r.dataFinal);
       if(filt === 'vencido' && !(d !== null && d < 0)) return false;
@@ -1204,16 +1220,24 @@ function render(){
   tbody.innerHTML = '';
 
   if(list.length === 0){
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Nenhum processo encontrado.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Nenhum processo encontrado.</td></tr>`;
   }
 
   list.forEach(rec => {
     const dl = deadlineState(rec.dataFinal);
     const prog = progressOf(rec);
     const tr = document.createElement('tr');
+    tr.title = 'Clique duas vezes para ver/ocultar detalhes';
+    const subParts = [rec.proprietario, rec.analista].filter(Boolean);
+    const subText = subParts.join(' · ');
     tr.innerHTML = `
-      <td>${prog.objCount > 0 ? `<span class="row-alert" title="${prog.objCount} bloco(s) marcado(s) como Não Aprovado — requer atenção prioritária">⚑</span>` : ''}</td>
-      <td class="propriedade">${(viewMode === 'ativos' && !rec.arquivado && prog.pct === 100) ? '<span class="complete-badge" title="100% concluído — pronto para arquivar no histórico">✅</span>' : ''}${escapeHtml(rec.propriedade)}${rec.pdfName ? ' <span title="PDF anexado: '+escapeHtml(rec.pdfName)+'">📄</span>' : ''}</td>
+      <td class="col-flag">${prog.objCount > 0 ? `<span class="row-alert" title="${prog.objCount} bloco(s) marcado(s) como Não Aprovado — requer atenção prioritária">⚑</span>` : ''}</td>
+      <td class="col-pdf">${rec.pdfName ? '<span class="pdf-icon" title="PDF anexado: '+escapeHtml(rec.pdfName)+'">📄</span>' : ''}</td>
+      <td class="col-complete">${(viewMode === 'ativos' && !rec.arquivado && prog.pct === 100) ? '<span class="complete-badge" title="100% concluído — pronto para arquivar no histórico">✅</span>' : ''}</td>
+      <td class="propriedade">
+        <div class="propriedade-nome">${escapeHtml(rec.propriedade)}</div>
+        ${subText ? `<div class="propriedade-sub" title="${escapeHtml(subText)}">${escapeHtml(subText)}</div>` : ''}
+      </td>
       <td class="car">${escapeHtml(rec.car)}</td>
       <td><span class="deadline-pill ${dl.cls}">${dl.text}<span class="date">· ${fmtDate(rec.dataFinal)}</span></span>${rec.prorrogacao ? '<span class="prorrogacao-badge">+30 PRORROGADO</span>' : ''}</td>
       <td>
@@ -1224,7 +1248,7 @@ function render(){
       </td>
       <td class="processado">${escapeHtml(rec.processado) || '—'}</td>
     `;
-    tr.addEventListener('click', () => {
+    tr.addEventListener('dblclick', () => {
       expandedId = expandedId === rec.id ? null : rec.id;
       render();
     });
@@ -1370,6 +1394,8 @@ function openModal(rec){
   document.getElementById('modalTitle').textContent = rec ? 'Editar processo' : 'Novo processo';
   document.getElementById('editId').value = rec ? rec.id : crypto.randomUUID();
   document.getElementById('fPropriedade').value = rec ? rec.propriedade : '';
+  document.getElementById('fProprietario').value = rec ? (rec.proprietario || '') : '';
+  document.getElementById('fAnalista').value = rec ? (rec.analista || '') : '';
   document.getElementById('fCar').value = rec ? rec.car : '';
   document.getElementById('fProcessado').value = rec ? rec.processado : '';
   document.getElementById('fDataAnalise').value = rec ? rec.dataAnalise : '';
@@ -1518,6 +1544,8 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     const existing = records.find(r => r.id === id);
     const data = {
       propriedade,
+      proprietario: document.getElementById('fProprietario').value.trim(),
+      analista: document.getElementById('fAnalista').value.trim(),
       car: document.getElementById('fCar').value.trim(),
       processado: document.getElementById('fProcessado').value.trim(),
       dataAnalise: document.getElementById('fDataAnalise').value,
@@ -1585,14 +1613,14 @@ document.getElementById('filterStatus').addEventListener('change', render);
 document.getElementById('sortBy').addEventListener('change', render);
 
 document.getElementById('exportBtn').addEventListener('click', () => {
-  const headers = ['Propriedade','CAR Estadual','Data da Análise','Data Final para Envio', ...RESULT_FIELDS.map(f=>f.label), 'Processado no SIMCAR','Observações','Detalhamento das Pendências'];
+  const headers = ['Propriedade','Proprietário','Analista Responsável','CAR Estadual','Data da Análise','Data Final para Envio', ...RESULT_FIELDS.map(f=>f.label), 'Processado no SIMCAR','Observações','Detalhamento das Pendências'];
   const rows = records.map(r => {
     const detalhamento = RESULT_FIELDS
       .filter(f => r.results[f.key].texto.trim())
       .map(f => `${f.label}: ${r.results[f.key].texto.trim()}`)
       .join(' | ');
     return [
-      r.propriedade, r.car, fmtDate(r.dataAnalise), fmtDate(r.dataFinal),
+      r.propriedade, r.proprietario || '', r.analista || '', r.car, fmtDate(r.dataAnalise), fmtDate(r.dataFinal),
       ...RESULT_FIELDS.map(f => STATUS_LABEL[r.results[f.key].status]),
       r.processado, r.obs, detalhamento
     ];
