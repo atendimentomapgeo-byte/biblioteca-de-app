@@ -434,20 +434,135 @@ function renderDetail(s){
 }
 
 
+/*BEGIN-CLIENT-COMPOSE*/
+/* ===== Composições no navegador (sem backend). Espelha backend/app/composites.py ===== */
+const CC={open:null,
+ RECIPES:{natural:["Cor natural (R, G, B)",["red","green","blue"]],cir:["Infravermelho colorido (NIR, R, G) — vegetação em vermelho",["nir","red","green"]],agricultura:["Agricultura (SWIR1, NIR, Azul)",["swir16","nir","blue"]],swir:["SWIR / queimadas (SWIR2, NIR, R)",["swir22","nir","red"]],
+  natural_pan:["Cor natural + fusão pancromática (R, G, B + PAN)",["red","green","blue","pan"]],cir_pan:["Infravermelho colorido + fusão pancromática (NIR, R, G + PAN)",["nir","red","green","pan"]]},
+ INDICES:{ndvi:["NDVI — vegetação (NIR−R)/(NIR+R)",["nir","red"]],ndwi:["NDWI — água (Verde−NIR)/(Verde+NIR)",["green","nir"]],nbr:["NBR — queimadas (NIR−SWIR2)/(NIR+SWIR2)",["nir","swir22"]]},
+ COMMON:{pan:["pan"],red:["red"],green:["green"],blue:["blue"],nir:["nir","nir08"],swir16:["swir16"],swir22:["swir22"]},
+ GENERIC:{pan:["pan"],red:["red"],green:["green"],blue:["blue"],nir:["nir","nir08"],swir16:["swir16"],swir22:["swir22"]},
+ S2:{blue:["B02"],green:["B03"],red:["B04"],nir:["B08","B8A"],swir16:["B11"],swir22:["B12"]},
+ BY_COLL:{"CB4-MUX":{blue:["BAND5"],green:["BAND6"],red:["BAND7"],nir:["BAND8"]},"CB4-WFI":{blue:["BAND13"],green:["BAND14"],red:["BAND15"],nir:["BAND16"]},"CBERS4-WFI":{blue:["BAND13"],green:["BAND14"],red:["BAND15"],nir:["BAND16"]},
+  "CB4A-WPM":{pan:["BAND0"],blue:["BAND1"],green:["BAND2"],red:["BAND3"],nir:["BAND4"]},"AMZ1-WFI":{blue:["BAND1"],green:["BAND2"],red:["BAND3"],nir:["BAND4"]},
+  "RESOURCESAT1":{green:["BAND2"],red:["BAND3"],nir:["BAND4"],swir16:["BAND5"]},
+  "HLSS30":{blue:["B02"],green:["B03"],red:["B04"],nir:["B8A"],swir16:["B11"],swir22:["B12"]},"HLSL30":{blue:["B02"],green:["B03"],red:["B04"],nir:["B05"],swir16:["B06"],swir22:["B07"]}}};
+function ccCommonNames(a){const o=[];for(const k of ["eo:bands","bands"])for(const b of a[k]||[]){const c=b.common_name||b["eo:common_name"];if(c)o.push(c)}return o}
+function ccGsd(key,a){let g=a.gsd??a["eo:gsd"];if(g==null)for(const b of a["raster:bands"]||[])g=b.spatial_resolution??g;if(g==null){const m=key.match(/_(\d+)m$/);g=m?+m[1]:null}return g==null?1e9:+g}
+function ccIsRaster(a){const t=(a.type||"").toLowerCase();return t.includes("tiff")||/\.tiff?$/i.test(String(a.href||"").split("?")[0])}
+function ccByKey(assets,names){let best=null;for(const n of names){for(const k in assets){const a=assets[k];if(new RegExp("^"+n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(_\\d+m)?$","i").test(k)&&ccIsRaster(a)){const c=[ccGsd(k,a),k];if(!best||c[0]<best[0]||(c[0]===best[0]&&c[1]<best[1]))best=c}}if(best)return best[1]}return null}
+function ccResolveRoles(sc){const assets=sc.assets||{},coll=sc.collection||"",found={};
+ for(const role in CC.COMMON){const cns=CC.COMMON[role],cand=[];
+  for(const k in assets){const a=assets[k],cn=ccCommonNames(a);if(cn.length===1&&cns.includes(cn[0])&&ccIsRaster(a))cand.push([cns.indexOf(cn[0]),ccGsd(k,a),k])}
+  if(cand.length){cand.sort((x,y)=>x[0]-y[0]||x[1]-y[1]||(x[2]<y[2]?-1:1));const k=cand[0][2];found[role]={asset:k,href:assets[k].href,via:"metadados STAC (common_name)"};continue}
+  let names=[...CC.GENERIC[role]];
+  for(const pref in CC.BY_COLL)if(coll.toUpperCase().startsWith(pref.toUpperCase()))names=[...(CC.BY_COLL[pref][role]||[]),...names];
+  if(/sentinel-?2|^s2/i.test(coll))names=[...(CC.S2[role]||[]),...names];
+  const k=ccByKey(assets,names);if(k)found[role]={asset:k,href:assets[k].href,via:"tabela por nome de asset (não verificado)"}}
+ return found}
+function ccPlan(sc){const roles=ccResolveRoles(sc),out=[];
+ for(const [kind,tbl] of [["composite",CC.RECIPES],["index",CC.INDICES]])for(const id in tbl){const [label,need]=tbl[id],miss=need.filter(r=>!roles[r]);
+  out.push({id,kind,label,available:!miss.length,missing:miss,bands:Object.fromEntries(need.filter(r=>roles[r]).map(r=>[r,roles[r]]))})}
+ return out}
+function ccScaleOffset(a){for(const b of [...(a["raster:bands"]||[]),...(a.bands||[])]){const s=b.scale??b["raster:scale"],o=b.offset??b["raster:offset"];if(s!=null||o!=null)return [s??null,o??null]}return [null,null]}
+function ccProj(code){if(code===4326||code===4674)return {geo:true,def:"EPSG:4326"};
+ let d=null;if(code>=32601&&code<=32660)d=`+proj=utm +zone=${code-32600} +datum=WGS84 +units=m +no_defs`;else if(code>=32701&&code<=32760)d=`+proj=utm +zone=${code-32700} +south +datum=WGS84 +units=m +no_defs`;
+ else if(code>=31978&&code<=31985)d=`+proj=utm +zone=${code-31978+18} +south +ellps=GRS80 +units=m +no_defs`;else if(code>=31972&&code<=31977)d=`+proj=utm +zone=${code-31972+18} +ellps=GRS80 +units=m +no_defs`;
+ if(!d)throw new Error("CRS EPSG:"+code+" não suportado no navegador (só 4326 e UTM WGS84/SIRGAS). Use o backend.");return {geo:false,def:d}}
+function ccPercentiles(arr,valid,lo,hi){const idx=[];const step=Math.max(1,Math.floor(valid.length/200000));for(let i=0;i<valid.length;i+=step)if(valid[i])idx.push(arr[i]);
+ if(!idx.length)return [0,1];const f=Float64Array.from(idx).sort();return [f[Math.floor(lo*(f.length-1))],f[Math.floor(hi*(f.length-1))]]}
+function ccRingsPix(geom,tf,bx0,by1,px,py){const polys=geom.type==="Polygon"?[geom.coordinates]:geom.coordinates,out=[];
+ for(const p of polys)for(const ring of p)out.push(ring.map(([x,y])=>{const q=tf([x,y]);return [(q[0]-bx0)/px,(by1-q[1])/py]}));return out}
+function ccMask(rings,w,h){const m=new Uint8Array(w*h);
+ for(let y=0;y<h;y++){const yc=y+0.5,xs=[];for(const r of rings)for(let i=0;i<r.length-1;i++){const [x1,y1]=r[i],[x2,y2]=r[i+1];if((y1<=yc&&y2>yc)||(y2<=yc&&y1>yc))xs.push(x1+(yc-y1)*(x2-x1)/(y2-y1))}
+  xs.sort((a,b)=>a-b);for(let k=0;k+1<xs.length;k+=2){const a=Math.max(0,Math.ceil(xs[k]-0.5)),b=Math.min(w-1,Math.ceil(xs[k+1]-0.5)-1);for(let x=a;x<=b;x++)m[y*w+x]=1}}return m}
+async function ccOpenTiff(href){if(CC.open)return CC.open(href);return GeoTIFF.fromUrl(href,{allowFullFile:false})}
+async function ccPickImage(tiff,first,targetRes){const n=await tiff.getImageCount(),r0=Math.abs(first.getResolution()[0]);let best=first;
+ for(let i=1;i<n;i++){const im=await tiff.getImage(i),r=r0*first.getWidth()/im.getWidth();if(r<=targetRes)best=im;else break}return best}
+function ccWriteTiff(data,m){ // GeoTIFF não comprimido, 1 faixa, little-endian (geotiff.js só grava 8 bits)
+ const n=m.n,bytes=m.bits/8,nbytes=m.w*m.h*n*bytes,ent=[];
+ const T={SHORT:[3,2],LONG:[4,4],DOUBLE:[12,8],ASCII:[2,1]};
+ const geoKeys=[1024,0,1,m.geo?2:1,1025,0,1,1,m.geo?2048:3072,0,1,m.epsg];
+ const gk=[1,1,0,3,...geoKeys];
+ const tags=[[256,"LONG",[m.w]],[257,"LONG",[m.h]],[258,"SHORT",Array(n).fill(m.bits)],[259,"SHORT",[1]],[262,"SHORT",[m.photometric]],[273,"LONG",[0]],[277,"SHORT",[n]],[278,"LONG",[m.h]],[279,"LONG",[nbytes]],[284,"SHORT",[1]],[339,"SHORT",Array(n).fill(m.fmt)],
+  [33550,"DOUBLE",[m.px,m.py,0]],[33922,"DOUBLE",[0,0,0,m.bx0,m.by1,0]],[34735,"SHORT",gk],[42113,"ASCII",m.nodata+"\0"]];
+ const ifdSize=2+tags.length*12+4;let off=8+ifdSize;const extra=[];
+ const sizeOf=t=>{const [,ty,v]=t;return (ty==="ASCII"?v.length:v.length)*T[ty][1]};
+ for(const t of tags){const sz=sizeOf(t);if(sz>4){t.ext=off;off+=sz+(sz%2);}}
+ const dataOff=off+(off%8?8-off%8:0);const t273=tags.find(t=>t[0]===273);t273[2]=[dataOff];
+ const buf=new ArrayBuffer(dataOff+nbytes),dv=new DataView(buf),u8=new Uint8Array(buf);
+ dv.setUint8(0,0x49);dv.setUint8(1,0x49);dv.setUint16(2,42,true);dv.setUint32(4,8,true);dv.setUint16(8,tags.length,true);
+ const put=(pos,ty,v)=>{if(ty==="SHORT")v.forEach((x,i)=>dv.setUint16(pos+2*i,x,true));else if(ty==="LONG")v.forEach((x,i)=>dv.setUint32(pos+4*i,x,true));else if(ty==="DOUBLE")v.forEach((x,i)=>dv.setFloat64(pos+8*i,x,true));else for(let i=0;i<v.length;i++)dv.setUint8(pos+i,v.charCodeAt(i))};
+ tags.forEach((t,i)=>{const p=10+i*12,[code,ty,v]=t,cnt=ty==="ASCII"?v.length:v.length;dv.setUint16(p,code,true);dv.setUint16(p+2,T[ty][0],true);dv.setUint32(p+4,cnt,true);
+  if(t.ext!=null){dv.setUint32(p+8,t.ext,true);put(t.ext,ty,v)}else put(p+8,ty,v)});
+ dv.setUint32(10+tags.length*12,0,true);
+ u8.set(new Uint8Array(data.buffer,data.byteOffset,nbytes),dataOff);return buf}
+/* opts: {hrefs, panHref, geometry, maxSize, stretch, clip, scales, mode:"rgb"|"index", onProgress} -> {buffer, info} */
+async function ccCompose(o){
+ const prog=o.onProgress||(()=>{}),warnings=[],hrefs=[...o.hrefs,...(o.panHref?[o.panHref]:[])];
+ prog("Abrindo bandas…");const tiffs=[],firsts=[];
+ for(const h of hrefs){const t=await ccOpenTiff(h);tiffs.push(t);firsts.push(await t.getImage(0))}
+ const codes=firsts.map(f=>{const g=f.getGeoKeys();return g.ProjectedCSTypeGeoKey||g.GeographicTypeGeoKey});
+ if(codes.some(c=>c!==codes[0]))throw new Error("Bandas em CRS diferentes: não suportado no navegador.");
+ const P=ccProj(codes[0]),toCrs=P.geo?(p=>p):(p=>proj4("EPSG:4326",P.def,p));
+ const geo=firsts.map(f=>{const [ox,oy]=f.getOrigin(),[rx,ry]=f.getResolution();return {ox,oy,rx:Math.abs(rx),ry:Math.abs(ry),w:f.getWidth(),h:f.getHeight()}});
+ let bx0=Math.max(...geo.map(g=>g.ox)),bx1=Math.min(...geo.map(g=>g.ox+g.rx*g.w)),by1=Math.min(...geo.map(g=>g.oy)),by0=Math.max(...geo.map(g=>g.oy-g.ry*g.h));
+ let rings=null;
+ if(o.geometry){rings=ccRingsPix(o.geometry,toCrs,0,0,1,1).map(r=>r);const pts=rings.flat().map(([x,y])=>[x,-y]); // x,-(-y)=y de volta
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);bx0=Math.max(bx0,Math.min(...xs));bx1=Math.min(bx1,Math.max(...xs));by0=Math.max(by0,Math.min(...ys));by1=Math.min(by1,Math.max(...ys))}
+ if(!(bx0<bx1&&by0<by1))throw new Error("A AOI não intersecta a cena.");
+ const fi=geo.reduce((m,g,i)=>g.rx<geo[m].rx?i:m,0),F=geo[fi],finest=F.rx;
+ // alinha a grade de saída à grade da banda mais fina (evita deslocamento de 1 pixel por arredondamento)
+ bx0=F.ox+Math.round((bx0-F.ox)/F.rx)*F.rx;by1=F.oy-Math.round((F.oy-by1)/F.ry)*F.ry;
+ let w=Math.max(1,Math.round((bx1-bx0)/finest)),h=Math.max(1,Math.round((by1-by0)/F.ry));
+ const sc=Math.min(1,o.maxSize/Math.max(w,h));let px=finest,py=F.ry;
+ if(sc<1){w=Math.max(1,Math.floor(w*sc));h=Math.max(1,Math.floor(h*sc));px=Math.round((bx1-bx0)/finest)*finest/w;py=Math.round((by1-by0)/F.ry)*F.ry/h;warnings.push(`Saída reduzida para ${w}x${h} px (limite ${o.maxSize}).`)}
+ bx1=bx0+w*px;by0=by1-h*py;
+ const bands=[];let valid=new Uint8Array(w*h).fill(1);
+ for(let i=0;i<tiffs.length;i++){prog(`Lendo banda ${i+1}/${tiffs.length}…`);
+  const img=await ccPickImage(tiffs[i],firsts[i],px),g=geo[i],f=g.w/img.getWidth(),rxi=g.rx*f,ryi=g.ry*f;
+  const l=Math.max(0,Math.round((bx0-g.ox)/rxi)),r=Math.min(img.getWidth(),Math.round((bx1-g.ox)/rxi)),t=Math.max(0,Math.round((g.oy-by1)/ryi)),b=Math.min(img.getHeight(),Math.round((g.oy-by0)/ryi));
+  if(r<=l||b<=t)throw new Error("Janela vazia na banda "+(i+1));
+  const rs=await img.readRasters({window:[l,t,r,b],width:w,height:h,resampleMethod:"bilinear",samples:[0],interleave:false,fillValue:0});
+  const a=rs[0],nd=img.getGDALNoData();for(let k=0;k<a.length;k++)if(a[k]===0||(nd!=null&&a[k]===nd))valid[k]=0;bands.push(a)}
+ if(rings){const m=ccMask(ccRingsPix(o.geometry,toCrs,bx0,by1,px,py),w,h);if(o.clip!==false)for(let k=0;k<valid.length;k++)valid[k]&=m[k]}
+ let nv=0;for(let k=0;k<valid.length;k++)nv+=valid[k];if(!nv)throw new Error("Sem pixels válidos na área (nuvem/nodata/fora da cena).");
+ let out,bits,fmt,nodata,stats=null,n;
+ if(o.mode==="index"){const sc2=o.scales||[[null,null],[null,null]];
+  if(sc2.some(s=>s[0]==null&&s[1]==null))warnings.push("Escala/offset não informados no item: índice calculado sobre os valores brutos (DN). Em reflectância com offset (Sentinel-2 L2A, Landsat C2) o resultado fica enviesado.");
+  const A=bands[0],B=bands[1],res=new Float32Array(w*h).fill(-9999);let s=0,s2=0,mn=1e9,mx=-1e9,c=0;
+  for(let k=0;k<res.length;k++){if(!valid[k])continue;const a=A[k]*(sc2[0][0]??1)+(sc2[0][1]??0),b=B[k]*(sc2[1][0]??1)+(sc2[1][1]??0),d=a+b;if(d===0){valid[k]=0;continue}
+   const v=Math.max(-1,Math.min(1,(a-b)/d));res[k]=v;s+=v;s2+=v*v;c++;if(v<mn)mn=v;if(v>mx)mx=v}
+  stats={count:c,min:mn,max:mx,mean:s/c,std:Math.sqrt(Math.max(0,s2/c-(s/c)**2))};if(!P.geo)stats.area_ha=c*px*py/1e4;
+  out=res;bits=32;fmt=3;nodata="-9999";n=1}
+ else{let ms=bands.slice(0,3).map(a=>Float32Array.from(a));
+  if(o.panHref){const pan=Float32Array.from(bands[3]);let mI=0,sI=0,mP=0,sP=0,c=0;const I=new Float32Array(w*h);
+   for(let k=0;k<I.length;k++){I[k]=(ms[0][k]+ms[1][k]+ms[2][k])/3;if(valid[k]){mI+=I[k];mP+=pan[k];c++}}mI/=c;mP/=c;
+   for(let k=0;k<I.length;k++)if(valid[k]){sI+=(I[k]-mI)**2;sP+=(pan[k]-mP)**2}sI=Math.sqrt(sI/c);sP=Math.sqrt(sP/c);if(sP===0)throw new Error("Banda pancromática sem variação na área.");
+   for(let k=0;k<I.length;k++){const p=(pan[k]-mP)/sP*sI+mI;const ratio=I[k]>0?Math.max(0,Math.min(4,p/I[k])):1;ms[0][k]*=ratio;ms[1][k]*=ratio;ms[2][k]*=ratio}
+   warnings.push("Fusão Brovey: altera a radiometria; use só para visualização, não para índices.")}
+  n=3;out=new (o.stretch!==false?Uint8Array:Uint16Array)(w*h*3);bits=o.stretch!==false?8:16;fmt=1;nodata="0";
+  for(let c=0;c<3;c++){let lo=0,hi=1;if(o.stretch!==false){[lo,hi]=ccPercentiles(ms[c],valid,0.02,0.98);if(hi<=lo)hi=lo+1}
+   for(let k=0;k<w*h;k++){if(!valid[k]){out[k*3+c]=0;continue}
+    out[k*3+c]=o.stretch!==false?Math.round(Math.max(0,Math.min(1,(ms[c][k]-lo)/(hi-lo)))*254+1):Math.max(1,Math.min(65535,Math.round(ms[c][k])))}}}
+ prog("Gravando GeoTIFF…");
+ const buffer=ccWriteTiff(out,{w,h,n,bits,fmt,photometric:(n===3&&bits===8)?2:1,px,py,bx0,by1,geo:P.geo,epsg:codes[0],nodata});
+ return {buffer,info:{width:w,height:h,crs:"EPSG:"+codes[0],warnings,stats,stretch:o.stretch!==false}}}
+/*END-CLIENT-COMPOSE*/
+
 /* ===== Composições (backend) ===== */
 async function loadComposites(s){
  const box=$("compBox");if(!box)return;
  if(!S.beOk)await checkBackend();
- if(!S.beOk){box.innerHTML='<h4>Composição colorida</h4><div class="warn">Backend não encontrado. Abra o app pelo <b>iniciar.bat</b> (janela preta aberta) e acesse <b>http://localhost:8000</b>, não o arquivo index.html direto.</div>';return}
  box.innerHTML='<h4>Composição colorida</h4><div class="sm">Verificando bandas da cena…</div>';
  try{
-  const r=await fetch(S.backend+"/api/composites/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source_id:s.src.id,scene_id:s.id,collection:s.collection})});
-  const j=await r.json();if(!r.ok)throw new Error(j.detail||r.status);
+  let j;if(S.beOk){const r=await fetch(S.backend+"/api/composites/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source_id:s.src.id,scene_id:s.id,collection:s.collection})});
+  j=await r.json();if(!r.ok)throw new Error(j.detail||r.status)}else j={recipes:ccPlan(s)};
   if(S.sel!==s.key)return;
-  box.innerHTML='<h4>Composição colorida</h4>'+
+  box.innerHTML='<h4>Composição colorida</h4>'+(S.beOk?"":'<div class="warn">Modo navegador (sem backend): lê só o trecho da AOI direto do servidor da imagem. Pode falhar por bloqueio (CORS), arquivo que não é COG ou falta de memória. Funciona melhor em áreas pequenas — defina uma AOI.</div>')+
    `<label><input type="checkbox" id="cpClip" ${S.aoi?"checked":"disabled"}> Recortar no polígono da AOI${S.aoi?"":" (defina uma AOI; senão sai a cena toda reduzida)"}</label>
     <label><input type="checkbox" id="cpStr" checked> Realçar contraste (8 bits, só visualização). Desmarcado = valores originais</label>
-    <label>Tamanho máx. (px, lado maior) <input type="number" id="cpMax" value="4000" min="256" max="8000" step="256"></label>`+
+    <label>Tamanho máx. (px, lado maior) <input type="number" id="cpMax" value="${S.beOk?4000:1500}" min="256" max="${S.beOk?8000:3000}" step="256"></label>`+
    (()=>{const row=(c,btn)=>`<div class="sm" style="margin:6px 0"><b>${esc(c.label)}</b><br>${c.available?Object.entries(c.bands).map(([k,v])=>esc(k)+"→"+esc(v.asset)+(v.via.startsWith("tabela")?" ⚠ por tabela":"")).join(" · ")+`<br><button class="btn sec" data-rc="${esc(c.id)}">${btn}</button>`:'indisponível: faltam bandas '+esc(c.missing.join(", "))}<div id="cj-${esc(c.id)}"></div></div>`;
     return j.recipes.filter(c=>c.kind!=="index").map(c=>row(c,"Gerar GeoTIFF")).join("")+
      '<h4>Índices espectrais</h4><div class="sm">GeoTIFF float32 (−1 a 1, nodata −9999) recortado na AOI, com estatísticas. A escala/offset do item STAC é aplicada quando existir.</div>'+
@@ -456,6 +571,7 @@ async function loadComposites(s){
   box.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>startComposite(s,b.dataset.rc,b));
  }catch(e){box.innerHTML='<h4>Composição colorida</h4><div class="warn">'+esc(e.message)+'</div>'}}
 async function startComposite(s,rc,btn){
+ if(!S.beOk)return startCompositeBrowser(s,rc,btn);
  const out=$("cj-"+rc);btn.disabled=true;out.textContent="Enfileirando…";
  try{
   const r=await fetch(S.backend+"/api/composites",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source_id:s.src.id,scene_id:s.id,collection:s.collection,recipe:rc,geometry:$("cpClip")?.checked||S.aoi?(S.aoi?S.aoi.geometry:null):null,clip:!!$("cpClip")?.checked,stretch:$("cpStr").checked,max_size:+$("cpMax").value||4000})});
@@ -465,6 +581,21 @@ async function startComposite(s,rc,btn){
    if(["failed","blocked","needs_credentials"].includes(q.status)){out.innerHTML=`<div class="warn">${esc(q.error||q.status)}</div>`;break}
    out.textContent="Processando… ("+q.status+")"}
  }catch(e){out.innerHTML='<div class="warn">'+esc(e.message)+'</div>'}
+ btn.disabled=false}
+
+async function startCompositeBrowser(s,rc,btn){
+ const out=$("cj-"+rc);btn.disabled=true;out.textContent="Iniciando…";
+ try{
+  const plan=ccPlan(s).find(c=>c.id===rc);if(!plan||!plan.available)throw new Error("Bandas indisponíveis nesta cena.");
+  const isIdx=plan.kind==="index",need=(isIdx?CC.INDICES:CC.RECIPES)[rc][1],roles=ccResolveRoles(s),ms=need.filter(r=>r!=="pan");
+  const hrefs=ms.map(r=>roles[r].href),panHref=need.includes("pan")?roles.pan.href:null;
+  if([...hrefs,panHref].filter(Boolean).some(u=>!safeUrl(u)))throw new Error("Asset sem URL https.");
+  const scales=isIdx?need.map(r=>ccScaleOffset(s.assets[roles[r].asset])):null;
+  const res=await ccCompose({hrefs,panHref,geometry:S.aoi?S.aoi.geometry:null,maxSize:+$("cpMax").value||1500,stretch:$("cpStr").checked,clip:!!$("cpClip")?.checked,scales,mode:isIdx?"index":"rgb",onProgress:t=>{out.textContent=t}});
+  const url=URL.createObjectURL(new Blob([res.buffer],{type:"image/tiff"})),name=(s.id+"_"+rc).replace(/[^\w.-]/g,"_")+".tif",st=res.info.stats;
+  out.innerHTML=`<a href="${url}" download="${esc(name)}">⬇ Baixar GeoTIFF (${res.info.width}×${res.info.height}, ${esc(res.info.crs)})</a>`+(st?`<div class="sm">média ${st.mean.toFixed(3)} · mín ${st.min.toFixed(3)} · máx ${st.max.toFixed(3)} · desvio ${st.std.toFixed(3)} · ${st.count} px${st.area_ha?" · "+st.area_ha.toFixed(1)+" ha":""}</div>`:"")+res.info.warnings.map(w=>`<div class="sm">${esc(w)}</div>`).join("");
+ }catch(e){const net=e instanceof TypeError||/fetch|network|failed to|range|offset is outside|cors/i.test(e.message||"");
+  out.innerHTML='<div class="warn">'+esc(e.message||String(e))+(net?"<br><b>Provável causa:</b> o servidor da imagem bloqueou a leitura pelo navegador (CORS) ou não aceita leitura parcial de arquivo (Range/COG). Para esta fonte use o backend (iniciar.bat) ou baixe os assets e componha no ArcGIS/QGIS.":"")+'</div>'}
  btn.disabled=false}
 
 /* ===== Comparação ===== */
