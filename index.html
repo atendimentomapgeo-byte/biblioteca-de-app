@@ -1,437 +1,399 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Biblioteca de Aplicativos — mapgeo</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biblioteca de Apps</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #22303f;
-    --panel: #263646;
-    --border: #37495c;
-    --text: #ecf0f4;
-    --muted: #93a1b0;
-    --accent: #4b8bf5;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Sora', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  a { color: var(--accent); text-decoration: none; }
+:root{
+  --bg:#0c0e14; --panel:#10131b; --line:#222733; --line2:#2d3342;
+  --txt:#f2f4f8; --mut:#8b93a7; --acc:#2b6bff; --ok:#2fd6a1;
+  --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+  --sans:'Space Grotesk',system-ui,-apple-system,Segoe UI,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);display:flex;flex-direction:column;min-height:100vh}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
-  header {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 18px 28px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-  }
-  header h1 {
-    font-size: 17px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    white-space: nowrap;
-  }
-  .logo {
-    width: 30px; height: 30px; border-radius: 8px;
-    background: linear-gradient(135deg, #4b8bf5, #8f7ff2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px;
-  }
-  #busca {
-    flex: 1; min-width: 200px; max-width: 420px;
-    position: relative;
-  }
-  #busca input {
-    width: 100%;
-    background: #1b2734;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 9px 14px 9px 34px;
-    color: var(--text);
-    font-size: 13px;
-    font-family: inherit;
-    outline: none;
-  }
-  #busca span {
-    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-    font-size: 13px; color: var(--muted);
-  }
-  #status {
-    font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-    margin-left: auto;
-  }
-  #status.ok { color: #7fd88f; }
-  #status.erro { color: #e0678a; }
+/* topbar */
+.top{display:flex;align-items:stretch;border-bottom:1px solid var(--line);height:60px;background:var(--bg);position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;padding:0 24px;font-weight:700;font-size:22px;letter-spacing:.04em;border-right:1px solid var(--line)}
+.brand b{color:var(--acc)}
+.tabs{display:flex;align-items:center;gap:6px;padding:0 20px}
+.seg{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:8px 10px;color:var(--mut);font-weight:600}
+.seg.on{background:#fff;color:#000}
+.spacer{flex:1}
+.viewtoggle{display:flex;align-items:center;gap:6px;padding:0 16px;border-left:1px solid var(--line)}
+.iconbtn{display:flex;align-items:center;justify-content:center;width:62px;border-left:1px solid var(--line);color:var(--mut)}
+.iconbtn:hover{color:#fff;background:#151925}
+.iconbtn svg{width:20px;height:20px}
+.iconbtn.spin svg{animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
 
-  #btnAtualizar {
-    background: #1b2734;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 7px 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-  #btnAtualizar:hover { border-color: var(--accent); }
-  #btnAtualizar:disabled { opacity: 0.5; cursor: default; }
-  #btnAtualizar .girando { display: inline-block; animation: girar 0.8s linear infinite; }
-  @keyframes girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* filters */
+.filters{display:flex;align-items:center;gap:0;padding:22px 24px 22px}
+.chip{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:13px 15px;border:1px solid var(--line);border-right:0;color:var(--mut);font-weight:600}
+.chip:last-of-type{border-right:1px solid var(--line)}
+.chip.on{background:#fff;color:#000;border-color:#fff}
+.chip i{font-style:normal;opacity:.6;margin-left:8px}
+.sortlbl{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--mut);margin-left:auto;margin-right:12px;text-transform:uppercase}
+select,.search{background:#0a0c12;border:1px solid var(--line);color:var(--txt);font:inherit;font-size:15px;padding:12px 14px;height:42px;outline:none}
+select{min-width:160px}
+.search{width:250px;margin-left:12px}
+.search:focus,select:focus{border-color:var(--acc)}
 
-  main { padding: 28px; flex: 1; }
+/* grid */
+main{flex:1;padding:0 0 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));border-top:1px solid var(--line);border-left:1px solid var(--line);margin:0 24px}
+.card{position:relative;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:0 24px 24px;display:flex;flex-direction:column;min-height:300px;transition:background .15s}
+.card:hover{background:#11151e}
+.card::before{content:"";position:absolute;left:0;top:0;height:2px;width:0;background:var(--c);transition:width .35s}
+.card:hover::before{width:80%}
+.chead{display:flex;align-items:center;justify-content:space-between;padding:12px 0 0}
+.num{font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.1em;padding:5px 9px;background:var(--c);color:#fff}
+.links{display:flex;gap:18px;font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--mut);font-weight:600}
+.links a:hover{color:#fff}
+.cbody{display:flex;gap:16px;align-items:center;margin-top:26px}
+.ico{width:70px;height:70px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:30px;color:#fff;background:var(--c);overflow:hidden}
+.ico img{width:100%;height:100%;object-fit:cover}
+.name{font-size:28px;font-weight:500;letter-spacing:-.01em;line-height:1.1;word-break:break-word}
+.name span{color:var(--c)}
+.desc{color:var(--mut);font-size:16px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tag{display:inline-block;margin-top:26px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:6px 8px;border:1px solid;color:var(--ok);background:rgba(47,214,161,.07);font-weight:600;align-self:flex-start}
+.tag.sub{color:#7aa2ff;background:rgba(43,107,255,.08)}
+.path{margin-top:18px;color:#c4c9d6;font-size:15px;font-family:var(--mono);word-break:break-all}
+.actions{margin-top:auto;padding-top:22px;display:flex;gap:10px;position:relative}
+.open{flex:1;height:44px;background:#fff;color:#000;font-family:var(--mono);font-weight:700;letter-spacing:.16em;font-size:13px;text-align:center;display:flex;align-items:center;justify-content:center}
+.open:hover{background:var(--c);color:#fff}
+.more{width:46px;height:44px;border:1px solid var(--line2);color:var(--mut);font-family:var(--mono)}
+.more:hover,.more.fav{color:#fff;border-color:#555}
+.more.fav{color:#f5c542}
+.menu{position:absolute;right:0;bottom:50px;background:#0a0c12;border:1px solid var(--line2);min-width:190px;z-index:10;display:none}
+.menu.show{display:block}
+.menu button,.menu a{display:block;width:100%;text-align:left;padding:11px 14px;font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:#c4c9d6}
+.menu button:hover,.menu a:hover{background:#171b27;color:#fff}
 
-  #grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 16px;
-  }
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transition: border-color .15s, transform .15s;
-  }
-  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .icone {
-    width: 40px; height: 40px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 17px; font-weight: 700; color: #14202c;
-  }
-  .titulo { font-size: 14px; font-weight: 600; line-height: 1.3; }
-  .nomearq {
-    font-size: 11px; font-family: 'JetBrains Mono', monospace;
-    color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+/* tabela */
+.table{margin:0 24px;border:1px solid var(--line);border-bottom:0}
+.row{display:grid;grid-template-columns:56px 1.2fr 2fr 1.4fr 150px;align-items:center;gap:16px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.row.h{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--mut);text-transform:uppercase}
+.row:not(.h):hover{background:#11151e}
+.row .n{font-family:var(--mono);font-weight:700}
+.row .nm{font-size:18px;font-weight:500}.row .nm span{color:var(--c)}
+.row .ds{color:var(--mut);font-size:14px}
+.row .pt{font-family:var(--mono);font-size:12px;color:#c4c9d6;word-break:break-all}
+.row .open{height:34px;font-size:11px}
 
-  #vazio, #carregando {
-    text-align: center; color: var(--muted); margin-top: 80px; font-size: 14px;
-  }
+.empty{padding:80px 24px;text-align:center;color:var(--mut);font-family:var(--mono);letter-spacing:.08em;line-height:1.8}
+.empty b{color:#fff}
+.warn{margin:0 24px 16px;padding:12px 14px;border:1px solid #6b5313;background:rgba(245,197,66,.07);color:#f5c542;font-family:var(--mono);font-size:12px;letter-spacing:.04em}
+
+/* status bar */
+.status{position:fixed;left:0;right:0;bottom:0;height:42px;background:#0a0c12;border-top:1px solid var(--line);display:flex;align-items:center;padding:0 24px;gap:22px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--mut);text-transform:uppercase;z-index:20}
+.status a:hover{color:#fff}
+.status .sp{flex:1}
+
+@media(max-width:760px){
+  .top{height:auto;flex-wrap:wrap}.brand{padding:14px 16px;font-size:18px}.tabs{display:none}
+  .filters{flex-wrap:wrap;gap:8px;padding:16px}.chip{border:1px solid var(--line)!important;padding:10px 11px}
+  .sortlbl{display:none}.search{width:100%;margin:0}select{flex:1}
+  .grid,.table,.warn{margin-left:12px;margin-right:12px}.grid{grid-template-columns:1fr}
+  .row{grid-template-columns:36px 1fr 100px}.row .ds,.row .pt,.row.h .hd{display:none}
+  .status .hide-m{display:none}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <h1><span class="logo">📚</span> Biblioteca de Aplicativos</h1>
-  <div id="busca">
-    <span>🔎</span>
-    <input type="text" id="inputBusca" placeholder="Buscar app...">
+<header class="top">
+  <div class="brand">MAP <b>GEO</b></div>
+  <div class="tabs"><span class="seg on">Launcher</span><span class="seg">Suíte de apps</span></div>
+  <div class="spacer"></div>
+  <div class="viewtoggle">
+    <button class="seg on" id="vGrid">Grade</button>
+    <button class="seg" id="vTable">Tabela</button>
   </div>
-  <div id="status">Carregando...</div>
-  <button id="btnAtualizar" title="Forçar nova busca por apps agora">🔄 Atualizar</button>
+  <button class="iconbtn" id="btnRefresh" title="Atualizar lista">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+  </button>
 </header>
 
-<main>
-  <div id="carregando">Buscando apps no repositório...</div>
-  <div id="vazio" style="display:none">Nenhum app .html encontrado no repositório.</div>
-  <div id="grid"></div>
-</main>
+<section class="filters">
+  <button class="chip on" data-f="all">Todos <i id="cAll">0</i></button>
+  <button class="chip" data-f="fav">Favoritos <i id="cFav">0</i></button>
+  <button class="chip" data-f="sub">Em subpasta <i id="cSub">0</i></button>
+  <span class="sortlbl">Ordenar</span>
+  <select id="sort">
+    <option value="suite">Ordem da suíte</option>
+    <option value="az">Nome A–Z</option>
+    <option value="za">Nome Z–A</option>
+  </select>
+  <input class="search" id="q" placeholder="Buscar aplicativos" autocomplete="off">
+</section>
+
+<main id="main"></main>
+
+<footer class="status">
+  <span id="stat">Carregando…</span>
+  <span class="sp"></span>
+  <a id="lnkRepo" href="#" target="_blank" rel="noopener">Repositório ↗</a>
+  <span class="hide-m" id="stCount"></span>
+</footer>
 
 <script>
-// ---- CONFIGURAÇÃO ----
-const GITHUB_USER = 'atendimentomapgeo-byte';
-const GITHUB_REPO = 'biblioteca-de-app';
-const GITHUB_BRANCH = 'main';
-const REFRESH_MS = 120000; // reconsulta a cada 2 minutos
-const CACHE_KEY = 'biblioteca-apps-cache';
-const CACHE_MAX_IDADE_MS = 30 * 60 * 1000; // usa cache de até 30min como plano B
-const ETAG_KEY = 'biblioteca-apps-etag'; // ETag da última resposta 200 da API do GitHub
+/* ================= CONFIGURAÇÃO =================
+   Se estiver publicado em usuario.github.io/repositorio, tudo é detectado sozinho.
+   Fora disso (localhost, arquivo local) usa os valores abaixo. */
+const DEFAULT_OWNER = 'atendimentomapgeo-byte';
+const DEFAULT_REPO  = 'biblioteca-de-app';
 
-// Apps que moram em subpastas (ex: PWAs com vários arquivos) não são
-// detectados pela varredura automática — adicione-os aqui manualmente.
-//
-// Duas formas de declarar cada app extra:
-//   1) "path": app dentro do MESMO repositório da biblioteca (biblioteca-de-app),
-//      caminho relativo à raiz do repositório até o index.html do app.
-//   2) "url": app hospedado em OUTRO repositório/site GitHub Pages (ou
-//      qualquer URL própria) — usa a URL absoluta diretamente, sem
-//      combinar com o repositório da biblioteca.
-const APPS_EXTRAS = [
-  // FieldGIS vive na subpasta "fieldgis-app" deste mesmo repositório
-  // (biblioteca-de-app/fieldgis-app/index.html).
-  { titulo: 'FieldGIS — Mapas e Navegação de Campo', path: 'fieldgis-app/index.html' },
-];
+/* Pastas/arquivos ignorados na varredura */
+const IGNORE_SEGMENTS = new Set(['node_modules','assets','static','vendor','lib','libs','test','tests','__tests__','examples','.github','img','images','css','js','fonts']);
+/* Pastas genéricas: não servem de nome do app (ex.: meuapp/dist/index.html → "meuapp") */
+const GENERIC = new Set(['dist','build','public','docs','src','app','web','www','site','out','release']);
+/* Pastas/arquivos que nunca viram app */
+const HIDE_PATHS = new Set([]);
+/* ================================================= */
 
-const PAGES_BASE = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
-// Listagem da RAIZ do repositório direto na API do GitHub — reflete o conteúdo atual na hora
-// (sem esperar nenhum CDN reindexar nada), então é a fonte PRINCIPAL usada agora. É pública, não
-// precisa de token nenhum pra ler; só tem o limite de 60 requisições/hora por IP sem login — por
-// isso o pedido sempre manda o ETag salvo da última vez (ver buscarApps): quando nada mudou no
-// repositório, o GitHub responde "304 Not Modified" SEM CONSUMIR NADA da cota, então o
-// atualiza-a-cada-2-minutos abaixo praticamente não gasta limite de requisição no dia a dia.
-const GITHUB_CONTENTS_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/?ref=${GITHUB_BRANCH}`;
-// jsDelivr fica como PLANO B, só se a API do GitHub falhar (rede bloqueando api.github.com,
-// limite de requisição estourado, etc.) — o CDN dele pode demorar bem mais pra refletir um
-// commit novo (é aquele atraso que fazia apps recém-adicionados não aparecerem aqui).
-const JSDELIVR_URL = `https://data.jsdelivr.com/v1/package/gh/${GITHUB_USER}/${GITHUB_REPO}@${GITHUB_BRANCH}/flat`;
+const PALETTE = ['#2b6bff','#ff5a2a','#8b5cf6','#f5a30a','#14b8a6','#ec3b8d','#84cc16','#06b6d4','#f43f5e','#a855f7','#22c55e','#eab308'];
+const LS = k => 'bibapp:'+k;
+const store = {
+  get(k,d){try{const v=localStorage.getItem(LS(k));return v==null?d:JSON.parse(v)}catch{return d}},
+  set(k,v){try{localStorage.setItem(LS(k),JSON.stringify(v))}catch{}}
+};
 
-const CORES = ['#4b8bf5','#4bc0d9','#7fd88f','#f2b84b','#e0678a','#8f7ff2'];
+/* ---- origem do repositório ---- */
+let OWNER = DEFAULT_OWNER, REPO = DEFAULT_REPO;
+const host = location.hostname;
+if (host.endsWith('.github.io')) {
+  OWNER = host.split('.')[0];
+  const seg = location.pathname.split('/')[1];
+  if (seg && !seg.endsWith('.html')) REPO = seg;
+}
+const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+const PAGES_BASE = `https://${OWNER}.github.io/${REPO}/`;
+const BASE = (host.endsWith('.github.io') || isLocal) ? new URL('./', location.href).href : PAGES_BASE;
+const REPO_URL = `https://github.com/${OWNER}/${REPO}`;
+document.getElementById('lnkRepo').href = REPO_URL;
 
-function corParaNome(nome) {
-  let hash = 0;
-  for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash);
-  return CORES[Math.abs(hash) % CORES.length];
+/* ---- utilidades ---- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pretty = s => s.replace(/\.html?$/i,'').replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).trim();
+const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+function hash(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h}
+
+function twoTone(name){
+  name = name.trim();
+  if (name.includes(' ')) { const i=name.lastIndexOf(' '); return `${esc(name.slice(0,i+1))}<span>${esc(name.slice(i+1))}</span>`; }
+  const m = name.match(/^(.*?[a-z0-9])([A-Z][A-Za-z0-9]*)$/);
+  if (m && m[1].length>=2) return `${esc(m[1])}<span>${esc(m[2])}</span>`;
+  return esc(name);
 }
 
-function tituloBonito(nomeArquivo) {
-  const semExt = nomeArquivo.replace(/\.html?$/i, '');
-  const espacado = semExt.replace(/[_-]+/g, ' ').trim();
-  return espacado.charAt(0).toUpperCase() + espacado.slice(1);
-}
-
-const statusEl = document.getElementById('status');
-const gridEl = document.getElementById('grid');
-const vazioEl = document.getElementById('vazio');
-const carregandoEl = document.getElementById('carregando');
-const inputBusca = document.getElementById('inputBusca');
-const btnAtualizar = document.getElementById('btnAtualizar');
-
-let todosOsApps = [];
-
-function setStatus(msg, tipo) {
-  statusEl.textContent = msg;
-  statusEl.className = tipo || '';
-}
-
-function lerCache() {
-  try {
-    const bruto = localStorage.getItem(CACHE_KEY);
-    if (!bruto) return null;
-    const cache = JSON.parse(bruto);
-    if (!Array.isArray(cache.apps)) return null;
-    return cache;
-  } catch (e) {
-    return null;
+/* ---- descoberta via GitHub API (1 requisição, recursiva) ---- */
+async function fetchTree(force){
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/HEAD?recursive=1`;
+  const cache = store.get('tree:'+OWNER+'/'+REPO, null);
+  const headers = {'Accept':'application/vnd.github+json'};
+  if (cache?.etag && !force) headers['If-None-Match'] = cache.etag;
+  try{
+    const r = await fetch(url,{headers});
+    if (r.status===304 && cache) { cache.checked=Date.now(); store.set('tree:'+OWNER+'/'+REPO,cache); return {...cache,src:'cache (304)'}; }
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    const data = {etag:r.headers.get('ETag'), tree:j.tree, truncated:!!j.truncated, checked:Date.now()};
+    store.set('tree:'+OWNER+'/'+REPO,data);
+    return {...data,src:'GitHub API'};
+  }catch(e){
+    if (cache) return {...cache,src:'cache local (offline/limite)',err:String(e.message||e)};
+    throw e;
   }
 }
 
-function salvarCache(apps) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ apps, timestamp: Date.now() }));
-  } catch (e) {
-    // localStorage indisponível (modo privado, por ex.) — segue sem cache
+function buildApps(tree){
+  const blobs = tree.filter(t=>t.type==='blob');
+  const files = blobs.map(b=>b.path);
+  const shaOf = Object.fromEntries(blobs.map(b=>[b.path,b.sha]));
+  const bad = p => p.split('/').some(s=>s.startsWith('.')||IGNORE_SEGMENTS.has(s.toLowerCase()));
+  const idx = files.filter(p=>/(^|\/)index\.html?$/i.test(p) && !bad(p) && p.toLowerCase()!=='index.html' && p.toLowerCase()!=='index.htm');
+  const idxDirs = new Set(idx.map(p=>p.split('/').slice(0,-1).join('/')));
+  const apps = [];
+
+  for (const p of idx){
+    const dir = p.split('/').slice(0,-1).join('/');
+    /* se uma pasta ancestral já tem index.html, esta é parte dela (ex.: dist/) */
+    const parts = dir.split('/');
+    let covered=false;
+    for(let i=1;i<parts.length;i++){ if(idxDirs.has(parts.slice(0,i).join('/'))){covered=true;break} }
+    if(covered) continue;
+    const named = parts.filter(s=>!GENERIC.has(s.toLowerCase()));
+    const label = (named[named.length-1]||parts[0]);
+    apps.push({id:dir, file:p, sha:shaOf[p], folder:dir, label, sub:parts.length>1});
   }
-}
-
-function usarCacheComoFallback(motivoErro) {
-  const cache = lerCache();
-  if (cache && cache.apps.length > 0) {
-    todosOsApps = cache.apps;
-    const minutos = Math.round((Date.now() - cache.timestamp) / 60000);
-    carregandoEl.style.display = 'none';
-    setStatus(`${motivoErro} — mostrando lista salva há ${minutos} min`, 'erro');
-    renderizar();
-    return true;
+  /* arquivos .html soltos na raiz (apps de arquivo único) */
+  for (const p of files){
+    if(p.includes('/')||!/\.html?$/i.test(p)) continue;
+    if(/^index\.html?$/i.test(p)||/^404\.html?$/i.test(p)||bad(p)) continue;
+    apps.push({id:p, file:p, sha:shaOf[p], folder:'', label:p.replace(/\.html?$/i,''), sub:false, single:true});
   }
-  return false;
+  return apps.filter(a=>!HIDE_PATHS.has(a.id));
 }
 
-// Nomes de arquivo .html na raiz do repositório, contando como "app" (exclui o próprio index).
-function ehArquivoDeApp(nome) {
-  return /^[^/]+\.html?$/i.test(nome) && !/^index\.html?$/i.test(nome);
-}
-
-function aplicarListaEncontrada(nomes, mensagemOk) {
-  todosOsApps = nomes
-    .map(nome => ({ name: nome }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  salvarCache(todosOsApps);
-  carregandoEl.style.display = 'none';
-  setStatus(mensagemOk, 'ok');
-  renderizar();
-}
-
-// Fonte PRINCIPAL: lista a raiz do repositório direto na API do GitHub (contents), que reflete
-// o commit mais recente na hora — sem o atraso de cache de CDN que fazia apps recém-adicionados
-// não aparecerem. Usa o ETag salvo da consulta anterior pra pedir "só me avisa se mudou algo"
-// (If-None-Match); um 304 de volta não consome nada da cota de 60 req/hora sem login.
-// Retorna true se conseguiu resolver a lista (nova ou "sem mudanças"), false se precisa cair
-// pro plano B (jsDelivr).
-async function buscarViaGithubApi() {
-  const etagSalvo = localStorage.getItem(ETAG_KEY) || '';
-  const headers = { 'Accept': 'application/vnd.github+json' };
-  if (etagSalvo) headers['If-None-Match'] = etagSalvo;
-  const resp = await fetch(GITHUB_CONTENTS_URL, { headers });
-
-  if (resp.status === 304) {
-    // Nada mudou no repositório desde a última vez — mantém a lista atual. Se a tela abriu com
-    // 'todosOsApps' vazio (cache local passou dos 30min e não foi usado pra exibir na hora, mas
-    // o ETag salvo junto com ele continua valendo, já que o servidor acabou de confirmar isso),
-    // recarrega esse mesmo cache em vez de mostrar "0 apps" por engano.
-    if (todosOsApps.length === 0) {
-      const cache = lerCache();
-      if (cache && cache.apps.length > 0) todosOsApps = cache.apps;
+/* ---- metadados (título, descrição, ícone) lidos da própria página ---- */
+async function enrich(app){
+  const key='meta:'+app.id;
+  const c = store.get(key,null);
+  if (c && c.sha===app.sha) return Object.assign(app,c.meta);
+  const meta = {};
+  try{
+    const r = await fetch(BASE+encPath(app.file),{cache:'no-cache'});
+    if(r.ok){
+      const html = await r.text();
+      const d = new DOMParser().parseFromString(html,'text/html');
+      const t = d.querySelector('title')?.textContent?.trim();
+      const desc = d.querySelector('meta[name="description"]')?.content?.trim();
+      let ic = d.querySelector('link[rel~="icon"],link[rel="apple-touch-icon"]')?.getAttribute('href');
+      if (t) meta.title=t.slice(0,60);
+      if (desc) meta.description=desc.slice(0,160);
+      if (ic && !ic.startsWith('data:')) { try{ meta.icon=new URL(ic,new URL(BASE+encPath(app.file))).href }catch{} }
+      else if (ic) meta.icon=ic;
     }
-    carregandoEl.style.display = 'none';
-    setStatus(`${todosOsApps.length} app(s) — sem mudanças no repositório`, 'ok');
-    renderizar();
-    return true;
-  }
-  if (!resp.ok) {
-    // 403 costuma ser limite de requisição estourado (raro, só em uso muito intenso e
-    // simultâneo); 404 seria repositório/branch errado. Em qualquer caso, deixa o jsDelivr
-    // tentar antes de desistir de vez.
-    return false;
-  }
-
-  const etagNovo = resp.headers.get('etag');
-  if (etagNovo) { try { localStorage.setItem(ETAG_KEY, etagNovo); } catch (e) {} }
-
-  const itens = await resp.json();
-  if (!Array.isArray(itens)) return false; // resposta inesperada (ex.: raiz virou um arquivo?)
-
-  const nomes = itens
-    .filter(item => item.type === 'file' && ehArquivoDeApp(item.name))
-    .map(item => item.name);
-
-  aplicarListaEncontrada(nomes, `${nomes.length} app(s) encontrado(s)`);
-  return true;
+  }catch{}
+  store.set(key,{sha:app.sha,meta});
+  return Object.assign(app,meta);
 }
 
-// Plano B: jsDelivr, só quando a API do GitHub não respondeu (rede bloqueando api.github.com,
-// limite de requisição estourado, etc.) — pode estar desatualizado em relação ao commit mais
-// recente, por isso o aviso deixa isso claro em vez de passar a impressão de que está tudo certo.
-async function buscarViaJsDelivr() {
-  let resp;
-  try {
-    resp = await fetch(JSDELIVR_URL);
-  } catch (e) {
-    throw new Error('Falha ao conectar com o jsDelivr');
-  }
-  if (!resp.ok) {
-    const motivo = resp.status === 404
-      ? 'Repositório ou branch não encontrado'
-      : 'Erro ao consultar o jsDelivr (' + resp.status + ')';
-    throw new Error(motivo);
-  }
-  const dados = await resp.json();
-  const arquivos = Array.isArray(dados.files) ? dados.files : [];
-  const nomes = arquivos
-    // jsDelivr retorna caminhos com "/" na frente; nome de exibição sem a barra
-    .map(f => f.name.replace(/^\//, ''))
-    .filter(ehArquivoDeApp);
-  aplicarListaEncontrada(nomes, `${nomes.length} app(s) encontrado(s) (via jsDelivr — pode estar até algumas horas desatualizado)`);
+/* ---- overrides opcionais: apps.json na raiz do repositório ----
+{
+  "fieldgis-app": { "nome":"FieldGIS", "descricao":"Levantamento em campo", "cor":"#14b8a6", "ordem":1, "ocultar":false, "url":"..." }
+}                                                                                              */
+async function loadOverrides(){
+  try{ const r=await fetch(BASE+'apps.json',{cache:'no-cache'}); if(r.ok) return await r.json(); }catch{}
+  return {};
 }
 
-async function buscarApps() {
-  try {
-    const resolveuPelaApi = await buscarViaGithubApi();
-    if (resolveuPelaApi) return;
-  } catch (e) {
-    console.error('Falha ao consultar a API do GitHub', e);
-  }
-  // Chegou aqui: a API do GitHub não deu uma resposta utilizável — tenta o plano B antes de
-  // recorrer ao cache local (que pode estar bem mais velho que qualquer um dos dois planos).
-  try {
-    await buscarViaJsDelivr();
-  } catch (e) {
-    console.error(e);
-    const motivo = e.message || 'Falha ao conectar com o jsDelivr';
-    if (!usarCacheComoFallback(motivo)) {
-      setStatus(motivo, 'erro');
-      carregandoEl.style.display = 'none';
-      renderizar();
-    }
-  }
+/* ---- estado ---- */
+let ALL = [], FILTER='all', VIEW=store.get('view','grid'), SORT=store.get('sort','suite'), Q='';
+let FAV = new Set(store.get('fav',[]));
+let lastChecked = Date.now(), lastSrc='', lastErr='', truncated=false;
+
+function finalize(app,ov,i){
+  const o = ov[app.id]||{};
+  app.name  = o.nome || (app.title && app.title.length<=40 ? app.title.split(/[|·—–-]\s/)[0].trim() : pretty(app.label));
+  app.desc  = o.descricao || app.description || '';
+  app.color = o.cor || PALETTE[hash(app.id)%PALETTE.length];
+  app.order = Number.isFinite(o.ordem)?o.ordem:1000+i;
+  app.hidden= !!o.ocultar;
+  app.url   = o.url || (BASE+encPath(app.file.replace(/index\.html?$/i,'')));
+  app.ghUrl = app.folder ? `${REPO_URL}/tree/HEAD/${encPath(app.folder)}` : `${REPO_URL}/blob/HEAD/${encPath(app.file)}`;
+  app.icon  = o.icone || app.icon || '';
+  return app;
 }
 
-// Mostra o cache instantaneamente ao abrir a página, sem esperar a rede,
-// e só então dispara a busca atualizada por trás.
-const cacheInicial = lerCache();
-if (cacheInicial && cacheInicial.apps.length > 0 && (Date.now() - cacheInicial.timestamp) < CACHE_MAX_IDADE_MS) {
-  todosOsApps = cacheInicial.apps;
-  carregandoEl.style.display = 'none';
-  setStatus('Carregando lista salva...', '');
-  renderizar();
-}
-
-function renderizar() {
-  const termo = inputBusca.value.trim().toLowerCase();
-
-  const autoApps = todosOsApps.map(app => ({
-    titulo: tituloBonito(app.name),
-    subtitulo: app.name,
-    url: PAGES_BASE + encodeURIComponent(app.name)
-  }));
-  const extraApps = APPS_EXTRAS.map(app => ({
-    titulo: app.titulo,
-    subtitulo: app.url ? app.url.replace(/^https?:\/\//, '') : app.path,
-    url: app.url || (PAGES_BASE + app.path.split('/').map(encodeURIComponent).join('/'))
-  }));
-
-  const todosCombinados = [...autoApps, ...extraApps]
-    .sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'));
-
-  const filtrados = todosCombinados.filter(app =>
-    !termo ||
-    app.titulo.toLowerCase().includes(termo) ||
-    app.subtitulo.toLowerCase().includes(termo)
-  );
-
-  gridEl.innerHTML = '';
-  vazioEl.style.display = filtrados.length === 0 ? 'block' : 'none';
-
-  for (const app of filtrados) {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.onclick = () => window.open(app.url, '_blank');
-
-    const icone = document.createElement('div');
-    icone.className = 'icone';
-    icone.style.background = corParaNome(app.titulo);
-    icone.textContent = (app.titulo.charAt(0) || '?').toUpperCase();
-
-    const titulo = document.createElement('div');
-    titulo.className = 'titulo';
-    titulo.textContent = app.titulo;
-
-    const nomearq = document.createElement('div');
-    nomearq.className = 'nomearq';
-    nomearq.textContent = app.subtitulo;
-
-    card.appendChild(icone);
-    card.appendChild(titulo);
-    card.appendChild(nomearq);
-    gridEl.appendChild(card);
+async function load(force){
+  $('#btnRefresh').classList.add('spin');
+  $('#stat').textContent='Verificando repositório…';
+  try{
+    const [t,ov] = await Promise.all([fetchTree(force),loadOverrides()]);
+    truncated=t.truncated; lastChecked=t.checked; lastSrc=t.src; lastErr=t.err||'';
+    let apps = buildApps(t.tree);
+    /* render imediato, depois enriquece */
+    ALL = apps.map((a,i)=>finalize(a,ov,i)).filter(a=>!a.hidden);
+    render();
+    await Promise.all(apps.map(a=>enrich(a)));
+    ALL = apps.map((a,i)=>finalize(a,ov,i)).filter(a=>!a.hidden);
+  }catch(e){
+    lastErr=String(e.message||e); lastSrc='falhou';
+    if(!ALL.length) $('#main').innerHTML=`<div class="empty"><b>Não foi possível listar o repositório.</b><br>${esc(lastErr)}<br>O limite da API do GitHub (60/h sem login) pode ter sido atingido — tente de novo mais tarde.</div>`;
   }
+  $('#btnRefresh').classList.remove('spin');
+  render(); tick();
 }
 
-inputBusca.addEventListener('input', renderizar);
+function list(){
+  let a = ALL.slice();
+  if (FILTER==='fav') a=a.filter(x=>FAV.has(x.id));
+  if (FILTER==='sub') a=a.filter(x=>x.sub);
+  if (Q){ const q=Q.toLowerCase(); a=a.filter(x=>(x.name+' '+x.desc+' '+x.id).toLowerCase().includes(q)); }
+  if (SORT==='az') a.sort((x,y)=>x.name.localeCompare(y.name,'pt-BR'));
+  else if (SORT==='za') a.sort((x,y)=>y.name.localeCompare(x.name,'pt-BR'));
+  else a.sort((x,y)=>x.order-y.order || x.name.localeCompare(y.name,'pt-BR'));
+  return a;
+}
 
-btnAtualizar.addEventListener('click', async () => {
-  btnAtualizar.disabled = true;
-  btnAtualizar.innerHTML = '<span class="girando">🔄</span> Buscando...';
-  await buscarApps();
-  btnAtualizar.disabled = false;
-  btnAtualizar.innerHTML = '🔄 Atualizar';
+function iconHtml(a){
+  const letter = esc((a.name||'?').trim().charAt(0).toUpperCase());
+  return a.icon ? `<div class="ico"><img src="${esc(a.icon)}" alt="" onerror="this.parentNode.textContent='${letter}'"></div>` : `<div class="ico">${letter}</div>`;
+}
+
+function render(){
+  $('#cAll').textContent=ALL.length;
+  $('#cFav').textContent=ALL.filter(x=>FAV.has(x.id)).length;
+  $('#cSub').textContent=ALL.filter(x=>x.sub).length;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.f===FILTER));
+  $('#vGrid').classList.toggle('on',VIEW==='grid'); $('#vTable').classList.toggle('on',VIEW==='table');
+  const items=list(); const m=$('#main');
+  let html = truncated?`<div class="warn">Repositório muito grande: a lista da API veio truncada, alguns apps podem não aparecer.</div>`:'';
+  if(!items.length){
+    m.innerHTML = html+`<div class="empty">${ALL.length?'Nenhum app encontrado com esse filtro.':'Nenhum app HTML encontrado no repositório <b>'+esc(OWNER+'/'+REPO)+'</b>.'}</div>`; $('#stCount').textContent=''; return;
+  }
+  if(VIEW==='grid'){
+    html += '<div class="grid">'+items.map((a,i)=>`
+      <article class="card" style="--c:${a.color}" data-id="${esc(a.id)}">
+        <div class="chead"><span class="num">${String(i+1).padStart(2,'0')}</span>
+          <span class="links"><a href="${esc(a.url)}" target="_blank" rel="noopener">SITE ↗</a><a href="${esc(a.ghUrl)}" target="_blank" rel="noopener">GITHUB ↗</a></span></div>
+        <div class="cbody">${iconHtml(a)}<div><div class="name">${twoTone(a.name)}</div><div class="desc">${esc(a.desc||'Aplicativo HTML')}</div></div></div>
+        <span class="tag ${a.sub?'sub':''}">${a.sub?'Em subpasta':a.single?'Arquivo único':'Disponível para abrir'}</span>
+        <div class="path">/${esc(a.file)}</div>
+        <div class="actions">
+          <a class="open" href="${esc(a.url)}" target="_blank" rel="noopener">ABRIR</a>
+          <button class="more ${FAV.has(a.id)?'fav':''}" data-more="${esc(a.id)}" title="Mais opções">${FAV.has(a.id)?'★':'…'}</button>
+          <div class="menu" data-menu="${esc(a.id)}">
+            <button data-act="fav">${FAV.has(a.id)?'Remover dos favoritos':'Adicionar aos favoritos'}</button>
+            <button data-act="copy">Copiar link</button>
+            <a href="${esc(a.url)}" target="_blank" rel="noopener">Abrir em nova aba</a>
+            <a href="${esc(a.ghUrl)}" target="_blank" rel="noopener">Ver no GitHub</a>
+          </div>
+        </div>
+      </article>`).join('')+'</div>';
+  } else {
+    html += '<div class="table"><div class="row h"><span>#</span><span>App</span><span class="hd">Descrição</span><span class="hd">Caminho</span><span></span></div>'+
+      items.map((a,i)=>`<div class="row" style="--c:${a.color}"><span class="n">${String(i+1).padStart(2,'0')}</span><span class="nm">${twoTone(a.name)}</span><span class="ds">${esc(a.desc||'—')}</span><span class="pt">/${esc(a.file)}</span><a class="open" href="${esc(a.url)}" target="_blank" rel="noopener">ABRIR</a></div>`).join('')+'</div>';
+  }
+  m.innerHTML=html; $('#stCount').textContent=items.length+' de '+ALL.length+' apps';
+}
+
+function tick(){
+  const min=Math.max(0,Math.round((Date.now()-lastChecked)/60000));
+  $('#stat').textContent=`Verificado há ${min} min · via ${lastSrc||'—'}${lastErr?' · '+lastErr:''} · ${OWNER}/${REPO}`;
+}
+
+/* ---- eventos ---- */
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{FILTER=c.dataset.f;render()});
+$('#vGrid').onclick=()=>{VIEW='grid';store.set('view',VIEW);render()};
+$('#vTable').onclick=()=>{VIEW='table';store.set('view',VIEW);render()};
+$('#sort').value=SORT; $('#sort').onchange=e=>{SORT=e.target.value;store.set('sort',SORT);render()};
+$('#q').oninput=e=>{Q=e.target.value.trim();render()};
+$('#btnRefresh').onclick=()=>load(true);
+
+document.addEventListener('click',e=>{
+  const more=e.target.closest('[data-more]');
+  document.querySelectorAll('.menu.show').forEach(m=>{ if(!more||m.dataset.menu!==more.dataset.more) m.classList.remove('show') });
+  if(more){ e.preventDefault(); document.querySelector(`.menu[data-menu="${CSS.escape(more.dataset.more)}"]`)?.classList.toggle('show'); return; }
+  const act=e.target.closest('[data-act]');
+  if(act){
+    const id=act.closest('.menu').dataset.menu; const a=ALL.find(x=>x.id===id);
+    if(act.dataset.act==='fav'){ FAV.has(id)?FAV.delete(id):FAV.add(id); store.set('fav',[...FAV]); render(); }
+    if(act.dataset.act==='copy' && a){ navigator.clipboard?.writeText(a.url).catch(()=>{}); act.textContent='Link copiado ✓'; setTimeout(()=>document.querySelectorAll('.menu.show').forEach(m=>m.classList.remove('show')),700); }
+  }
 });
-
-buscarApps();
-setInterval(buscarApps, REFRESH_MS);
+setInterval(tick,30000);
+load(false);
 </script>
-
 </body>
 </html>
