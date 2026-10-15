@@ -135,6 +135,7 @@ dialog{background:var(--panel);color:var(--tx);border:1px solid var(--bd);border
 
 <dialog id="dlgStatus"><div style="display:flex"><h3 style="flex:1;margin:0">Status das fontes</h3><button class="btn sec" id="stClose">Fechar</button></div>
 <div class="row" style="margin:6px 0"><input type="text" id="beUrl" placeholder="URL do backend (ex.: https://meu-backend.exemplo.com ou http://localhost:8000)"><button class="btn sec" id="beSave" style="flex:none">Salvar e testar</button></div>
+<div class="row" style="margin:6px 0"><input type="text" id="pxUrl" placeholder="Proxy CORS (opcional): https://seu-worker.workers.dev"><button class="btn sec" id="pxSave" style="flex:none">Salvar proxy</button></div>
 <div class="btns"><button class="btn" id="stTest">Testar conectividade agora (do navegador)</button></div>
 <div class="sm">O teste mede se ESTE navegador consegue consultar a API (inclui CORS). Isso não prova autenticação nem download.</div><div id="stBody"></div></dialog>
 
@@ -436,7 +437,7 @@ function renderDetail(s){
 
 /*BEGIN-CLIENT-COMPOSE*/
 /* ===== Composições no navegador (sem backend). Espelha backend/app/composites.py ===== */
-const CC={open:null,
+const CC={open:null,proxy:(()=>{try{return localStorage.getItem("shp_proxy")||""}catch{return ""}})(),
  RECIPES:{natural:["Cor natural (R, G, B)",["red","green","blue"]],cir:["Infravermelho colorido (NIR, R, G) — vegetação em vermelho",["nir","red","green"]],agricultura:["Agricultura (SWIR1, NIR, Azul)",["swir16","nir","blue"]],swir:["SWIR / queimadas (SWIR2, NIR, R)",["swir22","nir","red"]],
   natural_pan:["Cor natural + fusão pancromática (R, G, B + PAN)",["red","green","blue","pan"]],cir_pan:["Infravermelho colorido + fusão pancromática (NIR, R, G + PAN)",["nir","red","green","pan"]]},
  INDICES:{ndvi:["NDVI — vegetação (NIR−R)/(NIR+R)",["nir","red"]],ndwi:["NDWI — água (Verde−NIR)/(Verde+NIR)",["green","nir"]],nbr:["NBR — queimadas (NIR−SWIR2)/(NIR+SWIR2)",["nir","swir22"]]},
@@ -476,7 +477,7 @@ function ccRingsPix(geom,tf,bx0,by1,px,py){const polys=geom.type==="Polygon"?[ge
 function ccMask(rings,w,h){const m=new Uint8Array(w*h);
  for(let y=0;y<h;y++){const yc=y+0.5,xs=[];for(const r of rings)for(let i=0;i<r.length-1;i++){const [x1,y1]=r[i],[x2,y2]=r[i+1];if((y1<=yc&&y2>yc)||(y2<=yc&&y1>yc))xs.push(x1+(yc-y1)*(x2-x1)/(y2-y1))}
   xs.sort((a,b)=>a-b);for(let k=0;k+1<xs.length;k+=2){const a=Math.max(0,Math.ceil(xs[k]-0.5)),b=Math.min(w-1,Math.ceil(xs[k+1]-0.5)-1);for(let x=a;x<=b;x++)m[y*w+x]=1}}return m}
-async function ccOpenTiff(href){if(CC.open)return CC.open(href);return GeoTIFF.fromUrl(href,{allowFullFile:false})}
+async function ccOpenTiff(href){if(CC.open)return CC.open(href);const u=CC.proxy?CC.proxy+(CC.proxy.includes("?")?"&":"?")+"url="+encodeURIComponent(href):href;return GeoTIFF.fromUrl(u,{allowFullFile:false})}
 async function ccPickImage(tiff,first,targetRes){const n=await tiff.getImageCount(),r0=Math.abs(first.getResolution()[0]);let best=first;
  for(let i=1;i<n;i++){const im=await tiff.getImage(i),r=r0*first.getWidth()/im.getWidth();if(r<=targetRes)best=im;else break}return best}
 function ccWriteTiff(data,m){ // GeoTIFF não comprimido, 1 faixa, little-endian (geotiff.js só grava 8 bits)
@@ -583,19 +584,29 @@ async function startComposite(s,rc,btn){
  }catch(e){out.innerHTML='<div class="warn">'+esc(e.message)+'</div>'}
  btn.disabled=false}
 
+async function ccDiagnose(href){
+ if(!href)return "";const host=(()=>{try{return new URL(href).host}catch{return href}})(),tag=CC.proxy?" (via proxy configurado)":"";
+ const u=CC.proxy?CC.proxy+(CC.proxy.includes("?")?"&":"?")+"url="+encodeURIComponent(href):href;
+ try{const r=await fetch(u,{headers:{Range:"bytes=0-15"}});
+  if(r.status===206)return `<b>Diagnóstico (${esc(host)})${tag}:</b> o servidor aceita leitura parcial (Range) e liberou o navegador. O erro veio de outra parte (formato do arquivo, tamanho ou memória). Tente uma AOI menor.`;
+  if(r.status===200)return `<b>Diagnóstico (${esc(host)})${tag}:</b> liberou o navegador, mas <b>não aceita leitura parcial (Range)</b> — o arquivo teria de ser baixado inteiro. Use o backend ou o ArcGIS/QGIS.`;
+  return `<b>Diagnóstico (${esc(host)})${tag}:</b> o servidor respondeu HTTP ${r.status}.`}
+ catch(e){try{await fetch(u,{mode:"no-cors",headers:{}});return `<b>Diagnóstico (${esc(host)})${tag}:</b> o servidor está no ar, mas <b>não libera acesso pelo navegador (CORS)</b>. Opções: backend (iniciar.bat), proxy CORS próprio (veja tools/cors-proxy-worker.js e o campo "Proxy CORS" em Status das fontes) ou ArcGIS/QGIS.`}
+  catch{return `<b>Diagnóstico (${esc(host)})${tag}:</b> não foi possível alcançar o servidor (rede, bloqueio ou endereço do proxy incorreto).`}}}
 async function startCompositeBrowser(s,rc,btn){
- const out=$("cj-"+rc);btn.disabled=true;out.textContent="Iniciando…";
+ let hrefsForDiag=null;const out=$("cj-"+rc);btn.disabled=true;out.textContent="Iniciando…";
  try{
   const plan=ccPlan(s).find(c=>c.id===rc);if(!plan||!plan.available)throw new Error("Bandas indisponíveis nesta cena.");
   const isIdx=plan.kind==="index",need=(isIdx?CC.INDICES:CC.RECIPES)[rc][1],roles=ccResolveRoles(s),ms=need.filter(r=>r!=="pan");
-  const hrefs=ms.map(r=>roles[r].href),panHref=need.includes("pan")?roles.pan.href:null;
+  const hrefs=ms.map(r=>roles[r].href),panHref=need.includes("pan")?roles.pan.href:null;hrefsForDiag=hrefs[0];
   if([...hrefs,panHref].filter(Boolean).some(u=>!safeUrl(u)))throw new Error("Asset sem URL https.");
   const scales=isIdx?need.map(r=>ccScaleOffset(s.assets[roles[r].asset])):null;
   const res=await ccCompose({hrefs,panHref,geometry:S.aoi?S.aoi.geometry:null,maxSize:+$("cpMax").value||1500,stretch:$("cpStr").checked,clip:!!$("cpClip")?.checked,scales,mode:isIdx?"index":"rgb",onProgress:t=>{out.textContent=t}});
   const url=URL.createObjectURL(new Blob([res.buffer],{type:"image/tiff"})),name=(s.id+"_"+rc).replace(/[^\w.-]/g,"_")+".tif",st=res.info.stats;
   out.innerHTML=`<a href="${url}" download="${esc(name)}">⬇ Baixar GeoTIFF (${res.info.width}×${res.info.height}, ${esc(res.info.crs)})</a>`+(st?`<div class="sm">média ${st.mean.toFixed(3)} · mín ${st.min.toFixed(3)} · máx ${st.max.toFixed(3)} · desvio ${st.std.toFixed(3)} · ${st.count} px${st.area_ha?" · "+st.area_ha.toFixed(1)+" ha":""}</div>`:"")+res.info.warnings.map(w=>`<div class="sm">${esc(w)}</div>`).join("");
- }catch(e){const net=e instanceof TypeError||/fetch|network|failed to|range|offset is outside|cors/i.test(e.message||"");
-  out.innerHTML='<div class="warn">'+esc(e.message||String(e))+(net?"<br><b>Provável causa:</b> o servidor da imagem bloqueou a leitura pelo navegador (CORS) ou não aceita leitura parcial de arquivo (Range/COG). Para esta fonte use o backend (iniciar.bat) ou baixe os assets e componha no ArcGIS/QGIS.":"")+'</div>'}
+ }catch(e){let msg=e.message||String(e);if(e.errors&&e.errors[0])msg+=" — "+(e.errors[0].message||e.errors[0]);
+  out.innerHTML='<div class="warn">'+esc(msg)+'<div id="diag-'+esc(rc)+'" class="sm">Diagnosticando acesso à imagem…</div></div>';
+  ccDiagnose(hrefsForDiag).then(t=>{const d=$("diag-"+rc);if(d)d.innerHTML=t})}
  btn.disabled=false}
 
 /* ===== Comparação ===== */
@@ -616,7 +627,8 @@ $("expCsv").onclick=()=>{const r=filtered();if(!r.length)return toast("Sem resul
 const probe={};
 function renderStatus(){$("stBody").innerHTML=`<table><tr><th>Fonte</th><th>Status</th><th>Acesso</th><th>Teste no navegador</th><th>Notas</th></tr>${SOURCES.map(s=>`<tr><td>${esc(s.name)}</td><td><span class="pill ${s.status}">${esc(STATUS_LABEL[s.status])}</span></td><td>${s.auth?esc(s.auth):"—"}</td><td>${s.base?esc(probe[s.id]||"não testado"):"—"}${S.health[s.id]?"<br>backend: "+(S.health[s.id].ok?"ok":"falhou"):""}</td><td>${esc(s.note||"")}</td></tr>`).join("")}</table>`}
 $("beSave").onclick=async()=>{const v=$("beUrl").value.trim().replace(/\/+$/,"");if(v&&!/^https?:\/\//.test(v))return toast("Use http:// ou https://");try{localStorage.setItem("shp_backend",v)}catch{}const ok=await checkBackend();toast(ok?"Backend conectado.":"Não foi possível conectar (confira URL, HTTPS e CORS).",5000);renderStatus()};
-$("btnStatus").onclick=()=>{try{$("beUrl").value=localStorage.getItem("shp_backend")||""}catch{}renderStatus();$("dlgStatus").showModal()};$("stClose").onclick=()=>$("dlgStatus").close();
+$("pxSave").onclick=()=>{const v=$("pxUrl").value.trim().replace(/\/+$/,"");if(v&&!/^https:\/\//.test(v))return toast("O proxy precisa começar com https://");try{localStorage.setItem("shp_proxy",v)}catch{}CC.proxy=v;toast(v?"Proxy salvo.":"Proxy removido.")};
+$("btnStatus").onclick=()=>{try{$("pxUrl").value=localStorage.getItem("shp_proxy")||""}catch{}try{$("beUrl").value=localStorage.getItem("shp_backend")||""}catch{}renderStatus();$("dlgStatus").showModal()};$("stClose").onclick=()=>$("dlgStatus").close();
 $("stTest").onclick=async()=>{for(const s of SOURCES.filter(x=>x.base)){probe[s.id]="testando…";renderStatus();const t=performance.now();
  try{const r=await fetch(s.base+"/",{signal:AbortSignal.timeout(10000)});probe[s.id]=(r.ok?"alcançável":"HTTP "+r.status)+` (${Math.round(performance.now()-t)} ms)`}catch(e){probe[s.id]="inalcançável/CORS: "+(e.name||"erro")}renderStatus()}};
 
