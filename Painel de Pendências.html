@@ -151,7 +151,8 @@
   .progress-mini span{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-dim); }
   .row-alert{ color: var(--bad); font-size:14px; }
   td.col-flag, td.col-pdf, td.col-complete, th.col-flag, th.col-pdf, th.col-complete{ white-space:nowrap; width:34px; min-width:34px; text-align:center; padding-left:4px; padding-right:4px; }
-  .pdf-icon{ font-size:13px; }
+  .pdf-icon{ font-size:13px; cursor:pointer; display:inline-block; transition:transform .12s; }
+  .pdf-icon:hover{ transform:scale(1.25); }
   td.processado{ font-size:12.5px; color: var(--ink-dim); }
   .empty-row td{ text-align:center; padding:38px 10px; color: var(--ink-faint); font-family:'IBM Plex Mono', monospace; font-size:13px; }
 
@@ -1287,7 +1288,7 @@ function render(){
     tr.title = 'Clique duas vezes para ver/ocultar detalhes';
     tr.innerHTML = `
       <td class="col-flag">${prog.objCount > 0 ? `<span class="row-alert" title="${prog.objCount} bloco(s) marcado(s) como Não Aprovado — requer atenção prioritária">⚑</span>` : ''}</td>
-      <td class="col-pdf">${rec.pdfName ? '<span class="pdf-icon" title="PDF anexado: '+escapeHtml(rec.pdfName)+'">📄</span>' : ''}</td>
+      <td class="col-pdf">${rec.pdfName ? '<span class="pdf-icon" role="button" tabindex="0" title="Clique para abrir o PDF: '+escapeHtml(rec.pdfName)+'">📄</span>' : ''}</td>
       <td class="col-complete">${(viewMode === 'ativos' && !rec.arquivado && prog.pct === 100) ? '<span class="complete-badge" title="100% concluído — pronto para arquivar no histórico">✅</span>' : ''}</td>
       <td class="propriedade">
         <div class="propriedade-nome">${escapeHtml(rec.propriedade)}${rec.arquivado && viewMode === 'ativos' ? '<span class="archived-badge" title="Processo arquivado no histórico' + (rec.arquivadoEm ? ' em ' + fmtDate(rec.arquivadoEm.slice(0,10)) : '') + '">📁 ARQUIVADO</span>' : ''}</div>
@@ -1304,6 +1305,12 @@ function render(){
       </td>
       <td class="processado">${escapeHtml(rec.processado) || '—'}</td>
     `;
+    const pdfIcon = tr.querySelector('.pdf-icon');
+    if(pdfIcon){
+      pdfIcon.addEventListener('click', e => { e.stopPropagation(); openAttachedPdf(rec); });
+      pdfIcon.addEventListener('dblclick', e => e.stopPropagation());
+      pdfIcon.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openAttachedPdf(rec); } });
+    }
     tr.addEventListener('dblclick', () => {
       expandedId = expandedId === rec.id ? null : rec.id;
       render();
