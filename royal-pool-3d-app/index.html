@@ -8,10 +8,10 @@
     />
     <meta name="theme-color" content="#0b0f14" />
     <title>ROYAL POOL 3D</title>
-    <script type="module" crossorigin src="./assets/index-DWNKL8Vr.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-B2Yo1UQw.css">
+    <script type="module" crossorigin src="./assets/index-DwqLG77w.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-ZdMDVt_v.css">
   </head>
-  <body>
+  <body class="in-menu">
     <div id="app">
       <canvas id="scene"></canvas>
 
@@ -20,22 +20,20 @@
           <span class="logo" aria-hidden="true">♛</span>
           <span id="brand-name">ROYAL POOL 3D</span>
         </div>
-        <div class="badge">MODO LOCAL DE TESTE · treino livre, sem regras (Fase 2)</div>
+        <div class="badge" id="badge">Bola 8</div>
       </header>
 
       <nav class="hud top-right">
-        <button id="btn-rack" title="Reorganizar as bolas (R)">Reorganizar</button>
+        <button id="btn-menu" title="Voltar ao menu">Menu</button>
+        <button id="btn-rack" class="only-practice" title="Reorganizar as bolas (R)">Reorganizar</button>
         <button id="btn-cam" title="Alternar câmera (C)">Câmera</button>
         <button id="btn-mute" title="Som (M)">Som: ligado</button>
-        <label class="select">
-          Qualidade
-          <select id="sel-quality">
-            <option value="low">Baixa</option>
-            <option value="medium">Média</option>
-            <option value="high">Alta</option>
-          </select>
-        </label>
+        <button id="btn-help" title="Como jogar">?</button>
       </nav>
+
+      <section class="hud players" id="players" aria-label="Jogadores"></section>
+      <div class="hud banner" id="banner" aria-live="polite"></div>
+      <div class="hud flash" id="flash" aria-live="assertive"></div>
 
       <aside class="hud power" id="power">
         <div class="label">FORÇA</div>
@@ -47,7 +45,7 @@
         <div class="hint">arraste para baixo<br />e solte</div>
       </aside>
 
-      <aside class="hud spin">
+      <aside class="hud spin" id="spin">
         <div class="label">EFEITO</div>
         <div class="pad" id="spin-pad">
           <div class="cross"></div>
@@ -66,6 +64,104 @@
           · A/D mira · W/S força · Espaço: tacada · 1/2 câmera
         </div>
       </footer>
+
+      <!-- Fim de partida / conexão perdida -->
+      <div class="overlay hidden" id="over">
+        <div class="card">
+          <div class="big" id="over-title"></div>
+          <p id="over-text"></p>
+          <div class="row">
+            <button id="btn-rematch" class="primary">REVANCHE</button>
+            <button id="btn-leave">Voltar ao menu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Como jogar -->
+      <div class="overlay hidden" id="tutorial">
+        <div class="card tut">
+          <div class="steps" id="tut-dots"></div>
+          <div class="big" id="tut-title"></div>
+          <p id="tut-text"></p>
+          <div class="row">
+            <button id="tut-prev">Voltar</button>
+            <button id="tut-next" class="primary">PRÓXIMO</button>
+          </div>
+          <button class="link" id="tut-skip">Pular</button>
+        </div>
+      </div>
+
+      <!-- Menu inicial -->
+      <div class="overlay" id="menu">
+        <div class="card menu">
+          <div class="menu-brand"><span class="logo">♛</span> ROYAL POOL 3D</div>
+          <div class="sub">Sinuca 3D · Bola 8</div>
+
+          <section class="screen" data-screen="home">
+            <label class="field">
+              Seu nome
+              <input id="in-name" type="text" maxlength="14" placeholder="Jogador" autocomplete="off" />
+            </label>
+            <button class="primary wide" id="m-online">JOGAR ONLINE COM UM AMIGO</button>
+            <button class="wide" id="m-local">2 jogadores no mesmo aparelho</button>
+            <button class="wide" id="m-practice">Treino livre (sozinho)</button>
+            <label class="select">
+              Qualidade
+              <select id="sel-quality">
+                <option value="low">Baixa</option>
+                <option value="medium">Média</option>
+                <option value="high">Alta</option>
+              </select>
+            </label>
+            <button class="link" id="m-howto">Como jogar</button>
+          </section>
+
+          <section class="screen" data-screen="online">
+            <p class="note">
+              Um de vocês cria a sala e manda o link (ou o código) para o outro. A conexão é direta entre os
+              dois navegadores.
+            </p>
+            <button class="primary wide" id="m-host">Criar sala e convidar</button>
+            <button class="wide" id="m-join">Entrar com um código</button>
+            <button class="link back">Voltar</button>
+          </section>
+
+          <section class="screen" data-screen="host">
+            <p class="note" id="host-status">Criando a sala…</p>
+            <div class="code" id="host-code">·····</div>
+            <input id="host-link" type="text" readonly />
+            <div class="row">
+              <button class="primary" id="host-copy">Copiar link</button>
+              <button id="host-share">Compartilhar</button>
+            </div>
+            <p class="note small">Mande o link ao seu amigo. Quando ele entrar, a partida começa sozinha.</p>
+            <button class="link" id="host-cancel">Cancelar</button>
+          </section>
+
+          <section class="screen" data-screen="join">
+            <label class="field">
+              Código da sala
+              <input id="join-code" type="text" maxlength="5" placeholder="ABCDE" autocomplete="off" />
+            </label>
+            <p class="note" id="join-status"></p>
+            <button class="primary wide" id="join-go">ENTRAR</button>
+            <button class="link back" id="join-back">Voltar</button>
+          </section>
+
+          <section class="screen" data-screen="local">
+            <label class="field">
+              Jogador 1
+              <input id="loc-1" type="text" maxlength="14" placeholder="Jogador 1" autocomplete="off" />
+            </label>
+            <label class="field">
+              Jogador 2
+              <input id="loc-2" type="text" maxlength="14" placeholder="Jogador 2" autocomplete="off" />
+            </label>
+            <button class="primary wide" id="loc-go">COMEÇAR</button>
+            <button class="link back">Voltar</button>
+          </section>
+        </div>
+      </div>
     </div>
   </body>
 </html>
