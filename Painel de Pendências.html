@@ -489,7 +489,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script>
 /* ---------- Firebase (dados compartilhados entre todos os usuários do painel) ---------- */
 const firebaseConfig = {
@@ -501,13 +500,9 @@ const firebaseConfig = {
   appId: "1:1030591360254:web:0ddc57bd89a8146521c9af"
 };
 firebase.initializeApp(firebaseConfig);
-// Firebase Storage requires the paid Blaze plan and hasn't been activated on this project yet.
-// Keep this as `false` so PDF attachments stay local-only (no slow/failing network attempts).
-// Flip to `true` once Storage is enabled in the Firebase console — no other code changes needed.
-const STORAGE_ENABLED = false;
 const fbAuth = firebase.auth();
+fbAuth.languageCode = 'pt-BR';
 const fbDb = firebase.firestore();
-const fbStorage = firebase.storage();
 const RECORDS_COL = 'pendencias';
 let firestoreOnline = true; // becomes false after a failed write, shown in the UI
 
@@ -544,6 +539,28 @@ document.getElementById('loginToggleMode').addEventListener('click', () => {
   setLoginMode(loginMode === 'login' ? 'signup' : 'login');
 });
 
+/* Traduz mensagens de erro do Firebase (Firestore/Auth) para português */
+const FB_ERROR_PT = {
+  'permission-denied': 'Sem permissão para esta operação (verifique se seu cadastro foi aprovado e se as regras do Firestore foram publicadas).',
+  'unavailable': 'Servidor indisponível ou sem internet.',
+  'unauthenticated': 'Você precisa entrar novamente.',
+  'not-found': 'Item não encontrado no servidor.',
+  'already-exists': 'Este item já existe.',
+  'resource-exhausted': 'Cota gratuita do Firebase esgotada por hoje. Tente novamente amanhã.',
+  'deadline-exceeded': 'O servidor demorou demais para responder.',
+  'failed-precondition': 'Operação não permitida no estado atual.',
+  'cancelled': 'Operação cancelada.',
+  'invalid-argument': 'Dados inválidos.',
+  'aborted': 'Operação interrompida. Tente novamente.',
+  'network-request-failed': 'Falha de conexão com a internet.',
+  'too-many-requests': 'Muitas tentativas. Aguarde um pouco e tente novamente.'
+};
+function fbErro(e){
+  const code = String((e && e.code) || '').replace(/^(auth|firestore)\//, '');
+  if(FB_ERROR_PT[code]) return FB_ERROR_PT[code];
+  if(typeof AUTH_ERROR_MAP !== 'undefined' && AUTH_ERROR_MAP[e && e.code]) return AUTH_ERROR_MAP[e.code];
+  return (e && e.message) || 'erro desconhecido';
+}
 const AUTH_ERROR_MAP = {
   'auth/invalid-credential':'E-mail ou senha incorretos.',
   'auth/invalid-email':'E-mail inválido.',
@@ -579,7 +596,7 @@ async function doLogin(){
       // onAuthStateChanged below reveals the app (or the pending screen) once sign-in succeeds
     }
   }catch(e){
-    errEl.textContent = AUTH_ERROR_MAP[e.code] || ('Não foi possível continuar: ' + e.message);
+    errEl.textContent = AUTH_ERROR_MAP[e.code] || ('Não foi possível continuar: ' + fbErro(e));
     errEl.classList.remove('hidden');
   }finally{
     btn.disabled = false; btn.textContent = loginMode === 'signup' ? 'Cadastrar' : 'Entrar';
@@ -675,7 +692,7 @@ function renderUsersList(docs){
       if(!patch) return;
       btn.disabled = true;
       try{ await fbDb.collection(USERS_COL).doc(uid).update(patch); }
-      catch(e){ alert('Não foi possível atualizar este usuário: ' + e.message); }
+      catch(e){ alert('Não foi possível atualizar este usuário: ' + fbErro(e)); }
     });
   });
 }
@@ -783,38 +800,65 @@ async function deletePdfBlobLocal(id){
   });
 }
 
-/* ---------- PDF anexos: cache local (rápido) + Firebase Storage (compartilhado entre usuários) ---------- */
+/* ---------- PDF anexos: cache local (rápido) + Firestore em pedaços base64 (compartilhado entre usuários) ----------
+   Cada PDF é cortado em pedaços de 525 KB (-> ~700 KB em base64) guardados em pendencias/{id}/pdfChunks/{n},
+   porque um documento do Firestore aceita no máximo 1 MiB. Plano gratuito: 1 GiB de armazenamento. */
+const PDF_RAW_CHUNK = 525000;            // múltiplo de 3 => base64 sem padding no meio
+const PDF_MAX_BYTES = 8 * 1024 * 1024;   // limite por PDF para não estourar a cota gratuita
+function pdfChunksCol(id){ return recDocRef(id).collection('pdfChunks'); }
+function blobSliceToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+async function deletePdfChunksRemote(id){
+  const snap = await pdfChunksCol(id).get();
+  for(const d of snap.docs){ await d.ref.delete(); }
+}
 async function savePdfBlob(id, file){
   try{ await savePdfBlobLocal(id, file); }catch(e){ console.error('Falha ao salvar PDF localmente', e); throw e; }
-  if(!STORAGE_ENABLED) return; // Storage not provisioned yet — PDF stays local to this device.
-  // Best-effort upload to Firebase Storage so other users/devices can see the PDF too.
+  if(file.size > PDF_MAX_BYTES){
+    alert('Este PDF tem ' + (file.size/1048576).toFixed(1) + ' MB e passa do limite de ' + (PDF_MAX_BYTES/1048576) + ' MB para compartilhamento. Ele ficou salvo só neste dispositivo.');
+    return;
+  }
   try{
-    const ref = fbStorage.ref().child('pdfs/' + id);
-    await ref.put(file, {contentType: file.type || 'application/pdf'});
-  }catch(e){ console.warn('PDF salvo apenas localmente (Storage não disponível):', e.message); }
+    await deletePdfChunksRemote(id); // remove versão anterior, se houver
+    const total = Math.ceil(file.size / PDF_RAW_CHUNK);
+    for(let i = 0; i < total; i++){
+      const data = await blobSliceToBase64(file.slice(i * PDF_RAW_CHUNK, (i + 1) * PDF_RAW_CHUNK));
+      await pdfChunksCol(id).doc(String(i).padStart(4, '0')).set({ i, total, data });
+    }
+  }catch(e){
+    console.warn('PDF salvo apenas localmente (envio ao servidor falhou):', e.message);
+    alert('O PDF foi salvo neste dispositivo, mas não foi enviado ao servidor (' + fbErro(e) + '). Outros usuários não o verão.');
+  }
 }
 async function getPdfBlob(id){
   try{
     const local = await getPdfBlobLocal(id);
     if(local) return local;
   }catch(e){ /* fall through to remote */ }
-  if(!STORAGE_ENABLED) return null;
   try{
-    const ref = fbStorage.ref().child('pdfs/' + id);
-    const url = await ref.getDownloadURL();
-    const resp = await fetch(url);
-    if(resp.ok){
-      const blob = await resp.blob();
-      try{ await savePdfBlobLocal(id, blob); }catch(e){}
-      return blob;
-    }
-  }catch(e){ /* not found in Storage either */ }
+    const snap = await pdfChunksCol(id).orderBy('i').get();
+    if(snap.empty) return null;
+    const parts = snap.docs.map(d => {
+      const bin = atob(d.data().data);
+      const arr = new Uint8Array(bin.length);
+      for(let k = 0; k < bin.length; k++) arr[k] = bin.charCodeAt(k);
+      return arr;
+    });
+    const blob = new Blob(parts, {type: 'application/pdf'});
+    try{ await savePdfBlobLocal(id, blob); }catch(e){}
+    return blob;
+  }catch(e){ console.warn('Falha ao baixar PDF do servidor', e); }
   return null;
 }
 async function deletePdfBlob(id){
   try{ await deletePdfBlobLocal(id); }catch(e){ /* non-fatal */ }
-  if(!STORAGE_ENABLED) return;
-  try{ await fbStorage.ref().child('pdfs/' + id).delete(); }catch(e){ /* may not exist remotely */ }
+  try{ await deletePdfChunksRemote(id); }catch(e){ /* may not exist remotely */ }
 }
 async function saveMeta(key, value){
   const db = await openPdfDB();
@@ -1574,7 +1618,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
         await savePdfBlob(id, pendingPdfFile);
         const rec = records.find(r => r.id === id);
         if(rec){ rec.pdfName = pendingPdfFile.name; await save(id); }
-      }catch(e){ alert('Aviso: o processo foi salvo, mas o PDF não foi anexado (' + e.message + '). Tente anexá-lo novamente depois.'); }
+      }catch(e){ alert('Aviso: o processo foi salvo, mas o PDF não foi anexado (' + fbErro(e) + '). Tente anexá-lo novamente depois.'); }
     } else if(pendingPdfRemove){
       try{
         await deletePdfBlob(id);
@@ -1586,7 +1630,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     closeModal();
     render();
   }catch(e){
-    alert('Não foi possível salvar o processo: ' + e.message + '\n\nSe o problema persistir, feche outras abas deste arquivo abertas no navegador e tente novamente.');
+    alert('Não foi possível salvar o processo: ' + fbErro(e) + '\n\nSe o problema persistir, feche outras abas deste arquivo abertas no navegador e tente novamente.');
   }finally{
     saveBtn.disabled = false;
     saveBtn.textContent = originalLabel;
