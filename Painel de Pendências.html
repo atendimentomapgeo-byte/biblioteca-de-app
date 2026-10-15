@@ -889,12 +889,22 @@ async function deleteMeta(key){
 }
 async function openAttachedPdf(rec){
   if(!rec.pdfName){ return; }
+  // Abre a aba já no clique (evita bloqueio de pop-up) e mostra "carregando" enquanto baixa do servidor.
+  const win = window.open('', '_blank');
+  if(win){
+    try{ win.document.write('<title>Carregando PDF…</title><body style="font-family:sans-serif;background:#111;color:#ddd;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Carregando PDF… (na primeira vez pode demorar um pouco; depois fica salvo neste dispositivo)</body>'); }catch(e){}
+  }
   try{
     const blob = await getPdfBlob(rec.id);
-    if(!blob){ alert('PDF não encontrado no armazenamento local (pode ter sido limpo pelo navegador).'); return; }
+    if(!blob){
+      if(win) win.close();
+      alert('PDF não encontrado (nem neste dispositivo nem no servidor). Anexe-o novamente no processo.');
+      return;
+    }
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    if(win) win.location.href = url; else window.open(url, '_blank');
   }catch(e){
+    if(win) win.close();
     alert('Não foi possível abrir o PDF anexado.');
   }
 }
