@@ -470,6 +470,23 @@ function ccProj(code){if(code===4326||code===4674)return {geo:true,def:"EPSG:432
  let d=null;if(code>=32601&&code<=32660)d=`+proj=utm +zone=${code-32600} +datum=WGS84 +units=m +no_defs`;else if(code>=32701&&code<=32760)d=`+proj=utm +zone=${code-32700} +south +datum=WGS84 +units=m +no_defs`;
  else if(code>=31978&&code<=31985)d=`+proj=utm +zone=${code-31978+18} +south +ellps=GRS80 +units=m +no_defs`;else if(code>=31972&&code<=31977)d=`+proj=utm +zone=${code-31972+18} +ellps=GRS80 +units=m +no_defs`;
  if(!d)throw new Error("CRS EPSG:"+code+" não suportado no navegador (só 4326 e UTM WGS84/SIRGAS). Use o backend.");return {geo:false,def:d}}
+function ccCrsSig(f){const g=f.getGeoKeys();return JSON.stringify(["ProjectedCSTypeGeoKey","GeographicTypeGeoKey","ProjCoordTransGeoKey","ProjStdParallel1GeoKey","ProjStdParallel2GeoKey","ProjNatOriginLongGeoKey","ProjNatOriginLatGeoKey","ProjFalseOriginLongGeoKey","ProjFalseOriginLatGeoKey","ProjFalseEastingGeoKey","ProjFalseNorthingGeoKey","ProjScaleAtNatOriginGeoKey"].map(k=>g[k]))}
+/* CRS da imagem: EPSG conhecido, ou projeção "definida pelo usuário" (32767) lida dos GeoKeys do próprio arquivo (ex.: Albers do BDC/INPE) */
+function ccProjImg(f){const g=f.getGeoKeys(),code=g.ProjectedCSTypeGeoKey||g.GeographicTypeGeoKey;
+ if(code&&code!==32767)return Object.assign(ccProj(code),{code});
+ const ct=g.ProjCoordTransGeoKey;if(!ct)throw new Error("CRS do arquivo sem EPSG e sem parâmetros de projeção legíveis. Use o backend.");
+ if(g.ProjLinearUnitsGeoKey&&g.ProjLinearUnitsGeoKey!==9001)throw new Error("Unidade linear do CRS não é metro: não suportado no navegador. Use o backend.");
+ const el=g.GeogSemiMajorAxisGeoKey&&g.GeogInvFlatteningGeoKey?`+a=${g.GeogSemiMajorAxisGeoKey} +rf=${g.GeogInvFlatteningGeoKey}`:g.GeogEllipsoidGeoKey===7019?"+ellps=GRS80":g.GeogEllipsoidGeoKey===7030?"+ellps=WGS84":null;
+ if(!el)throw new Error("Elipsoide do CRS não identificado no arquivo. Use o backend.");
+ const lat0=g.ProjFalseOriginLatGeoKey??g.ProjNatOriginLatGeoKey??g.ProjCenterLatGeoKey??0,lon0=g.ProjFalseOriginLongGeoKey??g.ProjNatOriginLongGeoKey??g.ProjCenterLongGeoKey??0,
+  x0=g.ProjFalseEastingGeoKey??g.ProjFalseOriginEastingGeoKey??0,y0=g.ProjFalseNorthingGeoKey??g.ProjFalseOriginNorthingGeoKey??0;
+ let d;
+ if(ct===11)d=`+proj=aea +lat_1=${g.ProjStdParallel1GeoKey} +lat_2=${g.ProjStdParallel2GeoKey} +lat_0=${lat0} +lon_0=${lon0} +x_0=${x0} +y_0=${y0} ${el} +units=m +no_defs`;
+ else if(ct===8)d=`+proj=lcc +lat_1=${g.ProjStdParallel1GeoKey} +lat_2=${g.ProjStdParallel2GeoKey} +lat_0=${lat0} +lon_0=${lon0} +x_0=${x0} +y_0=${y0} ${el} +units=m +no_defs`;
+ else if(ct===1)d=`+proj=tmerc +lat_0=${lat0} +lon_0=${lon0} +k_0=${g.ProjScaleAtNatOriginGeoKey??g.ProjScaleAtCenterGeoKey??1} +x_0=${x0} +y_0=${y0} ${el} +units=m +no_defs`;
+ else throw new Error("Projeção personalizada (tipo "+ct+") não suportada no navegador. Use o backend.");
+ if(/undefined|NaN/.test(d))throw new Error("Parâmetros da projeção incompletos no arquivo. Use o backend.");
+ const fd=f.fileDirectory;return {geo:false,def:d,code:32767,custom:true,raw:{keys:Array.from(fd.GeoKeyDirectory||[]),doubles:Array.from(fd.GeoDoubleParams||[]),ascii:fd.GeoAsciiParams||""}}}
 function ccPercentiles(arr,valid,lo,hi){const idx=[];const step=Math.max(1,Math.floor(valid.length/200000));for(let i=0;i<valid.length;i+=step)if(valid[i])idx.push(arr[i]);
  if(!idx.length)return [0,1];const f=Float64Array.from(idx).sort();return [f[Math.floor(lo*(f.length-1))],f[Math.floor(hi*(f.length-1))]]}
 function ccRingsPix(geom,tf,bx0,by1,px,py){const polys=geom.type==="Polygon"?[geom.coordinates]:geom.coordinates,out=[];
@@ -484,9 +501,9 @@ function ccWriteTiff(data,m){ // GeoTIFF não comprimido, 1 faixa, little-endian
  const n=m.n,bytes=m.bits/8,nbytes=m.w*m.h*n*bytes,ent=[];
  const T={SHORT:[3,2],LONG:[4,4],DOUBLE:[12,8],ASCII:[2,1]};
  const geoKeys=[1024,0,1,m.geo?2:1,1025,0,1,1,m.geo?2048:3072,0,1,m.epsg];
- const gk=[1,1,0,3,...geoKeys];
+ const gk=m.raw&&m.raw.keys.length?m.raw.keys:[1,1,0,3,...geoKeys];
  const tags=[[256,"LONG",[m.w]],[257,"LONG",[m.h]],[258,"SHORT",Array(n).fill(m.bits)],[259,"SHORT",[1]],[262,"SHORT",[m.photometric]],[273,"LONG",[0]],[277,"SHORT",[n]],[278,"LONG",[m.h]],[279,"LONG",[nbytes]],[284,"SHORT",[1]],[339,"SHORT",Array(n).fill(m.fmt)],
-  [33550,"DOUBLE",[m.px,m.py,0]],[33922,"DOUBLE",[0,0,0,m.bx0,m.by1,0]],[34735,"SHORT",gk],[42113,"ASCII",m.nodata+"\0"]];
+  [33550,"DOUBLE",[m.px,m.py,0]],[33922,"DOUBLE",[0,0,0,m.bx0,m.by1,0]],[34735,"SHORT",gk],...(m.raw&&m.raw.doubles.length?[[34736,"DOUBLE",m.raw.doubles]]:[]),...(m.raw&&m.raw.ascii?[[34737,"ASCII",m.raw.ascii+(m.raw.ascii.endsWith("\0")?"":"\0")]]:[]),[42113,"ASCII",m.nodata+"\0"]];
  const ifdSize=2+tags.length*12+4;let off=8+ifdSize;const extra=[];
  const sizeOf=t=>{const [,ty,v]=t;return (ty==="ASCII"?v.length:v.length)*T[ty][1]};
  for(const t of tags){const sz=sizeOf(t);if(sz>4){t.ext=off;off+=sz+(sz%2);}}
@@ -503,9 +520,9 @@ async function ccCompose(o){
  const prog=o.onProgress||(()=>{}),warnings=[],hrefs=[...o.hrefs,...(o.panHref?[o.panHref]:[])];
  prog("Abrindo bandas…");const tiffs=[],firsts=[];
  for(const h of hrefs){const t=await ccOpenTiff(h);tiffs.push(t);firsts.push(await t.getImage(0))}
- const codes=firsts.map(f=>{const g=f.getGeoKeys();return g.ProjectedCSTypeGeoKey||g.GeographicTypeGeoKey});
- if(codes.some(c=>c!==codes[0]))throw new Error("Bandas em CRS diferentes: não suportado no navegador.");
- const P=ccProj(codes[0]),toCrs=P.geo?(p=>p):(p=>proj4("EPSG:4326",P.def,p));
+ const sigs=firsts.map(ccCrsSig);
+ if(sigs.some(c=>c!==sigs[0]))throw new Error("Bandas em CRS diferentes: não suportado no navegador.");
+ const P=ccProjImg(firsts[0]),codes=[P.code],toCrs=P.geo?(p=>p):(p=>proj4("EPSG:4326",P.def,p));
  const geo=firsts.map(f=>{const [ox,oy]=f.getOrigin(),[rx,ry]=f.getResolution();return {ox,oy,rx:Math.abs(rx),ry:Math.abs(ry),w:f.getWidth(),h:f.getHeight()}});
  let bx0=Math.max(...geo.map(g=>g.ox)),bx1=Math.min(...geo.map(g=>g.ox+g.rx*g.w)),by1=Math.min(...geo.map(g=>g.oy)),by0=Math.max(...geo.map(g=>g.oy-g.ry*g.h));
  let rings=null;
@@ -547,8 +564,8 @@ async function ccCompose(o){
    for(let k=0;k<w*h;k++){if(!valid[k]){out[k*3+c]=0;continue}
     out[k*3+c]=o.stretch!==false?Math.round(Math.max(0,Math.min(1,(ms[c][k]-lo)/(hi-lo)))*254+1):Math.max(1,Math.min(65535,Math.round(ms[c][k])))}}}
  prog("Gravando GeoTIFF…");
- const buffer=ccWriteTiff(out,{w,h,n,bits,fmt,photometric:(n===3&&bits===8)?2:1,px,py,bx0,by1,geo:P.geo,epsg:codes[0],nodata});
- return {buffer,info:{width:w,height:h,crs:"EPSG:"+codes[0],warnings,stats,stretch:o.stretch!==false}}}
+ const buffer=ccWriteTiff(out,{w,h,n,bits,fmt,photometric:(n===3&&bits===8)?2:1,px,py,bx0,by1,geo:P.geo,epsg:codes[0],raw:P.raw,nodata});
+ return {buffer,info:{width:w,height:h,crs:P.custom?"CRS do arquivo (projeção personalizada)":"EPSG:"+codes[0],warnings,stats,stretch:o.stretch!==false}}}
 /*END-CLIENT-COMPOSE*/
 
 /* ===== Composições (backend) ===== */
