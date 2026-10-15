@@ -196,6 +196,7 @@
   .reopen-btn:hover{ color: var(--ink); border-color: var(--ink-dim); }
   .archived-date{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-faint); }
   .complete-badge{ margin-right:4px; }
+  .archived-badge{ display:inline-block; margin-left:8px; padding:1px 7px; border:1px solid var(--line-strong); border-radius:10px; font-size:10px; font-weight:600; letter-spacing:0.5px; color:var(--ink-faint); background:rgba(255,255,255,0.05); vertical-align:middle; white-space:nowrap; }
 
   /* ---------- Text popup (expanded view/edit for a pendency description) ---------- */
   .text-popup-modal{ max-width:640px; }
@@ -364,7 +365,7 @@
   </div>
 
   <section class="toolbar">
-    <input type="text" id="searchInput" placeholder="Buscar por propriedade, proprietário ou CAR estadual…">
+    <input type="text" id="searchInput" placeholder="Buscar em todos (inclui arquivados)…" title="Busca por propriedade, proprietário, analista ou CAR estadual, incluindo os arquivados">
     <select id="filterStatus">
       <option value="todos">Todos os prazos</option>
       <option value="vencido">Vencidos</option>
@@ -1245,7 +1246,8 @@ function applyFiltersSort(list){
   const filt = document.getElementById('filterStatus').value;
   const sortBy = document.getElementById('sortBy').value;
 
-  let out = list.filter(r => viewMode === 'historico' ? !!r.arquivado : !r.arquivado);
+  // Com texto na busca, procura em TODOS os processos (ativos e arquivados); sem busca, respeita a aba atual.
+  let out = q ? list.slice() : list.filter(r => viewMode === 'historico' ? !!r.arquivado : !r.arquivado);
 
   out = out.filter(r => {
     if(q && !(r.propriedade.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.proprietario||'').toLowerCase().includes(q) || (r.analista||'').toLowerCase().includes(q))) return false;
@@ -1288,7 +1290,7 @@ function render(){
       <td class="col-pdf">${rec.pdfName ? '<span class="pdf-icon" title="PDF anexado: '+escapeHtml(rec.pdfName)+'">📄</span>' : ''}</td>
       <td class="col-complete">${(viewMode === 'ativos' && !rec.arquivado && prog.pct === 100) ? '<span class="complete-badge" title="100% concluído — pronto para arquivar no histórico">✅</span>' : ''}</td>
       <td class="propriedade">
-        <div class="propriedade-nome">${escapeHtml(rec.propriedade)}</div>
+        <div class="propriedade-nome">${escapeHtml(rec.propriedade)}${rec.arquivado && viewMode === 'ativos' ? '<span class="archived-badge" title="Processo arquivado no histórico' + (rec.arquivadoEm ? ' em ' + fmtDate(rec.arquivadoEm.slice(0,10)) : '') + '">📁 ARQUIVADO</span>' : ''}</div>
         <div class="propriedade-sub" title="${rec.proprietario ? escapeHtml(rec.proprietario) : ''}">${rec.proprietario ? escapeHtml(rec.proprietario) : '&nbsp;'}</div>
         <div class="propriedade-sub" title="${rec.analista ? escapeHtml(rec.analista) : ''}">${rec.analista ? escapeHtml(rec.analista) : '&nbsp;'}</div>
       </td>
