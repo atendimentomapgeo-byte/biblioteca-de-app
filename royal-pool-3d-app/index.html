@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0b0f14" />
+    <title>ROYAL POOL 3D</title>
+    <script type="module" crossorigin src="./assets/index-DWNKL8Vr.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B2Yo1UQw.css">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+
+      <header class="hud top-left">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">♛</span>
+          <span id="brand-name">ROYAL POOL 3D</span>
+        </div>
+        <div class="badge">MODO LOCAL DE TESTE · treino livre, sem regras (Fase 2)</div>
+      </header>
+
+      <nav class="hud top-right">
+        <button id="btn-rack" title="Reorganizar as bolas (R)">Reorganizar</button>
+        <button id="btn-cam" title="Alternar câmera (C)">Câmera</button>
+        <button id="btn-mute" title="Som (M)">Som: ligado</button>
+        <label class="select">
+          Qualidade
+          <select id="sel-quality">
+            <option value="low">Baixa</option>
+            <option value="medium">Média</option>
+            <option value="high">Alta</option>
+          </select>
+        </label>
+      </nav>
+
+      <aside class="hud power" id="power">
+        <div class="label">FORÇA</div>
+        <div class="track" id="power-track">
+          <div class="fill" id="power-fill"></div>
+          <div class="knob" id="power-knob"></div>
+        </div>
+        <div class="value" id="power-val">40%</div>
+        <div class="hint">arraste para baixo<br />e solte</div>
+      </aside>
+
+      <aside class="hud spin">
+        <div class="label">EFEITO</div>
+        <div class="pad" id="spin-pad">
+          <div class="cross"></div>
+          <div class="dot" id="spin-dot"></div>
+        </div>
+        <div class="hint" id="spin-val">centro</div>
+      </aside>
+
+      <section class="hud log" id="log" aria-live="polite"></section>
+      <section class="hud pocketed" id="pocketed" aria-label="Bolas encaçapadas"></section>
+
+      <footer class="hud bottom">
+        <button id="btn-shoot" class="primary">TACADA</button>
+        <div class="help" id="help">
+          Arraste na mesa: mirar · Botão direito / dois dedos: girar a câmera · Roda / pinça: zoom
+          · A/D mira · W/S força · Espaço: tacada · 1/2 câmera
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
