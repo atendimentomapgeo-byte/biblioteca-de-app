@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Satellite Hub Pro</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css">
+<style>
+:root{--bg:#f4f6f8;--panel:#fff;--tx:#17212b;--mut:#5b6b7a;--bd:#d5dde5;--ac:#0b6bcb;--ok:#1a8a4a;--warn:#c27a00;--bad:#c0392b;--pen:#7b5ea7}
+:root[data-theme=dark]{--bg:#0f1418;--panel:#182028;--tx:#e6edf3;--mut:#8fa1b2;--bd:#2b3846;--ac:#4aa3ff;--ok:#3ec27a;--warn:#e0a030;--bad:#ef6a5a;--pen:#b69be0}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:13px/1.4 system-ui,Segoe UI,Roboto,sans-serif}
+#app{display:grid;grid-template-rows:44px 1fr 26px;height:100vh}
+#top{display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--bd)}
+#top h1{font-size:15px;margin:0;flex:1}#top .tag{font-size:11px;color:var(--mut)}
+#main{display:grid;grid-template-columns:360px 1fr 340px;min-height:0}
+#side,#detail{background:var(--panel);overflow:auto;min-height:0}
+#side{border-right:1px solid var(--bd)}#detail{border-left:1px solid var(--bd);padding:10px}
+#mapwrap{position:relative;min-height:0}#map{position:absolute;inset:0}
+#bottom{display:flex;gap:16px;align-items:center;padding:0 12px;background:var(--panel);border-top:1px solid var(--bd);font-size:12px;color:var(--mut)}
+.tabs{display:flex;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--panel);z-index:2}
+.tabs button{flex:1;border:0;background:none;color:var(--mut);padding:9px 4px;cursor:pointer;font-weight:600}
+.tabs button.on{color:var(--ac);border-bottom:2px solid var(--ac)}
+.pane{display:none;padding:10px}.pane.on{display:block}
+fieldset{border:1px solid var(--bd);border-radius:6px;margin:0 0 10px;padding:8px}legend{font-weight:700;padding:0 4px;font-size:12px}
+label{display:block;margin:4px 0;color:var(--mut);font-size:12px}
+input,select,textarea,button{font:inherit;color:var(--tx)}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:5px}
+.row{display:flex;gap:6px}.row>*{flex:1}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:600}
+.btn.sec{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.card{display:flex;gap:8px;border:1px solid var(--bd);border-radius:6px;padding:6px;margin:6px 0;cursor:pointer;background:var(--bg)}
+.card.sel{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.card img,.card .noimg{width:72px;height:72px;object-fit:cover;border-radius:4px;background:var(--bd);flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mut);text-align:center}
+.card .m{min-width:0;flex:1}.card b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sm{font-size:11px;color:var(--mut)}
+.pill{display:inline-block;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;color:#fff}
+.working{background:var(--ok)}.needs_credentials{background:var(--warn)}.limited{background:var(--warn)}.pending{background:var(--pen)}.discontinued{background:var(--mut)}.unavailable{background:var(--bad)}
+table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid var(--bd);padding:4px;text-align:left;vertical-align:top;font-size:12px;word-break:break-word}
+.warn{background:rgba(224,160,48,.15);border:1px solid var(--warn);border-radius:4px;padding:6px;margin:6px 0;font-size:12px}
+#tl{width:100%;height:90px}
+#toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--bd);padding:6px 12px;border-radius:6px;z-index:5;display:none}
+#cmp{position:absolute;left:10px;bottom:10px;background:var(--panel);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;z-index:4;display:none;width:260px}
+#drawhint{position:absolute;left:10px;top:10px;z-index:4;background:var(--panel);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;display:none}
+dialog{background:var(--panel);color:var(--tx);border:1px solid var(--bd);border-radius:8px;max-width:900px;width:92vw;max-height:85vh}
+@media(max-width:1000px){#main{grid-template-columns:1fr;grid-template-rows:45vh 1fr}#detail{display:none}#side{order:2;border:0}#mapwrap{order:1}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <h1>🛰️ Satellite Hub Pro <span class="tag">busca universal de imagens de satélite</span></h1>
+    <span class="tag" id="beStat">backend: verificando…</span>
+    <button class="btn sec" id="btnStatus">Status das fontes</button>
+    <select id="selBase" title="Mapa base" style="width:auto"><option value="osm">Mapa (OSM)</option><option value="sat">Satélite (Esri)</option></select><button class="btn sec" id="btnTheme">🌓</button>
+  </div>
+  <div id="main">
+    <div id="side">
+      <div class="tabs"><button data-t="aoi" class="on">Área</button><button data-t="flt">Filtros</button><button data-t="res">Resultados</button></div>
+
+      <div class="pane on" id="p-aoi">
+        <fieldset><legend>Desenhar</legend>
+          <div class="btns"><button class="btn sec" id="dPoly">Polígono</button><button class="btn sec" id="dRect">Retângulo</button><button class="btn sec" id="dClear">Limpar AOI</button></div>
+          <div class="sm">Polígono: clique nos vértices, duplo clique finaliza. Retângulo: dois cliques.</div>
+        </fieldset>
+        <fieldset><legend>Coordenadas</legend>
+          <label>BBox (minLon, minLat, maxLon, maxLat) — EPSG:4326</label>
+          <input type="text" id="bboxIn" placeholder="-56.2,-15.8,-56.0,-15.6">
+          <div class="btns"><button class="btn sec" id="bboxGo">Usar BBox</button></div>
+          <label>Ponto lat, lon + metade do lado (km)</label>
+          <div class="row"><input type="text" id="lat" placeholder="lat -15.6"><input type="text" id="lon" placeholder="lon -56.1"><input type="number" id="rad" value="5" min="0.1" step="0.5"></div>
+          <div class="btns"><button class="btn sec" id="llGo">Criar AOI do ponto</button></div>
+        </fieldset>
+        <fieldset><legend>UTM</legend>
+          <div class="row"><select id="utmDatum"><option value="WGS84">WGS84</option><option value="SIRGAS2000">SIRGAS 2000</option><option value="SAD69">SAD69 (aprox.)</option></select>
+          <input type="number" id="utmZone" value="21" min="1" max="60"><select id="utmHem"><option value="S">Sul</option><option value="N">Norte</option></select></div>
+          <div class="row"><input type="number" id="utmE" placeholder="Leste (m)"><input type="number" id="utmN" placeholder="Norte (m)"><input type="number" id="utmR" value="5" step="0.5" title="metade do lado, km"></div>
+          <div class="btns"><button class="btn sec" id="utmGo">Criar AOI UTM</button></div>
+          <div class="sm">SIRGAS 2000 é tratado como equivalente ao WGS84 (diferença &lt; 1 m). SAD69 usa parâmetros médios para o Brasil: aproximação.</div>
+        </fieldset>
+        <fieldset><legend>Local</legend>
+          <input type="text" id="place" placeholder="Cidade, município, endereço (Nominatim/OSM)">
+          <div class="btns"><button class="btn sec" id="placeGo">Buscar local</button></div>
+        </fieldset>
+        <fieldset><legend>Importar (SHP .zip, GeoJSON, KML, KMZ, GeoTIFF)</legend>
+          <input type="file" id="fileIn" accept=".zip,.geojson,.json,.kml,.kmz,.tif,.tiff,.gpkg">
+          <div class="sm">GeoTIFF: usa a extensão georreferenciada. GPKG exige o backend (não suportado no navegador). Limite 50 MB. Propriedade rural = importe o perímetro.</div>
+        </fieldset>
+        <fieldset><legend>Cena por ID</legend>
+          <input type="text" id="sceneId" placeholder="ex.: S2B_21LWH_20240615_0_L2A">
+          <div class="btns"><button class="btn sec" id="idGo">Buscar ID nas fontes marcadas</button></div>
+        </fieldset>
+        <div class="sm" id="aoiInfo">Nenhuma AOI definida.</div>
+      </div>
+
+      <div class="pane" id="p-flt">
+        <fieldset><legend>Período</legend>
+          <div class="row"><input type="date" id="dFrom" value="2024-06-01"><input type="date" id="dTo" value="2024-08-31"></div>
+          <div class="sm">Para busca histórica use ex.: 1984-01-01 a hoje e depois "Carregar mais".</div>
+        </fieldset>
+        <fieldset><legend>Fontes</legend><div id="srcList"></div></fieldset>
+        <fieldset><legend>Filtros combináveis</legend>
+          <label>Nuvens máx. (%) <input type="number" id="fCloud" min="0" max="100" placeholder="sem filtro"></label>
+          <label>Cobertura mínima da AOI (%) <input type="number" id="fCov" min="0" max="100" placeholder="sem filtro"></label>
+          <label>Resolução (GSD) máx. (m) <input type="number" id="fGsd" min="0" placeholder="sem filtro"></label>
+          <label>Missão/plataforma contém <input type="text" id="fMission" placeholder="landsat, sentinel, cbers…"></label>
+          <label>Produto/coleção contém <input type="text" id="fColl" placeholder="l2a, sr, wpm…"></label>
+          <label>Polarização (SAR) contém <input type="text" id="fPol" placeholder="VV, VH"></label>
+          <label>Acesso <select id="fAccess"><option value="">Qualquer</option><option value="none">Público</option><option value="registration">Requer cadastro</option></select></label>
+          <label><input type="checkbox" id="fThumb"> Somente com miniatura</label>
+          <label><input type="checkbox" id="fDl"> Somente com asset baixável (https)</label>
+          <label>Ordenar <select id="fSort"><option value="dateDesc">Data ↓</option><option value="dateAsc">Data ↑</option><option value="cloud">Nuvens ↑</option><option value="cov">Cobertura ↓</option><option value="gsd">Resolução (melhor)</option></select></label>
+          <label>Itens por página/fonte <input type="number" id="fLimit" value="50" min="1" max="200"></label>
+          <label>Agrupar <select id="fGroup"><option value="">Sem agrupamento</option><option value="sat>sensor">Satélite › Sensor</option><option value="sat>sensor>year">Satélite › Sensor › Ano</option><option value="source>sat>sensor">Fonte › Satélite › Sensor</option><option value="source">Por fonte</option><option value="year">Por ano</option></select></label>
+        </fieldset>
+        <div class="btns"><button class="btn" id="goSearch">🔎 Pesquisar</button><button class="btn sec" id="goHist">Busca histórica (até 10 págs.)</button></div>
+      </div>
+
+      <div class="pane" id="p-res">
+        <div id="resSummary" class="sm">Nenhuma pesquisa ainda.</div>
+        <div class="btns"><button class="btn sec" id="more">Carregar mais</button><button class="btn sec" id="expGj">GeoJSON</button><button class="btn sec" id="expCsv">CSV</button></div>
+        <canvas id="tl"></canvas><div id="gaps" class="sm"></div>
+        <div id="results"></div>
+      </div>
+    </div>
+
+    <div id="mapwrap"><div id="map"></div><div id="toast"></div><div id="drawhint"></div>
+      <div id="cmp"><b>Comparar</b><div class="sm" id="cmpInfo"></div><input type="range" id="cmpRange" min="0" max="100" value="50" style="width:100%"><div class="sm">0 = só A · 100 = só B (fusão por opacidade)</div></div>
+    </div>
+
+    <div id="detail"><div class="sm">Selecione uma cena para ver os metadados.</div></div>
+  </div>
+  <div id="bottom"><span id="bCoord">Lat/Lon: —</span><span id="bZoom">Zoom: —</span><span id="bScale">Escala: —</span><span style="flex:1"></span><span>Pré-visualizações são ilustrativas — não use para análise.</span></div>
+</div>
+
+<dialog id="dlgStatus"><div style="display:flex"><h3 style="flex:1;margin:0">Status das fontes</h3><button class="btn sec" id="stClose">Fechar</button></div>
+<div class="row" style="margin:6px 0"><input type="text" id="beUrl" placeholder="URL do backend (ex.: https://meu-backend.exemplo.com ou http://localhost:8000)"><button class="btn sec" id="beSave" style="flex:none">Salvar e testar</button></div>
+<div class="btns"><button class="btn" id="stTest">Testar conectividade agora (do navegador)</button></div>
+<div class="sm">O teste mede se ESTE navegador consegue consultar a API (inclui CORS). Isso não prova autenticação nem download.</div><div id="stBody"></div></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/shpjs@4.0.4/dist/shp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+<script>
+"use strict";
+/* ===== Registro de fontes (espelha backend/app/sources.py; status = verificado em 2026-10-15) ===== */
+const SOURCES=[
+ {id:"inpe-bdc",name:"INPE — Brazil Data Cube (CBERS/Amazonia-1/Sentinel-2)",base:"https://data.inpe.br/bdc/stac/v1",page:"page",auth:"none",status:"working",cols:["CB4-MUX-L4-DN-1","CB4-WFI-L4-DN-1","CB4A-WPM-L4-DN-1","AMZ1-WFI-L2-DN-1","S2_L1C_BUNDLE-1","S2-16D-2","CBERS4-WFI-16D-2","RESOURCESAT1_LISS3_L2_DN-1","RESOURCESAT1_AWIFS_L2_DN-1"],note:"Download https direto nos itens verificados. Nuvens geralmente nulas."},
+ {id:"usgs-landsat",name:"USGS LandsatLook (Landsat 1–9)",base:"https://landsatlook.usgs.gov/stac-server",page:"next",auth:"registration",status:"limited",cols:["landsat-c2l1","landsat-c2l2-sr","landsat-c2l2-st","landsat-c2ard-sr"],note:"Busca/miniaturas públicas; arquivos exigem login EROS."},
+ {id:"earth-search",name:"Element 84 Earth Search (Sentinel-1/2, Landsat)",base:"https://earth-search.aws.element84.com/v1",page:"next",auth:"none",status:"working",cols:["sentinel-2-l2a","sentinel-2-c1-l2a","sentinel-2-l1c","sentinel-1-grd","landsat-c2-l2"],note:"Espelho comunitário AWS. Sentinel-1 GRD é requester-pays."},
+ {id:"cdse",name:"Copernicus Data Space (CDSE)",base:"https://stac.dataspace.copernicus.eu/v1",page:"token",auth:"registration",status:"needs_credentials",cols:["sentinel-2-l2a"],note:"Busca pública; download exige conta CDSE (backend)."},
+ {id:"nasa-lpcloud",name:"NASA CMR-STAC LPCLOUD (HLS, MODIS…)",base:"https://cmr.earthdata.nasa.gov/stac/LPCLOUD",page:"token",auth:"registration",status:"needs_credentials",cols:["HLSS30_2.0","HLSL30_2.0"],note:"Download exige Earthdata Login (backend). Busca não validada de ponta a ponta."},
+ {id:"jaxa",name:"JAXA (ALOS)",status:"pending",note:"Sem API STAC pública verificada; pendente."},
+ {id:"dlr",name:"DLR (TerraSAR-X/TanDEM-X)",status:"pending",note:"Acesso por proposta científica; pendente."},
+ {id:"firms",name:"NASA FIRMS (focos de calor)",status:"pending",note:"Dado de focos, não imagem; pendente."},
+ {id:"prodes-deter",name:"INPE PRODES/DETER (TerraBrasilis)",status:"pending",note:"Dado vetorial de desmatamento; pendente."}
+];
+const STATUS_LABEL={working:"Integrada e funcionando",needs_credentials:"Requer credenciais",limited:"Acesso limitado",pending:"Pendente de implementação",discontinued:"Descontinuada",unavailable:"Temporariamente indisponível"};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(m,ms=4000){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display="none",ms)}
+function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"?x.href:null}catch{return null}}
+
+/* ===== Estado ===== */
+const S={aoi:null,results:[],tokens:{},errors:{},sel:null,cmp:[],drawMode:null,drawPts:[],backend:null,health:{}};
+S.backend=location.protocol.startsWith("http")&&location.port==="8000"?location.origin:"http://localhost:8000";
+
+/* ===== Tema ===== */
+function setTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem("shp_theme",t)}catch{} if(map)map.setStyle(styleFor(t),{diff:false}),map.once("styledata",()=>setTimeout(restoreLayers,50))}
+let theme="light";try{theme=localStorage.getItem("shp_theme")||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light")}catch{}
+document.documentElement.dataset.theme=theme;
+$("btnTheme").onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
+
+/* ===== Mapa ===== */
+var BASE=(function(){try{return localStorage.getItem("shp_base")||"osm"}catch{return "osm"}})();
+function styleFor(t){
+ const sat=BASE==="sat",d=t==="dark"&&!sat;
+ const src=sat?{type:"raster",tileSize:256,maxzoom:19,attribution:"Imagens © Esri, Maxar, Earthstar Geographics",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"]}
+  :{type:"raster",tileSize:256,maxzoom:19,attribution:"© OpenStreetMap contributors",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"]};
+ return {version:8,sources:{base:src},layers:[{id:"base",type:"raster",source:"base",paint:d?{"raster-brightness-max":.45,"raster-saturation":-.6,"raster-contrast":.1}:{}}]}}
+</script>
+<script>
+"use strict";
+var map=new maplibregl.Map({container:"map",style:styleFor(document.documentElement.dataset.theme),center:[-56.1,-15.6],zoom:5});
+map.dragRotate.disable();map.touchZoomRotate.disableRotation();map.keyboard.disableRotation();
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
+$("selBase").value=BASE;$("selBase").onchange=e=>{BASE=e.target.value;try{localStorage.setItem("shp_base",BASE)}catch{}map.setStyle(styleFor(document.documentElement.dataset.theme),{diff:false});map.once("styledata",()=>setTimeout(restoreLayers,50))};
+map.addControl(new maplibregl.ScaleControl({unit:"metric"}),"bottom-right");
+const EMPTY={type:"FeatureCollection",features:[]};
+function restoreLayers(){
+ for(const [id,data] of [["aoi",S.aoi?S.aoi:EMPTY],["fp",fpCollection()],["sel",selCollection()],["draft",EMPTY]]){
+  if(!map.getSource(id))map.addSource(id,{type:"geojson",data});}
+ const add=l=>{if(!map.getLayer(l.id))map.addLayer(l)};
+ add({id:"fp-fill",type:"fill",source:"fp",paint:{"fill-color":"#0b6bcb","fill-opacity":.06}});
+ add({id:"fp-line",type:"line",source:"fp",paint:{"line-color":"#0b6bcb","line-width":1}});
+ add({id:"aoi-fill",type:"fill",source:"aoi",paint:{"fill-color":"#e67e22","fill-opacity":.12}});
+ add({id:"aoi-line",type:"line",source:"aoi",paint:{"line-color":"#e67e22","line-width":2.5}});
+ add({id:"sel-line",type:"line",source:"sel",paint:{"line-color":"#e91e63","line-width":3}});
+ add({id:"draft-line",type:"line",source:"draft",paint:{"line-color":"#e67e22","line-width":2,"line-dasharray":[2,2]}});
+ add({id:"draft-pt",type:"circle",source:"draft",filter:["==","$type","Point"],paint:{"circle-radius":4,"circle-color":"#e67e22"}});
+ for(const q of Object.keys(quicklooks))showQuicklook(q,true);
+}
+map.on("load",restoreLayers);
+map.on("mousemove",e=>{$("bCoord").textContent=`Lat/Lon: ${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}`});
+function updScale(){const z=map.getZoom(),lat=map.getCenter().lat;const mpp=156543.03*Math.cos(lat*Math.PI/180)/Math.pow(2,z);$("bZoom").textContent="Zoom: "+z.toFixed(1);$("bScale").textContent="Escala ≈ 1:"+Math.round(mpp*96/0.0254).toLocaleString("pt-BR")}
+map.on("move",updScale);updScale();
+
+/* ===== Abas ===== */
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>goTab(b.dataset.t));
+function goTab(t){document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t===t));document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.id==="p-"+t))}
+
+/* ===== AOI ===== */
+function setAOI(feature,fit=true){
+ let g=feature.type==="Feature"?feature.geometry:feature;
+ if(g.type==="GeometryCollection")g=g.geometries.find(x=>/Polygon/.test(x.type));
+ if(!g||!/Polygon/.test(g.type)){toast("A geometria precisa ser polígono.");return}
+ S.aoi={type:"Feature",properties:{},geometry:g};
+ map.getSource("aoi")?.setData(S.aoi);
+ const km2=turf.area(S.aoi)/1e6,bb=turf.bbox(S.aoi);
+ $("aoiInfo").innerHTML=`AOI: ${km2.toFixed(2)} km² · BBox ${bb.map(x=>x.toFixed(4)).join(", ")}`+(km2>50000?'<div class="warn">AOI muito grande: muitas cenas e buscas lentas.</div>':"");
+ if(fit)map.fitBounds([[bb[0],bb[1]],[bb[2],bb[3]]],{padding:60,duration:500});
+}
+function rectAround(lon,lat,halfKm){const d=halfKm/111.32,dl=halfKm/(111.32*Math.cos(lat*Math.PI/180));return turf.bboxPolygon([lon-dl,lat-d,lon+dl,lat+d])}
+$("dClear").onclick=()=>{S.aoi=null;map.getSource("aoi").setData(EMPTY);$("aoiInfo").textContent="Nenhuma AOI definida.";cancelDraw()};
+function startDraw(m){cancelDraw();S.drawMode=m;S.drawPts=[];map.doubleClickZoom.disable();map.getCanvas().style.cursor="crosshair";$("drawhint").style.display="block";$("drawhint").textContent=m==="poly"?"Clique nos vértices; duplo clique finaliza (Esc cancela)":"Clique no 1º canto e depois no canto oposto"}
+function cancelDraw(){S.drawMode=null;S.drawPts=[];map.doubleClickZoom.enable();map.getCanvas().style.cursor="";$("drawhint").style.display="none";map.getSource("draft")?.setData(EMPTY)}
+$("dPoly").onclick=()=>startDraw("poly");$("dRect").onclick=()=>startDraw("rect");
+document.addEventListener("keydown",e=>{if(e.key==="Escape")cancelDraw()});
+function drawDraft(extra){const pts=S.drawPts.slice();if(extra)pts.push(extra);const f=[];pts.forEach(p=>f.push(turf.point(p)));if(pts.length>1)f.push(turf.lineString(pts));map.getSource("draft").setData({type:"FeatureCollection",features:f})}
+map.on("click",e=>{
+ if(!S.drawMode)return;const p=[e.lngLat.lng,e.lngLat.lat];
+ if(S.drawMode==="rect"){S.drawPts.push(p);if(S.drawPts.length===2){const [a,b]=S.drawPts;setAOI(turf.bboxPolygon([Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])]),false);cancelDraw()}else drawDraft()}
+ else{S.drawPts.push(p);drawDraft()}
+});
+map.on("mousemove",e=>{if(S.drawMode&&S.drawPts.length)drawDraft([e.lngLat.lng,e.lngLat.lat])});
+map.on("dblclick",e=>{if(S.drawMode!=="poly")return;if(S.drawPts.length>=3){setAOI(turf.polygon([[...S.drawPts,S.drawPts[0]]]),false)}else toast("São necessários 3+ vértices.");cancelDraw()});
+
+$("bboxGo").onclick=()=>{const v=$("bboxIn").value.split(/[,;\s]+/).filter(Boolean).map(Number);
+ if(v.length!==4||v.some(isNaN)||v[0]>=v[2]||v[1]>=v[3]||Math.abs(v[0])>180||Math.abs(v[2])>180||Math.abs(v[1])>90||Math.abs(v[3])>90)return toast("BBox inválido (minLon,minLat,maxLon,maxLat).");setAOI(turf.bboxPolygon(v))};
+$("llGo").onclick=()=>{const lat=parseFloat($("lat").value.replace(",",".")),lon=parseFloat($("lon").value.replace(",","."));if(isNaN(lat)||isNaN(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return toast("Coordenadas inválidas.");setAOI(rectAround(lon,lat,parseFloat($("rad").value)||5))};
+const DATUM={WGS84:"",SIRGAS2000:"",SAD69:"+ellps=aust_SA +towgs84=-66.87,4.37,-38.52,0,0,0,0"};
+$("utmGo").onclick=()=>{const z=+$("utmZone").value,E=+$("utmE").value,N=+$("utmN").value,r=+$("utmR").value||5;
+ if(!(z>=1&&z<=60)||!$("utmE").value||!$("utmN").value)return toast("Informe zona, Leste e Norte.");
+ const def=`+proj=utm +zone=${z}${$("utmHem").value==="S"?" +south":""} ${$("utmDatum").value==="SAD69"?DATUM.SAD69:"+datum=WGS84"} +units=m +no_defs`;
+ try{const [lon,lat]=proj4(def,"EPSG:4326",[E,N]);if(Math.abs(lat)>90||isNaN(lon))throw 0;setAOI(rectAround(lon,lat,r))}catch{toast("Coordenada UTM inválida.")}};
+$("placeGo").onclick=async()=>{const q=$("place").value.trim();if(!q)return;
+ try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&polygon_geojson=1&q="+encodeURIComponent(q));const j=await r.json();
+  if(!j.length)return toast("Local não encontrado.");const it=j[0];
+  if(it.geojson&&/Polygon/.test(it.geojson.type))setAOI(it.geojson);else{const [s,n,w,e]=it.boundingbox.map(Number);setAOI(turf.bboxPolygon([w,s,e,n]))}
+ }catch(e){toast("Falha na busca de local: "+e.message)}};
+
+/* ===== Importação ===== */
+const EPSG_UTM=c=>{if(c===4326||c===4674)return null;if(c>=32601&&c<=32660)return `+proj=utm +zone=${c-32600} +datum=WGS84 +no_defs`;if(c>=32701&&c<=32760)return `+proj=utm +zone=${c-32700} +south +datum=WGS84 +no_defs`;if(c>=31978&&c<=31985)return `+proj=utm +zone=${c-31978+18} +south +ellps=GRS80 +no_defs`;if(c>=31972&&c<=31977)return `+proj=utm +zone=${c-31972+18} +ellps=GRS80 +no_defs`;return undefined}
+$("fileIn").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;if(f.size>50*1024*1024)return toast("Arquivo > 50 MB.");
+ const n=f.name.toLowerCase();let gj;
+ try{
+  if(n.endsWith(".zip"))gj=await shp(await f.arrayBuffer());
+  else if(n.endsWith(".geojson")||n.endsWith(".json"))gj=JSON.parse(await f.text());
+  else if(n.endsWith(".kml"))gj=toGeoJSON.kml(new DOMParser().parseFromString(await f.text(),"text/xml"));
+  else if(n.endsWith(".kmz")){const z=await JSZip.loadAsync(await f.arrayBuffer());const k=Object.keys(z.files).find(x=>x.toLowerCase().endsWith(".kml"));if(!k)throw new Error("KMZ sem KML");gj=toGeoJSON.kml(new DOMParser().parseFromString(await z.files[k].async("string"),"text/xml"))}
+  else if(n.endsWith(".tif")||n.endsWith(".tiff")){const t=await GeoTIFF.fromArrayBuffer(await f.arrayBuffer());const im=await t.getImage();const bb=im.getBoundingBox();const gk=im.getGeoKeys();const code=gk.ProjectedCSTypeGeoKey||gk.GeographicTypeGeoKey;const d=EPSG_UTM(code);
+   if(d===undefined)throw new Error("CRS EPSG:"+code+" não suportado no navegador (use 4326, UTM WGS84/SIRGAS).");
+   let b=bb;if(d){const a=proj4(d,"EPSG:4326",[bb[0],bb[1]]),c=proj4(d,"EPSG:4326",[bb[2],bb[3]]);b=[a[0],a[1],c[0],c[1]]}gj=turf.bboxPolygon(b)}
+  else if(n.endsWith(".gpkg"))throw new Error("GPKG exige o backend (GDAL); não suportado no navegador. Converta para GeoJSON/SHP.");
+  else throw new Error("Formato não suportado.");
+  const feats=[];(function walk(o){if(Array.isArray(o))o.forEach(walk);else if(o?.type==="FeatureCollection")o.features.forEach(walk);else if(o?.type==="Feature"){if(o.geometry&&/Polygon/.test(o.geometry.type))feats.push(o)}else if(o?.type&&/Polygon/.test(o.type))feats.push({type:"Feature",geometry:o,properties:{}})})(gj);
+  if(!feats.length)throw new Error("Nenhum polígono encontrado.");
+  let u=feats[0];if(feats.length>1){try{u=turf.union(...feats.slice(0,2));for(const x of feats.slice(2))u=turf.union(u,x)}catch{u=feats[0]}toast(feats.length+" polígonos unidos.")}
+  const bb=turf.bbox(u);if(bb.some(isNaN)||Math.abs(bb[0])>180||Math.abs(bb[1])>90)throw new Error("Coordenadas fora de EPSG:4326 (o arquivo precisa de .prj no SHP).");
+  setAOI(u)}catch(e){toast("Falha na importação: "+e.message,7000)}ev.target.value=""};
+
+/* ===== Fontes / filtros UI ===== */
+function renderSrcList(){ $("srcList").innerHTML=SOURCES.filter(s=>s.base).map(s=>`<label><input type="checkbox" class="srcchk" value="${s.id}" ${s.status==="working"?"checked":""}> ${esc(s.name)} <span class="pill ${s.status}">${esc(STATUS_LABEL[s.status])}</span></label>`).join("")}
+renderSrcList();
+const chosen=()=>[...document.querySelectorAll(".srcchk:checked")].map(x=>x.value);
+
+/* ===== Backend opcional ===== */
+async function checkBackend(){
+ let saved="";try{saved=localStorage.getItem("shp_backend")||""}catch{}
+ const same=location.protocol.startsWith("http")?location.origin:"";
+ const bases=[...new Set([saved,same,S.backend,location.origin,"http://localhost:8000","http://127.0.0.1:8000"])].filter(b=>/^https?:/.test(b)).map(b=>b.replace(/\/+$/,""));
+ for(const b of bases){try{const r=await fetch(b+"/api/ping",{signal:AbortSignal.timeout(3000)});if(r.ok){S.backend=b;S.beOk=true;$("beStat").textContent="backend: conectado ("+b+")";
+   fetch(b+"/api/health").then(x=>x.json()).then(j=>{S.health=Object.fromEntries(j.sources.map(h=>[h.source_id,h]))}).catch(()=>{});return true}}catch{}}
+ S.beOk=false;$("beStat").textContent="backend: offline (busca direta; sem composição/download autenticado)";return false}
+checkBackend();
+
+/* ===== Busca STAC ===== */
+function buildBody(src,extra){
+ const b={limit:Math.min(200,Math.max(1,+$("fLimit").value||50)),collections:src.cols};
+ if(extra.ids){b.ids=extra.ids;delete b.collections}
+ else{ if(S.aoi)b.intersects=S.aoi.geometry;
+  const f=$("dFrom").value,t=$("dTo").value; if(f||t)b.datetime=`${f?f+"T00:00:00Z":".."}/${t?t+"T23:59:59Z":".."}`;
+  const cc=$("fCloud").value; if(cc!=="" && src.id!=="inpe-bdc")b.query={"eo:cloud_cover":{lte:+cc}}}
+ const tk=extra.token;if(tk){ if(src.page==="page")b.page=+tk; else b[src.page]=tk }
+ return b}
+function nextTok(src,data,nItems,body){
+ for(const l of data.links||[])if(l.rel==="next"){const bd=l.body||{};for(const k of ["next","token","page"])if(bd[k]!=null)return String(bd[k]);
+  const m=(l.href||"").match(/[?&](?:token|next|page)=([^&]+)/);if(m)return decodeURIComponent(m[1])}
+ if(src.id==="inpe-bdc"&&nItems>=body.limit)return String((body.page||1)+1);
+ return null}
+async function searchOne(src,extra={}){
+ const body=buildBody(src,extra);
+ try{
+  let data;
+  if(S.beOk&&$("useBe")?.checked){const r=await fetch(S.backend+"/api/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sources:[src.id],geometry:S.aoi?.geometry,date_from:$("dFrom").value||null,date_to:$("dTo").value||null,limit:body.limit,page_token:extra.token||null,ids:extra.ids||[]})});data=await r.json();const rr=data.results[0];if(rr.error)throw new Error(rr.error);return {src,items:rr.scenes.map(s=>({type:"Feature",id:s.id,collection:s.collection,geometry:s.geometry,bbox:s.bbox,properties:s.properties,assets:s.assets,links:[{rel:"self",href:s.official_link}]})),next:rr.next_token}}
+  const r=await fetch(src.base+"/search",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/geo+json, application/json"},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  data=await r.json();const items=data.features||[];
+  return {src,items,next:nextTok(src,data,items.length,body),matched:data.context?.matched??data.numberMatched}
+ }catch(e){return {src,items:[],error:(e instanceof TypeError?"Falha de rede/CORS (use o backend)":e.message)}}}
+
+function normalize(src,f){
+ const p=f.properties||{},a=f.assets||{};
+ const thumbKey=["thumbnail","preview","rendered_preview","overview","quicklook"].find(k=>a[k]?.href);
+ const cc=typeof p["eo:cloud_cover"]==="number"?p["eo:cloud_cover"]:null;
+ const self=(f.links||[]).find(l=>l.rel==="self")?.href;
+ let gsd=p.gsd??null; if(gsd==null){for(const k in a){const g=a[k].gsd??a[k]["eo:gsd"];if(g){gsd=g;break}}}
+ const bands=[];for(const k in a){const b=a[k]["eo:bands"]||a[k].bands;if(b)(b).forEach(x=>bands.push(x.common_name||x.name||k));else if(a[k].roles?.includes("data"))bands.push(k)}
+ return {key:src.id+"::"+f.id,src,id:f.id,collection:f.collection,dt:p.datetime||p.start_datetime||null,platform:p.platform||p["constellation"]||null,instruments:p.instruments||[],gsd,cc,geom:f.geometry,bbox:f.bbox,thumb:thumbKey?safeUrl(a[thumbKey].href):null,link:self,assets:a,bands:[...new Set(bands)],pol:p["sar:polarizations"]||[],level:p["processing:level"]||p["s2:processing_baseline"]||null,props:p}}
+
+function coverage(sc){ if(!S.aoi||!sc.geom)return null;
+ try{const i=turf.intersect(S.aoi,{type:"Feature",properties:{},geometry:sc.geom});return i?Math.min(100,turf.area(i)/turf.area(S.aoi)*100):0}catch{return null}}
+
+async function runSearch(opts={}){
+ const srcs=chosen().map(id=>SOURCES.find(s=>s.id===id));
+ if(!srcs.length)return toast("Selecione ao menos uma fonte (aba Filtros).");
+ if(!opts.ids&&!S.aoi)return toast("Defina uma AOI (aba Área).");
+ if(!opts.more){S.results=[];S.tokens={};S.errors={}}
+ goTab("res");$("resSummary").textContent="Pesquisando…";
+ const jobs=srcs.filter(s=>!opts.more||S.tokens[s.id]).map(s=>searchOne(s,{ids:opts.ids,token:opts.more?S.tokens[s.id]:null}));
+ const outs=await Promise.all(jobs);
+ for(const o of outs){S.errors[o.src.id]=o.error||null;S.tokens[o.src.id]=o.next||null;
+  for(const f of o.items){const sc=normalize(o.src,f);if(!S.results.some(r=>r.key===sc.key)){sc.cov=coverage(sc);S.results.push(sc)}}}
+ render();return outs}
+$("goSearch").onclick=()=>runSearch();
+$("idGo").onclick=()=>{const v=$("sceneId").value.trim();if(!v)return;runSearch({ids:[v]})};
+$("more").onclick=()=>{if(!Object.values(S.tokens).some(Boolean))return toast("Sem mais páginas.");runSearch({more:true})};
+$("goHist").onclick=async()=>{if(!$("dFrom").value)$("dFrom").value="1984-01-01";await runSearch();for(let i=0;i<9&&Object.values(S.tokens).some(Boolean);i++){$("resSummary").textContent=`Carregando histórico… página ${i+2}`;await runSearch({more:true})}};
+
+/* ===== Satélite / sensor ===== */
+const COLL_MAP=[[/^CB4A-/i,"CBERS-4A"],[/^CB4-|^CBERS4-/i,"CBERS-4"],[/^AMZ1-/i,"Amazonia-1"],[/^RESOURCESAT1/i,"Resourcesat-1"],[/^S2[_-]|sentinel-2/i,"Sentinel-2"],[/sentinel-1/i,"Sentinel-1"],[/^landsat|landsat-c2/i,"Landsat"],[/^HLSS30/i,"HLS (Sentinel-2)"],[/^HLSL30/i,"HLS (Landsat)"],[/^MOD/i,"MODIS"]];
+const SENS_MAP=[[/MUX/i,"MUX"],[/WFI/i,"WFI"],[/WPM/i,"WPM"],[/PAN/i,"PAN"],[/IRS/i,"IRMSS"],[/LISS3/i,"LISS-3"],[/AWIFS/i,"AWiFS"],[/sentinel-2|^S2/i,"MSI"],[/sentinel-1/i,"C-SAR"]];
+function prettySat(p){if(!p)return null;p=String(p);const m=p.match(/^sentinel-(\d)[abcd]?$/i);if(m)return "Sentinel-"+m[1];return p.replace(/\b([a-z])/g,c=>c.toUpperCase()).replace(/^Landsat[_ ]?(\d)/i,"Landsat-$1")}
+function satSensor(s){
+ let sat=prettySat(s.platform),how="metadado";
+ if(!sat){for(const [re,n] of COLL_MAP)if(re.test(s.collection||"")){sat=n;how="deduzido do nome da coleção";break}}
+ let sensor=s.instruments&&s.instruments.length?s.instruments.map(x=>String(x).toUpperCase()).join("+"):null;
+ if(!sensor){for(const [re,n] of SENS_MAP)if(re.test(s.collection||"")){sensor=n;break}}
+ return {sat:sat||"Satélite não informado",sensor:sensor||"Sensor não informado",how}}
+/* ===== Filtro, ordenação, render ===== */
+function filtered(){
+ const cl=$("fCloud").value,cv=$("fCov").value,gs=$("fGsd").value,mi=$("fMission").value.toLowerCase(),co=$("fColl").value.toLowerCase(),po=$("fPol").value.toLowerCase(),ac=$("fAccess").value;
+ let r=S.results.filter(s=>
+  (cl===""||s.cc==null||s.cc<=+cl)&&(cv===""||(s.cov!=null&&s.cov>=+cv))&&(gs===""||(s.gsd!=null&&s.gsd<=+gs))&&
+  (!mi||((s.platform||"")+" "+s.instruments.join(" ")+" "+(s.collection||"")).toLowerCase().includes(mi))&&
+  (!co||(s.collection||"").toLowerCase().includes(co))&&(!po||s.pol.join(",").toLowerCase().includes(po))&&
+  (!ac||s.src.auth===ac)&&(!$("fThumb").checked||s.thumb)&&(!$("fDl").checked||downloadable(s).length));
+ const k=$("fSort").value,N=v=>v==null?Infinity:v;
+ r.sort((a,b)=>k==="dateAsc"?(a.dt||"").localeCompare(b.dt||""):k==="cloud"?N(a.cc)-N(b.cc):k==="cov"?(b.cov??-1)-(a.cov??-1):k==="gsd"?N(a.gsd)-N(b.gsd):(b.dt||"").localeCompare(a.dt||""));
+ return r}
+function downloadable(s){return Object.entries(s.assets).filter(([k,a])=>safeUrl(a.href)&&!/thumbnail|preview|overview|quicklook/.test(k)).map(([k,a])=>({k,href:a.href,type:a.type}))}
+function card(s){return `<div class="card ${S.sel===s.key?"sel":""}" data-k="${esc(s.key)}">${s.thumb?`<img loading="lazy" referrerpolicy="no-referrer" src="${esc(s.thumb)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'noimg',textContent:'sem miniatura'}))">`:'<div class="noimg">sem miniatura</div>'}
+ <div class="m"><b title="${esc(s.id)}">${esc(s.id)}</b><span class="sm">${esc(s.src.id)} · ${esc(s.collection||"—")}</span><span class="sm">${s.dt?esc(s.dt.slice(0,10)):"data n/d"} · ${esc(s.platform||"plataforma n/d")}</span>
+ <span class="sm">nuvens: ${s.cc==null?"n/d":s.cc.toFixed(0)+"%"} · GSD: ${s.gsd==null?"n/d":s.gsd+" m"} · AOI: ${s.cov==null?"n/d":s.cov.toFixed(0)+"%"}</span>
+ <label style="display:inline"><input type="checkbox" class="cmpchk" data-k="${esc(s.key)}" ${S.cmp.includes(s.key)?"checked":""}> comparar</label></div></div>`}
+function render(){
+ const r=filtered(),g=$("fGroup").value;let h="";
+ if(g){const keyOf={source:s=>s.src.id,sat:s=>satSensor(s).sat,sensor:s=>satSensor(s).sensor,year:s=>s.dt?s.dt.slice(0,4):"s/ data"};
+  const lv=g.split(">");
+  const build=(arr,d)=>{if(d>=lv.length)return arr.map(card).join("");const m={};arr.forEach(s=>{(m[keyOf[lv[d]](s)]??=[]).push(s)});
+   return Object.keys(m).sort((a,b)=>lv[d]==="year"?b.localeCompare(a):a.localeCompare(b)).map(k=>`<details ${d===0?"open":""} style="margin:4px 0 4px ${d*10}px"><summary><b>${esc(k)}</b> <span class="sm">(${m[k].length})</span></summary>${build(m[k],d+1)}</details>`).join("")};
+  h=build(r,0)}
+ else h=r.map(card).join("");
+ $("results").innerHTML=h||'<div class="sm">Nenhuma cena para os filtros atuais.</div>';
+ const errs=Object.entries(S.errors).filter(([,e])=>e).map(([k,e])=>`<div class="warn"><b>${esc(k)}</b>: ${esc(e)}</div>`).join("");
+ const per={};S.results.forEach(s=>per[s.src.id]=(per[s.src.id]||0)+1);
+ $("resSummary").innerHTML=`${r.length} de ${S.results.length} cenas carregadas · ${Object.entries(per).map(([k,v])=>esc(k)+": "+v).join(" · ")}`+(Object.values(S.tokens).some(Boolean)?" · há mais páginas":"")+errs;
+ map.getSource("fp")?.setData(fpCollection());drawTimeline(r);
+ document.querySelectorAll(".card").forEach(c=>c.onclick=e=>{if(e.target.classList.contains("cmpchk"))return;selectScene(c.dataset.k)});
+ document.querySelectorAll(".cmpchk").forEach(c=>c.onchange=()=>toggleCmp(c.dataset.k,c.checked))}
+["fCloud","fCov","fGsd","fMission","fColl","fPol","fAccess","fThumb","fDl","fSort","fGroup"].forEach(i=>$(i).addEventListener("change",render));
+function fpCollection(){return {type:"FeatureCollection",features:filtered().filter(s=>s.geom).map(s=>({type:"Feature",properties:{k:s.key},geometry:s.geom}))}}
+function selCollection(){const s=S.results.find(x=>x.key===S.sel);return s&&s.geom?{type:"Feature",properties:{},geometry:s.geom}:EMPTY}
+
+/* ===== Linha do tempo e lacunas ===== */
+function drawTimeline(r){
+ const cv=$("tl"),dpr=devicePixelRatio||1,W=cv.clientWidth||320,H=90;cv.width=W*dpr;cv.height=H*dpr;const c=cv.getContext("2d");c.scale(dpr,dpr);c.clearRect(0,0,W,H);
+ const ds=r.map(s=>s.dt).filter(Boolean).map(d=>new Date(d));$("gaps").textContent="";if(!ds.length)return;
+ const bin={};ds.forEach(d=>{const k=d.getUTCFullYear()*12+d.getUTCMonth();bin[k]=(bin[k]||0)+1});
+ const ks=Object.keys(bin).map(Number),a=Math.min(...ks),b=Math.max(...ks),n=b-a+1,mx=Math.max(...Object.values(bin));
+ const css=getComputedStyle(document.documentElement),bw=W/n;
+ for(let i=0;i<n;i++){const v=bin[a+i]||0;c.fillStyle=v?css.getPropertyValue("--ac"):css.getPropertyValue("--bad");const h=v?Math.max(2,v/mx*(H-18)):2;c.globalAlpha=v?1:.5;c.fillRect(i*bw,H-14-h,Math.max(1,bw-.5),h)}
+ c.globalAlpha=1;c.fillStyle=css.getPropertyValue("--mut");c.font="10px sans-serif";const m0=a,fmt=k=>`${String(k%12+1).padStart(2,"0")}/${Math.floor(k/12)}`;c.fillText(fmt(m0),2,H-2);c.fillText(fmt(b),W-40,H-2);
+ const gaps=[];let st=null;for(let i=0;i<=n;i++){const e=i<n&&!bin[a+i];if(e&&st==null)st=i;if(!e&&st!=null){if(i-st>=3)gaps.push(`${fmt(a+st)}–${fmt(a+i-1)}`);st=null}}
+ const dups=r.length-new Set(r.map(s=>s.src.id+s.id)).size;
+ $("gaps").innerHTML=(gaps.length?`Lacunas ≥3 meses (vermelho): ${esc(gaps.slice(0,8).join("; "))}${gaps.length>8?"…":""}`:"Sem lacunas ≥3 meses nas cenas carregadas.")+" Obs.: só reflete o que foi carregado, não o acervo completo."}
+
+/* ===== Seleção / detalhe / quicklook ===== */
+function selectScene(k){S.sel=k;const s=S.results.find(x=>x.key===k);if(!s)return;map.getSource("sel")?.setData(selCollection());
+ if(s.bbox)map.fitBounds([[s.bbox[0],s.bbox[1]],[s.bbox[s.bbox.length===6?3:2],s.bbox[s.bbox.length===6?4:3]]],{padding:80,maxZoom:12});
+ renderDetail(s);document.querySelectorAll(".card").forEach(c=>c.classList.toggle("sel",c.dataset.k===k))}
+const quicklooks={};
+function bbox2(s){const b=s.bbox;return b.length===6?[b[0],b[1],b[3],b[4]]:b}
+function quadFor(s){
+ const p=s.props||{},code=parseInt(String(p["proj:epsg"]||p["proj:code"]||"").replace(/\D*(\d+)$/,"$1"));const d=EPSG_UTM(code),pb=p["proj:bbox"];
+ if(d&&pb&&pb.length===4){try{const c=(x,y)=>proj4(d,"EPSG:4326",[x,y]);return {q:[c(pb[0],pb[3]),c(pb[2],pb[3]),c(pb[2],pb[1]),c(pb[0],pb[1])],exact:true}}catch{}}
+ const b=bbox2(s);return {q:[[b[0],b[3]],[b[2],b[3]],[b[2],b[1]],[b[0],b[1]]],exact:false}}
+function showQuicklook(k,restore){const s=S.results.find(x=>x.key===k);if(!s||!s.thumb||!s.bbox)return;const id="ql-"+k.replace(/\W/g,"_");
+ if(!restore&&map.getSource(id))return;
+ const url=S.beOk?S.backend+"/api/image?url="+encodeURIComponent(s.thumb):s.thumb;
+ if(!map.getSource(id))map.addSource(id,{type:"image",url,coordinates:quadFor(s).q});
+ if(!map.getLayer(id))map.addLayer({id,type:"raster",source:id,paint:{"raster-opacity":quicklooks[k]??.8}},"fp-line");quicklooks[k]=quicklooks[k]??.8}
+map.on("error",e=>{if(e?.sourceId?.startsWith("ql-")){const id=e.sourceId;try{if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id)}catch{}toast(S.beOk?"Miniatura indisponível nesta fonte (resposta inválida).":"Miniatura bloqueada pelo navegador (CORS). Abra o app pelo iniciar.bat (localhost:8000) para usar o proxy.",6000)}});
+function renderDetail(s){
+ const dl=downloadable(s),row=(a,b)=>`<tr><th>${esc(a)}</th><td>${b==null||b===""?'<span class="sm">não informado</span>':esc(b)}</td></tr>`;
+ $("detail").innerHTML=`<h3 style="margin:0 0 6px;word-break:break-all">${esc(s.id)}</h3><span class="pill ${s.src.status}">${esc(STATUS_LABEL[s.src.status])}</span>
+ <div class="btns"><button class="btn sec" id="dZoom">Zoom</button>${s.thumb?'<button class="btn sec" id="dQl">Mostrar miniatura no mapa</button>':""}<button class="btn sec" id="dJson">Metadados JSON</button></div>
+ ${s.thumb?'<div class="warn">A miniatura é ilustrativa e posicionada pelas coordenadas do tile quando a cena informa (proj:bbox), senão pelo bbox (aproximado); não serve para medições.</div>':""}
+ <div id="qlOp" style="display:none"><label>Opacidade <input type="range" min="0" max="100" value="80" id="qlRange"></label></div>
+ <table>${row("Fonte",s.src.name)}${row("Coleção",s.collection)}${row("Data/hora",s.dt)}${row("Plataforma",s.platform)}${row("Sensores",s.instruments.join(", "))}${row("Resolução (GSD)",s.gsd==null?null:s.gsd+" m")}${row("Nuvens",s.cc==null?null:s.cc+" %")}${row("Cobertura da AOI",s.cov==null?null:s.cov.toFixed(1)+" %")}${row("Bandas",s.bands.join(", "))}${row("Polarização",s.pol.join(", "))}${row("Nível/baseline",s.level)}${row("Licença",s.props.license)}${row("Acesso",s.src.auth==="none"?"público":"requer cadastro/credenciais")}<tr><th>Link oficial</th><td>${safeUrl(s.link)?`<a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">item STAC</a>`:'<span class="sm">n/d</span>'}</td></tr></table>
+ <h4>Assets (${dl.length})</h4>${dl.length?dl.slice(0,40).map(d=>`<div class="sm"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer">${esc(d.k)}</a> ${esc(d.type||"")} ${S.beOk?`<button class="btn sec" data-dl="${esc(d.href)}" data-k="${esc(d.k)}" style="padding:1px 6px">via backend</button>`:""}</div>`).join(""):'<div class="sm">Nenhum asset https listado.</div>'}
+ ${s.src.auth!=="none"?`<div class="warn">${esc(s.src.note)}</div>`:""}
+ <div id="compBox"></div><div id="idxBox"></div>`;
+ loadComposites(s);
+ $("dZoom").onclick=()=>selectScene(s.key);
+ $("dQl")&&($("dQl").onclick=()=>{showQuicklook(s.key);$("qlOp").style.display="block"});
+ $("qlRange")&&($("qlRange").oninput=e=>{const id="ql-"+s.key.replace(/\W/g,"_");if(map.getLayer(id)){quicklooks[s.key]=e.target.value/100;map.setPaintProperty(id,"raster-opacity",e.target.value/100)}});
+ $("dJson").onclick=()=>{const w=window.open("","_blank");if(w){w.document.title=s.id;const pre=w.document.createElement("pre");pre.textContent=JSON.stringify(s.props,null,2);w.document.body.append(pre)}};
+ document.querySelectorAll("[data-dl]").forEach(b=>b.onclick=async()=>{try{const r=await fetch(S.backend+"/api/downloads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:b.dataset.dl,source_id:s.src.id,scene_id:s.id,asset:b.dataset.k})});const j=await r.json();if(!r.ok)throw new Error(j.detail);toast("Download enfileirado: "+j.id)}catch(e){toast("Falha: "+e.message)}});
+}
+
+
+/* ===== Composições (backend) ===== */
+async function loadComposites(s){
+ const box=$("compBox");if(!box)return;
+ if(!S.beOk)await checkBackend();
+ if(!S.beOk){box.innerHTML='<h4>Composição colorida</h4><div class="warn">Backend não encontrado. Abra o app pelo <b>iniciar.bat</b> (janela preta aberta) e acesse <b>http://localhost:8000</b>, não o arquivo index.html direto.</div>';return}
+ box.innerHTML='<h4>Composição colorida</h4><div class="sm">Verificando bandas da cena…</div>';
+ try{
+  const r=await fetch(S.backend+"/api/composites/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source_id:s.src.id,scene_id:s.id,collection:s.collection})});
+  const j=await r.json();if(!r.ok)throw new Error(j.detail||r.status);
+  if(S.sel!==s.key)return;
+  box.innerHTML='<h4>Composição colorida</h4>'+
+   `<label><input type="checkbox" id="cpClip" ${S.aoi?"checked":"disabled"}> Recortar no polígono da AOI${S.aoi?"":" (defina uma AOI; senão sai a cena toda reduzida)"}</label>
+    <label><input type="checkbox" id="cpStr" checked> Realçar contraste (8 bits, só visualização). Desmarcado = valores originais</label>
+    <label>Tamanho máx. (px, lado maior) <input type="number" id="cpMax" value="4000" min="256" max="8000" step="256"></label>`+
+   (()=>{const row=(c,btn)=>`<div class="sm" style="margin:6px 0"><b>${esc(c.label)}</b><br>${c.available?Object.entries(c.bands).map(([k,v])=>esc(k)+"→"+esc(v.asset)+(v.via.startsWith("tabela")?" ⚠ por tabela":"")).join(" · ")+`<br><button class="btn sec" data-rc="${esc(c.id)}">${btn}</button>`:'indisponível: faltam bandas '+esc(c.missing.join(", "))}<div id="cj-${esc(c.id)}"></div></div>`;
+    return j.recipes.filter(c=>c.kind!=="index").map(c=>row(c,"Gerar GeoTIFF")).join("")+
+     '<h4>Índices espectrais</h4><div class="sm">GeoTIFF float32 (−1 a 1, nodata −9999) recortado na AOI, com estatísticas. A escala/offset do item STAC é aplicada quando existir.</div>'+
+     j.recipes.filter(c=>c.kind==="index").map(c=>row(c,"Gerar índice")).join("")})()+
+   '<div class="sm">Fusão pancromática (Brovey): melhora a nitidez visual, mas altera a radiometria; não use para índices. Só aparece se a cena tem banda PAN (ex.: CBERS-4A WPM, Landsat 8/9 nível 1).</div><div class="sm">⚠ por tabela = banda deduzida pelo nome do asset (sem common_name no item); confira o resultado.</div>';
+  box.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>startComposite(s,b.dataset.rc,b));
+ }catch(e){box.innerHTML='<h4>Composição colorida</h4><div class="warn">'+esc(e.message)+'</div>'}}
+async function startComposite(s,rc,btn){
+ const out=$("cj-"+rc);btn.disabled=true;out.textContent="Enfileirando…";
+ try{
+  const r=await fetch(S.backend+"/api/composites",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source_id:s.src.id,scene_id:s.id,collection:s.collection,recipe:rc,geometry:$("cpClip")?.checked||S.aoi?(S.aoi?S.aoi.geometry:null):null,clip:!!$("cpClip")?.checked,stretch:$("cpStr").checked,max_size:+$("cpMax").value||4000})});
+  const j=await r.json();if(!r.ok)throw new Error(j.detail||r.status);
+  for(;;){await new Promise(z=>setTimeout(z,2000));const q=await (await fetch(S.backend+"/api/composites/"+j.id)).json();
+   if(q.status==="done"){const st=q.info.stats;out.innerHTML=`<a href="${esc(S.backend)}/api/composites/${esc(j.id)}/file" download>⬇ Baixar GeoTIFF (${q.info.width}×${q.info.height}, ${esc(q.info.crs)})</a>`+(st?`<div class="sm">média ${st.mean.toFixed(3)} · mín ${st.min.toFixed(3)} · máx ${st.max.toFixed(3)} · desvio ${st.std.toFixed(3)} · ${st.count} px${st.area_ha?" · "+st.area_ha.toFixed(1)+" ha":""}</div>`:"")+(q.info.warnings||[]).map(w=>`<div class="sm">${esc(w)}</div>`).join("");break}
+   if(["failed","blocked","needs_credentials"].includes(q.status)){out.innerHTML=`<div class="warn">${esc(q.error||q.status)}</div>`;break}
+   out.textContent="Processando… ("+q.status+")"}
+ }catch(e){out.innerHTML='<div class="warn">'+esc(e.message)+'</div>'}
+ btn.disabled=false}
+
+/* ===== Comparação ===== */
+function toggleCmp(k,on){S.cmp=S.cmp.filter(x=>x!==k);if(on)S.cmp.push(k);if(S.cmp.length>2){const old=S.cmp.shift();const el=document.querySelector(`.cmpchk[data-k="${CSS.escape(old)}"]`);if(el)el.checked=false}
+ $("cmp").style.display=S.cmp.length?"block":"none";
+ S.cmp.forEach(showQuicklook);const [a,b]=S.cmp;$("cmpInfo").textContent=`A: ${a||"—"} | B: ${b||"—"}`;applyCmp()}
+function applyCmp(){const v=$("cmpRange").value/100;const [a,b]=S.cmp;const set=(k,o)=>{if(!k)return;const id="ql-"+k.replace(/\W/g,"_");if(map.getLayer(id))map.setPaintProperty(id,"raster-opacity",o)};
+ if(S.cmp.length===2){set(a,1-v);set(b,v)}else set(a,.8)}
+$("cmpRange").oninput=applyCmp;
+
+/* ===== Exportação ===== */
+function dl(name,txt,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+$("expGj").onclick=()=>{const r=filtered();if(!r.length)return toast("Sem resultados.");dl("cenas.geojson",JSON.stringify({type:"FeatureCollection",features:r.map(s=>({type:"Feature",geometry:s.geom,properties:{fonte:s.src.id,id:s.id,colecao:s.collection,data:s.dt,plataforma:s.platform,nuvens:s.cc,gsd:s.gsd,cobertura_aoi:s.cov,link:s.link}}))}),"application/geo+json")};
+$("expCsv").onclick=()=>{const r=filtered();if(!r.length)return toast("Sem resultados.");const q=v=>{v=v==null?"":String(v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+ dl("cenas.csv","fonte,id,colecao,data,plataforma,nuvens,gsd,cobertura_aoi,link\n"+r.map(s=>[s.src.id,s.id,s.collection,s.dt,s.platform,s.cc,s.gsd,s.cov==null?"":s.cov.toFixed(1),s.link].map(q).join(",")).join("\n"),"text/csv")};
+
+/* ===== Painel de status ===== */
+const probe={};
+function renderStatus(){$("stBody").innerHTML=`<table><tr><th>Fonte</th><th>Status</th><th>Acesso</th><th>Teste no navegador</th><th>Notas</th></tr>${SOURCES.map(s=>`<tr><td>${esc(s.name)}</td><td><span class="pill ${s.status}">${esc(STATUS_LABEL[s.status])}</span></td><td>${s.auth?esc(s.auth):"—"}</td><td>${s.base?esc(probe[s.id]||"não testado"):"—"}${S.health[s.id]?"<br>backend: "+(S.health[s.id].ok?"ok":"falhou"):""}</td><td>${esc(s.note||"")}</td></tr>`).join("")}</table>`}
+$("beSave").onclick=async()=>{const v=$("beUrl").value.trim().replace(/\/+$/,"");if(v&&!/^https?:\/\//.test(v))return toast("Use http:// ou https://");try{localStorage.setItem("shp_backend",v)}catch{}const ok=await checkBackend();toast(ok?"Backend conectado.":"Não foi possível conectar (confira URL, HTTPS e CORS).",5000);renderStatus()};
+$("btnStatus").onclick=()=>{try{$("beUrl").value=localStorage.getItem("shp_backend")||""}catch{}renderStatus();$("dlgStatus").showModal()};$("stClose").onclick=()=>$("dlgStatus").close();
+$("stTest").onclick=async()=>{for(const s of SOURCES.filter(x=>x.base)){probe[s.id]="testando…";renderStatus();const t=performance.now();
+ try{const r=await fetch(s.base+"/",{signal:AbortSignal.timeout(10000)});probe[s.id]=(r.ok?"alcançável":"HTTP "+r.status)+` (${Math.round(performance.now()-t)} ms)`}catch(e){probe[s.id]="inalcançável/CORS: "+(e.name||"erro")}renderStatus()}};
+
+/* ===== Backend toggle ===== */
+document.querySelector("#p-flt .btns").insertAdjacentHTML("afterend",'<label><input type="checkbox" id="useBe"> Pesquisar via backend (evita CORS; necessário para fontes com credenciais)</label>');
+</script>
+</body>
+</html>
