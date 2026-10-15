@@ -437,7 +437,8 @@ function renderDetail(s){
 
 /*BEGIN-CLIENT-COMPOSE*/
 /* ===== Composições no navegador (sem backend). Espelha backend/app/composites.py ===== */
-const CC={open:null,proxy:(()=>{try{return localStorage.getItem("shp_proxy")||""}catch{return ""}})(),
+const PROXY_PADRAO="https://mapgeo-proxy.atendimentomapgeo.workers.dev"; // proxy CORS do Map GEO (Cloudflare Worker); o campo em "Status das fontes" sobrescreve
+const CC={open:null,proxy:(()=>{try{const v=localStorage.getItem("shp_proxy");return v===null?PROXY_PADRAO:v}catch{return PROXY_PADRAO}})(),
  RECIPES:{natural:["Cor natural (R, G, B)",["red","green","blue"]],cir:["Infravermelho colorido (NIR, R, G) — vegetação em vermelho",["nir","red","green"]],agricultura:["Agricultura (SWIR1, NIR, Azul)",["swir16","nir","blue"]],swir:["SWIR / queimadas (SWIR2, NIR, R)",["swir22","nir","red"]],
   natural_pan:["Cor natural + fusão pancromática (R, G, B + PAN)",["red","green","blue","pan"]],cir_pan:["Infravermelho colorido + fusão pancromática (NIR, R, G + PAN)",["nir","red","green","pan"]]},
  INDICES:{ndvi:["NDVI — vegetação (NIR−R)/(NIR+R)",["nir","red"]],ndwi:["NDWI — água (Verde−NIR)/(Verde+NIR)",["green","nir"]],nbr:["NBR — queimadas (NIR−SWIR2)/(NIR+SWIR2)",["nir","swir22"]]},
@@ -645,7 +646,7 @@ const probe={};
 function renderStatus(){$("stBody").innerHTML=`<table><tr><th>Fonte</th><th>Status</th><th>Acesso</th><th>Teste no navegador</th><th>Notas</th></tr>${SOURCES.map(s=>`<tr><td>${esc(s.name)}</td><td><span class="pill ${s.status}">${esc(STATUS_LABEL[s.status])}</span></td><td>${s.auth?esc(s.auth):"—"}</td><td>${s.base?esc(probe[s.id]||"não testado"):"—"}${S.health[s.id]?"<br>backend: "+(S.health[s.id].ok?"ok":"falhou"):""}</td><td>${esc(s.note||"")}</td></tr>`).join("")}</table>`}
 $("beSave").onclick=async()=>{const v=$("beUrl").value.trim().replace(/\/+$/,"");if(v&&!/^https?:\/\//.test(v))return toast("Use http:// ou https://");try{localStorage.setItem("shp_backend",v)}catch{}const ok=await checkBackend();toast(ok?"Backend conectado.":"Não foi possível conectar (confira URL, HTTPS e CORS).",5000);renderStatus()};
 $("pxSave").onclick=()=>{const v=$("pxUrl").value.trim().replace(/\/+$/,"");if(v&&!/^https:\/\//.test(v))return toast("O proxy precisa começar com https://");try{localStorage.setItem("shp_proxy",v)}catch{}CC.proxy=v;toast(v?"Proxy salvo.":"Proxy removido.")};
-$("btnStatus").onclick=()=>{try{$("pxUrl").value=localStorage.getItem("shp_proxy")||""}catch{}try{$("beUrl").value=localStorage.getItem("shp_backend")||""}catch{}renderStatus();$("dlgStatus").showModal()};$("stClose").onclick=()=>$("dlgStatus").close();
+$("btnStatus").onclick=()=>{try{const v=localStorage.getItem("shp_proxy");$("pxUrl").value=v===null?PROXY_PADRAO:v}catch{$("pxUrl").value=PROXY_PADRAO}try{$("beUrl").value=localStorage.getItem("shp_backend")||""}catch{}renderStatus();$("dlgStatus").showModal()};$("stClose").onclick=()=>$("dlgStatus").close();
 $("stTest").onclick=async()=>{for(const s of SOURCES.filter(x=>x.base)){probe[s.id]="testando…";renderStatus();const t=performance.now();
  try{const r=await fetch(s.base+"/",{signal:AbortSignal.timeout(10000)});probe[s.id]=(r.ok?"alcançável":"HTTP "+r.status)+` (${Math.round(performance.now()-t)} ms)`}catch(e){probe[s.id]="inalcançável/CORS: "+(e.name||"erro")}renderStatus()}};
 
