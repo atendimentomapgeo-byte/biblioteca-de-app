@@ -298,6 +298,14 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
   <nav id="mnav" aria-label="Navegação"><button id="mMap" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span>Mapa</span></button><button id="mAoi" class="on" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg><span>Área</span></button><button id="mFlt" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-filter"/></svg><span>Filtros</span></button><button id="mRes" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>Resultados</span></button><button id="mDet" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Detalhe</span></button></nav>
 </div>
 
+<dialog id="credDlg" style="max-width:460px"><div style="display:flex"><h3 style="flex:1;margin:0" id="crTitle">Entrar</h3><button class="btn sec" id="crClose" type="button">Fechar</button></div>
+<div class="sm" id="crHint" style="margin:8px 0"></div>
+<input type="text" id="crU" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:100%;margin:4px 0">
+<input type="password" id="crP" autocomplete="current-password" style="width:100%;margin:4px 0">
+<input type="text" id="crT" inputmode="numeric" autocomplete="one-time-code" placeholder="Código 2FA (só se a sua conta usa)" style="width:100%;margin:4px 0">
+<div class="sm">Os dados ficam só na memória desta página: não são salvos, não vão para o GitHub e somem ao fechar ou recarregar. A senha não é guardada depois do login (só o token temporário).</div>
+<div class="warn" id="crErr" role="alert" style="display:none"></div>
+<div class="btns"><button class="btn" id="crGo" type="button">Entrar</button></div></dialog>
 <dialog id="dlgStatus"><div style="display:flex"><h3 style="flex:1;margin:0">Status das fontes</h3><button class="btn sec" id="stClose">Fechar</button></div>
 <div class="row" style="margin:6px 0"><input type="text" id="beUrl" placeholder="URL do backend (ex.: https://meu-backend.exemplo.com ou http://localhost:8000)"><button class="btn sec" id="beSave" style="flex:none">Salvar e testar</button></div>
 <div class="row" style="margin:6px 0"><input type="text" id="pxUrl" placeholder="Proxy CORS (opcional): https://seu-worker.workers.dev"><button class="btn sec" id="pxSave" style="flex:none">Salvar proxy</button></div>
@@ -316,10 +324,10 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 /* ===== Registro de fontes (espelha backend/app/sources.py; status = verificado em 2026-10-15) ===== */
 const SOURCES=[
  {id:"inpe-bdc",name:"INPE — Brazil Data Cube (CBERS/Amazonia-1/Sentinel-2)",base:"https://data.inpe.br/bdc/stac/v1",page:"page",auth:"none",status:"working",cols:["CB4-MUX-L4-DN-1","CB4-WFI-L4-DN-1","CB4A-WPM-L4-DN-1","AMZ1-WFI-L2-DN-1","S2_L1C_BUNDLE-1","S2-16D-2","CBERS4-WFI-16D-2","RESOURCESAT1_LISS3_L2_DN-1","RESOURCESAT1_AWIFS_L2_DN-1"],note:"Download https direto nos itens verificados. Nuvens geralmente nulas."},
- {id:"usgs-landsat",name:"USGS LandsatLook (Landsat 1–9)",base:"https://landsatlook.usgs.gov/stac-server",page:"next",auth:"registration",status:"limited",cols:["landsat-c2l1","landsat-c2l2-sr","landsat-c2l2-st","landsat-c2ard-sr"],note:"Busca/miniaturas públicas; arquivos exigem login EROS."},
+ {id:"usgs-landsat",name:"USGS LandsatLook (Landsat 1–9)",base:"https://landsatlook.usgs.gov/stac-server",page:"next",auth:"registration",status:"limited",cols:["landsat-c2l1","landsat-c2l2-sr","landsat-c2l2-st","landsat-c2ard-sr"],note:"Busca/miniaturas públicas; arquivos exigem conta USGS. Login no app (API M2M, token de aplicação) em validação — exige acesso M2M aprovado pelo USGS."},
  {id:"earth-search",name:"Element 84 Earth Search (Sentinel-1/2, Landsat)",base:"https://earth-search.aws.element84.com/v1",page:"next",auth:"none",status:"working",cols:["sentinel-2-l2a","sentinel-2-c1-l2a","sentinel-2-l1c","sentinel-1-grd","landsat-c2-l2"],note:"Espelho comunitário AWS. Sentinel-1 GRD é requester-pays."},
  {id:"planetary",name:"Microsoft Planetary Computer (Landsat 4–9, nível 2)",base:"https://planetarycomputer.microsoft.com/api/stac/v1",page:"token",auth:"none",status:"testing",cols:["landsat-c2-l2"],note:"Landsat aberto em COG, sem conta (token público gerado pelo próprio serviço). Busca verificada; leitura dos arquivos pelo navegador ainda em validação."},
- {id:"cdse",name:"Copernicus Data Space (CDSE)",base:"https://stac.dataspace.copernicus.eu/v1",page:"token",auth:"registration",status:"needs_credentials",cols:["sentinel-2-l2a"],note:"Busca pública; download exige conta CDSE (backend)."},
+ {id:"cdse",name:"Copernicus Data Space (CDSE)",base:"https://stac.dataspace.copernicus.eu/v1",page:"token",auth:"registration",status:"needs_credentials",cols:["sentinel-2-l2a"],note:"Busca pública; download exige conta CDSE. Login no app em validação (depende de o servidor aceitar chamadas do navegador). Sentinel-2 vem em JP2: só baixa o arquivo, não compõe cor no navegador."},
  {id:"nasa-lpcloud",name:"NASA CMR-STAC LPCLOUD (HLS, MODIS…)",base:"https://cmr.earthdata.nasa.gov/stac/LPCLOUD",page:"token",auth:"registration",status:"needs_credentials",cols:["HLSS30_2.0","HLSL30_2.0"],note:"Download exige Earthdata Login (backend). Busca não validada de ponta a ponta."},
  {id:"jaxa",name:"JAXA (ALOS)",status:"pending",note:"Sem API STAC pública verificada; pendente."},
  {id:"dlr",name:"DLR (TerraSAR-X/TanDEM-X)",status:"pending",note:"Acesso por proposta científica; pendente."},
@@ -572,36 +580,125 @@ function drawTimeline(r){
 /* ===== Seleção / detalhe / quicklook ===== */
 function selectScene(k){S.sel=k;const s=S.results.find(x=>x.key===k);if(!s)return;map.getSource("sel")?.setData(selCollection());
  if(s.bbox)map.fitBounds([[s.bbox[0],s.bbox[1]],[s.bbox[s.bbox.length===6?3:2],s.bbox[s.bbox.length===6?4:3]]],{padding:80,maxZoom:12});
+ if(S.autoQl&&S.autoQl!==k&&!(S.cmp||[]).includes(S.autoQl)&&!qlKeep.has(S.autoQl))removeQl(S.autoQl);
+ S.autoQl=k;if(s.thumb&&s.bbox)showQuicklook(k);
  renderDetail(s);document.querySelectorAll(".card").forEach(c=>c.classList.toggle("sel",c.dataset.k===k))}
-const quicklooks={};
+const quicklooks={},qlKeep=new Set();
 function bbox2(s){const b=s.bbox;return b.length===6?[b[0],b[1],b[3],b[4]]:b}
 function quadFor(s){
  const p=s.props||{},code=parseInt(String(p["proj:epsg"]||p["proj:code"]||"").replace(/\D*(\d+)$/,"$1"));const d=EPSG_UTM(code),pb=p["proj:bbox"];
  if(d&&pb&&pb.length===4){try{const c=(x,y)=>proj4(d,"EPSG:4326",[x,y]);return {q:[c(pb[0],pb[3]),c(pb[2],pb[3]),c(pb[2],pb[1]),c(pb[0],pb[1])],exact:true}}catch{}}
  const b=bbox2(s);return {q:[[b[0],b[3]],[b[2],b[3]],[b[2],b[1]],[b[0],b[1]]],exact:false}}
-function showQuicklook(k,restore){const s=S.results.find(x=>x.key===k);if(!s||!s.thumb||!s.bbox)return;const id="ql-"+k.replace(/\W/g,"_");
- if(!restore&&map.getSource(id))return;
- const url=S.beOk?S.backend+"/api/image?url="+encodeURIComponent(s.thumb):s.thumb;
+const qlMeta={};
+function qlUrl(s,viaProxy){return S.beOk?S.backend+"/api/image?url="+encodeURIComponent(s.thumb):(viaProxy&&CC.proxy)?CC.proxy+(CC.proxy.includes("?")?"&":"?")+"url="+encodeURIComponent(s.thumb):s.thumb}
+function removeQl(k){const id="ql-"+k.replace(/\W/g,"_");try{if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id)}catch{}}
+function showQuicklook(k,restore,viaProxy){const s=S.results.find(x=>x.key===k);if(!s||!s.thumb||!s.bbox)return;const id="ql-"+k.replace(/\W/g,"_");
+ if(!restore&&!viaProxy&&map.getSource(id))return;
+ qlMeta[id]={k,proxy:!!viaProxy};
+ const url=qlUrl(s,viaProxy);
  if(!map.getSource(id))map.addSource(id,{type:"image",url,coordinates:quadFor(s).q});
  if(!map.getLayer(id))map.addLayer({id,type:"raster",source:id,paint:{"raster-opacity":quicklooks[k]??.8}},"fp-line");quicklooks[k]=quicklooks[k]??.8}
-map.on("error",e=>{if(e?.sourceId?.startsWith("ql-")){const id=e.sourceId;try{if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id)}catch{}toast(S.beOk?"Miniatura indisponível nesta fonte (resposta inválida).":"Miniatura bloqueada pelo navegador (CORS). Abra o app pelo iniciar.bat (localhost:8000) para usar o proxy.",6000)}});
+map.on("error",e=>{if(e?.sourceId?.startsWith("ql-")){const id=e.sourceId,m=qlMeta[id];try{if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id)}catch{}
+ if(m&&!m.proxy&&!S.beOk&&CC.proxy){showQuicklook(m.k,true,true);return}
+ toast(S.beOk?"Miniatura indisponível nesta fonte (resposta inválida).":"Miniatura bloqueada pelo navegador (CORS). Abra o app pelo iniciar.bat (localhost:8000) para usar o proxy.",6000)}});
 function renderDetail(s){
  const dl=downloadable(s),row=(a,b)=>`<tr><th>${esc(a)}</th><td>${b==null||b===""?'<span class="sm">não informado</span>':esc(b)}</td></tr>`;
  $("detail").innerHTML=`<h3 style="margin:0 0 6px;word-break:break-all">${esc(s.id)}</h3><span class="pill ${s.src.status}">${esc(STATUS_LABEL[s.src.status])}</span>
- <div class="btns"><button class="btn sec" id="dZoom">Zoom</button>${s.thumb?'<button class="btn sec" id="dQl">Mostrar miniatura no mapa</button>':""}<button class="btn sec" id="dJson">Metadados JSON</button></div>
- ${s.thumb?'<div class="warn">A miniatura é ilustrativa e posicionada pelas coordenadas do tile quando a cena informa (proj:bbox), senão pelo bbox (aproximado); não serve para medições.</div>':""}
+ ${s.thumb?`<div id="dPrev" style="margin:8px 0;border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--bg2,#0003);min-height:60px;text-align:center"><img id="dPrevImg" referrerpolicy="no-referrer" alt="Prévia de ${esc(s.id)}" src="${esc(s.thumb)}" style="max-width:100%;max-height:260px;display:block;margin:0 auto"><div class="sm" id="dPrevMsg" style="padding:6px">Carregando prévia…</div></div>`:'<div class="warn">Esta cena não informa prévia (miniatura) no catálogo.</div>'}
+ <div class="btns"><button class="btn sec" id="dZoom">Zoom</button>${s.thumb?'<button class="btn sec" id="dQl">Manter miniatura no mapa</button>':""}<button class="btn sec" id="dJson">Metadados JSON</button></div>
+ ${s.thumb?'<div class="sm">No mapa, a miniatura é posicionada pelas coordenadas do tile quando a cena informa (proj:bbox), senão pelo bbox (aproximado).</div>':""}
+ <div id="authBox"></div>
  <div id="qlOp" style="display:none"><label>Opacidade <input type="range" min="0" max="100" value="80" id="qlRange"></label></div>
  <table>${row("Fonte",s.src.name)}${row("Coleção",s.collection)}${row("Data/hora",s.dt)}${row("Plataforma",s.platform)}${row("Sensores",s.instruments.join(", "))}${row("Resolução (GSD)",s.gsd==null?null:s.gsd+" m")}${row("Nuvens",s.cc==null?null:s.cc+" %")}${row("Cobertura da AOI",s.cov==null?null:s.cov.toFixed(1)+" %")}${row("Bandas",s.bands.join(", "))}${row("Polarização",s.pol.join(", "))}${row("Nível/baseline",s.level)}${row("Licença",s.props.license)}${row("Acesso",s.src.auth==="none"?"público":"requer cadastro/credenciais")}<tr><th>Link oficial</th><td>${safeUrl(s.link)?`<a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">item STAC</a>`:'<span class="sm">n/d</span>'}</td></tr></table>
- <h4>Assets (${dl.length})</h4>${dl.length?dl.slice(0,40).map(d=>`<div class="sm"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer">${esc(d.k)}</a> ${esc(d.type||"")} ${S.beOk?`<button class="btn sec" data-dl="${esc(d.href)}" data-k="${esc(d.k)}" style="padding:1px 6px">via backend</button>`:""}</div>`).join(""):'<div class="sm">Nenhum asset https listado.</div>'}
+ <h4>Assets (${dl.length})</h4>${dl.length?dl.slice(0,40).map(d=>`<div class="sm">${authKey(s)?`<span>${esc(d.k)}</span> <i>(requer login — use "Download com a sua conta")</i>`:`<a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer">${esc(d.k)}</a>`} ${esc(d.type||"")} ${S.beOk?`<button class="btn sec" data-dl="${esc(d.href)}" data-k="${esc(d.k)}" style="padding:1px 6px">via backend</button>`:""}</div>`).join(""):'<div class="sm">Nenhum asset https listado.</div>'}
  ${s.src.auth!=="none"?`<div class="warn">${esc(s.src.note)}</div>`:""}
  <div id="compBox"></div><div id="idxBox"></div>`;
- setMobile("det");
+ setMobile("det");renderAuth(s);
  loadComposites(s);
  $("dZoom").onclick=()=>selectScene(s.key);
- $("dQl")&&($("dQl").onclick=()=>{showQuicklook(s.key);$("qlOp").style.display="block"});
+ {const im=$("dPrevImg"),mg=$("dPrevMsg");if(im){let tried=false;im.onload=()=>{mg.textContent="Prévia ilustrativa (não serve para medições)."};
+  im.onerror=()=>{if(!tried&&CC.proxy&&!S.beOk){tried=true;mg.textContent="Tentando pelo proxy…";im.src=qlUrl(s,true)}else{im.style.display="none";mg.textContent="Não foi possível carregar a prévia desta cena (servidor da fonte recusou ou não respondeu)."}}}}
+ $("dQl")&&($("dQl").onclick=()=>{qlKeep.add(s.key);showQuicklook(s.key);$("qlOp").style.display="block";toast("Miniatura mantida no mapa.")});
+ if(s.thumb)$("qlOp").style.display="block";
  $("qlRange")&&($("qlRange").oninput=e=>{const id="ql-"+s.key.replace(/\W/g,"_");if(map.getLayer(id)){quicklooks[s.key]=e.target.value/100;map.setPaintProperty(id,"raster-opacity",e.target.value/100)}});
  $("dJson").onclick=()=>{const w=window.open("","_blank");if(w){w.document.title=s.id;const pre=w.document.createElement("pre");pre.textContent=JSON.stringify(s.props,null,2);w.document.body.append(pre)}};
  document.querySelectorAll("[data-dl]").forEach(b=>b.onclick=async()=>{try{const r=await fetch(S.backend+"/api/downloads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:b.dataset.dl,source_id:s.src.id,scene_id:s.id,asset:b.dataset.k})});const j=await r.json();if(!r.ok)throw new Error(j.detail);toast("Download enfileirado: "+j.id)}catch(e){toast("Falha: "+e.message)}});
+}
+
+/* ===== Login por plataforma (USGS M2M / Copernicus CDSE). Credenciais só em memória; sem segredos no código ===== */
+const CRED={cdse:null,usgs:null};
+const AUTHP={cdse:{nome:"Copernicus Data Space",ph1:"E-mail da conta CDSE",ph2:"Senha da conta CDSE",hint:"Use o mesmo e-mail e senha do dataspace.copernicus.eu.",totp:true},
+ usgs:{nome:"USGS (API M2M)",ph1:"Usuário USGS (EROS)",ph2:"Token de aplicação USGS",hint:"A API do USGS não aceita senha: gere um Application Token na sua conta (ers.cr.usgs.gov) e cole aqui. A conta precisa ter acesso M2M aprovado pelo USGS.",totp:false}};
+function authKey(s){return s&&s.src?(s.src.id==="cdse"?"cdse":s.src.id==="usgs-landsat"?"usgs":null):null}
+function httpErr(status,detail){return Object.assign(new Error("http "+status),{status,detail})}
+function authErr(e,pl){const m=e&&e.status||0,d=e&&e.detail?" ("+e.detail+")":"";
+ if(m===200&&e.detail)return "O servidor recusou o pedido: "+e.detail+(/AUTH/.test(e.detail)?" — confira usuário/token e se a conta tem acesso M2M.":".");
+ if(m===400||m===401)return (pl==="cdse"?"Usuário/senha (ou código 2FA) recusados":"Usuário ou token recusado")+" — HTTP "+m+d+".";
+ if(m===403)return "Sem permissão — HTTP 403"+d+"."+(pl==="usgs"?" O USGS exige acesso M2M aprovado na conta.":"");
+ if(m===429)return "Limite de requisições/cota atingido — HTTP 429. Tente mais tarde.";
+ if(m)return "O servidor respondeu HTTP "+m+d+".";
+ if(e&&e.name==="TypeError")return "O navegador não conseguiu falar com "+AUTHP[pl].nome+": normalmente é bloqueio de CORS (o servidor não aceita chamadas feitas por páginas web) ou falta de rede. Se for CORS, só funciona com Worker ou backend próprio.";
+ return (e&&e.message)||"Falha desconhecida."}
+/* Copernicus */
+async function cdseTok(body){const r=await fetch("https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(body)});
+ let j={};try{j=await r.json()}catch{}if(!r.ok)throw httpErr(r.status,j.error_description||j.error);return j}
+function cdseSet(j,user,old){const n=Date.now();CRED.cdse={user:user||old.user,tok:j.access_token,exp:n+((j.expires_in||600)-30)*1000,refresh:j.refresh_token||(old&&old.refresh),rexp:n+((j.refresh_expires_in||3600)-30)*1000}}
+async function cdseLogin(u,p,totp){const b={client_id:"cdse-public",grant_type:"password",username:u,password:p};if(totp)b.totp=totp;cdseSet(await cdseTok(b),u)}
+async function cdseBearer(){const c=CRED.cdse;if(!c)throw new Error("Entre primeiro na sua conta.");if(Date.now()<c.exp)return c.tok;
+ if(c.refresh&&Date.now()<c.rexp){const j=await cdseTok({client_id:"cdse-public",grant_type:"refresh_token",refresh_token:c.refresh});cdseSet(j,null,c);return CRED.cdse.tok}
+ CRED.cdse=null;throw new Error("Sessão expirada — entre de novo.")}
+function saveBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000)}
+async function cdseDownload(href,name,msg){const tk=await cdseBearer();
+ const r=await fetch(href,{headers:{Authorization:"Bearer "+tk}});
+ if(!r.ok)throw httpErr(r.status);
+ const len=+r.headers.get("content-length")||0;
+ if(len>400e6&&!confirm("O arquivo tem "+(len/1e6).toFixed(0)+" MB e será montado na memória do navegador. Em celular isso costuma falhar. Continuar?"))throw new Error("Download cancelado.");
+ const rd=r.body.getReader(),ch=[];let got=0;
+ for(;;){const {done,value}=await rd.read();if(done)break;ch.push(value);got+=value.length;msg("Baixando… "+(got/1e6).toFixed(1)+(len?" / "+(len/1e6).toFixed(1):"")+" MB")}
+ saveBlob(new Blob(ch),name);return got}
+/* USGS M2M */
+const M2M="https://m2m.cr.usgs.gov/api/api/json/stable/";
+async function m2m(ep,body,key){const r=await fetch(M2M+ep,{method:"POST",headers:Object.assign({"Content-Type":"application/json"},key?{"X-Auth-Token":key}:{}),body:JSON.stringify(body||{})});
+ let j=null;try{j=await r.json()}catch{}
+ if(!r.ok||(j&&j.errorCode))throw httpErr(r.status,j&&j.errorCode?j.errorCode+": "+(j.errorMessage||""):null);return j.data}
+async function usgsLogin(u,tk){CRED.usgs={user:u,key:await m2m("login-token",{username:u,token:tk})}}
+function usgsDataset(s){const c=(s.collection||"").toLowerCase(),pl=String(s.platform||(s.props||{}).platform||"").toLowerCase(),lv=/l2/.test(c)?"l2":/l1/.test(c)?"l1":null;
+ if(!lv||/ard/.test(c))return null;if(/landsat[_-]?[89]/.test(pl))return "landsat_ot_c2_"+lv;if(/landsat[_-]?7/.test(pl))return "landsat_etm_c2_"+lv;if(/landsat[_-]?[45]/.test(pl))return "landsat_tm_c2_"+lv;return null}
+async function usgsOptions(s){const ds=usgsDataset(s),id=(s.props||{})["landsat:scene_id"];
+ if(!ds||!id)throw new Error("Esta cena não informa o identificador (landsat:scene_id) ou a coleção não tem correspondência na API M2M; não vou adivinhar.");
+ const d=await m2m("download-options",{datasetName:ds,entityIds:[id]},CRED.usgs.key);
+ const flat=[];for(const o of d||[]){if(Array.isArray(o.downloadOptions))o.downloadOptions.forEach(x=>flat.push(Object.assign({entityId:o.entityId||id},x)));else flat.push(Object.assign({entityId:id},o))}
+ return flat.filter(o=>o.available!==false&&o.id!=null)}
+async function usgsRequest(o,msg){const label="mapgeo-"+Date.now();
+ let d=await m2m("download-request",{downloads:[{entityId:o.entityId,productId:o.id}],label},CRED.usgs.key);
+ for(let i=0;i<20;i++){const av=(d&&d.availableDownloads)||[];if(av.length&&av[0].url)return av[0].url;
+  if(d&&d.failed&&d.failed.length)throw new Error("O USGS recusou o pedido: "+JSON.stringify(d.failed[0]).slice(0,200));
+  msg("USGS preparando o arquivo… ("+(i+1)+")");await new Promise(r=>setTimeout(r,3000));d=await m2m("download-retrieve",{label},CRED.usgs.key)}
+ throw new Error("O USGS ainda está preparando o arquivo. Tente de novo em alguns minutos.")}
+/* interface */
+let credCb=null,credPl=null;
+function openCred(pl,cb){credPl=pl;credCb=cb;const P=AUTHP[pl];$("crTitle").textContent="Entrar — "+P.nome;$("crHint").textContent=P.hint;$("crU").placeholder=P.ph1;$("crP").placeholder=P.ph2;$("crP").autocomplete=pl==="cdse"?"current-password":"off";$("crT").style.display=P.totp?"":"none";$("crErr").style.display="none";$("crP").value="";$("crT").value="";$("credDlg").showModal()}
+$("crClose").onclick=()=>$("credDlg").close();
+$("crGo").onclick=async()=>{const u=$("crU").value.trim(),p=$("crP").value.trim(),pl=credPl;const er=$("crErr");er.style.display="none";
+ if(!u||!p){er.textContent="Preencha usuário e "+(pl==="cdse"?"senha":"token")+".";er.style.display="block";return}
+ const b=$("crGo");b.disabled=true;b.textContent="Entrando…";
+ try{if(pl==="cdse")await cdseLogin(u,p,$("crT").value.trim());else await usgsLogin(u,p);$("crP").value="";$("credDlg").close();toast("Conectado: "+AUTHP[pl].nome);credCb&&credCb()}
+ catch(e){er.textContent=authErr(e,pl);er.style.display="block"}finally{b.disabled=false;b.textContent="Entrar"}};
+function extFor(type){const t=String(type||"").toLowerCase();return /jp2|jpeg2000/.test(t)?".jp2":/tiff/.test(t)?".tif":/xml/.test(t)?".xml":/json/.test(t)?".json":/zip/.test(t)?".zip":""}
+function renderAuth(s){const pl=authKey(s),box=$("authBox");if(!pl||!box)return;const c=CRED[pl],P=AUTHP[pl];
+ if(!c){box.innerHTML=`<h4>Download com a sua conta</h4><div class="sm">Os arquivos desta fonte só baixam com login em ${esc(P.nome)}.</div><div class="btns"><button class="btn" id="authIn" type="button">Entrar no ${esc(P.nome)}</button></div>`;$("authIn").onclick=()=>openCred(pl,()=>renderAuth(s));return}
+ const dl=downloadable(s);
+ box.innerHTML=`<h4>Download com a sua conta</h4><div class="sm">Conectado como <b>${esc(c.user)}</b> em ${esc(P.nome)}. <button class="btn sec" id="authOut" type="button" style="padding:1px 8px">Sair</button></div><div id="authMsg" class="sm" role="status"></div><div id="authList"></div>`;
+ $("authOut").onclick=()=>{CRED[pl]=null;renderAuth(s)};
+ const msg=m=>{$("authMsg").textContent=m},fail=e=>{if(e&&e.status===401&&pl==="usgs"){CRED.usgs=null;renderAuth(s);$("authMsg").textContent="Sessão USGS expirou — entre de novo.";return}msg("Falha: "+authErr(e,pl))};
+ if(pl==="cdse"){$("authList").innerHTML=(dl.length?dl.slice(0,40).map(d=>`<div class="rc"><span class="sm">${esc(d.k)} ${esc(d.type||"")}</span> <button class="btn sec" data-cdl="${esc(d.href)}" data-n="${esc(s.id+"_"+d.k+extFor(d.type))}" type="button">⬇ Baixar</button></div>`).join(""):'<div class="sm">Nenhum asset https listado.</div>')+'<div class="sm">O arquivo é baixado pelo navegador com o seu token. Arquivos grandes (centenas de MB) podem falhar no celular.</div>';
+  $("authList").querySelectorAll("[data-cdl]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{msg("Pedindo o arquivo…");const n=await cdseDownload(b.dataset.cdl,b.dataset.n,msg);msg("Concluído: "+b.dataset.n+" ("+(n/1e6).toFixed(1)+" MB)")}catch(e){fail(e)}finally{b.disabled=false}})}
+ else{$("authList").innerHTML='<div class="btns"><button class="btn sec" id="uOpt" type="button">Ver opções de download (USGS)</button></div><div id="uList"></div>';
+  $("uOpt").onclick=async()=>{$("uOpt").disabled=true;msg("Consultando opções no USGS…");try{const os=await usgsOptions(s);
+    $("uList").innerHTML=os.length?os.map((o,i)=>`<div class="rc"><b>${esc(o.productName||o.name||("produto "+o.id))}</b> <span class="sm">${o.filesize?(o.filesize/1e6).toFixed(0)+" MB":""} ${esc(o.downloadSystem||"")}</span> <button class="btn sec" data-ui="${i}" type="button">⬇ Baixar</button></div>`).join(""):'<div class="sm">O USGS não listou produtos disponíveis para esta cena.</div>';
+    msg(os.length+" opção(ões) disponível(is).");
+    $("uList").querySelectorAll("[data-ui]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const url=await usgsRequest(os[+b.dataset.ui],msg);msg("Pronto — abrindo o download do USGS.");const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";document.body.append(a);a.click();a.remove()}catch(e){fail(e)}finally{b.disabled=false}})
+   }catch(e){fail(e)}finally{$("uOpt").disabled=false}}}
 }
 
 
