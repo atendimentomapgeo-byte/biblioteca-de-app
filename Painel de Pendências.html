@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel de Pendências — SIMCAR/SEMA-MT</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%20fill%3D%22none%22%20stroke%3D%22%2363d8d6%22%20stroke-width%3D%2216%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%2216%22%20y%3D%2240%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20108%20L62%20130%20L156%2044%22/%3E%3Crect%20x%3D%22185%22%20y%3D%2240%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%2071%20H462%20M216%2095%20H462%20M216%20119%20H368%22%20stroke-width%3D%2214%22/%3E%3Crect%20x%3D%2216%22%20y%3D%22200%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20268%20L62%20290%20L156%20204%22/%3E%3Crect%20x%3D%22185%22%20y%3D%22200%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%20231%20H462%20M216%20255%20H462%20M216%20279%20H368%22%20stroke-width%3D%2214%22/%3E%3Crect%20x%3D%2216%22%20y%3D%22360%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20428%20L62%20450%20L156%20364%22/%3E%3Crect%20x%3D%22185%22%20y%3D%22360%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%20391%20H462%20M216%20415%20H462%20M216%20439%20H368%22%20stroke-width%3D%2214%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -53,6 +54,7 @@
     content:""; position:absolute; top:6px; left:6px; right:6px; bottom:6px;
     border:1px solid rgba(210,232,248,0.14); pointer-events:none;
   }
+  .title-icon{ width:30px; height:30px; vertical-align:-6px; margin-right:12px; color:var(--cyan); flex:none; }
   .titleblock h1{
     font-family:'Space Grotesk', sans-serif;
     font-size: 22px; font-weight:700; letter-spacing:0.5px; margin:0;
@@ -342,7 +344,7 @@
 
   <header class="titleblock">
     <div>
-      <h1>Painel de Pendências<span>SIMCAR &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; INCRA-SIGEF</span></h1>
+      <h1><svg class="title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="16" y="40" width="112" height="110" rx="6"/><path d="M40 108 L62 130 L156 44"/><rect x="185" y="40" width="310" height="110" rx="6"/><path d="M216 71 H462 M216 95 H462 M216 119 H368" stroke-width="14"/><rect x="16" y="200" width="112" height="110" rx="6"/><path d="M40 268 L62 290 L156 204"/><rect x="185" y="200" width="310" height="110" rx="6"/><path d="M216 231 H462 M216 255 H462 M216 279 H368" stroke-width="14"/><rect x="16" y="360" width="112" height="110" rx="6"/><path d="M40 428 L62 450 L156 364"/><rect x="185" y="360" width="310" height="110" rx="6"/><path d="M216 391 H462 M216 415 H462 M216 439 H368" stroke-width="14"/></svg>Painel de Pendências<span>SIMCAR &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; INCRA-SIGEF</span></h1>
     </div>
     <div class="titleblock-grid">
       <div><label>Projeto</label><span>Map GEO</span></div>
