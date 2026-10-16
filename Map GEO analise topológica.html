@@ -720,11 +720,11 @@ dialog{border:1px solid var(--line);border-radius:6px;padding:14px;width:380px}d
 header .brand{letter-spacing:.01em}
 .hdr-right button{padding:2px 8px;font-size:12px}
 details.lim{margin-top:10px;font-size:11.5px;color:var(--mut)}details.lim li{margin:2px 0}
-#toast{position:fixed;right:14px;bottom:14px;max-width:420px;background:#1d2733;color:#fff;padding:8px 12px;border-radius:5px;display:none;z-index:9999;font-size:12.5px;white-space:pre-wrap}
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:56px;pointer-events:none;box-shadow:0 6px 20px #0006;max-width:420px;background:#1d2733;color:#fff;padding:8px 12px;border-radius:5px;display:none;z-index:9999;font-size:12.5px;white-space:pre-wrap}
 .hdr-right label{color:#fff}
 
 /* ---- layout simplificado ---- */
-:root{--accent:var(--accent);--accent2:#e6f3ec}
+:root{--accent:#1b7a52;--accent2:#e6f3ec}
 body{font-size:14px}
 header{background:var(--hdr)}
 aside{width:310px;min-width:310px;padding:10px 14px 20px}
@@ -857,7 +857,7 @@ body[data-layout="painel"][data-panel="files"] #secConfig,body[data-layout="pain
 @media(max-width:1000px){body[data-layout="painel"] #center{grid-template-columns:1fr;grid-template-rows:none;grid-template-areas:"k" "h" "d" "m" "t"}body[data-layout="painel"] main{overflow:auto}body[data-layout="painel"] #mapwrap{height:280px}body[data-layout="painel"] #bottom{height:380px}}
 
 /* ---------- 4 · ESTILO GIS DESKTOP ---------- */
-body[data-layout="gis"]{--accent:var(--accent);font-family:"Segoe UI",Inter,system-ui,sans-serif;font-size:13px;background:#d8dde2}
+body[data-layout="gis"]{font-family:"Segoe UI",Inter,system-ui,sans-serif;font-size:13px;background:#d8dde2}
 body[data-layout="gis"] header{height:30px;background:#f5f6f7;color:var(--ink);border-bottom:1px solid #b9c3cd;padding:0 8px}
 body[data-layout="gis"] header .brand{font-size:12px;font-weight:600}body[data-layout="gis"] .logo{width:18px;height:18px;padding:1px}body[data-layout="gis"] header .brand span{display:none}
 body[data-layout="gis"] .hdr-right{color:var(--ink);font-size:11.5px}body[data-layout="gis"] .hdr-right button{padding:1px 8px;border:1px solid #b9c3cd}
@@ -958,6 +958,37 @@ body[data-theme="escuro"] #layoutSel,body[data-theme="escuro"] header select{bac
 #themes button{background:var(--c)!important;border-color:#ffffffcc!important}
 body[data-theme="escuro"][data-layout="gis"] aside>section>h3{background:#26303b!important;color:var(--ink)}
 body[data-theme="escuro"][data-layout="gis"] :is(aside>section,#bottom,#center){background:var(--panel)!important}
+
+/* --- correções de visibilidade --- */
+#runbar{position:sticky;bottom:-16px;background:var(--panel);padding:8px 0 14px;margin-top:8px;z-index:5;border-top:1px solid var(--line)}
+#runbar button{margin-top:4px}
+body[data-layout="assistente"] #runbar{position:static;border:none;padding:0}
+body[data-layout="assistente"] aside{padding-bottom:100px!important}
+body[data-layout="assistente"] #center{padding-bottom:84px}
+body[data-layout="assistente"] header{gap:10px}
+body[data-layout="assistente"] #stepper{position:static;transform:none;flex:1;justify-content:center;gap:12px;min-width:0}
+body[data-layout="assistente"] .hdr-right{gap:8px;flex-shrink:0}
+body[data-layout="assistente"] .hdr-right label{white-space:nowrap;font-size:11px}
+body[data-layout="assistente"] #ver{display:none}
+body[data-layout="assistente"] header .brand{white-space:nowrap}
+body[data-layout="imersivo"] #bottom{bottom:58px!important;height:min(290px,calc(100% - 200px))!important}
+body[data-layout="mobile"] #toast{top:8px}
+body[data-layout="mobile"] #runbar{position:static;border:none;padding:0}
+@media(max-height:760px){aside>section>.drop,#secFiles .drop{padding:8px}}
+#runbar{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+#runbar #btnRun{grid-column:1}#runbar #btnCancel{grid-column:2;width:auto!important;margin-top:4px}
+#runbar .progress,#runbar #progMsg{grid-column:1/-1}
+body[data-layout="mobile"] #runbar{display:block}
+
+#progMsg:empty{display:none}
+#runbar{padding:6px 0 10px}
+body[data-layout="imersivo"] header #btnExample{background:#ffffff14!important;color:#e6edf3!important;border:1px solid #ffffff33!important}
+body[data-layout="assistente"] header .brand{font-size:14px;flex-shrink:0}
+body[data-layout="assistente"] #stepper{overflow:hidden}
+body[data-layout="assistente"] #stepper .st-line,body[data-layout="assistente"] #stepper hr{display:none}
+@media(max-width:1500px){body[data-layout="assistente"] header .brand b,body[data-layout="assistente"] header .brand{max-width:150px;white-space:normal;line-height:1.1}
+body[data-layout="assistente"] .hdr-right label{max-width:70px;white-space:normal;line-height:1.05}}
+@media(max-width:1500px){body[data-layout="imersivo"] #kpis{top:84px;right:18px;width:340px}}
 </style>
 </head>
 <body>
@@ -1015,10 +1046,12 @@ body[data-theme="escuro"][data-layout="gis"] :is(aside>section,#bottom,#center){
         <button id="btnValidate" class="wide">Validar geometrias da origem</button>
         <div class="hint tiny">Buracos e multipartes são sempre respeitados.</div>
       </details>
+<div id="runbar">
       <button id="btnRun" class="primary wide big">Executar análise</button>
       <button id="btnCancel" class="wide" disabled>Cancelar</button>
       <div class="progress"><div id="bar"></div></div>
       <div id="progMsg" class="hint"></div>
+</div>
     </section>
     <details class="lim"><summary>Limitações</summary><ul>
       <li>Cálculo 2D (Z e M ignorados).</li>
