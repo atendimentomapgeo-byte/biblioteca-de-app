@@ -96,6 +96,9 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 #stBody{overflow-x:auto}#stBody td,#stBody th{word-break:normal;overflow-wrap:normal}#stBody td:last-child{min-width:180px}
 #mnav{display:none}
 .grab,.mo,#satChips{display:none}
+#fsCoord .row{display:flex;gap:8px}#fsCoord .row input{flex:1;min-width:0}#fsCoord .row .btn{flex:none}
+#viewGo{display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:16px;z-index:5;min-height:46px;padding:0 22px;border-radius:999px;box-shadow:var(--sh);font-weight:700}
+#app[data-vgo="1"] #viewGo{display:inline-flex}
 #detail tr{display:table-row}
 
 @media(min-width:901px){
@@ -150,7 +153,9 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
  #satChips:empty{display:none}
  #satChips button{flex:none;border:1px solid var(--bd);background:var(--panel);color:var(--tx);border-radius:999px;padding:8px 14px;min-height:40px;font-weight:600;cursor:pointer}
  #satChips button.on{background:var(--ac);color:var(--ac-tx);border-color:var(--ac)}
- #p-aoi fieldset:first-of-type .btns .btn{flex:1;min-height:48px;font-weight:700;border-radius:14px}
+ #app[data-vgo="1"]:not([data-m=map]) #viewGo{display:none}
+ #viewGo{bottom:calc(14px + env(safe-area-inset-bottom))}
+ #fsDraw .btns .btn{flex:1;min-height:48px;font-weight:700;border-radius:14px}
  #p-aoi fieldset.fold legend{cursor:pointer;display:flex;align-items:center;gap:6px;width:100%;float:none;padding:2px 6px}
  #p-aoi fieldset.fold legend::after{content:"\25BE";margin-left:auto;transition:transform .15s}
  #p-aoi fieldset.fold.shut legend::after{transform:rotate(-90deg)}
@@ -211,7 +216,11 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
       <div class="tabs"><button data-t="aoi" class="on">Área</button><button data-t="flt">Filtros</button><button data-t="res">Resultados</button></div>
 
       <div class="pane on" id="p-aoi">
-        <fieldset><legend>Desenhar</legend>
+        <fieldset id="fsCoord" data-open><legend>Ir para coordenada</legend>
+          <div class="row"><input type="text" id="coordIn" placeholder="-15.6014, -56.0979" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Coordenada: latitude, longitude"><button class="btn" id="coordGo" type="button">Ir</button></div>
+          <div class="sm">Latitude, longitude (decimal ou 15°36'05"S 56°05'52"W). O pino vai para o centro da tela e a imagem terá o tamanho da tela <b>no momento da busca</b>: ajuste o zoom e toque em "Buscar nesta tela".</div>
+        </fieldset>
+        <fieldset id="fsDraw" data-open><legend>Desenhar</legend>
           <div class="btns"><button class="btn sec" id="dPoly">Polígono</button><button class="btn sec" id="dRect">Retângulo</button><button class="btn sec" id="dClear">Limpar AOI</button></div>
           <div class="sm">Polígono: clique nos vértices, duplo clique finaliza. Retângulo: dois cliques.</div>
         </fieldset>
@@ -279,7 +288,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
       </div>
     </div>
 
-    <div id="mapwrap"><div id="map"></div><div id="toast" role="status" aria-live="polite"></div><div id="drawbar"><span id="drawhint"></span><button class="btn" id="drawDone" type="button">Concluir</button><button class="btn sec" id="drawCancel" type="button">Cancelar</button></div>
+    <div id="mapwrap"><div id="map"></div><div id="toast" role="status" aria-live="polite"></div><button class="btn" id="viewGo" type="button"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Buscar nesta tela</button><div id="drawbar"><span id="drawhint"></span><button class="btn" id="drawDone" type="button">Concluir</button><button class="btn sec" id="drawCancel" type="button">Cancelar</button></div>
       <div id="cmp"><b>Comparar</b><div class="sm" id="cmpInfo"></div><input type="range" id="cmpRange" min="0" max="100" value="50" style="width:100%"><div class="sm">0 = só A · 100 = só B (fusão por opacidade)</div></div>
     </div>
 
@@ -832,8 +841,37 @@ $("mMap").onclick=()=>setMobile("map");$("mAoi").onclick=()=>setMobile("aoi");$(
 function setDefaultDates(){const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");const t=new Date(),m=t.getMonth()-3,y=t.getFullYear()+Math.floor(m/12),mm=((m%12)+12)%12,dim=new Date(y,mm+1,0).getDate(),f=new Date(y,mm,Math.min(t.getDate(),dim));$("dFrom").value=iso(f);$("dTo").value=iso(t)}
 setDefaultDates();addEventListener("pageshow",setDefaultDates);
 $("grab").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMobile("map")}};$("goSearch2").onclick=()=>$("goSearch").click();
-document.querySelectorAll("#p-aoi fieldset").forEach((f,i)=>{if(!i)return;const lg=f.querySelector("legend");if(!lg)return;f.classList.add("fold","shut");lg.tabIndex=0;lg.setAttribute("role","button");lg.setAttribute("aria-expanded","false");const t=()=>{const o=f.classList.toggle("shut");lg.setAttribute("aria-expanded",String(!o))};lg.onclick=t;lg.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();t()}}});
-const _setAOI=setAOI;setAOI=function(){const r=_setAOI.apply(this,arguments);if(MOB())setMobile("aoi");return r};
+document.querySelectorAll("#p-aoi fieldset").forEach(f=>{if(f.hasAttribute("data-open"))return;const lg=f.querySelector("legend");if(!lg)return;f.classList.add("fold","shut");lg.tabIndex=0;lg.setAttribute("role","button");lg.setAttribute("aria-expanded","false");const t=()=>{const o=f.classList.toggle("shut");lg.setAttribute("aria-expanded",String(!o))};lg.onclick=t;lg.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();t()}}});
+/* ===== Coordenada simples: pino no centro + AOI = tela no momento da busca ===== */
+function parseCoord(t){t=String(t||"").trim();if(!t)return null;let lat,lon;
+ const H=/([NSEWLO])\b/i;
+ if(/[NSEWLO]\s*[,;]?\s*$|[°º′″'"]/i.test(t)&&/[NSEWLO]/i.test(t)){
+  const re=/(\d+(?:[.,]\d+)?)\s*[°º]?\s*(?:(\d+(?:[.,]\d+)?)\s*['′’]?\s*)?(?:(\d+(?:[.,]\d+)?)\s*(?:["″”]|'')?\s*)?([NSEWLO])(?![A-Za-z])/gi,m=[...t.matchAll(re)];
+  if(m.length!==2)return null;
+  for(const x of m){const n=v=>v==null?0:parseFloat(String(v).replace(",","."));let v=n(x[1])+n(x[2])/60+n(x[3])/3600;const h=x[4].toUpperCase();
+   if(h==="S"||h==="W"||h==="O")v=-v;if(h==="N"||h==="S"){if(lat!==undefined)return null;lat=v}else{if(lon!==undefined)return null;lon=v}}
+ }else{
+  let parts;if(t.includes(";"))parts=t.split(/\s*;\s*/);else if(/\s/.test(t))parts=t.split(/\s*,?\s+/);else parts=t.split(",");
+  if(parts.length!==2)return null;const num=x=>/^[-+]?\d+(?:[.,]\d+)?$/.test(x.trim())?parseFloat(x.trim().replace(",",".")):NaN;
+  lat=num(parts[0]);lon=num(parts[1])}
+ if(!isFinite(lat)||!isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return null;return {lat,lon}}
+let PIN=null;
+function setPin(ll){if(!PIN){const el=document.createElement("div");el.innerHTML='<svg width="30" height="40" viewBox="0 0 30 40" aria-hidden="true"><path d="M15 39C15 39 2 24.5 2 14.5a13 13 0 0 1 26 0C28 24.5 15 39 15 39z" fill="#e6226b" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14.5" r="5" fill="#fff"/></svg>';el.style.cssText="pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5));line-height:0";PIN=new maplibregl.Marker({element:el,anchor:"bottom"})}PIN.setLngLat(ll).addTo(map)}
+function viewPolygon(){const c=map.getCenter(),b=map.getBearing()*Math.PI/180,cv=map.getContainer(),w=cv.clientWidth,h=cv.clientHeight,ws=512*Math.pow(2,map.getZoom()),m=maplibregl.MercatorCoordinate.fromLngLat(c);
+ const pts=[[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([dx,dy])=>{const rx=dx*Math.cos(b)-dy*Math.sin(b),ry=dx*Math.sin(b)+dy*Math.cos(b),ll=new maplibregl.MercatorCoordinate(m.x+rx/ws,m.y+ry/ws,0).toLngLat();return [ll.lng,ll.lat]});pts.push(pts[0]);return turf.polygon([pts])}
+function syncVgo(){$("app").dataset.vgo=S.viewAoi?"1":"0"}
+function applyViewAoi(){if(!S.viewAoi)return;if(map.getPitch())map.jumpTo({pitch:0});_setAOI(viewPolygon(),false)}
+function goCoord(){const c=parseCoord($("coordIn").value);
+ if(!c){toast('Coordenada não reconhecida. Use latitude, longitude. Ex.: -15.6014, -56.0979');return}
+ cancelDraw();S.aoi=null;map.getSource("aoi")?.setData(EMPTY);S.viewAoi=true;syncVgo();setPin([c.lon,c.lat]);
+ map.jumpTo({center:[c.lon,c.lat],zoom:map.getZoom()<12?15:map.getZoom(),pitch:0});
+ $("aoiInfo").textContent="AOI: a tela do mapa, fixada no momento da busca (zoom atual).";
+ if(MOB())setMobile("map");toast(`Pino em ${c.lat.toFixed(6)}, ${c.lon.toFixed(6)}. Ajuste o zoom e toque em “Buscar nesta tela”.`,6000)}
+$("coordGo").onclick=goCoord;$("coordIn").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("coordIn").blur();goCoord()}};
+$("viewGo").onclick=()=>$("goSearch").click();
+{const _dc=$("dClear").onclick;$("dClear").onclick=()=>{S.viewAoi=false;syncVgo();if(PIN)PIN.remove();_dc()}}
+["goSearch","goHist"].forEach(id=>{const f=$(id).onclick;$(id).onclick=function(){applyViewAoi();return f.apply(this,arguments)}});
+const _setAOI=setAOI;setAOI=function(){S.viewAoi=false;syncVgo();const r=_setAOI.apply(this,arguments);if(MOB())setMobile("aoi");return r};
 function buildSatChips(){const el=$("satChips");if(!el)return;const m={};S.results.forEach(s=>{const k=satSensor(s).sat;m[k]=(m[k]||0)+1});const ks=Object.keys(m).sort();if(S.satSel&&!m[S.satSel])S.satSel=null;if(ks.length<2){el.innerHTML="";S.satSel=null;return}el.innerHTML=`<button type="button" data-s="" class="${S.satSel?"":"on"}">Todos ${S.results.length}</button>`+ks.map(k=>`<button type="button" data-s="${esc(k)}" class="${S.satSel===k?"on":""}">${esc(k)} ${m[k]}</button>`).join("")}
 $("satChips").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.satSel=b.dataset.s||null;render()});
 const _render=render;render=function(){_render.apply(this,arguments);buildSatChips()};
