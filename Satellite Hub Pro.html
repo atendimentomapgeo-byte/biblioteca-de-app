@@ -32,7 +32,7 @@ legend{font-weight:700;padding:0 6px;font-size:11px;letter-spacing:.07em;text-tr
 .btn:disabled{opacity:.5;cursor:not-allowed;filter:none;transform:none}
 .tag{display:inline-block;font-size:11px;color:var(--mut)}
 .pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;color:var(--pill-tx)}
-.working{background:var(--ok)}.needs_credentials{background:var(--warn)}.limited{background:var(--warn)}.pending{background:var(--pen)}.discontinued{background:var(--mut)}.unavailable{background:var(--bad)}
+.working{background:var(--ok)}.needs_credentials{background:var(--warn)}.limited{background:var(--warn)}.pending{background:var(--pen)}.discontinued{background:var(--mut)}.unavailable{background:var(--bad)}.testing{background:var(--pen)}
 table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid var(--bd);padding:6px 4px;text-align:left;vertical-align:top;font-size:12.5px;word-break:break-word}th{color:var(--mut);font-weight:600;white-space:nowrap;padding-right:10px}
 .warn{background:rgba(224,160,48,.13);border:1px solid var(--warn);border-radius:var(--r-s);padding:8px 10px;margin:8px 0;font-size:12.5px}
 dialog{background:var(--panel);color:var(--tx);border:1px solid var(--bd);border-radius:16px;box-shadow:var(--sh);max-width:900px;width:92vw;max-height:88vh;padding:18px}
@@ -309,6 +309,7 @@ const SOURCES=[
  {id:"inpe-bdc",name:"INPE — Brazil Data Cube (CBERS/Amazonia-1/Sentinel-2)",base:"https://data.inpe.br/bdc/stac/v1",page:"page",auth:"none",status:"working",cols:["CB4-MUX-L4-DN-1","CB4-WFI-L4-DN-1","CB4A-WPM-L4-DN-1","AMZ1-WFI-L2-DN-1","S2_L1C_BUNDLE-1","S2-16D-2","CBERS4-WFI-16D-2","RESOURCESAT1_LISS3_L2_DN-1","RESOURCESAT1_AWIFS_L2_DN-1"],note:"Download https direto nos itens verificados. Nuvens geralmente nulas."},
  {id:"usgs-landsat",name:"USGS LandsatLook (Landsat 1–9)",base:"https://landsatlook.usgs.gov/stac-server",page:"next",auth:"registration",status:"limited",cols:["landsat-c2l1","landsat-c2l2-sr","landsat-c2l2-st","landsat-c2ard-sr"],note:"Busca/miniaturas públicas; arquivos exigem login EROS."},
  {id:"earth-search",name:"Element 84 Earth Search (Sentinel-1/2, Landsat)",base:"https://earth-search.aws.element84.com/v1",page:"next",auth:"none",status:"working",cols:["sentinel-2-l2a","sentinel-2-c1-l2a","sentinel-2-l1c","sentinel-1-grd","landsat-c2-l2"],note:"Espelho comunitário AWS. Sentinel-1 GRD é requester-pays."},
+ {id:"planetary",name:"Microsoft Planetary Computer (Landsat 4–9, nível 2)",base:"https://planetarycomputer.microsoft.com/api/stac/v1",page:"token",auth:"none",status:"testing",cols:["landsat-c2-l2"],note:"Landsat aberto em COG, sem conta (token público gerado pelo próprio serviço). Busca verificada; leitura dos arquivos pelo navegador ainda em validação."},
  {id:"cdse",name:"Copernicus Data Space (CDSE)",base:"https://stac.dataspace.copernicus.eu/v1",page:"token",auth:"registration",status:"needs_credentials",cols:["sentinel-2-l2a"],note:"Busca pública; download exige conta CDSE (backend)."},
  {id:"nasa-lpcloud",name:"NASA CMR-STAC LPCLOUD (HLS, MODIS…)",base:"https://cmr.earthdata.nasa.gov/stac/LPCLOUD",page:"token",auth:"registration",status:"needs_credentials",cols:["HLSS30_2.0","HLSL30_2.0"],note:"Download exige Earthdata Login (backend). Busca não validada de ponta a ponta."},
  {id:"jaxa",name:"JAXA (ALOS)",status:"pending",note:"Sem API STAC pública verificada; pendente."},
@@ -316,7 +317,7 @@ const SOURCES=[
  {id:"firms",name:"NASA FIRMS (focos de calor)",status:"pending",note:"Dado de focos, não imagem; pendente."},
  {id:"prodes-deter",name:"INPE PRODES/DETER (TerraBrasilis)",status:"pending",note:"Dado vetorial de desmatamento; pendente."}
 ];
-const STATUS_LABEL={working:"Integrada e funcionando",needs_credentials:"Requer credenciais",limited:"Acesso limitado",pending:"Pendente de implementação",discontinued:"Descontinuada",unavailable:"Temporariamente indisponível"};
+const STATUS_LABEL={working:"Integrada e funcionando",needs_credentials:"Requer credenciais",limited:"Acesso limitado",pending:"Pendente de implementação",discontinued:"Descontinuada",unavailable:"Temporariamente indisponível",testing:"Nova — em validação"};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function toast(m,ms=4000){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display="none",ms)}
@@ -434,7 +435,7 @@ $("fileIn").onchange=async ev=>{const f=ev.target.files[0];ev.target.value="";if
   setAOI(u)}catch(e){toast("Falha na importação: "+e.message,7000)}ev.target.value=""};
 
 /* ===== Fontes / filtros UI ===== */
-function renderSrcList(){ $("srcList").innerHTML=SOURCES.filter(s=>s.base).map(s=>`<label><input type="checkbox" class="srcchk" value="${s.id}" ${s.status==="working"?"checked":""}> ${esc(s.name)} <span class="pill ${s.status}">${esc(STATUS_LABEL[s.status])}</span></label>`).join("")}
+function renderSrcList(){ $("srcList").innerHTML=SOURCES.filter(s=>s.base).map(s=>`<label><input type="checkbox" class="srcchk" value="${s.id}" ${s.status==="working"||s.status==="testing"?"checked":""}> ${esc(s.name)} <span class="pill ${s.status}">${esc(STATUS_LABEL[s.status])}</span></label>`).join("")}
 renderSrcList();
 const chosen=()=>[...document.querySelectorAll(".srcchk:checked")].map(x=>x.value);
 
@@ -655,7 +656,14 @@ function ccRingsPix(geom,tf,bx0,by1,px,py){const polys=geom.type==="Polygon"?[ge
 function ccMask(rings,w,h){const m=new Uint8Array(w*h);
  for(let y=0;y<h;y++){const yc=y+0.5,xs=[];for(const r of rings)for(let i=0;i<r.length-1;i++){const [x1,y1]=r[i],[x2,y2]=r[i+1];if((y1<=yc&&y2>yc)||(y2<=yc&&y1>yc))xs.push(x1+(yc-y1)*(x2-x1)/(y2-y1))}
   xs.sort((a,b)=>a-b);for(let k=0;k+1<xs.length;k+=2){const a=Math.max(0,Math.ceil(xs[k]-0.5)),b=Math.min(w-1,Math.ceil(xs[k+1]-0.5)-1);for(let x=a;x<=b;x++)m[y*w+x]=1}}return m}
-async function ccOpenTiff(href){if(CC.open)return CC.open(href);const u=CC.proxy?CC.proxy+(CC.proxy.includes("?")?"&":"?")+"url="+encodeURIComponent(href):href;return GeoTIFF.fromUrl(u,{allowFullFile:false})}
+const PC_HOST="landsateuwest.blob.core.windows.net",PC_TOK={};
+async function pcSign(href){let u;try{u=new URL(href)}catch{return href}
+ if(u.hostname!==PC_HOST||u.search)return href;
+ const c="landsat-c2-l2";let t=PC_TOK[c];
+ if(!t||t.exp<Date.now()+60000){t=PC_TOK[c]={exp:Date.now()+3e5,p:(async()=>{const r=await fetch("https://planetarycomputer.microsoft.com/api/sas/v1/token/"+c);if(!r.ok)throw new Error("Planetary Computer: token público indisponível (HTTP "+r.status+").");const j=await r.json();if(!j.token)throw new Error("Planetary Computer: resposta sem token.");t.exp=Date.parse(j["msft:expiry"])||Date.now()+3e5;return j.token})()};t.p.catch(()=>{if(PC_TOK[c]===t)delete PC_TOK[c]})}
+ return href+"?"+await t.p}
+const pcDirect=h=>{try{return new URL(h).hostname===PC_HOST}catch{return false}};
+async function ccOpenTiff(href){if(CC.open)return CC.open(href);const u=(CC.proxy&&!pcDirect(href))?CC.proxy+(CC.proxy.includes("?")?"&":"?")+"url="+encodeURIComponent(href):href;return GeoTIFF.fromUrl(u,{allowFullFile:false})}
 async function ccPickImage(tiff,first,targetRes){const n=await tiff.getImageCount(),r0=Math.abs(first.getResolution()[0]);let best=first;
  for(let i=1;i<n;i++){const im=await tiff.getImage(i),r=r0*first.getWidth()/im.getWidth();if(r<=targetRes)best=im;else break}return best}
 function ccWriteTiff(data,m){ // GeoTIFF não comprimido, 1 faixa, little-endian (geotiff.js só grava 8 bits)
@@ -763,8 +771,8 @@ async function startComposite(s,rc,btn){
  btn.disabled=false}
 
 async function ccDiagnose(href){
- if(!href)return "";const host=(()=>{try{return new URL(href).host}catch{return href}})(),tag=CC.proxy?" (via proxy configurado)":"";
- const u=CC.proxy?CC.proxy+(CC.proxy.includes("?")?"&":"?")+"url="+encodeURIComponent(href):href;
+ if(!href)return "";const host=(()=>{try{return new URL(href).host}catch{return href}})(),tag=(CC.proxy&&!pcDirect(href))?" (via proxy configurado)":"";
+ const px=CC.proxy&&!pcDirect(href),u=px?CC.proxy+(CC.proxy.includes("?")?"&":"?")+"url="+encodeURIComponent(href):href;
  try{const r=await fetch(u,{headers:{Range:"bytes=0-15"}});
   if(r.status===206)return `<b>Diagnóstico (${esc(host)})${tag}:</b> o servidor aceita leitura parcial (Range) e liberou o navegador. O erro veio de outra parte (formato do arquivo, tamanho ou memória). Tente uma AOI menor.`;
   if(r.status===200)return `<b>Diagnóstico (${esc(host)})${tag}:</b> liberou o navegador, mas <b>não aceita leitura parcial (Range)</b> — o arquivo teria de ser baixado inteiro. Use o backend ou o ArcGIS/QGIS.`;
@@ -776,8 +784,9 @@ async function startCompositeBrowser(s,rc,btn){
  try{
   const plan=ccPlan(s).find(c=>c.id===rc);if(!plan||!plan.available)throw new Error("Bandas indisponíveis nesta cena.");
   const isIdx=plan.kind==="index",need=(isIdx?CC.INDICES:CC.RECIPES)[rc][1],roles=ccResolveRoles(s),ms=need.filter(r=>r!=="pan");
-  const hrefs=ms.map(r=>roles[r].href),panHref=need.includes("pan")?roles.pan.href:null;hrefsForDiag=hrefs[0];
+  let hrefs=ms.map(r=>roles[r].href),panHref=need.includes("pan")?roles.pan.href:null;hrefsForDiag=hrefs[0];
   if([...hrefs,panHref].filter(Boolean).some(u=>!safeUrl(u)))throw new Error("Asset sem URL https.");
+  hrefs=await Promise.all(hrefs.map(pcSign));if(panHref)panHref=await pcSign(panHref);hrefsForDiag=hrefs[0];
   const scales=isIdx?need.map(r=>ccScaleOffset(s.assets[roles[r].asset])):null;
   const res=await ccCompose({hrefs,panHref,geometry:S.aoi?S.aoi.geometry:null,maxSize:+$("cpMax").value||1500,stretch:$("cpStr").checked,clip:!!$("cpClip")?.checked,scales,mode:isIdx?"index":"rgb",onProgress:t=>{out.textContent=t}});
   const url=URL.createObjectURL(new Blob([res.buffer],{type:"image/tiff"})),name=(s.id+"_"+rc).replace(/[^\w.-]/g,"_")+".tif",st=res.info.stats;
@@ -794,6 +803,7 @@ function toggleCmp(k,on){S.cmp=S.cmp.filter(x=>x!==k);if(on)S.cmp.push(k);if(S.c
 function applyCmp(){const v=$("cmpRange").value/100;const [a,b]=S.cmp;const set=(k,o)=>{if(!k)return;const id="ql-"+k.replace(/\W/g,"_");if(map.getLayer(id))map.setPaintProperty(id,"raster-opacity",o)};
  if(S.cmp.length===2){set(a,1-v);set(b,v)}else set(a,.8)}
 $("cmpRange").oninput=applyCmp;
+$("detail").addEventListener("click",async e=>{const a=e.target.closest("a[href]");if(!a||!pcDirect(a.href))return;e.preventDefault();try{const t=document.createElement("a");t.href=await pcSign(a.href);t.target="_blank";t.rel="noopener noreferrer";t.click()}catch(err){toast(err.message)}});
 
 /* ===== Exportação ===== */
 function dl(name,txt,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
