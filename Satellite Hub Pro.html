@@ -235,7 +235,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
           <div class="btns"><button class="btn sec" id="placeGo">Buscar local</button></div>
         </fieldset>
         <fieldset><legend>Importar (SHP .zip, GeoJSON, KML, KMZ, GeoTIFF)</legend>
-          <input type="file" id="fileIn" accept=".zip,.geojson,.json,.kml,.kmz,.tif,.tiff,.gpkg">
+          <input type="file" id="fileIn">
           <div class="sm">GeoTIFF: usa a extensão georreferenciada. GPKG exige o backend (não suportado no navegador). Limite 50 MB. Propriedade rural = importe o perímetro.</div>
         </fieldset>
         <fieldset><legend>Cena por ID</legend>
@@ -415,7 +415,7 @@ $("placeGo").onclick=async()=>{const q=$("place").value.trim();if(!q)return;
 
 /* ===== Importação ===== */
 const EPSG_UTM=c=>{if(c===4326||c===4674)return null;if(c>=32601&&c<=32660)return `+proj=utm +zone=${c-32600} +datum=WGS84 +no_defs`;if(c>=32701&&c<=32760)return `+proj=utm +zone=${c-32700} +south +datum=WGS84 +no_defs`;if(c>=31978&&c<=31985)return `+proj=utm +zone=${c-31978+18} +south +ellps=GRS80 +no_defs`;if(c>=31972&&c<=31977)return `+proj=utm +zone=${c-31972+18} +ellps=GRS80 +no_defs`;return undefined}
-$("fileIn").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;if(f.size>50*1024*1024)return toast("Arquivo > 50 MB.");
+$("fileIn").onchange=async ev=>{const f=ev.target.files[0];ev.target.value="";if(!f)return;if(f.size>50*1024*1024)return toast("Arquivo > 50 MB.");
  const n=f.name.toLowerCase();let gj;
  try{
   if(n.endsWith(".zip"))gj=await shp(await f.arrayBuffer());
