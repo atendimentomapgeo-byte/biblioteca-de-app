@@ -248,7 +248,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 
       <div class="pane" id="p-flt">
         <fieldset><legend>Período</legend>
-          <div class="row"><input type="date" id="dFrom" value="2024-06-01"><input type="date" id="dTo" value="2024-08-31"></div>
+          <div class="row"><input type="date" id="dFrom" autocomplete="off"><input type="date" id="dTo" autocomplete="off"></div>
           <div class="sm">Para busca histórica use ex.: 1984-01-01 a hoje e depois "Carregar mais".</div>
         </fieldset>
         <fieldset><legend>Fontes</legend><div id="srcList"></div></fieldset>
@@ -828,7 +828,10 @@ function setView(v){const a=$("app");a.dataset.view=v;[["vMap","map"],["vSplit",
 function syncNav(m){const a=$("app");a.dataset.m=m;[["mMap","map"],["mAoi","aoi"],["mFlt","flt"],["mRes","res"],["mDet","det"]].forEach(([i,k])=>{const b=$(i);b.classList.toggle("on",k===m);b.setAttribute("aria-pressed",String(k===m))});setTimeout(()=>{try{const sh=(m==="aoi"||m==="flt"||m==="res")?$("side"):m==="det"?$("detail"):null;map.setPadding({top:0,left:0,right:0,bottom:(sh&&MOB())?Math.round(sh.getBoundingClientRect().height):0});map.resize()}catch{}},80)}
 function setMobile(m){if(m==="aoi"||m==="flt"||m==="res")goTab(m);else syncNav(m)}
 $("vMap").onclick=()=>setView("map");$("vSplit").onclick=()=>setView("split");$("vGal").onclick=()=>setView("gal");
-$("mMap").onclick=()=>setMobile("map");$("mAoi").onclick=()=>setMobile("aoi");$("mFlt").onclick=()=>setMobile("flt");$("mRes").onclick=()=>setMobile("res");$("mDet").onclick=()=>setMobile("det");$("grab").onclick=()=>setMobile("map");$("grab").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMobile("map")}};$("goSearch2").onclick=()=>$("goSearch").click();
+$("mMap").onclick=()=>setMobile("map");$("mAoi").onclick=()=>setMobile("aoi");$("mFlt").onclick=()=>setMobile("flt");$("mRes").onclick=()=>setMobile("res");$("mDet").onclick=()=>setMobile("det");$("grab").onclick=()=>setMobile("map");
+function setDefaultDates(){const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");const t=new Date(),m=t.getMonth()-3,y=t.getFullYear()+Math.floor(m/12),mm=((m%12)+12)%12,dim=new Date(y,mm+1,0).getDate(),f=new Date(y,mm,Math.min(t.getDate(),dim));$("dFrom").value=iso(f);$("dTo").value=iso(t)}
+setDefaultDates();addEventListener("pageshow",setDefaultDates);
+$("grab").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMobile("map")}};$("goSearch2").onclick=()=>$("goSearch").click();
 document.querySelectorAll("#p-aoi fieldset").forEach((f,i)=>{if(!i)return;const lg=f.querySelector("legend");if(!lg)return;f.classList.add("fold","shut");lg.tabIndex=0;lg.setAttribute("role","button");lg.setAttribute("aria-expanded","false");const t=()=>{const o=f.classList.toggle("shut");lg.setAttribute("aria-expanded",String(!o))};lg.onclick=t;lg.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();t()}}});
 const _setAOI=setAOI;setAOI=function(){const r=_setAOI.apply(this,arguments);if(MOB())setMobile("aoi");return r};
 function buildSatChips(){const el=$("satChips");if(!el)return;const m={};S.results.forEach(s=>{const k=satSensor(s).sat;m[k]=(m[k]||0)+1});const ks=Object.keys(m).sort();if(S.satSel&&!m[S.satSel])S.satSel=null;if(ks.length<2){el.innerHTML="";S.satSel=null;return}el.innerHTML=`<button type="button" data-s="" class="${S.satSel?"":"on"}">Todos ${S.results.length}</button>`+ks.map(k=>`<button type="button" data-s="${esc(k)}" class="${S.satSel===k?"on":""}">${esc(k)} ${m[k]}</button>`).join("")}
