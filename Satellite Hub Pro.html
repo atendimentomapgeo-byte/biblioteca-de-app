@@ -312,6 +312,10 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 <dialog id="dlgStatus"><div style="display:flex"><h3 style="flex:1;margin:0">Status das fontes</h3><button class="btn sec" id="stClose">Fechar</button></div>
 <div class="row" style="margin:6px 0"><input type="text" id="beUrl" placeholder="URL do backend (ex.: https://meu-backend.exemplo.com ou http://localhost:8000)"><button class="btn sec" id="beSave" style="flex:none">Salvar e testar</button></div>
 <div class="row" style="margin:6px 0"><input type="text" id="pxUrl" placeholder="Proxy CORS (opcional): https://seu-worker.workers.dev"><button class="btn sec" id="pxSave" style="flex:none">Salvar proxy</button></div>
+<div style="border:1px solid var(--bd);border-radius:10px;padding:10px;margin:8px 0"><b>Backend no seu computador (Windows)</b>
+<div class="sm" style="margin:4px 0">Para gerar composição direto do USGS e do Copernicus com as suas contas. O arquivo abaixo baixa o backend do seu próprio GitHub, instala tudo e liga. Não funciona no celular.</div>
+<div class="btns"><button class="btn" id="beBat" type="button">Baixar iniciar-satellite-hub.bat</button></div>
+<div class="sm" id="beBatMsg" role="status"></div></div>
 <div class="btns"><button class="btn" id="stTest">Testar conectividade agora (do navegador)</button></div>
 <div class="sm">O teste mede se ESTE navegador consegue consultar a API (inclui CORS). Isso não prova autenticação nem download.</div><div id="stBody"></div></dialog>
 
@@ -465,7 +469,8 @@ async function checkBackend(){
  const same=location.protocol.startsWith("http")?location.origin:"";
  const bases=[...new Set([saved,same,S.backend,location.origin,"http://localhost:8000","http://127.0.0.1:8000"])].filter(b=>/^https?:/.test(b)).map(b=>b.replace(/\/+$/,""));
  for(const b of bases){try{const r=await fetch(b+"/api/ping",{signal:AbortSignal.timeout(3000)});if(r.ok){S.backend=b;S.beOk=true;$("beStat").textContent="backend: conectado ("+b+")";$("beStat").dataset.ok="1";
-   fetch(b+"/api/health").then(x=>x.json()).then(j=>{S.health=Object.fromEntries(j.sources.map(h=>[h.source_id,h]))}).catch(()=>{});return true}}catch{}}
+   fetch(b+"/api/health").then(x=>x.json()).then(j=>{S.health=Object.fromEntries(j.sources.map(h=>[h.source_id,h]))}).catch(()=>{});
+   S.cred={};fetch(b+"/api/sources").then(x=>x.json()).then(j=>{for(const s of j)S.cred[s.id]=!!s.credentials_configured;const cur=S.results&&S.results.find(r=>r.key===S.sel);if(cur&&authKey(cur)){renderAuth(cur);renderEqv(cur)}}).catch(()=>{});return true}}catch{}}
  S.beOk=false;$("beStat").textContent="backend: offline (busca direta; sem composição/download autenticado)";$("beStat").dataset.ok="0";return false}
 checkBackend();
 
@@ -686,7 +691,7 @@ async function usgsOptions(s){const ds=usgsDataset(s),id=(s.props||{})["landsat:
  return flat.filter(o=>o.available!==false&&o.id!=null)}
 async function usgsRequest(o,msg){const label="mapgeo-"+Date.now();
  let d=await m2m("download-request",{downloads:[{entityId:o.entityId,productId:o.id}],label},CRED.usgs.key);
- for(let i=0;i<20;i++){const av=(d&&d.availableDownloads)||[];if(av.length&&av[0].url)return av[0].url;
+ for(let i=0;i<20;i++){const av=(d&&(d.availableDownloads||d.available))||[];if(av.length&&av[0].url)return av[0].url;
   if(d&&d.failed&&d.failed.length)throw new Error("O USGS recusou o pedido: "+JSON.stringify(d.failed[0]).slice(0,200));
   msg("USGS preparando o arquivo… ("+(i+1)+")");await new Promise(r=>setTimeout(r,3000));d=await m2m("download-retrieve",{label},CRED.usgs.key)}
  throw new Error("O USGS ainda está preparando o arquivo. Tente de novo em alguns minutos.")}
@@ -700,7 +705,17 @@ $("crGo").onclick=async()=>{const u=$("crU").value.trim(),p=$("crP").value.trim(
  try{if(pl==="cdse")await cdseLogin(u,p,$("crT").value.trim());else await usgsLogin(u,p);$("crP").value="";$("credDlg").close();toast("Conectado: "+AUTHP[pl].nome);credCb&&credCb()}
  catch(e){er.textContent=authErr(e,pl);er.style.display="block"}finally{b.disabled=false;b.textContent="Entrar"}};
 function extFor(type){const t=String(type||"").toLowerCase();return /jp2|jpeg2000/.test(t)?".jp2":/tiff/.test(t)?".tif":/xml/.test(t)?".xml":/json/.test(t)?".json":/zip/.test(t)?".zip":""}
-function renderAuth(s){const pl=authKey(s),box=$("authBox");if(!pl||!box)return;const c=CRED[pl],P=AUTHP[pl];
+function renderAuthBackend(s,pl){const box=$("authBox"),P=AUTHP[pl],ok=S.cred&&S.cred[s.src.id];
+ if(!ok){box.innerHTML=`<h4>Download com a sua conta</h4><div class="warn">Backend ligado, mas sem a conta ${esc(P.nome)}. Preencha ${pl==="usgs"?"<b>USGS_USERNAME</b> e <b>USGS_APP_TOKEN</b>":"<b>CDSE_USERNAME</b> e <b>CDSE_PASSWORD</b>"} em <b>backend/.env</b> e reinicie o backend.</div>`;return}
+ const call=async(path,body)=>{const r=await fetch(S.backend+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(j.detail||("HTTP "+r.status));return j};
+ if(pl==="cdse"){box.innerHTML=`<h4>Download com a sua conta</h4><div class="sm">Backend ligado com a conta ${esc(P.nome)}. Use <b>via backend</b> em cada arquivo da lista de assets (salva em backend/downloads) ou gere a composição abaixo.</div>`;return}
+ box.innerHTML=`<h4>Download com a sua conta</h4><div class="sm">Backend ligado com a conta ${esc(P.nome)}.</div><div class="btns"><button class="btn sec" id="ubOpt" type="button">Ver opções de download (USGS)</button></div><div id="authMsg" class="sm" role="status"></div><div id="ubList"></div>`;
+ const msg=m=>{$("authMsg").textContent=m};
+ $("ubOpt").onclick=async()=>{$("ubOpt").disabled=true;msg("Consultando o USGS pelo backend…");try{const j=await call("/api/usgs/options",{scene_id:s.id,collection:s.collection});const os=j.options||[];
+   $("ubList").innerHTML=os.length?os.map((o,i)=>`<div class="rc"><b>${esc(o.name)}</b> <span class="sm">${o.size?(o.size/1e6).toFixed(0)+" MB":""}</span> <button class="btn sec" data-ub="${i}" type="button">⬇ Baixar</button></div>`).join(""):'<div class="sm">O USGS não listou produtos para esta cena.</div>';msg(os.length+" opção(ões).");
+   $("ubList").querySelectorAll("[data-ub]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{msg("Pedindo o link ao USGS…");const jb=await call("/api/usgs/download",{scene_id:s.id,collection:s.collection,product_id:os[+b.dataset.ub].product_id});msg("Download enfileirado ("+jb.id+"). Arquivo em backend/downloads no seu computador.")}catch(e){msg("Falha: "+e.message)}finally{b.disabled=false}})
+  }catch(e){msg("Falha: "+e.message)}finally{$("ubOpt").disabled=false}}}
+function renderAuth(s){const pl=authKey(s),box=$("authBox");if(!pl||!box)return;if(S.beOk){renderAuthBackend(s,pl);return}const c=CRED[pl],P=AUTHP[pl];
  if(!c){box.innerHTML=`<h4>Download com a sua conta</h4><div class="sm">Os arquivos desta fonte só baixam com login em ${esc(P.nome)}.</div><div class="btns"><button class="btn" id="authIn" type="button">Entrar no ${esc(P.nome)}</button></div>`;$("authIn").onclick=()=>openCred(pl,()=>renderAuth(s));return}
  const dl=downloadable(s);
  box.innerHTML=`<h4>Download com a sua conta</h4><div class="sm">Conectado como <b>${esc(c.user)}</b> em ${esc(P.nome)}. <button class="btn sec" id="authOut" type="button" style="padding:1px 8px">Sair</button></div><div id="authMsg" class="sm" role="status"></div><div id="authList"></div>`;
@@ -737,6 +752,45 @@ function renderEqv(s){const box=$("eqvBox"),e=EQV[s.src.id];if(!box)return;if(!e
   try{const sc=await findEquivalent(s);for(const x of sc)if(!S.results.some(r=>r.key===x.key)){x.cov=coverage(x);S.results.push(x)}
    render();selectScene(sc[0].key);toast("Cena aberta em "+sc[0].src.name+". Escolha a composição e toque em Gerar GeoTIFF.",6000)}
   catch(er){m.textContent="Falha: "+(er&&er.message||er)}finally{b.disabled=false}}}
+
+
+/* ===== iniciar-satellite-hub.bat gerado pelo app (baixa o backend do GitHub do próprio usuário) ===== */
+function makeBat(){
+ const mh=location.hostname.match(/^(.+)\.github\.io$/),seg=location.pathname.split("/")[1]||"";
+ const owner=mh?mh[1]:"atendimentomapgeo-byte",repo=(mh&&seg&&!seg.includes("."))?seg:"biblioteca-de-app",app=location.href.split("#")[0].split("?")[0].replace(/[%&^"<>|]/g,"");
+ const L=[
+ "@echo off","setlocal EnableExtensions","title Satellite Hub Pro - backend no seu PC",
+ 'set "SHP_OWNER='+owner+'"','set "SHP_REPO='+repo+'"','set "SHP_APP='+app+'"','set "SHP_BASE=%LOCALAPPDATA%\\SatelliteHubPro"',
+ "echo.","echo  Satellite Hub Pro - backend no seu computador","echo  Arquivos do seu GitHub: %SHP_OWNER%/%SHP_REPO%","echo.",
+ 'set "PY="','py -3 -c "import sys" >nul 2>nul && set "PY=py -3"','if not defined PY python -c "import sys" >nul 2>nul && set "PY=python"',
+ "if not defined PY (",'  echo Python nao encontrado. Instale em https://www.python.org/downloads/ marcando "Add python.exe to PATH" e rode este arquivo de novo.','  start "" https://www.python.org/downloads/',"  pause","  exit /b 1",")",
+ 'if /i "%~1"=="atualizar" rmdir /s /q "%SHP_BASE%\\backend\\app" >nul 2>nul',
+ 'if not exist "%SHP_BASE%\\backend\\app\\main.py" (',"  echo Baixando o backend do GitHub...",
+ `  powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=[IO.File]::ReadAllText('%~f0'); $m='#PS-'+'BEGIN'; iex $t.Substring($t.IndexOf($m))"`,
+ "  if errorlevel 1 (","    echo.","    echo Nao foi possivel baixar. Confira a internet e se a pasta backend esta no seu GitHub.","    pause","    exit /b 1","  )",")",
+ 'cd /d "%SHP_BASE%\\backend"',
+ 'if not exist ".venv\\Scripts\\python.exe" (',"  echo Preparando o Python pela primeira vez, pode demorar alguns minutos...","  %PY% -m venv .venv","  if errorlevel 1 (","    echo Falha ao criar o ambiente Python.","    pause","    exit /b 1","  )",")",
+ 'call ".venv\\Scripts\\activate.bat"',"python -m pip install -q --disable-pip-version-check -r requirements.txt",
+ "if errorlevel 1 (","  echo Falha ao instalar as dependencias.","  pause","  exit /b 1",")",
+ 'if not exist ".env" (','  >".env" echo # Estas contas ficam SO neste computador. Nunca envie este arquivo ao GitHub.','  >>".env" echo USGS_USERNAME=','  >>".env" echo USGS_APP_TOKEN=','  >>".env" echo CDSE_USERNAME=','  >>".env" echo CDSE_PASSWORD=','  >>".env" echo RETENTION_HOURS=168',
+ "  echo.","  echo Vou abrir o arquivo .env para voce colocar suas contas do USGS e do Copernicus. Salve e feche.",'  start /wait notepad ".env"',")",
+ "echo.","echo Backend ligado em http://127.0.0.1:8000 - deixe esta janela aberta.",'start "" "%SHP_APP%"',
+ "python -m uvicorn app.main:app --host 127.0.0.1 --port 8000","pause","exit /b 0",
+ "#PS-BEGIN",
+ "$ErrorActionPreference='Stop'","[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12",
+ "$owner=$env:SHP_OWNER;$repo=$env:SHP_REPO;$base=$env:SHP_BASE",
+ "$zip=Join-Path $env:TEMP 'shp-backend.zip';$ext=Join-Path $env:TEMP 'shp-backend';$ok=$false",
+ 'foreach($br in @("main","master")){try{Invoke-WebRequest -UseBasicParsing -Uri ("https://github.com/$owner/$repo/archive/refs/heads/$br.zip") -OutFile $zip;$ok=$true;break}catch{}}',
+ "if(-not $ok){Write-Host 'Nao consegui baixar o repositorio (privado ou sem internet).';exit 1}",
+ "if(Test-Path $ext){Remove-Item $ext -Recurse -Force}","Expand-Archive -Path $zip -DestinationPath $ext -Force",
+ "$m=Get-ChildItem -Path $ext -Recurse -Filter main.py | Where-Object { $_.FullName -match 'backend[\\\\/]app[\\\\/]main\\.py$' } | Select-Object -First 1",
+ "if(-not $m){Write-Host 'O repositorio nao tem a pasta backend (suba a pasta satellite-hub-pro inteira).';exit 2}",
+ "$src=$m.Directory.Parent.FullName;$dst=Join-Path $base 'backend'","New-Item -ItemType Directory -Force -Path $dst | Out-Null",
+ "robocopy $src $dst /E /XF .env /XD downloads .venv __pycache__ tests | Out-Null",
+ "Remove-Item $zip -Force;Remove-Item $ext -Recurse -Force","exit 0"];
+ return L.join("\r\n")+"\r\n"}
+$("beBat").onclick=()=>{try{const b=new Blob([makeBat()],{type:"application/octet-stream"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="iniciar-satellite-hub.bat";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+  $("beBatMsg").textContent="Baixado. Dê dois cliques no arquivo (se o Windows avisar, escolha Mais informações > Executar assim mesmo). Na primeira vez ele instala tudo e abre o .env para você colocar suas contas."}catch(e){$("beBatMsg").textContent="Falha ao gerar o arquivo: "+e.message}};
 
 
 /*BEGIN-CLIENT-COMPOSE*/
@@ -883,8 +937,9 @@ async function ccCompose(o){
 /* ===== Composições (backend) ===== */
 async function loadComposites(s){
  const box=$("compBox");if(!box)return;
- if(s.src.id==="usgs-landsat"){box.innerHTML="";return}
  if(!S.beOk)await checkBackend();
+ {const ak=authKey(s);if(ak&&S.beOk&&S.cred&&S.cred[s.src.id]===false){box.innerHTML='<h4>Composição colorida</h4><div class="warn">O backend está ligado, mas sem a conta desta fonte. Preencha '+(ak==="usgs"?"<b>USGS_USERNAME</b> e <b>USGS_APP_TOKEN</b>":"<b>CDSE_USERNAME</b> e <b>CDSE_PASSWORD</b>")+' no arquivo <b>backend/.env</b> do seu computador e reinicie o backend.</div>';return}
+  if(s.src.id==="usgs-landsat"&&!S.beOk){box.innerHTML="";return}}
  box.innerHTML='<h4>Composição colorida</h4><div class="sm">Verificando bandas da cena…</div>';
  try{
   let j;if(S.beOk){const r=await fetch(S.backend+"/api/composites/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source_id:s.src.id,scene_id:s.id,collection:s.collection})});
@@ -910,7 +965,7 @@ async function startComposite(s,rc,btn){
   for(;;){await new Promise(z=>setTimeout(z,2000));const q=await (await fetch(S.backend+"/api/composites/"+j.id)).json();
    if(q.status==="done"){const st=q.info.stats;out.innerHTML=`<a href="${esc(S.backend)}/api/composites/${esc(j.id)}/file" download>⬇ Baixar GeoTIFF (${q.info.width}×${q.info.height}, ${esc(q.info.crs)})</a>`+(st?`<div class="sm">média ${st.mean.toFixed(3)} · mín ${st.min.toFixed(3)} · máx ${st.max.toFixed(3)} · desvio ${st.std.toFixed(3)} · ${st.count} px${st.area_ha?" · "+st.area_ha.toFixed(1)+" ha":""}</div>`:"")+(q.info.warnings||[]).map(w=>`<div class="sm">${esc(w)}</div>`).join("");break}
    if(["failed","blocked","needs_credentials"].includes(q.status)){out.innerHTML=`<div class="warn">${esc(q.error||q.status)}</div>`;break}
-   out.textContent="Processando… ("+q.status+")"}
+   out.textContent="Processando… ("+q.status+")"+(q.msg?" — "+q.msg:"")}
  }catch(e){out.innerHTML='<div class="warn">'+esc(e.message)+'</div>'}
  btn.disabled=false}
 
