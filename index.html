@@ -65,7 +65,7 @@ main{flex:1;padding:0 0 60px}
 .desc{color:var(--mut);font-size:16px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .tag{display:inline-block;margin-top:26px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:6px 8px;border:1px solid;color:var(--ok);background:rgba(47,214,161,.07);font-weight:600;align-self:flex-start}
 .tag.sub{color:#7aa2ff;background:rgba(43,107,255,.08)}
-.path{margin-top:18px;color:#c4c9d6;font-size:15px;font-family:var(--mono);word-break:break-all}
+.path{margin-top:18px;color:#c4c9d6;font-size:16px;font-family:var(--sans)}
 .actions{margin-top:auto;padding-top:22px;display:flex;gap:10px;position:relative}
 .open{flex:1;height:44px;background:#fff;color:#000;font-family:var(--mono);font-weight:700;letter-spacing:.16em;font-size:13px;text-align:center;display:flex;align-items:center;justify-content:center}
 .open:hover{background:var(--c);color:#fff}
@@ -246,7 +246,7 @@ function buildApps(tree){
 
 /* ---- metadados (título, descrição, ícone) lidos da própria página ---- */
 async function enrich(app){
-  const key='meta:'+app.id;
+  const key='meta2:'+app.id;
   const c = store.get(key,null);
   if (c && c.sha===app.sha) return Object.assign(app,c.meta);
   const meta = {};
@@ -259,6 +259,12 @@ async function enrich(app){
       const desc = d.querySelector('meta[name="description"]')?.content?.trim();
       let ic = d.querySelector('link[rel~="icon"],link[rel="apple-touch-icon"]')?.getAttribute('href');
       if (t) meta.title=t.slice(0,60);
+      /* versão: meta tag > constante APP_VERSION > título > "vX.Y" no começo do HTML */
+      let ver = d.querySelector('meta[name="version"],meta[name="app-version"],meta[name="application-version"]')?.content?.trim();
+      if (!ver) ver = html.match(/\b(?:APP_VERSION|APP_VER|appVersion|app_version|APPVERSION)\b\s*[:=]\s*['"`]v?(\d+(?:\.\d+){1,3}[\w.-]*)['"`]/)?.[1];
+      if (!ver && t) ver = t.match(/\bv?(\d+\.\d+(?:\.\d+){0,2})\b/i)?.[1];
+      if (!ver) ver = html.slice(0,6000).match(/\bv(\d+\.\d+(?:\.\d+){0,2})\b/i)?.[1];
+      if (ver) meta.version=ver.replace(/^v/i,'').slice(0,20);
       if (desc) meta.description=desc.slice(0,160);
       if (ic && !ic.startsWith('data:')) { try{ meta.icon=new URL(ic,new URL(BASE+encPath(app.file))).href }catch{} }
       else if (ic) meta.icon=ic;
@@ -292,6 +298,7 @@ function finalize(app,ov,i){
   app.url   = o.url || (BASE+encPath(app.file.replace(/index\.html?$/i,'')));
   app.ghUrl = app.folder ? `${REPO_URL}/tree/HEAD/${encPath(app.folder)}` : `${REPO_URL}/blob/HEAD/${encPath(app.file)}`;
   app.icon  = o.icone || app.icon || '';
+  app.version = o.versao || app.version || '';
   return app;
 }
 
@@ -349,7 +356,7 @@ function render(){
           <span class="links"><a href="${esc(a.url)}" target="_blank" rel="noopener">SITE ↗</a><a href="${esc(a.ghUrl)}" target="_blank" rel="noopener">GITHUB ↗</a></span></div>
         <div class="cbody">${iconHtml(a)}<div><div class="name">${twoTone(a.name)}</div><div class="desc">${esc(a.desc||'Aplicativo HTML')}</div></div></div>
         <span class="tag ${a.sub?'sub':''}">${a.sub?'Em subpasta':a.single?'Arquivo único':'Disponível para abrir'}</span>
-        <div class="path">/${esc(a.file)}</div>
+        <div class="path" title="/${esc(a.file)}">${a.version?'Versão '+esc(a.version):'Versão não informada'}</div>
         <div class="actions">
           <a class="open" href="${esc(a.url)}" target="_blank" rel="noopener">ABRIR</a>
           <button class="more ${FAV.has(a.id)?'fav':''}" data-more="${esc(a.id)}" title="Mais opções">${FAV.has(a.id)?'★':'…'}</button>
