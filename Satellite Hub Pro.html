@@ -485,7 +485,7 @@ async function searchOne(src,extra={}){
  try{
   let data;
   if(S.beOk&&$("useBe")?.checked){const r=await fetch(S.backend+"/api/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sources:[src.id],geometry:S.aoi?.geometry,date_from:$("dFrom").value||null,date_to:$("dTo").value||null,limit:body.limit,page_token:extra.token||null,ids:extra.ids||[]})});data=await r.json();const rr=data.results[0];if(rr.error)throw new Error(rr.error);return {src,items:rr.scenes.map(s=>({type:"Feature",id:s.id,collection:s.collection,geometry:s.geometry,bbox:s.bbox,properties:s.properties,assets:s.assets,links:[{rel:"self",href:s.official_link}]})),next:rr.next_token}}
-  const r=await fetch(src.base+"/search",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/geo+json, application/json"},body:JSON.stringify(body)});
+  const r=await pfetch(src.base+"/search",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/geo+json, application/json"},body:JSON.stringify(body)});
   if(!r.ok)throw new Error("HTTP "+r.status);
   data=await r.json();const items=data.features||[];
   return {src,items,next:nextTok(src,data,items.length,body),matched:data.context?.matched??data.numberMatched}
@@ -639,8 +639,19 @@ function authErr(e,pl){const m=e&&e.status||0,d=e&&e.detail?" ("+e.detail+")":""
  if(m)return "O servidor respondeu HTTP "+m+d+".";
  if(e&&e.name==="TypeError")return "O navegador não conseguiu falar com "+AUTHP[pl].nome+": normalmente é bloqueio de CORS (o servidor não aceita chamadas feitas por páginas web) ou falta de rede. Se for CORS, só funciona com Worker ou backend próprio.";
  return (e&&e.message)||"Falha desconhecida."}
+/* fetch com plano B: se o navegador bloquear (CORS), tenta pelo Worker (tools/cors-proxy-worker.js, versão 2) */
+const PXHOSTS=/(^|\.)(usgs\.gov|copernicus\.eu)$/;
+async function pfetch(url,opts){
+ try{return await fetch(url,opts)}
+ catch(e){
+  let h="";try{h=new URL(url).hostname}catch{}
+  if(!(e instanceof TypeError)||!CC.proxy||!PXHOSTS.test(h))throw e;
+  let r;try{r=await fetch(CC.proxy+(CC.proxy.includes("?")?"&":"?")+"url="+encodeURIComponent(url),opts)}catch{throw e}
+  if(r.status===405||(r.status===403&&/host não permitido|origem não permitida/.test(await r.clone().text().catch(()=>""))))
+   throw new Error("O navegador bloqueou (CORS) e o seu Worker recusou o pedido: republique a versão nova de tools/cors-proxy-worker.js no Cloudflare (e confira a ORIGEM_PERMITIDA).");
+  return r}}
 /* Copernicus */
-async function cdseTok(body){const r=await fetch("https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(body)});
+async function cdseTok(body){const r=await pfetch("https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(body)});
  let j={};try{j=await r.json()}catch{}if(!r.ok)throw httpErr(r.status,j.error_description||j.error);return j}
 function cdseSet(j,user,old){const n=Date.now();CRED.cdse={user:user||old.user,tok:j.access_token,exp:n+((j.expires_in||600)-30)*1000,refresh:j.refresh_token||(old&&old.refresh),rexp:n+((j.refresh_expires_in||3600)-30)*1000}}
 async function cdseLogin(u,p,totp){const b={client_id:"cdse-public",grant_type:"password",username:u,password:p};if(totp)b.totp=totp;cdseSet(await cdseTok(b),u)}
@@ -649,7 +660,7 @@ async function cdseBearer(){const c=CRED.cdse;if(!c)throw new Error("Entre prime
  CRED.cdse=null;throw new Error("Sessão expirada — entre de novo.")}
 function saveBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000)}
 async function cdseDownload(href,name,msg){const tk=await cdseBearer();
- const r=await fetch(href,{headers:{Authorization:"Bearer "+tk}});
+ const r=await pfetch(href,{headers:{Authorization:"Bearer "+tk}});
  if(!r.ok)throw httpErr(r.status);
  const len=+r.headers.get("content-length")||0;
  if(len>400e6&&!confirm("O arquivo tem "+(len/1e6).toFixed(0)+" MB e será montado na memória do navegador. Em celular isso costuma falhar. Continuar?"))throw new Error("Download cancelado.");
@@ -658,7 +669,7 @@ async function cdseDownload(href,name,msg){const tk=await cdseBearer();
  saveBlob(new Blob(ch),name);return got}
 /* USGS M2M */
 const M2M="https://m2m.cr.usgs.gov/api/api/json/stable/";
-async function m2m(ep,body,key){const r=await fetch(M2M+ep,{method:"POST",headers:Object.assign({"Content-Type":"application/json"},key?{"X-Auth-Token":key}:{}),body:JSON.stringify(body||{})});
+async function m2m(ep,body,key){const r=await pfetch(M2M+ep,{method:"POST",headers:Object.assign({"Content-Type":"application/json"},key?{"X-Auth-Token":key}:{}),body:JSON.stringify(body||{})});
  let j=null;try{j=await r.json()}catch{}
  if(!r.ok||(j&&j.errorCode))throw httpErr(r.status,j&&j.errorCode?j.errorCode+": "+(j.errorMessage||""):null);return j.data}
 async function usgsLogin(u,tk){CRED.usgs={user:u,key:await m2m("login-token",{username:u,token:tk})}}
