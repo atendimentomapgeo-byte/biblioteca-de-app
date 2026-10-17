@@ -611,13 +611,13 @@ function renderDetail(s){
  ${s.thumb?`<div id="dPrev" style="margin:8px 0;border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--bg2,#0003);min-height:60px;text-align:center"><img id="dPrevImg" referrerpolicy="no-referrer" alt="Prévia de ${esc(s.id)}" src="${esc(s.thumb)}" style="max-width:100%;max-height:260px;display:block;margin:0 auto"><div class="sm" id="dPrevMsg" style="padding:6px">Carregando prévia…</div></div>`:'<div class="warn">Esta cena não informa prévia (miniatura) no catálogo.</div>'}
  <div class="btns"><button class="btn sec" id="dZoom">Zoom</button>${s.thumb?'<button class="btn sec" id="dQl">Manter miniatura no mapa</button>':""}<button class="btn sec" id="dJson">Metadados JSON</button></div>
  ${s.thumb?'<div class="sm">No mapa, a miniatura é posicionada pelas coordenadas do tile quando a cena informa (proj:bbox), senão pelo bbox (aproximado).</div>':""}
- <div id="authBox"></div>
+ <div id="eqvBox"></div><div id="authBox"></div>
  <div id="qlOp" style="display:none"><label>Opacidade <input type="range" min="0" max="100" value="80" id="qlRange"></label></div>
  <table>${row("Fonte",s.src.name)}${row("Coleção",s.collection)}${row("Data/hora",s.dt)}${row("Plataforma",s.platform)}${row("Sensores",s.instruments.join(", "))}${row("Resolução (GSD)",s.gsd==null?null:s.gsd+" m")}${row("Nuvens",s.cc==null?null:s.cc+" %")}${row("Cobertura da AOI",s.cov==null?null:s.cov.toFixed(1)+" %")}${row("Bandas",s.bands.join(", "))}${row("Polarização",s.pol.join(", "))}${row("Nível/baseline",s.level)}${row("Licença",s.props.license)}${row("Acesso",s.src.auth==="none"?"público":"requer cadastro/credenciais")}<tr><th>Link oficial</th><td>${safeUrl(s.link)?`<a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">item STAC</a>`:'<span class="sm">n/d</span>'}</td></tr></table>
  <h4>Assets (${dl.length})</h4>${dl.length?dl.slice(0,40).map(d=>`<div class="sm">${authKey(s)?`<span>${esc(d.k)}</span> <i>(requer login — use "Download com a sua conta")</i>`:`<a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer">${esc(d.k)}</a>`} ${esc(d.type||"")} ${S.beOk?`<button class="btn sec" data-dl="${esc(d.href)}" data-k="${esc(d.k)}" style="padding:1px 6px">via backend</button>`:""}</div>`).join(""):'<div class="sm">Nenhum asset https listado.</div>'}
  ${s.src.auth!=="none"?`<div class="warn">${esc(s.src.note)}</div>`:""}
  <div id="compBox"></div><div id="idxBox"></div>`;
- setMobile("det");renderAuth(s);
+ setMobile("det");renderEqv(s);renderAuth(s);
  loadComposites(s);
  $("dZoom").onclick=()=>selectScene(s.key);
  {const im=$("dPrevImg"),mg=$("dPrevMsg");if(im){let tried=false;im.onload=()=>{mg.textContent="Prévia ilustrativa (não serve para medições)."};
@@ -715,6 +715,28 @@ function renderAuth(s){const pl=authKey(s),box=$("authBox");if(!pl||!box)return;
     $("uList").querySelectorAll("[data-ui]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const url=await usgsRequest(os[+b.dataset.ui],msg);msg("Pronto — abrindo o download do USGS.");const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";document.body.append(a);a.click();a.remove()}catch(e){fail(e)}finally{b.disabled=false}})
    }catch(e){fail(e)}finally{$("uOpt").disabled=false}}}
 }
+
+
+/* ===== Cópia aberta da mesma cena (para gerar composição sem login) ===== */
+const EQV={"usgs-landsat":{to:"planetary",nome:"Planetary Computer (o mesmo Landsat Collection 2 nível 2)"},"cdse":{to:"earth-search",nome:"Earth Search (o mesmo Sentinel-2 L2A, em COG)"}};
+async function findEquivalent(s){
+ const e=EQV[s.src.id],tgt=SOURCES.find(x=>x.id===e.to);let body,tile=null;
+ if(s.src.id==="usgs-landsat")body={collections:["landsat-c2-l2"],ids:[s.id],limit:5};
+ else{const m=String(s.id).match(/_T(\d{2}[A-Z]{3})_/),d=(s.dt||"").slice(0,10);
+  if(!m||!d)throw new Error("Não consegui identificar o tile e a data desta cena para achar a cópia aberta.");
+  tile=m[1];body={collections:["sentinel-2-l2a","sentinel-2-c1-l2a"],datetime:d+"T00:00:00Z/"+d+"T23:59:59Z",bbox:bbox2(s),limit:30}}
+ const r=await fetch(tgt.base+"/search",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/geo+json, application/json"},body:JSON.stringify(body)});
+ if(!r.ok)throw new Error("HTTP "+r.status+" em "+tgt.name);
+ let items=(await r.json()).features||[];
+ if(tile)items=items.filter(f=>{const p=f.properties||{};return String(f.id).includes(tile)||p["grid:code"]==="MGRS-"+tile||p["s2:mgrs_tile"]===tile});
+ if(!items.length)throw new Error("Não encontrei a cópia aberta desta cena em "+e.nome+" (pode não ter sido publicada ainda).");
+ return items.map(f=>normalize(tgt,f))}
+function renderEqv(s){const box=$("eqvBox"),e=EQV[s.src.id];if(!box)return;if(!e){box.innerHTML="";return}
+ box.innerHTML=`<h4>Composição de bandas (RGB, NDVI…)</h4><div class="sm">Esta fonte exige login e o navegador não lê as bandas dela. A mesma cena existe aberta em <b>${esc(e.nome)}</b>, onde a composição funciona sem login.</div><div class="btns"><button class="btn" id="eqvGo" type="button">Abrir a mesma cena para compor</button></div><div id="eqvMsg" class="sm" role="status"></div>`;
+ $("eqvGo").onclick=async()=>{const b=$("eqvGo"),m=$("eqvMsg");b.disabled=true;m.textContent="Procurando a cópia aberta…";
+  try{const sc=await findEquivalent(s);for(const x of sc)if(!S.results.some(r=>r.key===x.key)){x.cov=coverage(x);S.results.push(x)}
+   render();selectScene(sc[0].key);toast("Cena aberta em "+sc[0].src.name+". Escolha a composição e toque em Gerar GeoTIFF.",6000)}
+  catch(er){m.textContent="Falha: "+(er&&er.message||er)}finally{b.disabled=false}}}
 
 
 /*BEGIN-CLIENT-COMPOSE*/
@@ -861,7 +883,7 @@ async function ccCompose(o){
 /* ===== Composições (backend) ===== */
 async function loadComposites(s){
  const box=$("compBox");if(!box)return;
- if(s.src.id==="usgs-landsat"){box.innerHTML='<h4>Composição colorida</h4><div class="warn">As bandas do USGS LandsatLook exigem login EROS e o navegador não consegue lê-las, então a composição não é gerada para cenas desta fonte. Para o mesmo Landsat <b>sem login</b>, deixe marcada a fonte <b>Microsoft Planetary Computer</b> na busca e abra a cena dela. Para baixar o produto original do USGS, use <b>Download com a sua conta</b> (acima).</div>';return}
+ if(s.src.id==="usgs-landsat"){box.innerHTML="";return}
  if(!S.beOk)await checkBackend();
  box.innerHTML='<h4>Composição colorida</h4><div class="sm">Verificando bandas da cena…</div>';
  try{
