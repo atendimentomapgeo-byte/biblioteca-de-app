@@ -12,7 +12,13 @@
 <meta name="apple-mobile-web-app-title" content="FieldGIS" />
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="assets/icons/icon-192.png" />
-<link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+<!-- iOS NÃO suporta transparência em apple-touch-icon (preenche com preto
+     sólido) — por isso usa um arquivo à parte, com o mesmo desenho em
+     branco sobre o fundo escuro do tema, em vez do ícone transparente
+     (que ficaria quase invisível: traço preto sobre o preenchimento preto
+     que o próprio iOS adicionaria). Ver assets/icons/apple-touch-icon.png. -->
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+<link rel="apple-touch-icon" sizes="192x192" href="assets/icons/apple-touch-icon-192.png" />
 <link rel="stylesheet" href="vendor/leaflet.css" />
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/mobile.css" />
