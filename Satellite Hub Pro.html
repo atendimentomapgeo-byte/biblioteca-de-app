@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="version" content="1.0.65">
+<meta name="version" content="1.0.66">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Satellite Hub Pro</title>
@@ -206,7 +206,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 </defs></svg>
 <div id="app" data-view="split" data-m="aoi">
   <div id="top">
-    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.65 · 18/10 09:40</small></h1>
+    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.66 · 18/10 09:50</small></h1>
     <span class="tag" id="beStat" data-ok="0">backend: verificando…</span>
     <span class="sp"></span>
     <div class="seg" role="group" aria-label="Modo de exibição"><button id="vMap" aria-pressed="false" title="Mapa em foco"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span class="lb">Mapa</span></button><button id="vSplit" class="on" aria-pressed="true" title="Lista e mapa"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="lb">Dividido</span></button><button id="vGal" aria-pressed="false" title="Galeria de cenas"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg><span class="lb">Galeria</span></button></div>
@@ -321,7 +321,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script>
-const APP_VERSION="1.0.65";
+const APP_VERSION="1.0.66";
 "use strict";
 /* ===== Registro de fontes (espelha backend/app/sources.py; status = verificado em 2026-10-15) ===== */
 const SOURCES=[
@@ -804,7 +804,7 @@ const AUTO_MS=35000;
 checkBackend().then(ok=>{if(ok||ehMovel)return;
  // só tenta ligar sozinho se este navegador já viu o módulo funcionando; se não ligar, esquece isso (ex.: módulo removido) para não repetir a mensagem do Windows
  {let tentou=false;try{tentou=sessionStorage.getItem("shp_tent")==="1";sessionStorage.setItem("shp_tent","1")}catch{}
-  if(!tentou){ligarComp();toast("Ligando o módulo local…",5000);esperarComp(AUTO_MS,()=>toast("Módulo local iniciado.",3500),()=>abrirComp("falta"))}
+  if(!tentou&&modInstalado()){ligarComp();toast("Ligando o módulo local…",5000);esperarComp(AUTO_MS,()=>toast("Módulo local iniciado.",3500),()=>abrirComp("falta"))}
   else abrirComp("falta")}});
 setInterval(async()=>{if(!S.backend||!ehLocal(S.backend))return;const era=S.beOk;try{const r=await fetch(S.backend+"/api/ping",{signal:AbortSignal.timeout(4000)});if(r.ok){S.beOk=true;return}}catch{}
  if(era){S.beOk=false;$("beStat").textContent="backend: offline (busca direta; sem composição/download autenticado)";$("beStat").dataset.ok="0";abrirComp("desligou")}},15000);
