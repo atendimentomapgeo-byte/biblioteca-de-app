@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="version" content="1.0.67">
+<meta name="version" content="1.0.68">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Satellite Hub Pro</title>
@@ -206,7 +206,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 </defs></svg>
 <div id="app" data-view="split" data-m="aoi">
   <div id="top">
-    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.67 · 18/10 10:00</small></h1>
+    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.68 · 18/10 16:00</small></h1>
     <span class="tag" id="beStat" data-ok="0">backend: verificando…</span>
     <span class="sp"></span>
     <div class="seg" role="group" aria-label="Modo de exibição"><button id="vMap" aria-pressed="false" title="Mapa em foco"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span class="lb">Mapa</span></button><button id="vSplit" class="on" aria-pressed="true" title="Lista e mapa"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="lb">Dividido</span></button><button id="vGal" aria-pressed="false" title="Galeria de cenas"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg><span class="lb">Galeria</span></button></div>
@@ -261,8 +261,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 
       <div class="pane" id="p-res">
         <div id="resSummary" class="sm">Nenhuma pesquisa ainda.</div>
-        <label class="chk"><input type="checkbox" id="showFp"> Mostrar contornos de todas as cenas no mapa</label>
-        <div class="btns"><button class="btn sec" id="more">Carregar mais</button><button class="btn sec" id="expGj">GeoJSON</button><button class="btn sec" id="expCsv">CSV</button></div>
+        <div class="btns"><button class="btn sec" id="more">Carregar mais</button></div>
         <canvas id="tl"></canvas><div id="gaps" class="sm"></div>
         <div id="satChips" class="satchips" role="group" aria-label="Filtrar por satélite"></div>
         <div id="results"></div>
@@ -315,7 +314,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script>
-const APP_VERSION="1.0.67";
+const APP_VERSION="1.0.68";
 "use strict";
 /* ===== Registro de fontes (espelha backend/app/sources.py; status = verificado em 2026-10-15) ===== */
 const SOURCES=[
@@ -1042,8 +1041,8 @@ $("detail").addEventListener("click",async e=>{const a=e.target.closest("a[href]
 
 /* ===== Exportação ===== */
 function dl(name,txt,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
-$("expGj").onclick=()=>{const r=filtered();if(!r.length)return toast("Sem resultados.");dl("cenas.geojson",JSON.stringify({type:"FeatureCollection",features:r.map(s=>({type:"Feature",geometry:s.geom,properties:{fonte:s.src.id,id:s.id,colecao:s.collection,data:s.dt,plataforma:s.platform,nuvens:s.cc,gsd:s.gsd,cobertura_aoi:s.cov,link:s.link}}))}),"application/geo+json")};
-$("expCsv").onclick=()=>{const r=filtered();if(!r.length)return toast("Sem resultados.");const q=v=>{v=v==null?"":String(v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+($("expGj")||{}).onclick=()=>{const r=filtered();if(!r.length)return toast("Sem resultados.");dl("cenas.geojson",JSON.stringify({type:"FeatureCollection",features:r.map(s=>({type:"Feature",geometry:s.geom,properties:{fonte:s.src.id,id:s.id,colecao:s.collection,data:s.dt,plataforma:s.platform,nuvens:s.cc,gsd:s.gsd,cobertura_aoi:s.cov,link:s.link}}))}),"application/geo+json")};
+($("expCsv")||{}).onclick=()=>{const r=filtered();if(!r.length)return toast("Sem resultados.");const q=v=>{v=v==null?"":String(v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
  dl("cenas.csv","fonte,id,colecao,data,plataforma,nuvens,gsd,cobertura_aoi,link\n"+r.map(s=>[s.src.id,s.id,s.collection,s.dt,s.platform,s.cc,s.gsd,s.cov==null?"":s.cov.toFixed(1),s.link].map(q).join(",")).join("\n"),"text/csv")};
 
 /* ===== Painel de status ===== */
@@ -1135,8 +1134,8 @@ $("drawCancel").onclick=cancelDraw;
 $("results").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList&&e.target.classList.contains("card")){e.preventDefault();e.target.click()}});
 
 /* ===== Contornos das cenas no mapa (ligar/desligar) ===== */
-function setFp(v){SHOW_FP=!!v;try{localStorage.setItem("shp_fp",v?"1":"0")}catch{}["fp-fill","fp-line"].forEach(l=>{if(map.getLayer(l))map.setLayoutProperty(l,"visibility",SHOW_FP?"visible":"none")});$("showFp").checked=SHOW_FP}
-$("showFp").checked=SHOW_FP;$("showFp").onchange=e=>setFp(e.target.checked);
+function setFp(v){SHOW_FP=!!v;try{localStorage.setItem("shp_fp",v?"1":"0")}catch{}["fp-fill","fp-line"].forEach(l=>{if(map.getLayer(l))map.setLayoutProperty(l,"visibility",SHOW_FP?"visible":"none")});if($("showFp"))$("showFp").checked=SHOW_FP}
+if($("showFp")){$("showFp").checked=SHOW_FP;$("showFp").onchange=e=>setFp(e.target.checked)}
 </script>
 <!--BLOCO-PS-INICIO--><!--PSMARK
 $ErrorActionPreference='Stop'
