@@ -57,6 +57,9 @@
   }
   .panel-tabs{ margin-bottom:14px; }
   .panel-tabs .tab-btn{ font-weight:700; letter-spacing:0.4px; }
+  .panel-badge{ display:inline-block; margin-right:8px; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:0.6px; vertical-align:middle; border:1px solid var(--line-strong); }
+  .panel-badge.panel-simcar{ color:var(--cyan); border-color:rgba(99,216,214,0.5); }
+  .panel-badge.panel-simlam{ color:var(--warn); border-color:rgba(255,200,90,0.5); }
   .app-version{ font-size:11px; font-weight:500; margin-left:10px; color:var(--ink-faint); letter-spacing:0.5px; vertical-align:middle; }
   .title-icon{ width:34px; height:34px; box-sizing:border-box; padding:4px; background:#fff; border-radius:6px; vertical-align:-8px; margin-right:12px; color:#000; flex:none; }
   .titleblock h1{
@@ -377,7 +380,7 @@
   </div>
 
   <section class="toolbar">
-    <input type="text" id="searchInput" placeholder="Buscar em todos (inclui arquivados)…" title="Busca por propriedade, proprietário, analista ou CAR estadual, incluindo os arquivados">
+    <input type="text" id="searchInput" placeholder="Buscar em SIMCAR e SIMLAM (inclui arquivados)…" title="Busca nos dois painéis (SIMCAR e SIMLAM) por propriedade, proprietário, analista, CAR/nº do processo ou tipo de licença, incluindo os arquivados">
     <select id="filterStatus">
       <option value="todos">Todos os prazos</option>
       <option value="vencido">Vencidos</option>
@@ -780,11 +783,11 @@ async function saveRecordsToDB(recs){
     tx.onerror = () => reject(tx.error);
   });
 }
-async function loadRecordsFromDB(){
+async function loadRecordsFromDB(key){
   const db = await openPdfDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(APP_STORE, 'readonly');
-    const req = tx.objectStore(APP_STORE).get(RECORDS_IDB_KEY);
+    const req = tx.objectStore(APP_STORE).get(key || RECORDS_IDB_KEY);
     req.onsuccess = () => resolve(req.result || null);
     req.onerror = () => reject(req.error);
   });
@@ -822,7 +825,7 @@ async function deletePdfBlobLocal(id){
    porque um documento do Firestore aceita no máximo 1 MiB. Plano gratuito: 1 GiB de armazenamento. */
 const PDF_RAW_CHUNK = 525000;            // múltiplo de 3 => base64 sem padding no meio
 const PDF_MAX_BYTES = 8 * 1024 * 1024;   // limite por PDF para não estourar a cota gratuita
-function pdfChunksCol(id){ return recDocRef(id).collection('pdfChunks'); }
+function pdfChunksCol(id, col){ return fbDb.collection(col || RECORDS_COL).doc(id).collection('pdfChunks'); }
 function blobSliceToBase64(blob){
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -853,13 +856,13 @@ async function savePdfBlob(id, file){
     alert('O PDF foi salvo neste dispositivo, mas não foi enviado ao servidor (' + fbErro(e) + '). Outros usuários não o verão.');
   }
 }
-async function getPdfBlob(id){
+async function getPdfBlob(id, col){
   try{
     const local = await getPdfBlobLocal(id);
     if(local) return local;
   }catch(e){ /* fall through to remote */ }
   try{
-    const snap = await pdfChunksCol(id).orderBy('i').get();
+    const snap = await pdfChunksCol(id, col).orderBy('i').get();
     if(snap.empty) return null;
     const parts = snap.docs.map(d => {
       const bin = atob(d.data().data);
@@ -912,7 +915,7 @@ async function openAttachedPdf(rec){
     try{ win.document.write('<title>Carregando PDF…</title><body style="font-family:sans-serif;background:#111;color:#ddd;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Carregando PDF… (na primeira vez pode demorar um pouco; depois fica salvo neste dispositivo)</body>'); }catch(e){}
   }
   try{
-    const blob = await getPdfBlob(rec.id);
+    const blob = await getPdfBlob(rec.id, rec._panel ? PANELS[rec._panel].col : undefined);
     if(!blob){
       if(win) win.close();
       alert('PDF não encontrado (nem neste dispositivo nem no servidor). Anexe-o novamente no processo.');
@@ -1078,10 +1081,11 @@ function emptyResults(){
   RESULT_FIELDS.forEach(f => r[f.key] = {status:'pendente', texto:''});
   return r;
 }
-function migrateResults(results){
+function migrateResults(results, fields){
+  fields = Array.isArray(fields) ? fields : RESULT_FIELDS; // .map(normalizeRecord) passa o índice como 2º argumento
   // Older records stored a plain status string per block; upgrade to {status, texto}
   const out = {};
-  RESULT_FIELDS.forEach(f => {
+  fields.forEach(f => {
     const v = results ? results[f.key] : undefined;
     if(v && typeof v === 'object'){ out[f.key] = {status: v.status || 'pendente', texto: v.texto || ''}; }
     else { out[f.key] = {status: v || 'pendente', texto:''}; }
@@ -1139,7 +1143,7 @@ const PANELS = {
     prop: 'Propriedade', proc: 'CAR Estadual', procPh: 'Ex: MT24603/2018',
     processado: 'Processado por', processadoLong: 'Processado no SIMCAR (quem mexeu nas geometrias)', processadoPh: 'Ex: Brunno',
     prazo: 'Prazo para envio', dataFinal: 'Data final para envio', pdf: 'PDF da análise (parecer técnico)',
-    searchTitle: 'Busca por propriedade, proprietário, analista ou CAR estadual, incluindo os arquivados',
+    searchTitle: 'Busca nos dois painéis (SIMCAR e SIMLAM) por propriedade, proprietário, analista, CAR/nº do processo ou tipo de licença, incluindo os arquivados',
     deadlineHelper: true, csvName: 'pendencias_simcar'
   },
   simlam: {
@@ -1148,7 +1152,7 @@ const PANELS = {
     prop: 'Empreendimento / Propriedade', proc: 'Nº do processo', procPh: 'Ex: 123456/2025',
     processado: 'Tipo de licença', processadoLong: 'Tipo de licença / autorização', processadoPh: 'Ex: Licença de Instalação (LI)',
     prazo: 'Prazo', dataFinal: 'Prazo final', pdf: 'PDF do processo / documento',
-    searchTitle: 'Busca por empreendimento, proprietário, analista ou nº do processo, incluindo os arquivados',
+    searchTitle: 'Busca nos dois painéis (SIMCAR e SIMLAM) por propriedade, proprietário, analista, CAR/nº do processo ou tipo de licença, incluindo os arquivados',
     deadlineHelper: false, csvName: 'pendencias_simlam'
   }
 };
@@ -1172,6 +1176,31 @@ function applyPanelLabels(){
   document.getElementById('panelTabSimlam').classList.toggle('active', currentPanel === 'simlam');
 }
 
+/* ---------- Busca nos dois painéis: mantém o outro painel carregado (somente leitura) ---------- */
+let otherRecords = [];
+let otherUnsub = null;
+function otherPanelName(){ return currentPanel === 'simcar' ? 'simlam' : 'simcar'; }
+async function watchOtherPanel(uid, isAdminUser){
+  if(otherUnsub){ try{ otherUnsub(); }catch(e){} otherUnsub = null; }
+  otherRecords = [];
+  const name = otherPanelName();
+  const P = PANELS[name];
+  const hasQuery = () => !!document.getElementById('searchInput').value.trim();
+  try{
+    const cached = await loadRecordsFromDB(P.idbKey);
+    if(Array.isArray(cached) && name === otherPanelName()){ otherRecords = cached.map(r => normalizeRecord(r, P.fields)); }
+  }catch(e){ /* cache opcional */ }
+  let q = fbDb.collection(P.col);
+  if(!isAdminUser && uid){ q = q.where('ownerId', '==', uid); }
+  otherUnsub = q.onSnapshot((snap) => {
+    if(name !== otherPanelName()) return; // painel mudou enquanto carregava
+    const arr = [];
+    snap.forEach(d => arr.push(normalizeRecord(d.data(), P.fields)));
+    otherRecords = arr;
+    if(hasQuery()) render();
+  }, (err) => { console.warn('Não foi possível ler o outro painel para a busca', err); });
+}
+
 let switchingPanel = false;
 async function switchPanel(name){
   if(!PANELS[name] || name === currentPanel || switchingPanel) return;
@@ -1191,8 +1220,8 @@ async function switchPanel(name){
   } finally { switchingPanel = false; }
 }
 
-function normalizeRecord(r){
-  r.results = migrateResults(r.results);
+function normalizeRecord(r, fields){
+  r.results = migrateResults(r.results, fields);
   if(typeof r.arquivado !== 'boolean') r.arquivado = false;
   if(r.arquivadoEm === undefined) r.arquivadoEm = null;
   if(r.proprietario === undefined) r.proprietario = '';
@@ -1239,6 +1268,8 @@ async function load(){
   const isAdminUser = !!(currentProfile && currentProfile.role === 'admin');
   let query = fbDb.collection(RECORDS_COL);
   if(!isAdminUser && currentUid){ query = query.where('ownerId', '==', currentUid); }
+
+  watchOtherPanel(currentUid, isAdminUser);
 
   // First snapshot resolves this promise; every snapshot after that (from this user's
   // own records, or from everyone if admin) updates the screen live.
@@ -1341,10 +1372,10 @@ function applyFiltersSort(list){
   const sortBy = document.getElementById('sortBy').value;
 
   // Com texto na busca, procura em TODOS os processos (ativos e arquivados); sem busca, respeita a aba atual.
-  let out = q ? list.slice() : list.filter(r => viewMode === 'historico' ? !!r.arquivado : !r.arquivado);
+  let out = q ? list.concat(otherRecords.map(r => ({...r, _panel: otherPanelName()}))) : list.filter(r => viewMode === 'historico' ? !!r.arquivado : !r.arquivado);
 
   out = out.filter(r => {
-    if(q && !(r.propriedade.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.proprietario||'').toLowerCase().includes(q) || (r.analista||'').toLowerCase().includes(q))) return false;
+    if(q && !(r.propriedade.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.proprietario||'').toLowerCase().includes(q) || (r.analista||'').toLowerCase().includes(q) || (r.processado||'').toLowerCase().includes(q))) return false;
     if(filt !== 'todos'){
       const d = daysUntil(r.dataFinal);
       if(filt === 'vencido' && !(d !== null && d < 0)) return false;
@@ -1375,16 +1406,18 @@ function render(){
   }
 
   list.forEach(rec => {
+    const searchActive = !!document.getElementById('searchInput').value.trim();
+    const recPanel = rec._panel || currentPanel;
     const dl = deadlineState(rec.dataFinal);
     const prog = progressOf(rec);
     const tr = document.createElement('tr');
-    tr.title = 'Clique duas vezes para ver/ocultar detalhes';
+    tr.title = rec._panel && rec._panel !== currentPanel ? 'Clique duas vezes para abrir este processo no Painel ' + rec._panel.toUpperCase() : 'Clique duas vezes para ver/ocultar detalhes';
     tr.innerHTML = `
       <td class="col-flag">${prog.objCount > 0 ? `<span class="row-alert" title="${prog.objCount} bloco(s) marcado(s) como Não Aprovado — requer atenção prioritária">⚑</span>` : ''}</td>
       <td class="col-pdf">${rec.pdfName ? '<span class="pdf-icon" role="button" tabindex="0" title="Clique para abrir o PDF: '+escapeHtml(rec.pdfName)+'">📄</span>' : ''}</td>
       <td class="col-complete">${(viewMode === 'ativos' && !rec.arquivado && prog.pct === 100) ? '<span class="complete-badge" title="100% concluído — pronto para arquivar no histórico">✅</span>' : ''}</td>
       <td class="propriedade">
-        <div class="propriedade-nome">${escapeHtml(rec.propriedade)}${rec.arquivado && viewMode === 'ativos' ? '<span class="archived-badge" title="Processo arquivado no histórico' + (rec.arquivadoEm ? ' em ' + fmtDate(rec.arquivadoEm.slice(0,10)) : '') + '">📁 ARQUIVADO</span>' : ''}</div>
+        <div class="propriedade-nome">${searchActive ? `<span class="panel-badge panel-${recPanel}">${recPanel.toUpperCase()}</span>` : ''}${escapeHtml(rec.propriedade)}${rec.arquivado && viewMode === 'ativos' ? '<span class="archived-badge" title="Processo arquivado no histórico' + (rec.arquivadoEm ? ' em ' + fmtDate(rec.arquivadoEm.slice(0,10)) : '') + '">📁 ARQUIVADO</span>' : ''}</div>
         <div class="propriedade-sub" title="${rec.proprietario ? escapeHtml(rec.proprietario) : ''}">${rec.proprietario ? escapeHtml(rec.proprietario) : '&nbsp;'}</div>
         <div class="propriedade-sub" title="${rec.analista ? escapeHtml(rec.analista) : ''}">${rec.analista ? escapeHtml(rec.analista) : '&nbsp;'}</div>
       </td>
@@ -1404,7 +1437,18 @@ function render(){
       pdfIcon.addEventListener('dblclick', e => e.stopPropagation());
       pdfIcon.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openAttachedPdf(rec); } });
     }
-    tr.addEventListener('dblclick', () => {
+    tr.addEventListener('dblclick', async () => {
+      if(rec._panel && rec._panel !== currentPanel){
+        // Resultado do outro painel: vai para ele e abre o processo lá (onde dá para editar/arquivar).
+        const target = rec._panel, id = rec.id, arch = !!rec.arquivado;
+        await switchPanel(target);
+        viewMode = arch ? 'historico' : 'ativos';
+        document.getElementById('tabAtivos').classList.toggle('active', !arch);
+        document.getElementById('tabHistorico').classList.toggle('active', arch);
+        expandedId = id;
+        render();
+        return;
+      }
       expandedId = expandedId === rec.id ? null : rec.id;
       render();
     });
