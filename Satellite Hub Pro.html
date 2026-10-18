@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="version" content="1.0.66">
+<meta name="version" content="1.0.67">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Satellite Hub Pro</title>
@@ -206,7 +206,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 </defs></svg>
 <div id="app" data-view="split" data-m="aoi">
   <div id="top">
-    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.66 · 18/10 09:50</small></h1>
+    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.67 · 18/10 10:00</small></h1>
     <span class="tag" id="beStat" data-ok="0">backend: verificando…</span>
     <span class="sp"></span>
     <div class="seg" role="group" aria-label="Modo de exibição"><button id="vMap" aria-pressed="false" title="Mapa em foco"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span class="lb">Mapa</span></button><button id="vSplit" class="on" aria-pressed="true" title="Lista e mapa"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="lb">Dividido</span></button><button id="vGal" aria-pressed="false" title="Galeria de cenas"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg><span class="lb">Galeria</span></button></div>
@@ -250,12 +250,6 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
         <fieldset><legend>Fontes</legend><div id="srcList"></div></fieldset>
         <fieldset><legend>Filtros combináveis</legend>
           <label>Nuvens máx. (%) <input type="number" id="fCloud" min="0" max="100" placeholder="sem filtro"></label>
-          <label>Cobertura mínima da AOI (%) <input type="number" id="fCov" min="0" max="100" placeholder="sem filtro"></label>
-          <label>Resolução (GSD) máx. (m) <input type="number" id="fGsd" min="0" placeholder="sem filtro"></label>
-          <label>Missão/plataforma contém <input type="text" id="fMission" placeholder="landsat, sentinel, cbers…"></label>
-          <label>Produto/coleção contém <input type="text" id="fColl" placeholder="l2a, sr, wpm…"></label>
-          <label>Polarização (SAR) contém <input type="text" id="fPol" placeholder="VV, VH"></label>
-          <label>Acesso <select id="fAccess"><option value="">Qualquer</option><option value="none">Público</option><option value="registration">Requer cadastro</option></select></label>
           <label><input type="checkbox" id="fThumb"> Somente com miniatura</label>
           <label><input type="checkbox" id="fDl"> Somente com asset baixável (https)</label>
           <label>Ordenar <select id="fSort"><option value="dateDesc">Data ↓</option><option value="dateAsc">Data ↑</option><option value="cloud">Nuvens ↑</option><option value="cov">Cobertura ↓</option><option value="gsd">Resolução (melhor)</option></select></label>
@@ -321,7 +315,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script>
-const APP_VERSION="1.0.66";
+const APP_VERSION="1.0.67";
 "use strict";
 /* ===== Registro de fontes (espelha backend/app/sources.py; status = verificado em 2026-10-15) ===== */
 const SOURCES=[
@@ -534,7 +528,7 @@ function satSensor(s){
  return {sat:sat||"Satélite não informado",sensor:sensor||"Sensor não informado",how}}
 /* ===== Filtro, ordenação, render ===== */
 function filtered(){
- const cl=$("fCloud").value,cv=$("fCov").value,gs=$("fGsd").value,mi=$("fMission").value.toLowerCase(),co=$("fColl").value.toLowerCase(),po=$("fPol").value.toLowerCase(),ac=$("fAccess").value;
+ const cl=$("fCloud").value,cv="",gs="",mi="",co="",po="",ac="";
  let r=S.results.filter(s=>
   (cl===""||s.cc==null||s.cc<=+cl)&&(cv===""||(s.cov!=null&&s.cov>=+cv))&&(gs===""||(s.gsd!=null&&s.gsd<=+gs))&&
   (!mi||((s.platform||"")+" "+s.instruments.join(" ")+" "+(s.collection||"")).toLowerCase().includes(mi))&&
@@ -564,7 +558,7 @@ function render(){
  map.getSource("fp")?.setData(fpCollection());drawTimeline(r);
  document.querySelectorAll(".card").forEach(c=>c.onclick=e=>{if(e.target.classList.contains("cmpchk"))return;selectScene(c.dataset.k)});
  document.querySelectorAll(".cmpchk").forEach(c=>c.onchange=()=>toggleCmp(c.dataset.k,c.checked))}
-["fCloud","fCov","fGsd","fMission","fColl","fPol","fAccess","fThumb","fDl","fSort","fGroup"].forEach(i=>$(i).addEventListener("change",render));
+["fCloud","fThumb","fDl","fSort","fGroup"].forEach(i=>{$(i).addEventListener("change",render);$(i).addEventListener("input",render)});
 function fpCollection(){return {type:"FeatureCollection",features:filtered().filter(s=>s.geom).map(s=>({type:"Feature",properties:{k:s.key},geometry:s.geom}))}}
 function selCollection(){const s=S.results.find(x=>x.key===S.sel);return s&&s.geom?{type:"Feature",properties:{},geometry:s.geom}:EMPTY}
 
