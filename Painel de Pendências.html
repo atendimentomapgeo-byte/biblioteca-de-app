@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel de Pendências — SIMCAR/SEMA-MT</title>
+<title>Painel SIMCAR e SIMLAM v1.0.0</title>
+<meta name="version" content="1.0.0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%2216%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%2216%22%20y%3D%2240%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20108%20L62%20130%20L156%2044%22/%3E%3Crect%20x%3D%22185%22%20y%3D%2240%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%2071%20H462%20M216%2095%20H462%20M216%20119%20H368%22%20stroke-width%3D%2214%22/%3E%3Crect%20x%3D%2216%22%20y%3D%22200%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20268%20L62%20290%20L156%20204%22/%3E%3Crect%20x%3D%22185%22%20y%3D%22200%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%20231%20H462%20M216%20255%20H462%20M216%20279%20H368%22%20stroke-width%3D%2214%22/%3E%3Crect%20x%3D%2216%22%20y%3D%22360%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20428%20L62%20450%20L156%20364%22/%3E%3Crect%20x%3D%22185%22%20y%3D%22360%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%20391%20H462%20M216%20415%20H462%20M216%20439%20H368%22%20stroke-width%3D%2214%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -54,6 +55,9 @@
     content:""; position:absolute; top:6px; left:6px; right:6px; bottom:6px;
     border:1px solid rgba(210,232,248,0.14); pointer-events:none;
   }
+  .panel-tabs{ margin-bottom:14px; }
+  .panel-tabs .tab-btn{ font-weight:700; letter-spacing:0.4px; }
+  .app-version{ font-size:11px; font-weight:500; margin-left:10px; color:var(--ink-faint); letter-spacing:0.5px; vertical-align:middle; }
   .title-icon{ width:34px; height:34px; box-sizing:border-box; padding:4px; background:#fff; border-radius:6px; vertical-align:-8px; margin-right:12px; color:#000; flex:none; }
   .titleblock h1{
     font-family:'Space Grotesk', sans-serif;
@@ -344,7 +348,7 @@
 
   <header class="titleblock">
     <div>
-      <h1><svg class="title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="16" y="40" width="112" height="110" rx="6"/><path d="M40 108 L62 130 L156 44"/><rect x="185" y="40" width="310" height="110" rx="6"/><path d="M216 71 H462 M216 95 H462 M216 119 H368" stroke-width="14"/><rect x="16" y="200" width="112" height="110" rx="6"/><path d="M40 268 L62 290 L156 204"/><rect x="185" y="200" width="310" height="110" rx="6"/><path d="M216 231 H462 M216 255 H462 M216 279 H368" stroke-width="14"/><rect x="16" y="360" width="112" height="110" rx="6"/><path d="M40 428 L62 450 L156 364"/><rect x="185" y="360" width="310" height="110" rx="6"/><path d="M216 391 H462 M216 415 H462 M216 439 H368" stroke-width="14"/></svg>Painel de Pendências<span>SIMCAR &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; INCRA-SIGEF</span></h1>
+      <h1><svg class="title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="16" y="40" width="112" height="110" rx="6"/><path d="M40 108 L62 130 L156 44"/><rect x="185" y="40" width="310" height="110" rx="6"/><path d="M216 71 H462 M216 95 H462 M216 119 H368" stroke-width="14"/><rect x="16" y="200" width="112" height="110" rx="6"/><path d="M40 268 L62 290 L156 204"/><rect x="185" y="200" width="310" height="110" rx="6"/><path d="M216 231 H462 M216 255 H462 M216 279 H368" stroke-width="14"/><rect x="16" y="360" width="112" height="110" rx="6"/><path d="M40 428 L62 450 L156 364"/><rect x="185" y="360" width="310" height="110" rx="6"/><path d="M216 391 H462 M216 415 H462 M216 439 H368" stroke-width="14"/></svg><b id="panelTitle" style="font:inherit">Painel SIMCAR</b><small class="app-version">v1.0.0</small><span id="panelSub">SIMCAR &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; INCRA-SIGEF</span></h1>
     </div>
     <div class="titleblock-grid">
       <div><label>Projeto</label><span>Map GEO</span></div>
@@ -354,6 +358,11 @@
       <div><label>Conta</label><span><button class="btn ghost small hidden" id="adminUsersBtn" type="button">Usuários</button><button class="btn ghost small" id="logoutBtn" type="button">Sair</button></span></div>
     </div>
   </header>
+
+  <div class="view-tabs panel-tabs">
+    <button class="tab-btn active" id="panelTabSimcar" data-panel="simcar">Painel SIMCAR</button>
+    <button class="tab-btn" id="panelTabSimlam" data-panel="simlam">Painel SIMLAM</button>
+  </div>
 
   <section class="dashboard">
     <div class="card total"><div class="num" id="cardTotal">0</div><div class="lbl">Processos ativos</div></div>
@@ -396,11 +405,11 @@
           <th title="Marca processos com pelo menos um bloco 'Não Aprovado'" class="col-flag">Alerta</th>
           <th title="PDF anexado" class="col-pdf"></th>
           <th title="100% concluído" class="col-complete"></th>
-          <th>Propriedade</th>
-          <th>CAR Estadual</th>
-          <th>Prazo para envio</th>
+          <th id="thProp">Propriedade</th>
+          <th id="thProc">CAR Estadual</th>
+          <th id="thPrazo">Prazo para envio</th>
           <th>Progresso da análise</th>
-          <th>Processado por</th>
+          <th id="thProcessado">Processado por</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -416,7 +425,7 @@
     <input type="hidden" id="editId">
 
     <div class="field">
-      <label>Propriedade</label>
+      <label id="lblPropriedade">Propriedade</label>
       <input type="text" id="fPropriedade" placeholder="Ex: Fazenda Santa Catarina">
     </div>
     <div class="field">
@@ -429,12 +438,13 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label>CAR Estadual</label>
+        <label id="lblProc">CAR Estadual</label>
         <input type="text" id="fCar" placeholder="Ex: MT24603/2018">
       </div>
       <div class="field">
-        <label>Processado no SIMCAR (quem mexeu nas geometrias)</label>
+        <label id="lblProcessado">Processado no SIMCAR (quem mexeu nas geometrias)</label>
         <input type="text" id="fProcessado" placeholder="Ex: Brunno">
+        <datalist id="tiposLicenca"><option value="Licença Prévia (LP)"></option><option value="Licença de Instalação (LI)"></option><option value="Licença de Operação (LO)"></option><option value="Licença Ambiental Única (LAU)"></option><option value="Licença Ambiental Simplificada (LAS)"></option><option value="Autorização de Exploração Florestal (AUTEX)"></option><option value="Outorga de uso de recursos hídricos"></option><option value="Dispensa de licenciamento"></option><option value="Renovação de licença"></option></datalist>
       </div>
     </div>
     <div class="field-row">
@@ -443,11 +453,11 @@
         <input type="date" id="fDataAnalise">
       </div>
       <div class="field">
-        <label>Data final para envio</label>
+        <label id="lblDataFinal">Data final para envio</label>
         <input type="date" id="fDataFinal">
       </div>
     </div>
-    <div class="deadline-helper">
+    <div class="deadline-helper" id="deadlineHelper">
       <button type="button" class="btn ghost small" id="calcDeadlineBtn">Calcular prazo (análise + 90 dias)</button>
       <label><input type="checkbox" id="fProrrogacao"> Prorrogação de 30 dias solicitada junto à SEMA-MT</label>
     </div>
@@ -456,7 +466,7 @@
       <textarea id="fObs" placeholder="Notas sobre o processo…"></textarea>
     </div>
     <div class="field">
-      <label>PDF da análise (parecer técnico)</label>
+      <label id="lblPdf">PDF da análise (parecer técnico)</label>
       <div class="pdf-attach-row">
         <input type="file" id="fPdfInput" accept="application/pdf" style="display:none">
         <button type="button" class="btn ghost small" id="pdfChooseBtn">Escolher arquivo…</button>
@@ -495,6 +505,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 /* ---------- Firebase (dados compartilhados entre todos os usuários do painel) ---------- */
+const APP_VERSION = "1.0.0";
 const firebaseConfig = {
   apiKey: "AIzaSyCb-TUsJ3T274JvvG8YA35Jq5K__mtSUS0",
   authDomain: "painel-pendencias-simcar.firebaseapp.com",
@@ -507,7 +518,9 @@ firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 fbAuth.languageCode = 'pt-BR';
 const fbDb = firebase.firestore();
-const RECORDS_COL = 'pendencias';
+let RECORDS_COL = 'pendencias';
+let RECORDS_IDB_KEY = 'records';
+let recordsUnsub = null;
 let firestoreOnline = true; // becomes false after a failed write, shown in the UI
 
 /* ---------- Login gate (Firebase Authentication — cadastro + aprovação do administrador) ---------- */
@@ -762,7 +775,7 @@ async function saveRecordsToDB(recs){
   const db = await openPdfDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(APP_STORE, 'readwrite');
-    tx.objectStore(APP_STORE).put(recs, 'records');
+    tx.objectStore(APP_STORE).put(recs, RECORDS_IDB_KEY);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -771,7 +784,7 @@ async function loadRecordsFromDB(){
   const db = await openPdfDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(APP_STORE, 'readonly');
-    const req = tx.objectStore(APP_STORE).get('records');
+    const req = tx.objectStore(APP_STORE).get(RECORDS_IDB_KEY);
     req.onsuccess = () => resolve(req.result || null);
     req.onerror = () => reject(req.error);
   });
@@ -923,7 +936,7 @@ function blobToBase64(blob){
   });
 }
 async function buildBackupObject(){
-  const backup = { app: 'simcar-pendencias', version: 1, exportedAt: new Date().toISOString(), records: [] };
+  const backup = { app: 'simcar-pendencias', panel: currentPanel, version: 1, exportedAt: new Date().toISOString(), records: [] };
   for(const r of records){
     const entry = JSON.parse(JSON.stringify(r));
     if(r.pdfName){
@@ -942,7 +955,7 @@ async function exportFullBackup(){
   const blob = new Blob([json], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `simcar_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.href = url; a.download = `${currentPanel}_backup_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -951,6 +964,7 @@ async function importFullBackup(file){
   try{ data = JSON.parse(await file.text()); }
   catch(e){ alert('Arquivo de backup inválido — não é um JSON válido.'); return; }
   if(!data || !Array.isArray(data.records)){ alert('Arquivo de backup inválido — formato não reconhecido.'); return; }
+  if((data.panel || 'simcar') !== currentPanel){ alert('Este backup é do painel ' + (data.panel || 'simcar').toUpperCase() + '. Abra a aba correspondente para importá-lo.'); return; }
   if(!confirm(`Importar ${data.records.length} processo(s) deste backup?\n\nProcessos com o mesmo ID de um já existente serão substituídos; os demais serão adicionados à lista atual.`)) return;
 
   for(const entry of data.records){
@@ -1010,6 +1024,7 @@ async function updateAutoBackupUI(){
 
 async function writeAutoBackup(){
   if(!autoBackupHandle) return;
+  if(currentPanel !== 'simcar') return; // o arquivo de backup automático é do Painel SIMCAR (evita sobrescrevê-lo com dados do SIMLAM)
   try{
     let perm = await autoBackupHandle.queryPermission({mode:'readwrite'});
     if(perm !== 'granted') return; // don't prompt silently in the background
@@ -1027,7 +1042,7 @@ function scheduleAutoBackup(){
   autoBackupTimer = setTimeout(writeAutoBackup, 2000);
 }
 
-const RESULT_FIELDS = [
+const SIMCAR_FIELDS = [
   {key:'objetivo', label:'Objetivo'},
   {key:'propriedade', label:'Propriedade'},
   {key:'interessado', label:'Interessado'},
@@ -1040,6 +1055,21 @@ const RESULT_FIELDS = [
   {key:'app', label:'APP/Uso Restrito'},
   {key:'reservaLegal', label:'Reserva Legal'},
 ];
+const SIMLAM_FIELDS = [
+  {key:'requerimento', label:'Requerimento'},
+  {key:'docPessoais', label:'Doc. Pessoais'},
+  {key:'dominialidade', label:'Dominialidade'},
+  {key:'car', label:'CAR'},
+  {key:'projeto', label:'Estudo/Projeto Ambiental'},
+  {key:'respTecnico', label:'Resp. Técnico / ART'},
+  {key:'taxas', label:'Taxas / DAE'},
+  {key:'outorga', label:'Outorga'},
+  {key:'appRl', label:'APP / Reserva Legal'},
+  {key:'vistoria', label:'Vistoria'},
+  {key:'condicionantes', label:'Condicionantes'},
+  {key:'licenca', label:'Emissão da Licença'},
+];
+let RESULT_FIELDS = SIMCAR_FIELDS;
 const STATUS_CYCLE = ['pendente','ok','atencao','objecao'];
 const STATUS_LABEL = {pendente:'Não Iniciado', ok:'Finalizado Aprovado', atencao:'Finalizada com Pendência', objecao:'Não Aprovado'};
 
@@ -1101,6 +1131,66 @@ function seedData(){
 
 let records = [];
 
+/* ---------- Painéis (SIMCAR e SIMLAM) — mesma estrutura, coleções e rótulos próprios ---------- */
+const PANELS = {
+  simcar: {
+    title: 'Painel SIMCAR', sub: 'SIMCAR &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; INCRA-SIGEF',
+    col: 'pendencias', idbKey: 'records', fields: SIMCAR_FIELDS,
+    prop: 'Propriedade', proc: 'CAR Estadual', procPh: 'Ex: MT24603/2018',
+    processado: 'Processado por', processadoLong: 'Processado no SIMCAR (quem mexeu nas geometrias)', processadoPh: 'Ex: Brunno',
+    prazo: 'Prazo para envio', dataFinal: 'Data final para envio', pdf: 'PDF da análise (parecer técnico)',
+    searchTitle: 'Busca por propriedade, proprietário, analista ou CAR estadual, incluindo os arquivados',
+    deadlineHelper: true, csvName: 'pendencias_simcar'
+  },
+  simlam: {
+    title: 'Painel SIMLAM', sub: 'SIMLAM &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; Licenciamento Ambiental',
+    col: 'pendencias_simlam', idbKey: 'records_simlam', fields: SIMLAM_FIELDS,
+    prop: 'Empreendimento / Propriedade', proc: 'Nº do processo', procPh: 'Ex: 123456/2025',
+    processado: 'Tipo de licença', processadoLong: 'Tipo de licença / autorização', processadoPh: 'Ex: Licença de Instalação (LI)',
+    prazo: 'Prazo', dataFinal: 'Prazo final', pdf: 'PDF do processo / documento',
+    searchTitle: 'Busca por empreendimento, proprietário, analista ou nº do processo, incluindo os arquivados',
+    deadlineHelper: false, csvName: 'pendencias_simlam'
+  }
+};
+let currentPanel = 'simcar';
+
+function applyPanelLabels(){
+  const P = PANELS[currentPanel];
+  const set = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  document.getElementById('panelTitle').textContent = P.title;
+  document.getElementById('panelSub').innerHTML = P.sub;
+  set('thProp', P.prop); set('thProc', P.proc); set('thProcessado', P.processado); set('thPrazo', P.prazo);
+  set('lblPropriedade', P.prop); set('lblProc', P.proc); set('lblProcessado', P.processadoLong);
+  set('lblDataFinal', P.dataFinal); set('lblPdf', P.pdf);
+  document.getElementById('fCar').placeholder = P.procPh;
+  const proc = document.getElementById('fProcessado');
+  proc.placeholder = P.processadoPh;
+  if(currentPanel === 'simlam') proc.setAttribute('list', 'tiposLicenca'); else proc.removeAttribute('list');
+  document.getElementById('searchInput').title = P.searchTitle;
+  document.getElementById('deadlineHelper').style.display = P.deadlineHelper ? '' : 'none';
+  document.getElementById('panelTabSimcar').classList.toggle('active', currentPanel === 'simcar');
+  document.getElementById('panelTabSimlam').classList.toggle('active', currentPanel === 'simlam');
+}
+
+let switchingPanel = false;
+async function switchPanel(name){
+  if(!PANELS[name] || name === currentPanel || switchingPanel) return;
+  switchingPanel = true;
+  try{
+    const P = PANELS[name];
+    currentPanel = name;
+    RECORDS_COL = P.col; RECORDS_IDB_KEY = P.idbKey; RESULT_FIELDS = P.fields;
+    records = []; expandedId = null; editingChipsFor = null; viewMode = 'ativos';
+    document.getElementById('tabAtivos').classList.add('active');
+    document.getElementById('tabHistorico').classList.remove('active');
+    document.getElementById('searchInput').value = '';
+    applyPanelLabels();
+    render();
+    await load();
+    render();
+  } finally { switchingPanel = false; }
+}
+
 function normalizeRecord(r){
   r.results = migrateResults(r.results);
   if(typeof r.arquivado !== 'boolean') r.arquivado = false;
@@ -1128,6 +1218,7 @@ function applySnapshotToRecords(snapshot){
 }
 
 async function load(){
+  if(recordsUnsub){ try{ recordsUnsub(); }catch(e){} recordsUnsub = null; }
   // Paint instantly from the local cache (fast, works offline) while Firestore loads.
   let fromDB = null;
   try{ fromDB = await loadRecordsFromDB(); }catch(e){ console.error('Falha ao ler cache local', e); }
@@ -1135,7 +1226,7 @@ async function load(){
     records = fromDB.map(normalizeRecord);
   } else {
     let raw = null;
-    try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){ /* localStorage may be unavailable/full */ }
+    try{ raw = currentPanel === 'simcar' ? localStorage.getItem(STORAGE_KEY) : null; }catch(e){ /* localStorage may be unavailable/full */ }
     if(raw){
       try{ records = JSON.parse(raw).map(normalizeRecord); }catch(e){ records = []; }
     }
@@ -1153,9 +1244,9 @@ async function load(){
   // own records, or from everyone if admin) updates the screen live.
   return new Promise((resolve) => {
     let first = true;
-    query.onSnapshot(async (snapshot) => {
+    recordsUnsub = query.onSnapshot(async (snapshot) => {
       if(snapshot.empty && first){
-        if(isAdminUser){
+        if(isAdminUser && currentPanel === 'simcar'){
           // Nothing on the server yet — seed it once (from local cache, or fresh sample data),
           // tagged as the admin's own records.
           if(records.length === 0){ records = seedData().map(normalizeRecord); }
@@ -1673,12 +1764,15 @@ document.getElementById('deleteBtn').addEventListener('click', async () => {
 });
 
 
+document.getElementById('panelTabSimcar').addEventListener('click', () => switchPanel('simcar'));
+document.getElementById('panelTabSimlam').addEventListener('click', () => switchPanel('simlam'));
 document.getElementById('searchInput').addEventListener('input', render);
 document.getElementById('filterStatus').addEventListener('change', render);
 document.getElementById('sortBy').addEventListener('change', render);
 
 document.getElementById('exportBtn').addEventListener('click', () => {
-  const headers = ['Propriedade','Proprietário','Analista Responsável','CAR Estadual','Data da Análise','Data Final para Envio', ...RESULT_FIELDS.map(f=>f.label), 'Processado no SIMCAR','Observações','Detalhamento das Pendências'];
+  const PL = PANELS[currentPanel];
+  const headers = [PL.prop,'Proprietário','Analista Responsável',PL.proc,'Data da Análise',PL.dataFinal, ...RESULT_FIELDS.map(f=>f.label), PL.processado,'Observações','Detalhamento das Pendências'];
   const rows = records.map(r => {
     const detalhamento = RESULT_FIELDS
       .filter(f => r.results[f.key].texto.trim())
@@ -1694,7 +1788,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `pendencias_simcar_${new Date().toISOString().slice(0,10)}.csv`;
+  a.href = url; a.download = `${PANELS[currentPanel].csvName}_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 });
