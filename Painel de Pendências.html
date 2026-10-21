@@ -60,8 +60,8 @@
   .panel-badge{ display:inline-block; margin-right:8px; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:0.6px; vertical-align:middle; border:1px solid var(--line-strong); }
   .panel-badge.panel-simcar{ color:var(--cyan); border-color:rgba(99,216,214,0.5); }
   .panel-badge.panel-simlam{ color:var(--warn); border-color:rgba(255,200,90,0.5); }
-  .panel-simlam th.col-pdf, .panel-simlam td.col-pdf{ width:58px; min-width:58px; }
-  td.col-pdf .pdf-icon + .pdf-icon{ margin-left:4px; }
+  .panel-simlam th.col-pdf, .panel-simlam td.col-pdf{ width:64px; min-width:64px; }
+  td.col-pdf .pdf-icon + .pdf-icon{ margin-left:2px; }
   .pd-count{ display:inline-block; margin-left:8px; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600; color:var(--cyan); border:1px solid rgba(99,216,214,0.4); vertical-align:middle; white-space:nowrap; }
   tr.group-header td{ background:rgba(99,216,214,0.07); border-top:1px solid var(--line-strong); cursor:default; }
   tr.group-header .group-caret{ display:inline-block; width:16px; color:var(--cyan); }
@@ -169,10 +169,17 @@
   .progress-track{ width:70px; height:5px; background: rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; }
   .progress-fill{ height:100%; background: var(--ok); }
   .progress-mini span{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-dim); }
-  .row-alert{ color: var(--bad); font-size:14px; }
+  .row-alert{ color: var(--bad); display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; }
+  .row-alert .ico{ display:block; }
   td.col-flag, td.col-pdf, td.col-complete, th.col-flag, th.col-pdf, th.col-complete{ white-space:nowrap; width:34px; min-width:34px; text-align:center; padding-left:4px; padding-right:4px; }
-  .pdf-icon{ font-size:13px; cursor:pointer; display:inline-block; transition:transform .12s; }
-  .pdf-icon:hover{ transform:scale(1.25); }
+  .pdf-icon{ cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; transition:background .12s, transform .12s; }
+  .pdf-icon:hover{ background:rgba(255,255,255,0.10); transform:scale(1.1); }
+  .pdf-icon .ico{ display:block; }
+  .pdf-icon:has(.ico-pdf){ color:var(--cyan); }
+  .pdf-icon:has(.ico-mapa){ color:var(--ok); }
+  .ico{ vertical-align:-4px; flex:none; }
+  .ico-pdf{ color:var(--cyan); }
+  .ico-mapa{ color:var(--ok); }
   td.processado{ font-size:12.5px; color: var(--ink-dim); }
   .empty-row td{ text-align:center; padding:38px 10px; color: var(--ink-faint); font-family:'IBM Plex Mono', monospace; font-size:13px; }
 
@@ -1434,6 +1441,10 @@ const collapsedGroups = new Set();   // grupos (propriedades SIMLAM) recolhidos 
 let childIds = new Set();            // ids exibidos como "filhos" de um grupo (apenas visual; não altera os dados)
 
 // SIMLAM: vários PDs da mesma propriedade aparecem agrupados sob um cabeçalho da propriedade.
+const ICON_PDF = '<svg class="ico ico-pdf" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>';
+const ICON_FLAG = '<svg class="ico ico-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.4h.01" stroke-width="2.4"/></svg>';
+const ICON_MAPA = '<svg class="ico ico-mapa" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg>';
+
 // SIMLAM: resumo do que está salvo no processo (somente leitura), mostrado ao expandir a linha.
 function simlamSummaryHtml(rec){
   const v = x => (x && String(x).trim()) ? escapeHtml(String(x).trim()) : '<span class="ds-empty">—</span>';
@@ -1445,8 +1456,8 @@ function simlamSummaryHtml(rec){
     ${item('Data da análise', rec.dataAnalise ? escapeHtml(fmtDate(rec.dataAnalise)) : '<span class="ds-empty">—</span>')}
     ${item('Proprietário', v(rec.proprietario))}
     ${item('Analista', v(rec.analista))}
-    ${item('PDF do processo', rec.pdfName ? '📄 ' + escapeHtml(rec.pdfName) : '<span class="ds-empty">não anexado</span>')}
-    ${item('Mapa temático', rec.mapaName ? '🗺 ' + escapeHtml(rec.mapaName) : '<span class="ds-empty">não anexado</span>')}
+    ${item('PDF do processo', rec.pdfName ? ICON_PDF + ' ' + escapeHtml(rec.pdfName) : '<span class="ds-empty">não anexado</span>')}
+    ${item('Mapa temático', rec.mapaName ? ICON_MAPA + ' ' + escapeHtml(rec.mapaName) : '<span class="ds-empty">não anexado</span>')}
     ${item('Situação do PD', v(rec.andamento), true)}
     ${item('Observações', v(rec.obs), true)}
   </div>`;
@@ -1526,7 +1537,7 @@ function render(){
       htr.className = 'group-header';
       htr.title = 'Clique duas vezes para ' + (collapsed ? 'expandir' : 'recolher') + ' os projetos digitais desta propriedade';
       htr.innerHTML = `
-        <td class="col-flag">${alerts > 0 ? `<span class="row-alert" title="${alerts} bloco(s) marcado(s) como Não Aprovado nesta propriedade">⚑</span>` : ''}</td>
+        <td class="col-flag">${alerts > 0 ? `<span class="row-alert" title="${alerts} bloco(s) marcado(s) como Não Aprovado nesta propriedade">${ICON_FLAG}</span>` : ''}</td>
         <td class="col-pdf"></td>
         <td class="col-complete"></td>
         <td class="propriedade">
@@ -1550,8 +1561,8 @@ function render(){
     const tr = document.createElement('tr');
     tr.title = rec._panel && rec._panel !== currentPanel ? 'Clique duas vezes para abrir este processo no Painel ' + rec._panel.toUpperCase() : 'Clique duas vezes para ver/ocultar detalhes';
     tr.innerHTML = `
-      <td class="col-flag">${prog.objCount > 0 ? `<span class="row-alert" title="${prog.objCount} bloco(s) marcado(s) como Não Aprovado — requer atenção prioritária">⚑</span>` : ''}</td>
-      <td class="col-pdf">${rec.pdfName ? '<span class="pdf-icon" data-kind="pdf" role="button" tabindex="0" title="Clique para abrir o PDF: '+escapeHtml(rec.pdfName)+'">📄</span>' : ''}${rec.mapaName ? '<span class="pdf-icon" data-kind="mapa" role="button" tabindex="0" title="Clique para abrir o mapa temático: '+escapeHtml(rec.mapaName)+'">🗺</span>' : ''}</td>
+      <td class="col-flag">${prog.objCount > 0 ? `<span class="row-alert" title="${prog.objCount} bloco(s) marcado(s) como Não Aprovado — requer atenção prioritária">${ICON_FLAG}</span>` : ''}</td>
+      <td class="col-pdf">${rec.pdfName ? '<span class="pdf-icon" data-kind="pdf" role="button" tabindex="0" title="Clique para abrir o PDF: '+escapeHtml(rec.pdfName)+'">'+ICON_PDF+'</span>' : ''}${rec.mapaName ? '<span class="pdf-icon" data-kind="mapa" role="button" tabindex="0" title="Clique para abrir o mapa temático: '+escapeHtml(rec.mapaName)+'">'+ICON_MAPA+'</span>' : ''}</td>
       <td class="col-complete">${(viewMode === 'ativos' && !rec.arquivado && prog.pct === 100) ? '<span class="complete-badge" title="100% concluído — pronto para arquivar no histórico">✅</span>' : ''}</td>
       <td class="propriedade">
         <div class="propriedade-nome">${searchActive ? `<span class="panel-badge panel-${recPanel}">${recPanel.toUpperCase()}</span>` : ''}${escapeHtml(rec.propriedade)}${rec.arquivado && viewMode === 'ativos' ? '<span class="archived-badge" title="Processo arquivado no histórico' + (rec.arquivadoEm ? ' em ' + fmtDate(rec.arquivadoEm.slice(0,10)) : '') + '">📁 ARQUIVADO</span>' : ''}</div>
@@ -1623,8 +1634,8 @@ function render(){
         <div class="detail-actions">
           <button class="btn ghost edit-row">Editar processo</button>
           ${currentPanel === 'simlam' ? `<button class="btn ghost new-pd-row">+ Novo PD desta propriedade</button>` : ''}
-          ${rec.pdfName ? `<button class="pdf-link-btn view-pdf">📄 Ver PDF anexado — ${escapeHtml(rec.pdfName)}</button>` : ''}
-          ${rec.mapaName ? `<button class="pdf-link-btn view-mapa">🗺 Ver mapa temático — ${escapeHtml(rec.mapaName)}</button>` : ''}
+          ${rec.pdfName ? `<button class="pdf-link-btn view-pdf">${ICON_PDF} Ver PDF anexado — ${escapeHtml(rec.pdfName)}</button>` : ''}
+          ${rec.mapaName ? `<button class="pdf-link-btn view-mapa">${ICON_MAPA} Ver mapa temático — ${escapeHtml(rec.mapaName)}</button>` : ''}
           ${!rec.arquivado && (prog.pct === 100 || RESULT_FIELDS.length === 0) ? `<button class="archive-btn archive-action">✓ Arquivar no histórico${RESULT_FIELDS.length === 0 ? '' : ' (100% concluído)'}</button>` : ''}
           ${rec.arquivado ? `<button class="reopen-btn reopen-action">↩ Reabrir processo</button><span class="archived-date">Arquivado em ${rec.arquivadoEm ? fmtDate(rec.arquivadoEm.slice(0,10)) : '—'}</span>` : ''}
         </div>
@@ -1731,8 +1742,8 @@ let pendingMapaRemove = false;
 function refreshMapaLabel(existingName){
   const label = document.getElementById('mapaFileLabel');
   const removeBtn = document.getElementById('mapaRemoveBtn');
-  if(pendingMapaFile){ label.textContent = `🗺 ${pendingMapaFile.name} (novo)`; label.classList.add('attached'); removeBtn.classList.remove('hidden'); }
-  else if(existingName && !pendingMapaRemove){ label.textContent = `🗺 ${existingName}`; label.classList.add('attached'); removeBtn.classList.remove('hidden'); }
+  if(pendingMapaFile){ label.innerHTML = ICON_MAPA + ' ' + escapeHtml(pendingMapaFile.name) + ' (novo)'; label.classList.add('attached'); removeBtn.classList.remove('hidden'); }
+  else if(existingName && !pendingMapaRemove){ label.innerHTML = ICON_MAPA + ' ' + escapeHtml(existingName); label.classList.add('attached'); removeBtn.classList.remove('hidden'); }
   else { label.textContent = 'Nenhum mapa anexado'; label.classList.remove('attached'); removeBtn.classList.add('hidden'); }
 }
 
@@ -1740,11 +1751,11 @@ function refreshPdfLabel(existingName){
   const label = document.getElementById('pdfFileLabel');
   const removeBtn = document.getElementById('pdfRemoveBtn');
   if(pendingPdfFile){
-    label.textContent = `📄 ${pendingPdfFile.name} (novo)`;
+    label.innerHTML = ICON_PDF + ' ' + escapeHtml(pendingPdfFile.name) + ' (novo)';
     label.classList.add('attached');
     removeBtn.classList.remove('hidden');
   } else if(existingName && !pendingPdfRemove){
-    label.textContent = `📄 ${existingName}`;
+    label.innerHTML = ICON_PDF + ' ' + escapeHtml(existingName);
     label.classList.add('attached');
     removeBtn.classList.remove('hidden');
   } else {
