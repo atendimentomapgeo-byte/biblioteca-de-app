@@ -929,6 +929,8 @@ function parseKML(text){
     const nameEl = pm.getElementsByTagName('name')[0];
     const name = nameEl ? nameEl.textContent : '';
     const attrs = { Name: name };
+    const descEl = pm.getElementsByTagName('description')[0];
+    if(descEl && descEl.textContent.trim()) attrs.Descricao = descEl.textContent.trim();
     Array.from(pm.getElementsByTagName('Data')).forEach(d=>{
       const key = d.getAttribute('name');
       const val = d.getElementsByTagName('value')[0];
@@ -1145,11 +1147,11 @@ function renderMapTable(){
   const hasHeader = document.getElementById('hasHeader').value==='yes';
   const headerRow = hasHeader ? tabularRows[0] : tabularRows[0].map((_,i)=>'Coluna'+(i+1));
   const numCols = headerRow.length;
-  const roles = ['(ignorar)','ID/Grupo (agrupa vértices)','X / Longitude','Y / Latitude','Z / Altitude','Atributo'];
+  const roles = ['(ignorar — descartar coluna)','ID/Grupo (agrupa vértices)','X / Longitude','Y / Latitude','Z / Altitude','Atributo (preservar)'];
   let html = '<tr><th>Coluna</th><th>Exemplo</th><th>Papel</th></tr>';
   const sampleRow = hasHeader ? (tabularRows[1]||[]) : tabularRows[0];
   for(let c=0;c<numCols;c++){
-    let guess = 0;
+    let guess = 5; // colunas não reconhecidas são PRESERVADAS como atributo por padrão
     const h = String(headerRow[c]).toLowerCase();
     if(/^id$|grupo|part|feature|fid|objeto/.test(h)) guess=1;
     else if(/^x$|lon|este|easting/.test(h)) guess=2;
@@ -1176,6 +1178,17 @@ document.getElementById('btnConfirmMap').addEventListener('click', ()=>{
     const idIdx = colRoles.indexOf(1);
     const attrIdxs = colRoles.map((r,i)=>r===5?i:-1).filter(i=>i>=0);
 
+    // nomes de campo únicos e nunca vazios (cabeçalho vazio/duplicado não pode sobrescrever outra coluna)
+    const attrNames = {};
+    const usedNames = new Set(idIdx>=0 ? ['ID'] : []);
+    attrIdxs.forEach(ai=>{
+      let nm = String(headerRow[ai]==null?'':headerRow[ai]).trim() || ('Coluna'+(ai+1));
+      let base = nm, n = 2;
+      while(usedNames.has(nm)){ nm = base+'_'+n; n++; }
+      usedNames.add(nm);
+      attrNames[ai] = nm;
+    });
+
     const groups = {};
     const order = [];
     dataRows.forEach((row, ri)=>{
@@ -1184,7 +1197,13 @@ document.getElementById('btnConfirmMap').addEventListener('click', ()=>{
       const x = parseFloat(row[xIdx]), y = parseFloat(row[yIdx]);
       const z = zIdx>=0 ? (parseFloat(row[zIdx])||0) : 0;
       if(!isNaN(x) && !isNaN(y)) groups[gid].pts.push([x,y,z]);
-      attrIdxs.forEach(ai=>{ groups[gid].attrs[headerRow[ai]] = row[ai]; });
+      // mantém o primeiro valor não vazio de cada coluna dentro do grupo (não perde dado se a 1ª linha estiver vazia)
+      attrIdxs.forEach(ai=>{
+        const nm = attrNames[ai];
+        const cur = groups[gid].attrs[nm];
+        const val = row[ai];
+        if(cur===undefined || ((cur===''||cur==null) && val!=null && val!=='')) groups[gid].attrs[nm] = val==null ? '' : val;
+      });
       if(idIdx>=0) groups[gid].attrs['ID'] = row[idIdx];
     });
 
@@ -1446,12 +1465,15 @@ function inferDbfFields(attributesList){
   const keys = [];
   attributesList.forEach(a=>Object.keys(a).forEach(k=>{ if(!keys.includes(k)) keys.push(k); }));
   const used = new Set();
-  return keys.slice(0,60).map(k=>{
-    let name = k.replace(/[^A-Za-z0-9_]/g,'').substring(0,10) || 'CAMPO';
+  return keys.slice(0,255).map(k=>{
+    // remove acentos (Descrição -> Descricao) antes de limpar, para não perder letras no nome do campo
+    let name = String(k).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9_]/g,'').substring(0,10) || 'CAMPO';
     let base = name, n=1;
-    while(used.has(name)){ name = (base.substring(0,8)+n); n++; }
+    while(used.has(name)){ const suf = String(n); name = base.substring(0,10-suf.length)+suf; n++; }
     used.add(name);
-    const allNumeric = attributesList.every(a => a[k]==null || a[k]==='' || !isNaN(parseFloat(a[k])) && isFinite(a[k]));
+    // códigos com zero à esquerda (ex.: 007, 01234) são mantidos como TEXTO para não perder os zeros
+    const hasLeadingZero = attributesList.some(a => a[k]!=null && /^0\d/.test(String(a[k]).trim()));
+    const allNumeric = !hasLeadingZero && attributesList.every(a => a[k]==null || a[k]==='' || !isNaN(parseFloat(a[k])) && isFinite(a[k]));
     if(allNumeric){
       const hasDecimal = attributesList.some(a=> a[k]!=null && String(a[k]).includes('.'));
       return { key:k, name, type:'N', length: 18, dec: hasDecimal?6:0 };
