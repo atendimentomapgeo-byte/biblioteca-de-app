@@ -8337,12 +8337,29 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyR'&&(state==='race'||state==='count'||state==='finished'))resetRace();
 });
 addEventListener('keyup',e=>{if(keySet(e.code,false))e.preventDefault();});
-function hold(el,key){
-  const on=e=>{e.preventDefault();tc[key]=true;el.classList.add('on');try{el.setPointerCapture(e.pointerId);}catch(_){}};
-  const off=()=>{tc[key]=false;el.classList.remove('on');};
-  el.addEventListener('pointerdown',on);
-  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,off));
+const HOLD=[];const PTR=new Map();
+function hold(el,key){HOLD.push({el,key});}
+function ctrlRefresh(){
+  const on=new Set();
+  PTR.forEach(h=>{if(h)on.add(h);});
+  HOLD.forEach(h=>{const v=on.has(h);if(tc[h.key]!==v){tc[h.key]=v;h.el.classList.toggle('on',v);}});
 }
+function ctrlHit(x,y){
+  const el=document.elementFromPoint(x,y);
+  if(!el)return null;
+  for(const h of HOLD)if(h.el===el||h.el.contains(el))return h;
+  return null;
+}
+function ctrlReset(){PTR.clear();ctrlRefresh();}
+document.addEventListener('pointerdown',e=>{const h=ctrlHit(e.clientX,e.clientY);if(h){e.preventDefault();PTR.set(e.pointerId,h);ctrlRefresh();}},{passive:false});
+document.addEventListener('pointermove',e=>{if(!PTR.has(e.pointerId))return;PTR.set(e.pointerId,ctrlHit(e.clientX,e.clientY));ctrlRefresh();},{passive:true});
+['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev,e=>{if(PTR.delete(e.pointerId))ctrlRefresh();},true));
+addEventListener('blur',ctrlReset);
+addEventListener('pagehide',ctrlReset);
+document.addEventListener('visibilitychange',ctrlReset);
+document.addEventListener('touchend',e=>{if(!e.touches.length)ctrlReset();},{passive:true});
+document.addEventListener('touchcancel',ctrlReset,{passive:true});
+setInterval(()=>{if(!PTR.size&&(tc.gas||tc.brake||tc.left||tc.right||tc.nitroL||tc.nitroR))ctrlRefresh();},400);
 hold($('bLeft'),'left');hold($('bRight'),'right');hold($('pGas'),'gas');hold($('pBrake'),'brake');hold(nitL,'nitroL');hold(nitR,'nitroR');
 itemBtn.addEventListener('pointerdown',e=>{e.preventDefault();if(state==='race')useItem(player);});
 document.addEventListener('contextmenu',e=>e.preventDefault());
@@ -8354,6 +8371,7 @@ function checkOrient(){
 addEventListener('resize',checkOrient);addEventListener('orientationchange',()=>setTimeout(checkOrient,200));
 setTimeout(checkOrient,0);
 function togglePause(){
+  try{ctrlReset();}catch(_){}
   if(state==='race'||state==='count'||state==='finished'){prevState=state;state='paused';$('pause').classList.remove('hide');}
   else if(state==='paused'){state=prevState;$('pause').classList.add('hide');last=performance.now();}
 }
@@ -8367,7 +8385,6 @@ $('restartBtn2').addEventListener('click',()=>{resetRace();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&(state==='race'||state==='count'))togglePause();
   try{if(!document.hidden&&ac&&ac.state!=='running')ac.resume();}catch(_){}});
 addEventListener('pagehide',()=>{if(state==='race'||state==='count')togglePause();});
-addEventListener('blur',()=>{if(isTouch&&(state==='race'||state==='count'))togglePause();});
 
 /* ====================================================================
    MENU DE FASES
