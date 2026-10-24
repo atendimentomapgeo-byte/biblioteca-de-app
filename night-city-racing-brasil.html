@@ -183,6 +183,14 @@ body.tilt #pGas{right:calc(var(--u)*3);bottom:calc(var(--u)*2);width:calc(var(--
 #tiltInd{position:absolute;left:50%;bottom:calc(var(--u)*1.6);width:calc(var(--u)*22);height:calc(var(--u)*1.2);transform:translateX(-50%);border-radius:99px;background:rgba(255,255,255,.18);display:none}
 body.tilt #tiltInd{display:block}
 #tiltInd i{position:absolute;top:-30%;left:50%;width:calc(var(--u)*2);height:160%;margin-left:calc(var(--u)*-1);border-radius:99px;background:#ffb020}
+
+#steerBar{display:none;pointer-events:auto;left:calc(var(--u)*2.5);bottom:calc(var(--u)*2);width:calc(var(--u)*42);height:calc(var(--u)*11);border-radius:calc(var(--u)*5.5);background:rgba(20,24,34,.55);border:1px solid rgba(255,255,255,.25);touch-action:none}
+body.bar #steerBar{display:block}
+body.bar #bLeft,body.bar #bRight{display:none}
+#steerBar .sb-line{position:absolute;left:calc(var(--u)*3);right:calc(var(--u)*3);top:50%;height:calc(var(--u)*.8);margin-top:calc(var(--u)*-.4);border-radius:99px;background:rgba(255,255,255,.35)}
+#steerBar .sb-mid{position:absolute;left:50%;top:18%;bottom:18%;width:calc(var(--u)*.5);margin-left:calc(var(--u)*-.25);background:rgba(255,255,255,.6);border-radius:99px}
+#steerKnob{position:absolute;top:50%;left:50%;width:calc(var(--u)*9);height:calc(var(--u)*9);margin:calc(var(--u)*-4.5) 0 0 calc(var(--u)*-4.5);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#d6d8de 60%,#9a9ea8);box-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none}
+#steerBar.on #steerKnob{background:radial-gradient(circle at 35% 30%,#fff,#ffd27a 60%,#ff9a20)}
 </style>
 </head>
 <body>
@@ -207,6 +215,7 @@ body.tilt #tiltInd{display:block}
   <div id="itemBtn"><span id="itemIc"></span><small id="itemNm">ITEM</small></div>
   <div id="nitL" class="nit"></div>
   <div id="nitR" class="nit"></div>
+  <div id="steerBar"><div class="sb-line"></div><div class="sb-mid"></div><div id="steerKnob"></div></div>
   <div id="tiltInd"><i></i></div>
   <div id="bLeft" class="ctl"><svg viewBox="0 0 64 64"><path d="M30 12 10 32l20 20M54 12 34 32l20 20" /></svg></div>
   <div id="bRight" class="ctl"><svg viewBox="0 0 64 64"><path d="M10 12l20 20-20 20M34 12l20 20-20 20" /></svg></div>
@@ -238,7 +247,7 @@ body.tilt #tiltInd{display:block}
         <select id="qsel"><option value="auto">Automático</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select>
       </span>
       <span>Controle:
-        <select id="ctlsel"><option value="tilt">Inclinar o celular</option><option value="btn">Botões</option></select>
+        <select id="ctlsel"><option value="bar">Barra deslizante</option><option value="tilt">Inclinar o celular</option><option value="btn">Botões</option></select>
       </span>
       <span>Sensibilidade: <input type="range" id="tsens" min="50" max="180" value="100" style="width:90px;vertical-align:middle"></span>
       <label><input type="checkbox" id="tinv"> Inverter inclinação</label>
@@ -5882,7 +5891,7 @@ const rgba=(hex,a)=>{const c=new THREE.Color(hex);return 'rgba('+(c.r*255|0)+','
 
 /* ---------------- progresso salvo ---------------- */
 const LSK='ncr20_v1';
-let save={unlocked:1,best:{},stars:{},q:'auto',ctl:'tilt',tsens:1,tinv:false,all:false,money:500,owned:[0],sel:0,up:{},col:{}};
+let save={unlocked:1,best:{},stars:{},q:'auto',ctl:'bar',tsens:1,tinv:false,all:false,money:500,owned:[0],sel:0,up:{},col:{}};
 try{const s=JSON.parse(localStorage.getItem(LSK));if(s)Object.assign(save,s);}catch(e){}
 if(!Array.isArray(save.owned)||!save.owned.length)save.owned=[0];
 if(!save.up)save.up={};if(!save.col)save.col={};
@@ -7798,7 +7807,9 @@ function tiltRead(dt){
   const i=document.querySelector('#tiltInd i');if(i)i.style.left=(50+TILT.sm*45)+'%';
   return TILT.sm;
 }
-function syncCtl(){document.body.classList.toggle('tilt',tiltActive());}
+function syncCtl(){document.body.classList.toggle('tilt',tiltActive());document.body.classList.toggle('bar',isTouch&&save.ctl==='bar');}
+if(!save.ctlv3){save.ctl='bar';save.ctlv3=1;try{persist();}catch(_){}}
+syncCtl();
 function askMotion(){
   if(TILT.asked)return;
   try{
@@ -7812,6 +7823,30 @@ if(isTouch){
   addEventListener('orientationchange',()=>setTimeout(calibrateTilt,400));
   if(!(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'))askMotion();
 }
+
+/* ===== BARRA DESLIZANTE (volante) ===== */
+const SB2={v:0,id:null,tgt:0};
+(function(){
+  const bar=$('steerBar'),knob=$('steerKnob');
+  function setFrom(e){const r=bar.getBoundingClientRect(),pad=r.height*.5,half=(r.width-pad*2)/2;
+    SB2.tgt=Math.max(-1,Math.min(1,(e.clientX-(r.left+r.width/2))/half));}
+  bar.addEventListener('pointerdown',e=>{e.preventDefault();SB2.id=e.pointerId;try{bar.setPointerCapture(e.pointerId);}catch(_){}bar.classList.add('on');setFrom(e);});
+  bar.addEventListener('pointermove',e=>{if(e.pointerId===SB2.id)setFrom(e);});
+  const up=e=>{if(e.pointerId===SB2.id){SB2.id=null;SB2.tgt=0;bar.classList.remove('on');}};
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>bar.addEventListener(ev,up));
+  document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',up,true);
+  addEventListener('blur',()=>{SB2.id=null;SB2.tgt=0;bar.classList.remove('on');});
+  document.addEventListener('visibilitychange',()=>{SB2.id=null;SB2.tgt=0;bar.classList.remove('on');});
+  SB2.draw=function(dt){
+    SB2.v+=(SB2.tgt-SB2.v)*Math.min(1,dt*(SB2.id!==null?30:14));
+    const r=bar.getBoundingClientRect(),half=(r.width-r.height)/2;
+    knob.style.transform='translateX('+(SB2.v*half)+'px)';
+  };
+})();
+function barRead(dt){
+  if(!(isTouch&&save.ctl==='bar'))return null;
+  SB2.draw(dt);return SB2.v;
+}
 function updatePlayer(dt){
   const p=player;
   let gas=!p.finished&&(kb.gas||tc.gas),brake=p.finished||kb.brake||tc.brake;
@@ -7822,7 +7857,7 @@ function updatePlayer(dt){
   if(p.finished||state!=='race'||p.nitro<=.02)p.nitroOn=false;
   let wantN=!!p.nitroOn;
   let tgt=(left?1:0)-(right?1:0);
-  {const tv=tiltRead(dt);if(tv!==null&&!p.finished)tgt=-tv;}
+  {const tv=tiltRead(dt);if(tv!==null&&!p.finished)tgt=-tv;const bv=barRead(dt);if(bv!==null&&!p.finished&&(Math.abs(bv)>.005||SB2.id!==null))tgt=-bv;}
   if(auto&&!p.finished){ // piloto automático (apenas testes)
     const la=(p.idx+Math.floor(clamp(p.speed*.55/d,6,34)))%N;
     const err=wrapAng(Math.atan2(P[la].x-p.x,P[la].z-p.z)-p.h);tgt=clamp(err*2.4,-1,1);
@@ -8491,6 +8526,7 @@ function buildMenu(){
     grid.appendChild(b);
     try{drawThumb(cv,i,tier[3]);}catch(e){}
   });
+  if(!save.ctlv3){save.ctl='bar';save.ctlv3=1;persist();}
   $('ctlsel').value=save.ctl;$('tsens').value=Math.round((save.tsens||1)*100);$('tinv').checked=!!save.tinv;syncCtl();
   $('qsel').value=qMode;$('unlockAll').checked=!!save.all;
 }
@@ -8504,6 +8540,7 @@ function showMenu(){
   if(!menuBuilt||true){setTimeout(()=>{buildMenu();menuBuilt=true;},10);}
 }
 function startLevel(idx){
+  syncCtl();
   $('menu').classList.add('hide');$('results').classList.add('hide');$('pause').classList.add('hide');$('loading').classList.remove('hide');
   state='loading';
   setTimeout(()=>{
