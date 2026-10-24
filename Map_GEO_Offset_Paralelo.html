@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map GEO - Offset Paralelo</title>
+<meta name="application-name" content="Map GEO - Offset Paralelo">
+<meta name="version" content="1.0.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#1c2733;--mut:#66788a;--line:#d8e0e7;--pri:#0f6b4f;--pri2:#0b523c;--acc:#e8832a;--blue:#1f6feb}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--pri);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px}
+header h1{font-size:17px;margin:0;font-weight:600}
+header span{font-size:12px;opacity:.8}
+.app{display:grid;grid-template-columns:350px 1fr;height:calc(100% - 46px)}
+.panel{background:var(--card);border-right:1px solid var(--line);overflow-y:auto;padding:14px}
+#map{height:100%;width:100%}
+.step{margin-bottom:16px}
+.step h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;color:var(--pri)}
+.step h2 b{display:inline-block;background:var(--pri);color:#fff;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;font-size:12px;margin-right:6px}
+label{display:block;font-size:12px;color:var(--mut);margin:8px 0 3px}
+input[type=text],input[type=number],select{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:6px;font-size:14px;background:#fff;color:var(--ink)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.drop{border:2px dashed #aab8c5;border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:#fafcfd;font-size:13px;color:var(--mut)}
+.drop:hover,.drop.over{border-color:var(--pri);background:#eef8f4}
+.drop b{color:var(--ink);display:block;margin-bottom:2px}
+button{width:100%;padding:10px;border:0;border-radius:6px;background:var(--pri);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+button:hover{background:var(--pri2)}
+button.sec{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.chk{display:flex;gap:6px;align-items:center;font-size:13px;margin-top:10px;color:var(--ink)}
+.chk input{width:auto}
+#status{font-size:12px;color:var(--mut);margin-top:8px;line-height:1.45;min-height:18px}
+#status.err{color:#c0392b}
+#status.ok{color:var(--pri2)}
+.hint{font-size:11px;color:var(--mut);margin-top:3px}
+.sum{background:#f1f6f4;border:1px solid #cfe3da;border-radius:6px;padding:8px 10px;font-size:12px;margin-top:8px;display:none}
+@media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:auto 55vh;height:auto}.panel{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header><h1>Map GEO - Offset Paralelo</h1><span id="appver" style="background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;opacity:1">v1.0.0</span><span>Polilinha → polígono por equidistância → Shapefile</span></header>
+<div class="app">
+<div class="panel">
+
+<div class="step">
+<h2><b>1</b>Polilinha de base</h2>
+<div class="drop" id="drop"><b>Clique ou solte o arquivo aqui</b>Shapefile (.zip com .shp/.dbf/.prj), .shp, GeoJSON ou DXF</div>
+<input type="file" id="file" accept=".zip,.shp,.geojson,.json,.dxf" hidden>
+<label>Fuso UTM SIRGAS 2000 (para cálculo e saída)</label>
+<select id="zone">
+<option value="auto">Automático (pelo local da linha)</option>
+<option value="18">18S</option><option value="19">19S</option><option value="20">20S</option>
+<option value="21">21S</option><option value="22">22S</option><option value="23">23S</option>
+<option value="24">24S</option><option value="25">25S</option>
+</select>
+<div class="hint">Se o arquivo vier sem .prj (ou for DXF) em coordenadas UTM, o fuso escolhido aqui é usado como CRS de entrada. Em automático nesse caso, assume 21S.</div>
+</div>
+
+<div class="step">
+<h2><b>2</b>Equidistância</h2>
+<div class="row">
+<div><label>Distância (m)</label><input type="text" id="dist" value="10" inputmode="decimal"></div>
+<div><label>Recuo inicial (m)</label><input type="text" id="recuo" value="0" inputmode="decimal"></div>
+</div>
+<div class="hint">Recuo 0 = o polígono encosta na polilinha. Com recuo, gera a faixa entre o recuo e a distância (ex.: 10 a 30 m).</div>
+<label>Lado da cópia paralela</label>
+<select id="lado">
+<option value="left">Esquerdo (no sentido da linha)</option>
+<option value="right">Direito (no sentido da linha)</option>
+<option value="both">Os dois lados</option>
+</select>
+<div class="row">
+<div><label>Junção das curvas</label>
+<select id="join"><option value="round">Arredondada</option><option value="mitre">Pontuda (mitre)</option><option value="bevel">Chanfrada</option></select></div>
+<div><label>Pontas (dois lados)</label>
+<select id="cap"><option value="flat">Retas</option><option value="round">Arredondadas</option></select></div>
+</div>
+<label class="chk"><input type="checkbox" id="dissolve"> Unir todos os resultados em um único polígono</label>
+<button id="go" disabled>Gerar polígonos</button>
+<div class="sum" id="sum"></div>
+</div>
+
+<div class="step">
+<h2><b>3</b>Exportar</h2>
+<label>CRS de saída</label>
+<select id="outcrs">
+<option value="utm">SIRGAS 2000 UTM (metros)</option>
+<option value="geo">SIRGAS 2000 geográficas (EPSG:4674)</option>
+</select>
+<label>Nome do arquivo</label>
+<input type="text" id="outname" value="offset_poligonos">
+<button id="dl" disabled>Baixar Shapefile (.zip)</button>
+<button id="dlgj" class="sec" disabled>Baixar GeoJSON</button>
+</div>
+
+<div id="status">Carregue uma polilinha para começar.</div>
+</div>
+<div id="map"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsts@2.11.0/dist/jsts.min.js"></script>
+<script src="https://unpkg.com/shpjs@4.0.4/dist/shp.min.js"></script>
+<script>
+(function(){
+'use strict';
+const APP_VERSION='1.0.0';
+const $=id=>document.getElementById(id);
+const GEO='+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs';
+const utmDef=(n,south)=>'+proj=utm +zone='+n+(south?' +south':'')+' +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs';
+
+let lines=[];          // cada linha: [[lon,lat],...] em SIRGAS geográficas
+let results=[];        // [{polys:[[ring,...],...], attrs:{}}] em UTM (zona usada)
+let zoneUsed=null;     // {n,south}
+let srcName='';
+
+/* ---------- mapa ---------- */
+const map=L.map('map').setView([-15.6,-56.1],6);
+const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
+osm.addTo(map);
+L.control.layers({'Mapa':osm,'Satélite':sat}).addTo(map);
+const lineLayer=L.layerGroup().addTo(map), polyLayer=L.layerGroup().addTo(map);
+
+function setStatus(t,c){const s=$('status');s.textContent=t;s.className=c||'';}
+
+/* ---------- leitura ---------- */
+function toLines(geom){
+  if(!geom) return [];
+  const st=c=>c.map(p=>[p[0],p[1]]);
+  switch(geom.type){
+    case 'LineString': return [st(geom.coordinates)];
+    case 'MultiLineString': return geom.coordinates.map(st);
+    case 'Polygon': return geom.coordinates.map(st);
+    case 'MultiPolygon': return geom.coordinates.flat().map(st);
+    case 'GeometryCollection': return geom.geometries.flatMap(toLines);
+    default: return [];
+  }
+}
+
+function parseDXF(text){
+  const L=text.split(/\r?\n/), g=[];
+  for(let i=0;i+1<L.length;i+=2) g.push([parseInt(L[i].trim(),10),L[i+1].trim()]);
+  let i=0; while(i<g.length && !(g[i][0]===2 && g[i][1]==='ENTITIES')) i++;
+  const ents=[]; let e=null;
+  for(let k=i+1;k<g.length;k++){
+    const c=g[k][0], v=g[k][1];
+    if(c===0){
+      if(e) ents.push(e);
+      e=null;
+      if(v==='ENDSEC') break;
+      e={t:v,p:[],f:0,l:[0,0,0,0]};
+      continue;
+    }
+    if(!e) continue;
+    if(c===70 && (e.t==='LWPOLYLINE'||e.t==='POLYLINE')) e.f=parseInt(v,10)||0;
+    else if(e.t==='LWPOLYLINE'||e.t==='VERTEX'){
+      if(c===10) e.p.push([parseFloat(v),0]);
+      else if(c===20 && e.p.length) e.p[e.p.length-1][1]=parseFloat(v);
+    } else if(e.t==='LINE'){
+      if(c===10)e.l[0]=parseFloat(v); if(c===20)e.l[1]=parseFloat(v);
+      if(c===11)e.l[2]=parseFloat(v); if(c===21)e.l[3]=parseFloat(v);
+    }
+  }
+  if(e) ents.push(e);
+  const out=[]; let pl=null;
+  const close=a=>{ if(a.p.length>=2){ const pts=a.p.map(p=>p.slice()); if(a.f&1) pts.push(pts[0].slice()); out.push(pts); } };
+  ents.forEach(a=>{
+    if(a.t==='LWPOLYLINE') close(a);
+    else if(a.t==='LINE') out.push([[a.l[0],a.l[1]],[a.l[2],a.l[3]]]);
+    else if(a.t==='POLYLINE') pl={p:[],f:a.f};
+    else if(a.t==='VERTEX' && pl) pl.p.push(a.p[0]||[0,0]);
+    else if(a.t==='SEQEND' && pl){ close(pl); pl=null; }
+  });
+  return out.map(l=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:l}}));
+}
+
+async function loadFile(file){
+  try{
+    setStatus('Lendo '+file.name+'...');
+    const name=file.name.toLowerCase();
+    let feats=[];
+    if(name.endsWith('.zip')){
+      const r=await shp(await file.arrayBuffer());
+      (Array.isArray(r)?r:[r]).forEach(fc=>feats.push(...fc.features));
+    } else if(name.endsWith('.shp')){
+      const gs=shp.parseShp(await file.arrayBuffer());
+      gs.forEach(gm=>feats.push({type:'Feature',properties:{},geometry:gm}));
+    } else if(name.endsWith('.dxf')){
+      feats=parseDXF(await file.text());
+    } else {
+      const j=JSON.parse(await file.text());
+      feats=j.type==='FeatureCollection'?j.features:(j.type==='Feature'?[j]:[{type:'Feature',properties:{},geometry:j}]);
+    }
+    let ls=feats.flatMap(f=>toLines(f.geometry)).filter(l=>l.length>=2);
+    if(!ls.length){ setStatus('Nenhuma polilinha encontrada no arquivo.','err'); return; }
+    let note='';
+    const projected=ls.some(l=>l.some(p=>Math.abs(p[0])>180||Math.abs(p[1])>90));
+    if(projected){
+      const zv=$('zone').value; const n=zv==='auto'?21:parseInt(zv,10);
+      ls=ls.map(l=>l.map(p=>proj4(utmDef(n,true),GEO,p)));
+      note=' Coordenadas projetadas lidas como SIRGAS 2000 UTM '+n+'S.';
+    }
+    lines=ls; srcName=file.name.replace(/\.[^.]+$/,'');
+    $('outname').value=srcName+'_offset';
+    results=[]; polyLayer.clearLayers(); $('dl').disabled=true; $('dlgj').disabled=true; $('sum').style.display='none';
+    drawLines();
+    $('go').disabled=false;
+    setStatus(lines.length+' polilinha(s) carregada(s).'+note+' Defina a distância e clique em Gerar.','ok');
+  }catch(err){
+    console.error(err); setStatus('Erro ao ler o arquivo: '+err.message,'err');
+  }
+}
+
+function drawLines(){
+  lineLayer.clearLayers();
+  lines.forEach(l=>L.polyline(l.map(p=>[p[1],p[0]]),{color:'#1f6feb',weight:3}).addTo(lineLayer));
+  const b=L.featureGroup(lineLayer.getLayers()).getBounds();
+  if(b.isValid()) map.fitBounds(b,{padding:[30,30]});
+}
+
+/* ---------- zona ---------- */
+function resolveZone(){
+  const zv=$('zone').value;
+  let sumLon=0,sumLat=0,n=0;
+  lines.forEach(l=>l.forEach(p=>{sumLon+=p[0];sumLat+=p[1];n++;}));
+  const lon=sumLon/n, lat=sumLat/n;
+  const south=lat<0;
+  const num=zv==='auto'?Math.floor((lon+180)/6)+1:parseInt(zv,10);
+  return {n:num,south:south};
+}
+
+/* ---------- processamento ---------- */
+function num(v){return parseFloat(String(v).replace(',','.'));}
+
+function process(){
+  const d=Math.abs(num($('dist').value));
+  const d0=Math.abs(num($('recuo').value)||0);
+  if(!(d>0)){ setStatus('Informe uma distância maior que zero.','err'); return; }
+  if(d0>=d){ setStatus('O recuo inicial precisa ser menor que a distância.','err'); return; }
+  const lado=$('lado').value, join=$('join').value, cap=$('cap').value;
+  const zone=resolveZone(); zoneUsed=zone;
+  const utm=utmDef(zone.n,zone.south);
+  const gf=new jsts.geom.GeometryFactory();
+  const writer=new jsts.io.GeoJSONWriter();
+  const P=jsts.operation.buffer.BufferParameters;
+  const mkParams=single=>{
+    const p=new P();
+    p.setQuadrantSegments(16);
+    p.setEndCapStyle(cap==='round'?P.CAP_ROUND:P.CAP_FLAT);
+    p.setJoinStyle(join==='mitre'?P.JOIN_MITRE:join==='bevel'?P.JOIN_BEVEL:P.JOIN_ROUND);
+    p.setMitreLimit(5);
+    if(single) p.setSingleSided(true);
+    return p;
+  };
+  const two=(ls,dd)=>new jsts.operation.buffer.BufferOp(ls,mkParams(false)).getResultGeometry(dd);
+  const one=(ls,dd,s)=>new jsts.operation.buffer.BufferOp(ls,mkParams(true)).getResultGeometry(s==='left'?dd:-dd);
+
+  const res=[]; let totalLen=0; const geoms=[];
+  try{
+    lines.forEach((ln,idx)=>{
+      const coords=ln.map(c=>{const q=proj4(GEO,utm,c);return new jsts.geom.Coordinate(q[0],q[1]);});
+      const ls=gf.createLineString(coords);
+      const comp=ls.getLength(); totalLen+=comp;
+      let g;
+      if(lado==='both'){ g=two(ls,d); if(d0>0) g=g.difference(two(ls,d0)); }
+      else { g=one(ls,d,lado); if(d0>0) g=g.difference(one(ls,d0,lado)); }
+      if(!g.isValid()) g=g.buffer(0);
+      if(g.isEmpty()) return;
+      geoms.push({g:g,idx:idx+1,comp:comp});
+    });
+  }catch(err){
+    console.error(err); setStatus('Falha ao gerar o buffer: '+err.message,'err'); return;
+  }
+  const ladoTxt={left:'ESQUERDO',right:'DIREITO',both:'AMBOS'}[lado];
+  const extract=g=>{
+    const j=writer.write(g);
+    if(j.type==='Polygon') return [j.coordinates];
+    if(j.type==='MultiPolygon') return j.coordinates;
+    if(j.type==='GeometryCollection') return j.geometries.flatMap(x=>x.type==='Polygon'?[x.coordinates]:x.type==='MultiPolygon'?x.coordinates:[]);
+    return [];
+  };
+  if($('dissolve').checked && geoms.length){
+    let u=geoms[0].g;
+    for(let i=1;i<geoms.length;i++) u=u.union(geoms[i].g);
+    res.push({polys:extract(u),attrs:{ID:1,LADO:ladoTxt,DIST_M:d,RECUO_M:d0,AREA_M2:u.getArea(),COMP_M:totalLen}});
+  } else {
+    geoms.forEach(o=>res.push({polys:extract(o.g),attrs:{ID:o.idx,LADO:ladoTxt,DIST_M:d,RECUO_M:d0,AREA_M2:o.g.getArea(),COMP_M:o.comp}}));
+  }
+  results=res.filter(r=>r.polys.length);
+  if(!results.length){ setStatus('O resultado ficou vazio. Confira a distância e o lado.','err'); return; }
+
+  // pré-visualização
+  polyLayer.clearLayers();
+  results.forEach(r=>{
+    r.polys.forEach(poly=>{
+      const ll=poly.map(ring=>ring.map(c=>{const q=proj4(utm,GEO,c);return [q[1],q[0]];}));
+      L.polygon(ll,{color:'#e8832a',weight:2,fillColor:'#e8832a',fillOpacity:.35}).addTo(polyLayer);
+    });
+  });
+  const totalArea=results.reduce((s,r)=>s+r.attrs.AREA_M2,0);
+  const sm=$('sum'); sm.style.display='block';
+  sm.innerHTML='Fuso: <b>SIRGAS 2000 UTM '+zone.n+(zone.south?'S':'N')+'</b><br>Polígonos: <b>'+results.length+'</b><br>Comprimento da linha: <b>'+totalLen.toLocaleString('pt-BR',{maximumFractionDigits:2})+' m</b><br>Área total: <b>'+totalArea.toLocaleString('pt-BR',{maximumFractionDigits:2})+' m²</b> ('+(totalArea/10000).toLocaleString('pt-BR',{maximumFractionDigits:4})+' ha)';
+  $('dl').disabled=false; $('dlgj').disabled=false;
+  setStatus('Polígonos gerados. Confira no mapa e exporte.','ok');
+}
+
+/* ---------- exportação ---------- */
+function outRings(){
+  // devolve [{parts:[ring...], attrs}] já no CRS de saída e orientados (externo horário, furo anti-horário)
+  const utm=utmDef(zoneUsed.n,zoneUsed.south);
+  const geo=$('outcrs').value==='geo';
+  const tr=c=>geo?proj4(utm,GEO,c):[c[0],c[1]];
+  const area=r=>{let a=0;for(let i=0,n=r.length-1;i<n;i++)a+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];return a/2;};
+  const orient=(r,cw)=>{const a=area(r);return ((a<0)===cw)?r:r.slice().reverse();};
+  return results.map(r=>{
+    const parts=[];
+    r.polys.forEach(poly=>poly.forEach((ring,i)=>{
+      const rr=ring.map(tr);
+      parts.push(orient(rr,i===0));
+    }));
+    return {parts:parts,attrs:r.attrs};
+  });
+}
+
+function prjText(){
+  const geoWkt='GEOGCS["GCS_SIRGAS_2000",DATUM["D_SIRGAS_2000",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+  if($('outcrs').value==='geo') return geoWkt;
+  const z=zoneUsed, cm=-183+6*z.n, fn=z.south?'10000000.0':'0.0';
+  return 'PROJCS["SIRGAS_2000_UTM_Zone_'+z.n+(z.south?'S':'N')+'",'+geoWkt+',PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",'+fn+'],PARAMETER["Central_Meridian",'+cm+'.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+}
+
+function buildShapefile(recs){
+  const items=recs.map(r=>{
+    let np=0,minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
+    r.parts.forEach(p=>p.forEach(c=>{np++;if(c[0]<minx)minx=c[0];if(c[0]>maxx)maxx=c[0];if(c[1]<miny)miny=c[1];if(c[1]>maxy)maxy=c[1];}));
+    return {r:r,np:np,len:44+4*r.parts.length+16*np,minx:minx,miny:miny,maxx:maxx,maxy:maxy};
+  });
+  let X0=Infinity,Y0=Infinity,X1=-Infinity,Y1=-Infinity;
+  items.forEach(i=>{X0=Math.min(X0,i.minx);Y0=Math.min(Y0,i.miny);X1=Math.max(X1,i.maxx);Y1=Math.max(Y1,i.maxy);});
+  const shpLen=100+items.reduce((s,i)=>s+8+i.len,0), shxLen=100+8*items.length;
+  const shp=new ArrayBuffer(shpLen), shx=new ArrayBuffer(shxLen);
+  const a=new DataView(shp), b=new DataView(shx);
+  const hdr=(dv,len)=>{
+    dv.setInt32(0,9994,false); dv.setInt32(24,len/2,false); dv.setInt32(28,1000,true); dv.setInt32(32,5,true);
+    dv.setFloat64(36,X0,true); dv.setFloat64(44,Y0,true); dv.setFloat64(52,X1,true); dv.setFloat64(60,Y1,true);
+  };
+  hdr(a,shpLen); hdr(b,shxLen);
+  let o=100;
+  items.forEach((it,k)=>{
+    b.setInt32(100+8*k,o/2,false); b.setInt32(104+8*k,it.len/2,false);
+    a.setInt32(o,k+1,false); a.setInt32(o+4,it.len/2,false); o+=8;
+    a.setInt32(o,5,true);
+    a.setFloat64(o+4,it.minx,true); a.setFloat64(o+12,it.miny,true); a.setFloat64(o+20,it.maxx,true); a.setFloat64(o+28,it.maxy,true);
+    a.setInt32(o+36,it.r.parts.length,true); a.setInt32(o+40,it.np,true);
+    let pi=0, po=o+44;
+    it.r.parts.forEach(p=>{a.setInt32(po,pi,true);po+=4;pi+=p.length;});
+    it.r.parts.forEach(p=>p.forEach(c=>{a.setFloat64(po,c[0],true);a.setFloat64(po+8,c[1],true);po+=16;}));
+    o+=it.len;
+  });
+  // DBF
+  const fields=[['ID','N',10,0],['LADO','C',10,0],['DIST_M','N',12,3],['RECUO_M','N',12,3],['AREA_M2','N',18,3],['COMP_M','N',16,3]];
+  const recLen=1+fields.reduce((s,f)=>s+f[2],0), hLen=33+32*fields.length;
+  const dbf=new Uint8Array(hLen+recLen*items.length+1), dv=new DataView(dbf.buffer);
+  const now=new Date();
+  dbf[0]=3; dbf[1]=now.getFullYear()-1900; dbf[2]=now.getMonth()+1; dbf[3]=now.getDate();
+  dv.setInt32(4,items.length,true); dv.setInt16(8,hLen,true); dv.setInt16(10,recLen,true);
+  fields.forEach((f,i)=>{
+    const p=32+32*i;
+    for(let c=0;c<f[0].length;c++) dbf[p+c]=f[0].charCodeAt(c);
+    dbf[p+11]=f[1].charCodeAt(0); dbf[p+16]=f[2]; dbf[p+17]=f[3];
+  });
+  dbf[32+32*fields.length]=0x0D;
+  let q=hLen;
+  items.forEach(it=>{
+    dbf[q++]=0x20;
+    fields.forEach(f=>{
+      const v=it.r.attrs[f[0]];
+      let s=f[1]==='N'?Number(v).toFixed(f[3]).padStart(f[2],' '):String(v).padEnd(f[2],' ');
+      s=s.slice(0,f[2]);
+      for(let c=0;c<f[2];c++) dbf[q++]=s.charCodeAt(c)&0x7F;
+    });
+  });
+  dbf[q]=0x1A;
+  return {shp:shp,shx:shx,dbf:dbf};
+}
+
+function download(blob,name){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+}
+function baseName(){return ($('outname').value.trim()||'offset_poligonos').replace(/[^\w\-.]+/g,'_');}
+
+async function exportShp(){
+  if(!results.length) return;
+  try{
+    const f=buildShapefile(outRings()), n=baseName(), zip=new JSZip();
+    zip.file(n+'.shp',f.shp); zip.file(n+'.shx',f.shx); zip.file(n+'.dbf',f.dbf);
+    zip.file(n+'.prj',prjText()); zip.file(n+'.cpg','UTF-8');
+    download(await zip.generateAsync({type:'blob'}),n+'.zip');
+    setStatus('Shapefile exportado: '+n+'.zip','ok');
+  }catch(err){ console.error(err); setStatus('Erro ao exportar: '+err.message,'err'); }
+}
+
+function exportGeoJSON(){
+  if(!results.length) return;
+  const recs=outRings();
+  const fc={type:'FeatureCollection',features:recs.map(r=>{
+    // reagrupa em polígonos: anel externo (horário) inicia novo polígono
+    const polys=[]; const area=ring=>{let a=0;for(let i=0,n=ring.length-1;i<n;i++)a+=ring[i][0]*ring[i+1][1]-ring[i+1][0]*ring[i][1];return a/2;};
+    r.parts.forEach(p=>{ if(area(p)<0||!polys.length) polys.push([p]); else polys[polys.length-1].push(p); });
+    return {type:'Feature',properties:r.attrs,geometry:{type:'MultiPolygon',coordinates:polys}};
+  })};
+  download(new Blob([JSON.stringify(fc)],{type:'application/geo+json'}),baseName()+'.geojson');
+}
+
+/* ---------- eventos ---------- */
+const drop=$('drop'), fileIn=$('file');
+drop.addEventListener('click',()=>fileIn.click());
+fileIn.addEventListener('change',()=>{ if(fileIn.files[0]) loadFile(fileIn.files[0]); fileIn.value=''; });
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+$('go').addEventListener('click',process);
+$('dl').addEventListener('click',exportShp);
+$('dlgj').addEventListener('click',exportGeoJSON);
+})();
+</script>
+</body>
+</html>
