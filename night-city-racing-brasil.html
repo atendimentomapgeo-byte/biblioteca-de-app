@@ -157,6 +157,23 @@ body.portrait-lock #rotate{display:flex}
 .sm{padding:calc(var(--u)*.8) calc(var(--u)*2)!important}
 .hide{display:none!important}
 #loading{z-index:30;background:#04060c;font-size:calc(var(--u)*2.4);font-style:italic;letter-spacing:.1em;color:#ffb347}
+
+#results .rbtns{position:sticky;bottom:calc(var(--u)*-2.2);padding:calc(var(--u)*.8) 0 0;background:linear-gradient(180deg,rgba(12,16,28,0),rgba(12,16,28,.97) 30%);display:flex;flex-wrap:wrap;justify-content:center;gap:calc(var(--u)*.6)}
+#results .rbtns .btn{margin:0}
+#results .card{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+@media (max-height:560px) and (orientation:landscape){
+  #results .card{width:min(96vw,900px);max-width:none;max-height:94dvh;padding:calc(var(--u)*1.2) calc(var(--u)*2)}
+  #results h1{font-size:calc(var(--u)*3.6);margin:0}
+  #resBody{display:grid;grid-template-columns:1fr 1fr;gap:0 calc(var(--u)*2);align-items:start}
+  #resBody .rl,#resBody .rr{min-width:0}
+  #results table{min-width:90%;margin:.3em auto;font-size:max(12px,calc(var(--u)*1.6))}
+  #results td{padding:.12em .6em}
+  #results .stars{font-size:calc(var(--u)*2.6)}
+  #results h2{margin:.1em 0}
+  #results .card p{margin:.2em 0}
+  #results .prize{min-width:90%}
+  #results .btn{padding:calc(var(--u)*.7) calc(var(--u)*2)}
+}
 </style>
 </head>
 <body>
@@ -241,10 +258,11 @@ body.portrait-lock #rotate{display:flex}
   <div class="card">
     <h1 id="resTitle">FIM DA CORRIDA</h1>
     <div id="resBody"></div>
-    <button class="btn" id="nextBtn">PRÓXIMA FASE</button>
+<div class="rbtns">    <button class="btn" id="nextBtn">PRÓXIMA FASE</button>
     <button class="btn alt" id="restartBtn2">REPETIR</button>
     <button class="btn alt" id="garBtn2">🔧 GARAGEM</button>
     <button class="btn alt" id="menuBtn2">FASES</button>
+  </div>
   </div>
 </div>
 
@@ -8283,13 +8301,13 @@ function finishRace(rank,time,order){
     $('resTitle').textContent=player.out?'ELIMINADO NA VOLTA '+(7-player.outRank)+'!':rank===1?'VITÓRIA!':(rank<=3?'PÓDIO! '+rank+'º LUGAR':'VOCÊ FICOU EM '+rank+'º');
     const st='★'.repeat(stars)+'<i style="color:#ffffff30;font-style:normal">'+'★'.repeat(3-stars)+'</i>';
     const row=(l,v,c)=>v?'<tr class="pz"><td>'+l+'</td><td style="text-align:right;color:'+(c||'#ffd24a')+'">+ '+money(v).replace('$ ','$ ')+'</td></tr>':'';
-    $('resBody').innerHTML='<div class="stars">'+st+'</div><p>Fase '+(curLevel+1)+' · '+curLv.n+' — tempo: <kbd>'+fmt(time)+'</kbd></p>'
+    $('resBody').innerHTML='<div class="rl"><div class="stars">'+st+'</div><p>Fase '+(curLevel+1)+' · '+curLv.n+' — tempo: <kbd>'+fmt(time)+'</kbd></p>'
       +'<table>'+order.map((c,i)=>'<tr class="'+(c.isPlayer?'me':'')+'"><td>'+(i+1)+'º</td><td>'+c.name+'</td></tr>').join('')+'</table>'
-      +'<h2>PRÊMIO</h2><table class="prize">'+row('Posição ('+rank+'º)',pz.pos)+row('Ultrapassagens ('+Math.max(0,startRank-rank)+')',pz.ov)+row('Corrida limpa',pz.clean,'#5be37a')+row('Dinheiro coletado',pz.cash,'#7be0ff')
+      +'</div><div class="rr"><h2>PRÊMIO</h2><table class="prize">'+row('Posição ('+rank+'º)',pz.pos)+row('Ultrapassagens ('+Math.max(0,startRank-rank)+')',pz.ov)+row('Corrida limpa',pz.clean,'#5be37a')+row('Dinheiro coletado',pz.cash,'#7be0ff')
       +(pz.rep<1?'<tr class="pz"><td colspan="2" style="opacity:.7;text-transform:none">Fase repetida: prêmio ×0,7</td></tr>':'')+row('Primeira vez no pódio',pz.first,'#c77dff')
       +'<tr class="pz tot"><td>TOTAL</td><td style="text-align:right">+ '+money(pz.total)+'</td></tr></table>'
       +'<p>Saldo: <b style="color:#ffd24a">'+money(save.money)+'</b></p>'
-      +(rank>3?'<p>Termine em <b>top 3</b> para liberar a próxima fase.</p>':(unlockedNow?'<p>🔓 Fase '+(curLevel+2)+' liberada!</p>':''));
+      +(rank>3?'<p>Termine em <b>top 3</b> para liberar a próxima fase.</p>':(unlockedNow?'<p>🔓 Fase '+(curLevel+2)+' liberada!</p>':'')+'</div>');
     const canNext=curLevel<19&&(save.all||curLevel+1<save.unlocked);
     $('nextBtn').style.display=canNext?'inline-block':'none';
     $('results').classList.remove('hide');
