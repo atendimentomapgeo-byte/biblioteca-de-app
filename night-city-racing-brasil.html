@@ -27,6 +27,8 @@ html,body{margin:0;height:100%;height:100dvh;overscroll-behavior:none;overflow:h
 .srow b{width:38px;text-align:right;color:#ffd24a}
 .srow.chk{justify-content:flex-start;margin-top:16px}
 #btnMus{left:calc(var(--u)*18.6)}
+#btnCal{left:calc(var(--u)*27.4);display:none}
+
 #btnMus.off{opacity:.45}
 #timer{left:50%;top:calc(var(--u)*1.2);transform:translateX(-50%);font-size:calc(var(--u)*2.3);font-weight:700;letter-spacing:.05em;text-shadow:0 0 6px #000,0 2px 4px #000;white-space:nowrap}
 #lvl{left:50%;top:calc(var(--u)*4.2);transform:translateX(-50%);font-size:calc(var(--u)*1.3);letter-spacing:.12em;opacity:.8;text-shadow:0 0 6px #000;white-space:nowrap}
@@ -263,7 +265,6 @@ body.tilt #tiltInd{display:block}
     <button class="btn" id="resumeBtn">CONTINUAR</button>
     <button class="btn alt" id="restartBtn1">REINICIAR</button>
     <button class="btn alt" id="sndBtn1">🔊 SOM</button>
-    <button class="btn alt" id="calBtn">🎯 CALIBRAR VOLANTE</button>
     <button class="btn alt" id="menuBtn1">FASES</button>
   </div>
 </div>
@@ -7775,13 +7776,20 @@ function onMotion(e){
   const a=e.accelerationIncludingGravity;if(!a||a.x==null||a.y==null)return;
   const aa=((scrAngle()%360)+360)%360;let sy=(aa===90)?a.x:(aa===270)?-a.x:(aa===180)?-a.y:a.y;
   TILT.gy_sy=sy;
-  if(!TILT.ok){TILT.ok=true;calibrateTilt();syncCtl();}
-  TILT.raw=tiltRaw(a.x,a.y);TILT.last=performance.now();
+  const first=!TILT.seen;
+  TILT.seen=true;if(!TILT.ok){TILT.ok=true;syncCtl();}
+  const r=tiltRaw(a.x,a.y);
+  if(first){TILT.raw=r;calibrateTilt();}
+  else{let dd=r-TILT.raw;while(dd>180)dd-=360;while(dd<-180)dd+=360;TILT.raw+=dd*.35;}
+  TILT.last=performance.now();
 }
 function tiltRead(dt){
   if(!tiltActive())return null;
+  if(state==='count'||state==='paused'||state==='menu'){TILT.neutral=TILT.raw;}   // acompanha a posição em que você segura até a largada
+  if(performance.now()-TILT.last>5000){TILT.ok=false;syncCtl();toast('SENSOR SEM LEITURA - USE OS BOTOES');return null;}
   let d=TILT.raw-TILT.neutral;
   while(d>180)d-=360;while(d<-180)d+=360;
+  if(state==='race'&&Math.abs(d)<10){TILT.neutral+=d*Math.min(1,dt*.3);d=TILT.raw-TILT.neutral;}   // auto-centragem lenta: corrige deriva sem você fazer nada
   const full=30/(save.tsens||1),dz=2.5;
   let v=Math.abs(d)<dz?0:Math.sign(d)*(Math.abs(d)-dz)/(full-dz);
   v=Math.max(-1,Math.min(1,v));if(save.tinv)v=-v;
@@ -8518,7 +8526,7 @@ $('menuBtn2').addEventListener('click',showMenu);
 $('ctlsel').addEventListener('change',e=>{save.ctl=e.target.value;persist();syncCtl();});
 $('tsens').addEventListener('input',e=>{save.tsens=e.target.value/100;persist();});
 $('tinv').addEventListener('change',e=>{save.tinv=e.target.checked;persist();});
-$('calBtn').addEventListener('click',()=>{calibrateTilt();});
+
 $('qsel').addEventListener('change',e=>{qMode=e.target.value;save.q=qMode;persist();qEff=qMode==='auto'?(isTouch?'media':'alta'):qMode;applyQuality();});
 $('unlockAll').addEventListener('change',e=>{save.all=e.target.checked;persist();buildMenu();});
 
@@ -8616,7 +8624,7 @@ addEventListener('keydown',e=>{if(state!=='garage')return;
 applyQuality();
 buildWorld(0);resetRace();state='menu';countEl.textContent='';
 requestAnimationFrame(frame);
-window.__ncr={get MUS(){return MUS;},get PATH(){return P;},get HZ(){return HZ;},get DR(){return DR;},get SB(){return SB;},get EN(){return EN;},get PK(){return PK;},get WP(){return WP;},useItem,giveItem,hitCar,showGarage,leaveGarage,CARS,PARTS,physFor,carStats,setPlayerModel,prizeFor,startLevel,get state(){return state;},set state(v){state=v;},stepSim,setAuto:v=>{auto=v;},kb,player,cars,LEVELS,get N(){return N;},get L(){return L;},get LAPS(){return LAPS;},get raceTime(){return raceTime;},
+window.__ncr={get TILT(){return TILT;},get MUS(){return MUS;},get PATH(){return P;},get HZ(){return HZ;},get DR(){return DR;},get SB(){return SB;},get EN(){return EN;},get PK(){return PK;},get WP(){return WP;},useItem,giveItem,hitCar,showGarage,leaveGarage,CARS,PARTS,physFor,carStats,setPlayerModel,prizeFor,startLevel,get state(){return state;},set state(v){state=v;},stepSim,setAuto:v=>{auto=v;},kb,player,cars,LEVELS,get N(){return N;},get L(){return L;},get LAPS(){return LAPS;},get raceTime(){return raceTime;},
   setView:v=>{view=v;},setQuality:q=>{qMode=q;qEff=q;applyQuality();},showMenu,buildMenu,save,renderer,scene,camera,get useBloom(){return useBloom;},updateVisuals,updateHUD,resetRace,genCtrl,P:()=>P};
 })();
 
