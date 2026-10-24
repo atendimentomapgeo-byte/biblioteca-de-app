@@ -174,6 +174,13 @@ body.portrait-lock #rotate{display:flex}
   #results .prize{min-width:90%}
   #results .btn{padding:calc(var(--u)*.7) calc(var(--u)*2)}
 }
+
+body.tilt #bLeft,body.tilt #bRight{display:none}
+body.tilt #pBrake{left:calc(var(--u)*3);right:auto;bottom:calc(var(--u)*2);width:calc(var(--u)*17);height:calc(var(--u)*11);transform:none;background-size:16.6% 33%}
+body.tilt #pGas{right:calc(var(--u)*3);bottom:calc(var(--u)*2);width:calc(var(--u)*12);height:calc(var(--u)*20);transform:none;background-size:50% 16.6%}
+#tiltInd{position:absolute;left:50%;bottom:calc(var(--u)*1.6);width:calc(var(--u)*22);height:calc(var(--u)*1.2);transform:translateX(-50%);border-radius:99px;background:rgba(255,255,255,.18);display:none}
+body.tilt #tiltInd{display:block}
+#tiltInd i{position:absolute;top:-30%;left:50%;width:calc(var(--u)*2);height:160%;margin-left:calc(var(--u)*-1);border-radius:99px;background:#ffb020}
 </style>
 </head>
 <body>
@@ -198,6 +205,7 @@ body.portrait-lock #rotate{display:flex}
   <div id="itemBtn"><span id="itemIc"></span><small id="itemNm">ITEM</small></div>
   <div id="nitL" class="nit"></div>
   <div id="nitR" class="nit"></div>
+  <div id="tiltInd"><i></i></div>
   <div id="bLeft" class="ctl"><svg viewBox="0 0 64 64"><path d="M30 12 10 32l20 20M54 12 34 32l20 20" /></svg></div>
   <div id="bRight" class="ctl"><svg viewBox="0 0 64 64"><path d="M10 12l20 20-20 20M34 12l20 20-20 20" /></svg></div>
   <div id="pBrake" class="pedal"></div>
@@ -227,6 +235,11 @@ body.portrait-lock #rotate{display:flex}
       <span>Gráficos:
         <select id="qsel"><option value="auto">Automático</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select>
       </span>
+      <span>Controle:
+        <select id="ctlsel"><option value="tilt">Inclinar o celular</option><option value="btn">Botões</option></select>
+      </span>
+      <span>Sensibilidade: <input type="range" id="tsens" min="50" max="180" value="100" style="width:90px;vertical-align:middle"></span>
+      <label><input type="checkbox" id="tinv"> Inverter inclinação</label>
       <label><input type="checkbox" id="unlockAll"> Liberar todas as fases</label>
     </div>
   </div>
@@ -250,6 +263,7 @@ body.portrait-lock #rotate{display:flex}
     <button class="btn" id="resumeBtn">CONTINUAR</button>
     <button class="btn alt" id="restartBtn1">REINICIAR</button>
     <button class="btn alt" id="sndBtn1">🔊 SOM</button>
+    <button class="btn alt" id="calBtn">🎯 CALIBRAR VOLANTE</button>
     <button class="btn alt" id="menuBtn1">FASES</button>
   </div>
 </div>
@@ -5867,7 +5881,7 @@ const rgba=(hex,a)=>{const c=new THREE.Color(hex);return 'rgba('+(c.r*255|0)+','
 
 /* ---------------- progresso salvo ---------------- */
 const LSK='ncr20_v1';
-let save={unlocked:1,best:{},stars:{},q:'auto',all:false,money:500,owned:[0],sel:0,up:{},col:{}};
+let save={unlocked:1,best:{},stars:{},q:'auto',ctl:'tilt',tsens:1,tinv:false,all:false,money:500,owned:[0],sel:0,up:{},col:{}};
 try{const s=JSON.parse(localStorage.getItem(LSK));if(s)Object.assign(save,s);}catch(e){}
 if(!Array.isArray(save.owned)||!save.owned.length)save.owned=[0];
 if(!save.up)save.up={};if(!save.col)save.col={};
@@ -7717,6 +7731,7 @@ function checkElim(){
 }
 
 function resetRace(){
+  try{calibrateTilt();}catch(_){}
   raceTime=0;countT=4.0;state='count';diff=diffOf(curLevel);pphys=physFor(save.sel);
   const slotP=Math.min(5,2+Math.floor(curLevel/5));startRank=slotP+1;player.hits=0;player.hitCd=0;
   const aiList=cars.filter(q=>!q.isPlayer);let ai=0;
@@ -7740,6 +7755,55 @@ function nearest(x,z,hint){
   for(let j=-40;j<=40;j++){const i=(hint+j+N)%N,dx=x-P[i].x,dz=z-P[i].z,dd=dx*dx+dz*dz;if(dd<best){best=dd;bi=i;}}
   return bi;
 }
+
+/* ===== VOLANTE POR INCLINAÇÃO ===== */
+const TILT={ok:false,raw:0,neutral:0,flip:1,val:0,sm:0,last:0,asked:false};
+function scrAngle(){try{const a=(screen.orientation&&screen.orientation.angle);return a==null?(window.orientation||0):a;}catch(_){return 0;}}
+function tiltRaw(gx,gy){
+  const a=((scrAngle()%360)+360)%360;let sx,sy;
+  if(a===90){sx=-gy;sy=gx;}else if(a===270){sx=gy;sy=-gx;}else if(a===180){sx=-gx;sy=-gy;}else{sx=gx;sy=gy;}
+  TILT.sy=sy;
+  return -Math.atan2(sx*TILT.flip,sy*TILT.flip)*57.2958;   // + = girar para a direita
+}
+function calibrateTilt(){
+  if(!TILT.ok)return;
+  if(Math.abs(TILT.gy_sy||0)>1.5)TILT.flip=(TILT.gy_sy>=0)?1:-1;
+  TILT.neutral=TILT.raw;TILT.sm=0;
+}
+function tiltActive(){return isTouch&&save.ctl==='tilt'&&TILT.ok;}
+function onMotion(e){
+  const a=e.accelerationIncludingGravity;if(!a||a.x==null||a.y==null)return;
+  const aa=((scrAngle()%360)+360)%360;let sy=(aa===90)?a.x:(aa===270)?-a.x:(aa===180)?-a.y:a.y;
+  TILT.gy_sy=sy;
+  if(!TILT.ok){TILT.ok=true;calibrateTilt();syncCtl();}
+  TILT.raw=tiltRaw(a.x,a.y);TILT.last=performance.now();
+}
+function tiltRead(dt){
+  if(!tiltActive())return null;
+  let d=TILT.raw-TILT.neutral;
+  while(d>180)d-=360;while(d<-180)d+=360;
+  const full=30/(save.tsens||1),dz=2.5;
+  let v=Math.abs(d)<dz?0:Math.sign(d)*(Math.abs(d)-dz)/(full-dz);
+  v=Math.max(-1,Math.min(1,v));if(save.tinv)v=-v;
+  TILT.sm+=(v-TILT.sm)*Math.min(1,dt*18);
+  TILT.val=TILT.sm;
+  const i=document.querySelector('#tiltInd i');if(i)i.style.left=(50+TILT.sm*45)+'%';
+  return TILT.sm;
+}
+function syncCtl(){document.body.classList.toggle('tilt',tiltActive());}
+function askMotion(){
+  if(TILT.asked)return;
+  try{
+    if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
+      DeviceMotionEvent.requestPermission().then(r=>{if(r==='granted'){TILT.asked=true;addEventListener('devicemotion',onMotion);}}).catch(()=>{});
+    }else{TILT.asked=true;addEventListener('devicemotion',onMotion);}
+  }catch(_){}
+}
+if(isTouch){
+  ['pointerdown','touchend','click'].forEach(ev=>document.addEventListener(ev,askMotion,{passive:true}));
+  addEventListener('orientationchange',()=>setTimeout(calibrateTilt,400));
+  if(!(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'))askMotion();
+}
 function updatePlayer(dt){
   const p=player;
   let gas=!p.finished&&(kb.gas||tc.gas),brake=p.finished||kb.brake||tc.brake;
@@ -7750,6 +7814,7 @@ function updatePlayer(dt){
   if(p.finished||state!=='race'||p.nitro<=.02)p.nitroOn=false;
   let wantN=!!p.nitroOn;
   let tgt=(left?1:0)-(right?1:0);
+  {const tv=tiltRead(dt);if(tv!==null&&!p.finished)tgt=-tv;}
   if(auto&&!p.finished){ // piloto automático (apenas testes)
     const la=(p.idx+Math.floor(clamp(p.speed*.55/d,6,34)))%N;
     const err=wrapAng(Math.atan2(P[la].x-p.x,P[la].z-p.z)-p.h);tgt=clamp(err*2.4,-1,1);
@@ -8418,6 +8483,7 @@ function buildMenu(){
     grid.appendChild(b);
     try{drawThumb(cv,i,tier[3]);}catch(e){}
   });
+  $('ctlsel').value=save.ctl;$('tsens').value=Math.round((save.tsens||1)*100);$('tinv').checked=!!save.tinv;syncCtl();
   $('qsel').value=qMode;$('unlockAll').checked=!!save.all;
 }
 function showMenu(){
@@ -8449,6 +8515,10 @@ $('goBtn').addEventListener('click',()=>{
 $('nextBtn').addEventListener('click',()=>startLevel(Math.min(19,curLevel+1)));
 $('menuBtn1').addEventListener('click',showMenu);
 $('menuBtn2').addEventListener('click',showMenu);
+$('ctlsel').addEventListener('change',e=>{save.ctl=e.target.value;persist();syncCtl();});
+$('tsens').addEventListener('input',e=>{save.tsens=e.target.value/100;persist();});
+$('tinv').addEventListener('change',e=>{save.tinv=e.target.checked;persist();});
+$('calBtn').addEventListener('click',()=>{calibrateTilt();});
 $('qsel').addEventListener('change',e=>{qMode=e.target.value;save.q=qMode;persist();qEff=qMode==='auto'?(isTouch?'media':'alta'):qMode;applyQuality();});
 $('unlockAll').addEventListener('change',e=>{save.all=e.target.checked;persist();buildMenu();});
 
