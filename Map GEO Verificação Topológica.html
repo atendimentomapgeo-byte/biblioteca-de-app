@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.8">
+<meta name="app-version" content="0.0.13">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -60,7 +60,7 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.8</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.13</button>
   <span class="sp"></span>
   <button id="dictBtn">Dicionário de camadas</button>
 </header>
@@ -100,8 +100,13 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.8";
+const APP_VERSION = "0.0.13";
 const CHANGELOG = [
+  {v:"0.0.13", d:"2026-10-25", t:["As feições passam a ser identificadas somente pelo FID (posição na tabela, começando em 0)."]},
+  {v:"0.0.12", d:"2026-10-25", t:["Furos deixam de ser apontados como geometria complexa; continuam sendo apontados multiparte, auto-interseção e anel externo anti-horário."]},
+  {v:"0.0.11", d:"2026-10-25", t:["GEO-01 passa a apontar geometria complexa (multiparte e furos) em todas as camadas de polígono, não só na AIR."]},
+  {v:"0.0.10", d:"2026-10-25", t:["Detecção de geometria complexa passa a ler o .shp bruto (partes, furos e sentido dos anéis), sem depender da interpretação da biblioteca.","Anel externo anti-horário (fora do padrão) é apontado.","GEO-01 também aponta geometria nula ou vazia em qualquer camada."]},
+  {v:"0.0.9", d:"2026-10-25", t:["Pontos de toque repetidos são contados uma só vez. Aviso de toque entre anéis passa a distinguir \"Partes do multipolígono se tocam\" de \"Furo toca o contorno externo ou outro furo\"."]},
   {v:"0.0.8", d:"2026-10-25", t:["Correção da verificação de auto-interseção: detecção própria de cruzamento, toque do contorno e spike (antes só cruzamentos simples eram vistos).","Nova regra GEO-01 aplica a verificação a todas as camadas de polígono; a AIR continua em AIR-01.","Pontos problemáticos destacados no mapa."]},
   {v:"0.0.7", d:"2026-10-25", t:["Etapa 2 de regras: CON-01 (AREA_CONSOLIDADA) e AUAS-01 (posição e validação da data de ABERTURA, mínimo 22/07/2008)."]},
   {v:"0.0.6", d:"2026-10-25", t:["Descrição das sobreposições no formato \"ARL tipo P sobrepondo AREA_CONSOLIDADA\"; a área passa a ter coluna própria (e vai para o CSV)."]},
@@ -188,13 +193,18 @@ const RULES = [
   /* ---------- Etapa 1 ---------- */
   {
     id:"GEO-01", nome:"Geometria sem auto-interseção",
-    desc:"Em todas as camadas de polígono (a AIR é conferida na regra AIR-01): cruzamento, toque e retorno sobre si mesmo.",
+    desc:"Em todas as camadas de polígono: geometria complexa (multiparte), nula/vazia, cruzamento, toque e retorno sobre si mesmo. A AIR é conferida na regra AIR-01.",
     on:true,
     async run(ctx){
       const out=[];
       for(const n of Object.keys(ctx.layers)){
+        ctx.layers[n].fc.features.forEach(f=>{ const g=f.geometry; if(!g||(g.coordinates&&!g.coordinates.length)) out.push({camada:n,fid:H.id(f),msg:"Geometria nula ou vazia.",sev:"erro"}); });
         if(n==="AIR"||(DICT[n]&&DICT[n].g==="PT")) continue;
-        for(const f of H.feats(ctx,n)){ await H.tick(); out.push(...H.autoRes(n,f)); }
+        for(const f of H.feats(ctx,n)){
+          await H.tick();
+          for(const m of H.complexa(f)) out.push({camada:n,fid:H.id(f),msg:"Geometria complexa: "+m+".",sev:"erro",geom:f.geometry});
+          out.push(...H.autoRes(n,f));
+        }
       }
       return out;
     }
@@ -222,7 +232,7 @@ const RULES = [
   },
   {
     id:"AIR-01", nome:"AIR: geometria e atributos",
-    desc:"Geometria simples (sem auto-interseção, furos ou partes múltiplas). TIPO = P ou M. IDENTIFIC = POSSE (P) ou número (M). Sem campos vazios.",
+    desc:"Geometria simples (sem auto-interseção nem partes múltiplas; furos são permitidos). TIPO = P ou M. IDENTIFIC = POSSE (P) ou número (M). Sem campos vazios.",
     on:true,
     async run(ctx){
       const out=[];
@@ -324,7 +334,7 @@ const RIOS=["RIO_ATE_10","RIO_10_A_50","RIO_50_A_200","RIO_200_A_600","RIO_ACIMA
 const H={
   tick:()=>new Promise(r=>setTimeout(r,0)),
   feats:(ctx,n)=>(ctx.layers[n]?ctx.layers[n].fc.features:[]).filter(f=>f.geometry),
-  id:f=>{ const i=f.properties&&f.properties.ID; return "FID "+f._i+((i!=null&&i!=="")?" · ID "+i:""); },
+  id:f=>"FID "+f._i,
   vazio:v=>v==null||String(v).trim()==="",
   data(v){
     if(v==null||v==="") return {vazio:true};
@@ -380,15 +390,15 @@ const H={
     return out;
   },
   autoint(f){
-    const g=f.geometry, E=1e-9, out={cruza:[],toca:[],tocaAneis:[],spike:[]};
+    const g=f.geometry, E=1e-9, out={cruza:[],toca:[],tocaAneis:[],tocaPartes:[],spike:[]};
     const polys=g.type==="MultiPolygon"?g.coordinates:g.type==="Polygon"?[g.coordinates]:[];
     const segs=[]; let rid=0;
     const or=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
     const dps=(p,a,b)=>{ const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy; let t=l?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l:0; t=Math.max(0,Math.min(1,t)); return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy); };
-    polys.forEach(poly=>poly.forEach(ring=>{
+    polys.forEach((poly,pi)=>poly.forEach(ring=>{
       const pts=[]; for(const q of ring){ const l=pts[pts.length-1]; if(l&&Math.abs(l[0]-q[0])<1e-12&&Math.abs(l[1]-q[1])<1e-12) continue; pts.push(q); }
       const n=pts.length-1; if(n<3) return;
-      for(let i=0;i<n;i++){ const a=pts[i],b=pts[i+1]; segs.push({a,b,r:rid,i,n,x0:Math.min(a[0],b[0]),x1:Math.max(a[0],b[0]),y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])}); }
+      for(let i=0;i<n;i++){ const a=pts[i],b=pts[i+1]; segs.push({a,b,r:rid,pl:pi,i,n,x0:Math.min(a[0],b[0]),x1:Math.max(a[0],b[0]),y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])}); }
       for(let i=0;i<n;i++){
         const p=pts[i],q=pts[(i+1)%n],r=pts[(i+2)%n];
         const ux=q[0]-p[0],uy=q[1]-p[1],vx=r[0]-q[0],vy=r[1]-q[1], cr=ux*vy-uy*vx, dt=ux*vx+uy*vy;
@@ -408,25 +418,33 @@ const H={
         if(o1*o2<0&&o3*o4<0){ const k=o1/(o1-o2); out.cruza.push([s.a[0]+(s.b[0]-s.a[0])*k,s.a[1]+(s.b[1]-s.a[1])*k]); continue; }
         let pt=null;
         if(dps(s.a,t.a,t.b)<=E) pt=s.a; else if(dps(s.b,t.a,t.b)<=E) pt=s.b; else if(dps(t.a,s.a,s.b)<=E) pt=t.a; else if(dps(t.b,s.a,s.b)<=E) pt=t.b;
-        if(pt) (mesmo?out.toca:out.tocaAneis).push(pt);
+        if(pt) (mesmo?out.toca:(s.pl===t.pl?out.tocaAneis:out.tocaPartes)).push(pt);
       }
     }
     return out;
   },
   autoRes(nome,f){
+    const un=l=>{ const m=new Map(); l.forEach(c=>m.set(c[0].toFixed(8)+","+c[1].toFixed(8),c)); return [...m.values()]; };
     let a; try{ a=H.autoint(f); }catch(e){ return [{camada:nome,fid:H.id(f),msg:"Falha ao verificar auto-interseção: "+e.message,sev:"aviso"}]; }
     const id=H.id(f), pts=l=>turf.featureCollection(l.map(c=>turf.point(c))), out=[];
+    for(const k of Object.keys(a)) a[k]=un(a[k]);
     if(a.cruza.length) out.push({camada:nome,fid:id,msg:`Auto-interseção (${a.cruza.length} ponto(s)).`,sev:"erro",geom:pts(a.cruza)});
     if(a.toca.length) out.push({camada:nome,fid:id,msg:`Auto-toque: o contorno toca a si mesmo (${a.toca.length} ponto(s)).`,sev:"erro",geom:pts(a.toca)});
     if(a.spike.length) out.push({camada:nome,fid:id,msg:`Retorno sobre si mesmo / spike (${a.spike.length} ponto(s)).`,sev:"erro",geom:pts(a.spike)});
-    if(a.tocaAneis.length) out.push({camada:nome,fid:id,msg:`Anéis (furos) se tocam (${a.tocaAneis.length} ponto(s)).`,sev:"aviso",geom:pts(a.tocaAneis)});
+    if(a.tocaPartes.length) out.push({camada:nome,fid:id,msg:`Partes do multipolígono se tocam (${a.tocaPartes.length} ponto(s)).`,sev:"aviso",geom:pts(a.tocaPartes)});
+    if(a.tocaAneis.length) out.push({camada:nome,fid:id,msg:`Furo toca o contorno externo ou outro furo (${a.tocaAneis.length} ponto(s)).`,sev:"aviso",geom:pts(a.tocaAneis)});
     return out;
   },
   complexa(f){
-    const g=f.geometry, m=[];
+    const g=f.geometry, m=[], r=f._raw;
+    if(r&&r.rings.length){
+      const ext=r.rings.filter(x=>x.cw).length, fur=r.rings.length-ext;
+      if(!r.rings[0].cw){ m.push("anel externo em sentido anti-horário (fora do padrão do shapefile)"); if(r.rings.length>1) m.push(`${r.rings.length} anéis`); return m; }
+      if(ext>1) m.push(`multiparte (${ext} partes)`);
+      return m;
+    }
     if(g.type==="MultiPolygon"&&g.coordinates.length>1) m.push(`multiparte (${g.coordinates.length} partes)`);
     const polys=g.type==="MultiPolygon"?g.coordinates:[g.coordinates];
-    if(polys.some(p=>p.length>1)) m.push("possui furo(s)");
     return m;
   }
 };
@@ -456,6 +474,26 @@ async function collect(files){
   }
   return groups;
 }
+// Lê o .shp bruto: nº de anéis e sentido (horário = externo, anti-horário = furo), na ordem dos registros.
+function rawRings(buf){
+  const dv=new DataView(buf), out=[]; let p=100;
+  while(p+8<=dv.byteLength){
+    const len=dv.getInt32(p+4,false)*2, c=p+8; p=c+len;
+    if(len<4){ out.push(null); continue; }
+    const t=dv.getInt32(c,true);
+    if(![5,15,25].includes(t)){ out.push(null); continue; }
+    const np=dv.getInt32(c+36,true), npt=dv.getInt32(c+40,true), parts=[];
+    for(let i=0;i<np;i++) parts.push(dv.getInt32(c+44+4*i,true));
+    const pts=c+44+4*np, rings=[];
+    for(let i=0;i<np;i++){
+      const a=parts[i], b=i+1<np?parts[i+1]:npt; let ar=0;
+      for(let k=a;k<b-1;k++){ const x1=dv.getFloat64(pts+16*k,true),y1=dv.getFloat64(pts+16*k+8,true),x2=dv.getFloat64(pts+16*(k+1),true),y2=dv.getFloat64(pts+16*(k+1)+8,true); ar+=(x1*y2-x2*y1); }
+      rings.push({n:b-a,cw:ar<0});
+    }
+    out.push({rings});
+  }
+  return out;
+}
 async function load(files){ return ingest(await collect(files),{fit:true}); }
 async function ingest(groups,opt={}){
   let n=0;
@@ -469,7 +507,8 @@ async function ingest(groups,opt={}){
       const fc=shp.combine([geoms,data]);
       const feats=fc.features||[];
       const gtype=feats.length?feats[0].geometry&&feats[0].geometry.type:null;
-      feats.forEach((f,i)=>{ f._i=i; });
+      let raw=[]; try{ raw=rawRings(g.shp); }catch(e){}
+      feats.forEach((f,i)=>{ f._i=i; if(raw[i]) f._raw=raw[i]; });
       const old=LAYERS[name];
       if(old&&old.leaflet) old.leaflet.remove();
       LAYERS[name]={name,fc:{type:"FeatureCollection",features:feats},fields:dbfHeader(g.dbf),prj,gtype,color:old?old.color:COLORS[Object.keys(LAYERS).length%COLORS.length]};
