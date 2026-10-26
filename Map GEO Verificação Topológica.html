@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.27">
+<meta name="app-version" content="0.0.28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -25,6 +25,8 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mt);
 #drop{border:2px dashed var(--bd);border-radius:10px;padding:16px;text-align:center;color:var(--mt)}
 #drop.over{border-color:var(--ac);background:var(--ac2)}
 #drop b{color:var(--tx)}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.btnrow button{flex:1 1 150px}
 .lyr{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)}
 .lyr:last-child{border:0}
 .sw{width:12px;height:12px;border-radius:3px;flex:none}
@@ -104,7 +106,7 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.27</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.28</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="dictBtn">Dicionário de camadas</button>
@@ -113,10 +115,11 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <div id="pool" style="display:none">
   <div id="cLayers">
     <h2>Camadas</h2>
-    <div id="drop"><b>Arraste aqui</b> o .zip ou os arquivos .shp .dbf .prj<br><br><button class="pri" id="pick">Escolher arquivos</button>
-    <input type="file" id="file" multiple accept=".zip,.shp,.dbf,.prj,.cpg,.shx" hidden></div>
+    <div id="drop"><div><b>Arraste aqui</b> o .zip ou os arquivos .shp .dbf .prj</div>
+      <div class="btnrow"><button class="pri" id="pick">Escolher arquivos</button><button id="pickDir">Monitorar pasta</button></div>
+      <input type="file" id="file" multiple accept=".zip,.shp,.dbf,.prj,.cpg,.shx" hidden></div>
     <div id="dirBox" style="margin-top:10px">
-      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="pri" id="pickDir">Monitorar pasta</button><button id="reDir" hidden></button><button id="stopDir" hidden>Parar</button></div>
+      <div class="btnrow" style="margin:0"><button id="reDir" hidden></button><button id="stopDir" hidden>Parar</button></div>
       <div id="dirst" class="empty" style="margin-top:6px">Escolha a pasta com os shapefiles descompactados. Alterações salvas nela são lidas automaticamente.</div>
       <label class="empty" style="display:block;margin-top:4px"><input type="checkbox" id="auto" checked> Reexecutar a verificação após cada atualização</label>
     </div>
@@ -150,8 +153,9 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.27";
+const APP_VERSION = "0.0.28";
 const CHANGELOG = [
+  {v:"0.0.28", d:"2026-10-26", t:["Botões Escolher arquivos e Monitorar pasta agrupados dentro da área de arrastar, com o mesmo tamanho."]},
   {v:"0.0.27", d:"2026-10-26", t:["Três layouts selecionáveis no topo: GIS desktop (padrão), Assistente em 3 etapas e Painel de resultados. A escolha fica lembrada.","Cada regra mostra a quantidade de problemas depois da verificação; o painel tem resumo (camadas, erros, avisos, regras sem problema)."]},
   {v:"0.0.26", d:"2026-10-26", t:["UTILIDADE_PUBLICA: a única sobreposição proibida passa a ser com ARL tipo P (VEREDA removida da regra)."]},
   {v:"0.0.25", d:"2026-10-26", t:["UTILIDADE_PUBLICA pode ser sobreposta por AREA_CONSOLIDADA, AUAS e AVN: removida dessas três regras de sobreposição."]},
