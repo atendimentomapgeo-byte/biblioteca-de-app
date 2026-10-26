@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.23">
+<meta name="app-version" content="0.0.24">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -60,7 +60,7 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.23</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.24</button>
   <span class="sp"></span>
   <button id="dictBtn">Dicionário de camadas</button>
 </header>
@@ -102,8 +102,9 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.23";
+const APP_VERSION = "0.0.24";
 const CHANGELOG = [
+  {v:"0.0.24", d:"2026-10-26", t:["Nova regra UTP-01: UTILIDADE_PUBLICA contida em uma AIR, sem sobrepor ARL tipo P nem VEREDA, com FINALIDADE preenchida."]},
   {v:"0.0.23", d:"2026-10-26", t:["ARL com SITUACAO A: passa a exigir que a geometria esteja completamente contida em AUAS ou AREA_CONSOLIDADA (antes bastava sobrepor)."]},
   {v:"0.0.22", d:"2026-10-26", t:["Nova regra HID-01: as hidrografias (rios, lagoa natural e reservatório artificial) não podem se sobrepor."]},
   {v:"0.0.21", d:"2026-10-25", t:["Etapa 4 de regras: RES-01 (RESERVATORIO_ARTIFICIAL: ZONA, BARRAMENTO, OBJETIVO, SITUACAO e FAIXA_APP mínima de 30 em zona rural com até 50 ha)."]},
@@ -443,6 +444,24 @@ const RULES = [
           const r=H.inter(a.f,[b.f],ctx.tol);
           if(r.area) out.push({camada:a.n,fid:H.id(a.f),msg:`${a.n} sobrepondo ${b.n} (${H.id(b.f)})`,area:r.area,sev:"erro",geom:r.geom});
         }
+      }
+      return out;
+    }
+  },
+  {
+    id:"UTP-01", nome:"UTILIDADE_PUBLICA: posição e atributos",
+    desc:"Completamente contida em uma AIR. Não sobrepõe ARL com SITUACAO P nem VEREDA. FINALIDADE preenchida.",
+    on:true,
+    async run(ctx){
+      const out=[], arlP=H.feats(ctx,"ARL").filter(a=>(a.properties||{}).SITUACAO==="P"), ver=H.feats(ctx,"VEREDA");
+      for(const f of H.feats(ctx,"UTILIDADE_PUBLICA")){
+        await H.tick(); const id=H.id(f);
+        out.push(...H.emAir(ctx,"UTILIDADE_PUBLICA",f));
+        for(const [lista,nome] of [[arlP,"ARL tipo P"],[ver,"VEREDA"]]){
+          const r=H.inter(f,lista,ctx.tol);
+          if(r.area) out.push({camada:"UTILIDADE_PUBLICA",fid:id,msg:`UTILIDADE_PUBLICA sobrepondo ${nome}`,area:r.area,sev:"erro",geom:r.geom});
+        }
+        if(H.vazio((f.properties||{}).FINALIDADE)) out.push({camada:"UTILIDADE_PUBLICA",fid:id,msg:"O campo FINALIDADE deve ser preenchido.",sev:"erro"});
       }
       return out;
     }
