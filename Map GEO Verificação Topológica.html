@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.19">
+<meta name="app-version" content="0.0.20">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -60,7 +60,7 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.19</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.20</button>
   <span class="sp"></span>
   <button id="dictBtn">Dicionário de camadas</button>
 </header>
@@ -102,8 +102,9 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.19";
+const APP_VERSION = "0.0.20";
 const CHANGELOG = [
+  {v:"0.0.20", d:"2026-10-25", t:["GEO-02: mensagem única \"Ponto repetido, equidistância menor que 10 cm entre vértices\" (o valor acompanha a distância mínima configurada)."]},
   {v:"0.0.19", d:"2026-10-25", t:["Nova regra GEO-02: ponto repetido e vértices a menos de 10 cm um do outro dentro da mesma geometria, em todas as camadas de polígono.","Novo campo Distância mínima entre vértices (padrão 0,1 m)."]},
   {v:"0.0.18", d:"2026-10-25", t:["Sobreposições e saídas de limite que são apenas lascas finas (bordas compartilhadas com pequena diferença de vértice) deixam de ser apontadas.","Novo campo Tolerância de largura (padrão 0,1 m): só conta sobreposição que tenha ao menos essa largura."]},
   {v:"0.0.17", d:"2026-10-25", t:["Etapa 3 de regras: VER-01 (VEREDA contida em uma AIR e em AVN, AUAS ou AREA_CONSOLIDADA) e LAG-01 (ZONA da LAGOA_NATURAL = R ou U)."]},
@@ -222,14 +223,14 @@ const RULES = [
     desc:"Em todas as camadas de polígono (inclusive AIR): ponto repetido e vértices a menos da distância mínima um do outro, dentro da mesma geometria.",
     on:true,
     async run(ctx){
-      const out=[], dm=ctx.vtol, txt=dm.toLocaleString("pt-BR",{maximumFractionDigits:3});
+      const out=[], dm=ctx.vtol, cm=(dm*100).toLocaleString("pt-BR",{maximumFractionDigits:2});
       for(const n of Object.keys(ctx.layers)){
         if(DICT[n]&&DICT[n].g==="PT") continue;
         for(const f of H.feats(ctx,n)){
           await H.tick();
           const r=H.vertsProx(f,dm), id=H.id(f), pts=l=>turf.featureCollection(l.map(c=>turf.point(c)));
-          if(r.rep.length) out.push({camada:n,fid:id,msg:`Ponto repetido (${r.rep.length} ocorrência(s)).`,sev:"erro",geom:pts(r.rep)});
-          if(r.prox.length) out.push({camada:n,fid:id,msg:`Vértices a menos de ${txt} m um do outro (${r.prox.length} par(es)).`,sev:"erro",geom:pts(r.prox)});
+          const todos=r.rep.concat(r.prox);
+          if(todos.length) out.push({camada:n,fid:id,msg:`Ponto repetido, equidistância menor que ${cm} cm entre vértices`,sev:"erro",geom:pts(todos)});
         }
       }
       return out;
