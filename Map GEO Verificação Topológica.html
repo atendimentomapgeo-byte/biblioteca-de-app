@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.26">
+<meta name="app-version" content="0.0.27">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -21,8 +21,6 @@ button,.btn{font:inherit;border:1px solid var(--bd);background:var(--pn);color:v
 button:hover{border-color:var(--ac)}
 button.pri{background:var(--ac);border-color:var(--ac);color:#fff}
 button:disabled{opacity:.5;cursor:not-allowed}
-main{flex:1;display:grid;grid-template-columns:340px 1fr;min-height:0}
-aside{background:var(--pn);border-right:1px solid var(--bd);overflow:auto;padding:14px;display:flex;flex-direction:column;gap:16px}
 h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mt);margin:0 0 8px}
 #drop{border:2px dashed var(--bd);border-radius:10px;padding:16px;text-align:center;color:var(--mt)}
 #drop.over{border-color:var(--ac);background:var(--ac2)}
@@ -37,14 +35,60 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mt);
 .rule{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;margin-bottom:6px}
 .rule label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
 .rule small{display:block;color:var(--mt)}
+.rule .rc{margin-left:auto;flex:none}
+.rbar{display:none;height:6px;background:var(--bd);border-radius:4px;margin-top:7px;overflow:hidden}
+.rbar i{display:block;height:100%;border-radius:4px;background:var(--ok);width:0}
 .empty{color:var(--mt);font-size:13px}
 .empty.ok{color:var(--ok)}.empty.er{color:var(--er)}
 [hidden]{display:none!important}
-section.right{display:grid;grid-template-rows:1fr 280px;min-height:0;min-width:0}
-#map{min-height:200px}
-#res{border-top:1px solid var(--bd);background:var(--pn);overflow:auto;position:relative}
-#res .bar{position:sticky;top:0;background:var(--pn);display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd);z-index:2}
-#res .bar .sp{flex:1}
+#map{height:100%;min-height:200px}
+#cMap{height:100%;min-height:0}
+#cRes{height:100%;display:flex;flex-direction:column;background:var(--pn);overflow:hidden}
+#cRes .bar{display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd);flex:none}
+#cRes .bar .sp{flex:1}
+#tbl,#cards{flex:1;overflow:auto}
+#cards{display:none;padding:10px;flex-direction:column;gap:8px}
+.rcard{border:1px solid var(--bd);border-radius:10px;padding:9px 12px;cursor:pointer}
+.rcard:hover{background:var(--ac2)}
+.rcard .t{display:flex;gap:8px;align-items:center}.rcard .t span.r{margin-left:auto;color:var(--mt);font-size:12px}
+.rcard .m{color:var(--mt);font-size:13px;margin-top:3px}
+#app{flex:1;display:flex;flex-direction:column;min-height:0}
+.L{flex:1;display:flex;flex-direction:column;min-height:0}
+.L .g{flex:1;min-height:0}
+#layoutSel{font:inherit;border:1px solid var(--bd);background:var(--pn);color:var(--tx);border-radius:8px;padding:6px 8px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px}
+.stat{background:var(--pn);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
+.stat small{color:var(--mt);font-size:12px;display:block}.stat b{font-size:28px;line-height:1.2}
+/* E · GIS desktop */
+.L-E .tb{display:flex;gap:8px;align-items:center;padding:6px 12px;background:var(--pn);border-bottom:1px solid var(--bd)}
+.L-E .tb .sp{flex:1}
+.L-E .g{display:grid;grid-template-columns:270px 1fr 350px}
+.L-E .c1,.L-E .c3{overflow:auto;padding:12px;background:var(--pn)}
+.L-E .c1{border-right:1px solid var(--bd)}.L-E .c3{border-left:1px solid var(--bd)}
+.L-E .c2{display:grid;grid-template-rows:1fr 270px;min-width:0;min-height:0}
+.L-E .c2>div{min-height:0;border-bottom:0}
+.L-E .c2>.r{border-top:1px solid var(--bd)}
+/* D · Painel */
+.L-D .g{display:grid;grid-template-columns:420px 1fr;gap:14px;padding:0 14px 14px}
+.L-D .c1{overflow:auto;display:flex;flex-direction:column;gap:14px;min-height:0}
+.L-D .c1>div{background:var(--pn);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.L-D .c2{display:grid;grid-template-rows:minmax(230px,45%) 1fr;gap:14px;min-width:0;min-height:0}
+.L-D .c2>div{border:1px solid var(--bd);border-radius:12px;overflow:hidden;min-height:0}
+.L-D .rbar{display:block}
+/* B · Assistente */
+.L-B .steps{display:flex;gap:30px;justify-content:center;padding:10px;background:var(--pn);border-bottom:1px solid var(--bd)}
+.L-B .steps button{border:0;background:none;display:flex;gap:8px;align-items:center;opacity:.55;font-weight:600}
+.L-B .steps button i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--bd);display:grid;place-items:center;color:var(--mt)}
+.L-B .steps button.on{opacity:1}.L-B .steps button.on i{background:var(--ac);color:#fff}
+.L-B .g{display:grid;grid-template-columns:1fr 480px;gap:14px;padding:14px}
+.L-B .g>.m{border:1px solid var(--bd);border-radius:12px;overflow:hidden;min-height:0}
+.L-B .side{display:flex;flex-direction:column;background:var(--pn);border:1px solid var(--bd);border-radius:12px;min-height:0;overflow:hidden}
+.L-B .sb{display:none;flex:1;overflow:auto;padding:14px;min-height:0}
+.L-B[data-cur="1"] .sb[data-step="1"],.L-B[data-cur="2"] .sb[data-step="2"]{display:block}
+.L-B[data-cur="3"] .sb[data-step="3"]{display:flex;padding:0}
+.L-B #tbl{display:none}.L-B #cards{display:flex}
+.L-B .nav{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--bd)}.L-B .nav .sp{flex:1}
+@media (max-width:900px){.L .g{display:block!important;overflow:auto}.L-E .c2,.L-D .c2{display:block}#cMap{height:320px}#cRes{height:auto;max-height:none}.stats{grid-template-columns:repeat(2,1fr)}.L-B .side{min-height:420px}}
 table{border-collapse:collapse;width:100%}
 th,td{text-align:left;padding:6px 12px;border-bottom:1px solid var(--bd);font-size:13px;vertical-align:top}
 th{color:var(--mt);font-weight:600}
@@ -60,14 +104,15 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.26</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.27</button>
   <span class="sp"></span>
+  <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="dictBtn">Dicionário de camadas</button>
 </header>
-<main>
-<aside>
-  <div>
-    <h2>1 · Camadas</h2>
+<div id="app"></div>
+<div id="pool" style="display:none">
+  <div id="cLayers">
+    <h2>Camadas</h2>
     <div id="drop"><b>Arraste aqui</b> o .zip ou os arquivos .shp .dbf .prj<br><br><button class="pri" id="pick">Escolher arquivos</button>
     <input type="file" id="file" multiple accept=".zip,.shp,.dbf,.prj,.cpg,.shx" hidden></div>
     <div id="dirBox" style="margin-top:10px">
@@ -77,20 +122,23 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
     </div>
     <div id="lyrs" style="margin-top:10px"></div>
   </div>
-  <div>
-    <h2>2 · Regras</h2>
+  <div id="cRules">
+    <h2>Regras</h2>
     <div id="rules"></div>
     <label class="empty" style="display:block;margin:8px 0 4px">Tolerância de área (m²)<br><input id="tol" type="number" min="0" step="0.1" value="1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
     <label class="empty" style="display:block;margin:0 0 4px">Tolerância de largura (m)<br><input id="wtol" type="number" min="0" step="0.01" value="0.1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
     <label class="empty" style="display:block;margin:0 0 4px">Distância mínima entre vértices (m)<br><input id="vtol" type="number" min="0" step="0.01" value="0.1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
     <button class="pri" id="run" disabled style="width:100%;margin-top:6px">Executar verificação</button>
   </div>
-</aside>
-<section class="right">
-  <div id="map"></div>
-  <div id="res"><div class="bar"><b>Resultados</b><span id="sum" class="empty">Nenhuma verificação executada.</span><span class="sp"></span><button id="csv" disabled>Exportar CSV</button></div><div id="tbl"></div></div>
-</section>
-</main>
+  <div id="cMap"><div id="map"></div></div>
+  <div id="cRes"><div class="bar"><b>Resultados</b><span id="sum" class="empty">Nenhuma verificação executada.</span><span class="sp"></span><button id="csv" disabled>Exportar CSV</button></div><div id="tbl"></div><div id="cards"></div></div>
+  <div id="cStats" class="stats">
+    <div class="stat"><small>Camadas carregadas</small><b id="stL">0</b></div>
+    <div class="stat"><small>Erros</small><b id="stE" style="color:var(--er)">—</b></div>
+    <div class="stat"><small>Avisos</small><b id="stW" style="color:var(--wn)">—</b></div>
+    <div class="stat"><small>Regras sem problema</small><b id="stO" style="color:var(--ok)">—</b></div>
+  </div>
+</div>
 
 <div class="dlg" id="dlgVer"><div class="box"><h3>Histórico de versões</h3><ul id="chg"></ul><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 <div class="dlg" id="dlgDict"><div class="box" style="max-width:760px"><h3>Dicionário de camadas</h3><div id="dictBody"></div><br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
@@ -102,8 +150,9 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.26";
+const APP_VERSION = "0.0.27";
 const CHANGELOG = [
+  {v:"0.0.27", d:"2026-10-26", t:["Três layouts selecionáveis no topo: GIS desktop (padrão), Assistente em 3 etapas e Painel de resultados. A escolha fica lembrada.","Cada regra mostra a quantidade de problemas depois da verificação; o painel tem resumo (camadas, erros, avisos, regras sem problema)."]},
   {v:"0.0.26", d:"2026-10-26", t:["UTILIDADE_PUBLICA: a única sobreposição proibida passa a ser com ARL tipo P (VEREDA removida da regra)."]},
   {v:"0.0.25", d:"2026-10-26", t:["UTILIDADE_PUBLICA pode ser sobreposta por AREA_CONSOLIDADA, AUAS e AVN: removida dessas três regras de sobreposição."]},
   {v:"0.0.24", d:"2026-10-26", t:["Nova regra UTP-01: UTILIDADE_PUBLICA contida em uma AIR, sem sobrepor ARL tipo P nem VEREDA, com FINALIDADE preenchida."]},
@@ -772,7 +821,62 @@ async function initDir(){
 
 /* ============ MAPA ============ */
 const $=id=>document.getElementById(id);
-const map=L.map("map",{preferCanvas:true}).setView([-13.5,-56],5);
+/* ============ LAYOUTS ============ */
+const COMPS=["cLayers","cRules","cMap","cRes","cStats"];
+let LAYOUT="E", STEP=1, RAN=new Set(), MAPREADY=false;
+const LAYOUTS={
+  E:`<div class="L L-E"><div class="tb"><button data-p="pick">⬆ Importar</button><button data-p="pickDir">📁 Pasta</button><button class="pri" data-p="run">▶ Executar</button><button data-p="csv">Exportar CSV</button><span class="sp"></span><span class="empty" id="statusTxt"></span></div>
+    <div class="g"><div class="c1" data-slot="cLayers"></div><div class="c2"><div data-slot="cMap"></div><div class="r" data-slot="cRes"></div></div><div class="c3" data-slot="cRules"></div></div></div>`,
+  D:`<div class="L L-D"><div data-slot="cStats"></div>
+    <div class="g"><div class="c1"><div data-slot="cLayers"></div><div data-slot="cRules"></div></div><div class="c2"><div data-slot="cMap"></div><div data-slot="cRes"></div></div></div></div>`,
+  B:`<div class="L L-B" data-cur="1"><div class="steps"><button data-s="1"><i>1</i>Camadas</button><button data-s="2"><i>2</i>Regras</button><button data-s="3"><i>3</i>Resultados</button></div>
+    <div class="g"><div class="m" data-slot="cMap"></div><div class="side"><div class="sb" data-step="1" data-slot="cLayers"></div><div class="sb" data-step="2" data-slot="cRules"></div><div class="sb" data-step="3" data-slot="cRes"></div>
+    <div class="nav"><button id="bBack">‹ Voltar</button><span class="sp"></span><button class="pri" id="bNext">Avançar ›</button></div></div></div></div>`
+};
+function setStep(n){
+  STEP=Math.max(1,Math.min(3,n)); const L=document.querySelector(".L-B"); if(!L) return;
+  L.dataset.cur=STEP;
+  L.querySelectorAll(".steps button").forEach(b=>b.classList.toggle("on",+b.dataset.s===STEP));
+  $("bBack").disabled=STEP===1; $("bNext").textContent=STEP===3?"Executar de novo":"Avançar ›";
+  if(STEP===3&&MAPREADY) setTimeout(()=>map.invalidateSize(),0);
+}
+function applyLayout(name){
+  if(!LAYOUTS[name]) name="E"; LAYOUT=name;
+  const pool=$("pool"); COMPS.forEach(id=>pool.appendChild($(id)));
+  $("app").innerHTML=LAYOUTS[name];
+  $("app").querySelectorAll("[data-slot]").forEach(sl=>sl.appendChild($(sl.dataset.slot)));
+  $("app").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>$(b.dataset.p).click());
+  if(name==="B"){
+    $("app").querySelectorAll(".steps button").forEach(b=>b.onclick=()=>setStep(+b.dataset.s));
+    $("bBack").onclick=()=>setStep(STEP-1);
+    $("bNext").onclick=()=>{ if(STEP===3) $("run").click(); else setStep(STEP+1); };
+    setStep(STEP);
+  }
+  $("layoutSel").value=name;
+  try{ localStorage.setItem("vt-layout",name); }catch(e){}
+  syncUI();
+  if(MAPREADY) setTimeout(()=>map.invalidateSize(),0);
+}
+function syncUI(){
+  const er=RESULTS.filter(r=>r.sev==="erro").length, av=RESULTS.filter(r=>r.sev==="aviso").length, ran=RAN.size;
+  const ok=[...RAN].filter(id=>!RESULTS.some(r=>r.regra===id)).length;
+  if($("stL")){ $("stL").textContent=Object.keys(LAYERS).length; $("stE").textContent=ran?er:"—"; $("stW").textContent=ran?av:"—"; $("stO").textContent=ran?`${ok} de ${ran}`:"—"; }
+  document.querySelectorAll("[data-p]").forEach(b=>{ const t=$(b.dataset.p); if(t) b.disabled=t.disabled; });
+  if($("statusTxt")) $("statusTxt").textContent=`${Object.keys(LAYERS).length} camada(s) · SIRGAS 2000`;
+}
+function updateRuleCounts(){
+  const cnt={}; RESULTS.forEach(r=>cnt[r.regra]=(cnt[r.regra]||0)+1);
+  const mx=Math.max(1,...Object.values(cnt));
+  document.querySelectorAll("#rules .rule").forEach(el=>{
+    const id=el.dataset.r, tag=el.querySelector(".rc"), bar=el.querySelector(".rbar i");
+    if(!RAN.has(id)){ tag.hidden=true; bar.style.width="0"; return; }
+    const k=cnt[id]||0; tag.hidden=false; tag.textContent=k; tag.className="rc tag "+(k?"er":"ok");
+    bar.style.width=k?Math.max(6,Math.round(k/mx*100))+"%":"100%"; bar.style.background=k?"var(--er)":"var(--ok)";
+  });
+}
+try{ LAYOUT=localStorage.getItem("vt-layout")||"E"; }catch(e){}
+applyLayout(LAYOUT);
+const map=L.map("map",{preferCanvas:true}).setView([-13.5,-56],5); MAPREADY=true;
 const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/";
 const BASES={
   "Satélite":L.tileLayer(ESRI+"World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:21,maxNativeZoom:19,attribution:"Imagem © Esri, Maxar, Earthstar Geographics"}),
@@ -807,32 +911,36 @@ function renderLayers(){
   Object.entries(ERRS).forEach(([n,m])=>$("lyrs").insertAdjacentHTML("afterbegin",`<div class="empty er">Falha ao ler ${n}: ${m}</div>`));
   const falt=Object.keys(DICT).filter(k=>!LAYERS[k]);
   if(names.length&&falt.length) $("lyrs").insertAdjacentHTML("beforeend",`<div class="empty" style="margin-top:8px">Do dicionário, não carregadas (${falt.length}): ${falt.join(", ")}</div>`);
+  syncUI();
 }
 function renderRules(){
-  $("rules").innerHTML=RULES.map(r=>`<div class="rule"><label><input type="checkbox" data-r="${r.id}" ${r.on?"checked":""}><span><b>${r.nome}</b><small>${r.desc}</small></span></label></div>`).join("");
+  $("rules").innerHTML=RULES.map(r=>`<div class="rule" data-r="${r.id}"><label><input type="checkbox" data-r="${r.id}" ${r.on?"checked":""}><span><b>${r.nome}</b><small>${r.desc}</small></span><span class="rc tag" hidden></span></label><div class="rbar"><i></i></div></div>`).join("");
   $("rules").insertAdjacentHTML("beforeend",'<div class="empty">Novas regras entram nas próximas etapas.</div>');
 }
 async function run(){
   $("run").disabled=true; $("sum").className="empty"; $("sum").textContent="Executando…";
   const sel=new Set([...document.querySelectorAll("#rules input:checked")].map(i=>i.dataset.r));
-  RESULTS=[];
+  RESULTS=[]; RAN=new Set(sel);
   const ctx={layers:LAYERS,dict:DICT,get:n=>LAYERS[n],tol:Math.max(0,parseFloat($("tol").value)||0),wtol:Math.max(0,parseFloat($("wtol").value)||0),vtol:Math.max(0,parseFloat($("vtol").value)||0)};
   H.W=ctx.wtol;
   for(const r of RULES) if(sel.has(r.id)){
     try{ (await r.run(ctx)).forEach(x=>RESULTS.push({regra:r.id,...x})); }
     catch(e){ RESULTS.push({regra:r.id,camada:"—",msg:"Falha ao executar a regra: "+e.message,sev:"erro"}); }
   }
-  showResults(); $("run").disabled=false;
+  showResults(); $("run").disabled=false; syncUI();
+  if(LAYOUT==="B") setStep(3);
 }
 function showResults(){
   const er=RESULTS.filter(r=>r.sev==="erro").length, av=RESULTS.filter(r=>r.sev==="aviso").length;
   $("sum").className=er?"tag er":av?"tag wn":"tag ok";
   $("sum").textContent=RESULTS.length?`${er} erro(s) · ${av} aviso(s)`:"Nenhuma inconsistência encontrada";
   $("csv").disabled=!RESULTS.length;
+  $("cards").innerHTML=RESULTS.map((r,i)=>`<div class="rcard" data-i="${i}"><div class="t"><span class="tag ${r.sev==="erro"?"er":"wn"}">${r.sev}</span><b>${r.camada||""} · ${r.fid??""}</b><span class="r">${r.regra}</span></div><div class="m">${r.msg}${r.area!=null?" · "+r.area.toLocaleString("pt-BR",{maximumFractionDigits:2})+" m²":""}</div></div>`).join("");
+  updateRuleCounts(); syncUI();
   $("tbl").innerHTML=RESULTS.length?`<table><tr><th>Regra</th><th>Camada</th><th>Feição</th><th>Gravidade</th><th>Descrição</th><th>Área (m²)</th></tr>${RESULTS.map((r,i)=>`<tr class="row" data-i="${i}"><td>${r.regra}</td><td>${r.camada||""}</td><td>${r.fid??""}</td><td><span class="tag ${r.sev==="erro"?"er":"wn"}">${r.sev}</span></td><td>${r.msg}</td><td>${r.area!=null?r.area.toLocaleString("pt-BR",{maximumFractionDigits:2}):""}</td></tr>`).join("")}</table>`:"";
 }
-$("tbl").addEventListener("click",e=>{
-  const tr=e.target.closest("tr.row"); if(!tr) return;
+$("cRes").addEventListener("click",e=>{
+  const tr=e.target.closest("[data-i]"); if(!tr) return;
   const r=RESULTS[+tr.dataset.i]; if(hl){hl.remove();hl=null;}
   if(r.geom){ hl=L.geoJSON(r.geom,{style:{color:"#e60026",weight:3,fillOpacity:.4},pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:8,color:"#e60026"})}).addTo(map); map.fitBounds(hl.getBounds(),{maxZoom:18,padding:[40,40]}); }
 });
@@ -850,6 +958,7 @@ const dz=$("drop");
 ["dragenter","dragover"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add("over");}));
 ["dragleave","drop"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove("over");}));
 dz.addEventListener("drop",e=>{ if(e.dataTransfer.files.length) load([...e.dataTransfer.files]); });
+$("layoutSel").onchange=e=>applyLayout(e.target.value);
 $("verBtn").onclick=()=>$("dlgVer").classList.add("on");
 $("dictBtn").onclick=()=>$("dlgDict").classList.add("on");
 $("chg").innerHTML=CHANGELOG.map(c=>`<li><b>v${c.v}</b> · ${c.d}<ul>${c.t.map(x=>`<li>${x}</li>`).join("")}</ul></li>`).join("");
