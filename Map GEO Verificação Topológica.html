@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.22">
+<meta name="app-version" content="0.0.23">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -60,7 +60,7 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.22</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.23</button>
   <span class="sp"></span>
   <button id="dictBtn">Dicionário de camadas</button>
 </header>
@@ -102,8 +102,9 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.22";
+const APP_VERSION = "0.0.23";
 const CHANGELOG = [
+  {v:"0.0.23", d:"2026-10-26", t:["ARL com SITUACAO A: passa a exigir que a geometria esteja completamente contida em AUAS ou AREA_CONSOLIDADA (antes bastava sobrepor)."]},
   {v:"0.0.22", d:"2026-10-26", t:["Nova regra HID-01: as hidrografias (rios, lagoa natural e reservatório artificial) não podem se sobrepor."]},
   {v:"0.0.21", d:"2026-10-25", t:["Etapa 4 de regras: RES-01 (RESERVATORIO_ARTIFICIAL: ZONA, BARRAMENTO, OBJETIVO, SITUACAO e FAIXA_APP mínima de 30 em zona rural com até 50 ha)."]},
   {v:"0.0.20", d:"2026-10-25", t:["GEO-02: mensagem única \"Ponto repetido, equidistância menor que 10 cm entre vértices\" (o valor acompanha a distância mínima configurada)."]},
@@ -298,7 +299,7 @@ const RULES = [
   },
   {
     id:"ARL-01", nome:"ARL: posição e atributos",
-    desc:"Contida em uma única AIR. IDENTIFIC número, único e preenchido. AVERBACAO = AM ou NA. SITUACAO P não sobrepõe restrições e ARLREM; SITUACAO A sobrepõe consolidada ou AUAS.",
+    desc:"Contida em uma única AIR. IDENTIFIC número, único e preenchido. AVERBACAO = AM ou NA. SITUACAO P não sobrepõe restrições e ARLREM; SITUACAO A completamente contida em AUAS ou AREA_CONSOLIDADA.",
     on:true,
     async run(ctx){
       const out=[], arl=H.feats(ctx,"ARL"), cont={};
@@ -316,8 +317,12 @@ const RULES = [
         if(H.vazio(s)) out.push({camada:"ARL",fid:id,msg:"SITUACAO vazio.",sev:"erro"});
         else if(s==="P") out.push(...H.sobrepoe(ctx,"ARL",f,restr,"ARL tipo P"));
         else if(s==="A"){
-          const r=H.inter(f,H.feats(ctx,"AREA_CONSOLIDADA").concat(H.feats(ctx,"AUAS")),ctx.tol);
-          if(!r.area) out.push({camada:"ARL",fid:id,msg:"SITUACAO A deve sobrepor AREA_CONSOLIDADA ou AUAS, mas não sobrepõe nenhuma.",sev:"erro",geom:f.geometry});
+          let melhor=Infinity, geom=null;
+          for(const c of ["AUAS","AREA_CONSOLIDADA"]) for(const o of H.feats(ctx,c)){
+            const r=H.outside(f,o); if(r.area<melhor){melhor=r.area;geom=r.geom;}
+            if(melhor<=ctx.tol) break;
+          }
+          if(melhor>ctx.tol) out.push({camada:"ARL",fid:id,msg:"ARL com SITUACAO A deve estar completamente contida em AUAS ou AREA_CONSOLIDADA.",area:melhor===Infinity?undefined:melhor,sev:"erro",geom:geom||f.geometry});
         } else out.push({camada:"ARL",fid:id,msg:`SITUACAO "${s}" inválido (esperado P ou A).`,sev:"erro"});
       }
       return out;
