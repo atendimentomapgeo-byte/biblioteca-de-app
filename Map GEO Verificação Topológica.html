@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.21">
+<meta name="app-version" content="0.0.22">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -60,7 +60,7 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.21</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.22</button>
   <span class="sp"></span>
   <button id="dictBtn">Dicionário de camadas</button>
 </header>
@@ -102,8 +102,9 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.21";
+const APP_VERSION = "0.0.22";
 const CHANGELOG = [
+  {v:"0.0.22", d:"2026-10-26", t:["Nova regra HID-01: as hidrografias (rios, lagoa natural e reservatório artificial) não podem se sobrepor."]},
   {v:"0.0.21", d:"2026-10-25", t:["Etapa 4 de regras: RES-01 (RESERVATORIO_ARTIFICIAL: ZONA, BARRAMENTO, OBJETIVO, SITUACAO e FAIXA_APP mínima de 30 em zona rural com até 50 ha)."]},
   {v:"0.0.20", d:"2026-10-25", t:["GEO-02: mensagem única \"Ponto repetido, equidistância menor que 10 cm entre vértices\" (o valor acompanha a distância mínima configurada)."]},
   {v:"0.0.19", d:"2026-10-25", t:["Nova regra GEO-02: ponto repetido e vértices a menos de 10 cm um do outro dentro da mesma geometria, em todas as camadas de polígono.","Novo campo Distância mínima entre vértices (padrão 0,1 m)."]},
@@ -418,6 +419,24 @@ const RULES = [
             if(num===null||isNaN(num)) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:id,msg:"O campo FAIXA_APP está vazio. Deve ser no mínimo 30 para reservatório em zona rural com superfície até 50 hectares.",sev:"erro"});
             else if(num<30) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:id,msg:`O campo FAIXA_APP (${num.toLocaleString("pt-BR")}) deve ser no mínimo 30 para reservatório em zona rural com superfície até 50 hectares.`,sev:"erro"});
           }
+        }
+      }
+      return out;
+    }
+  },
+  {
+    id:"HID-01", nome:"Hidrografia sem sobreposição",
+    desc:"Rios (5 classes), LAGOA_NATURAL e RESERVATORIO_ARTIFICIAL não podem se sobrepor entre si, nem dentro da mesma camada.",
+    on:true,
+    async run(ctx){
+      const out=[], itens=[];
+      for(const n of [...RIOS,"LAGOA_NATURAL","RESERVATORIO_ARTIFICIAL"]) for(const f of H.feats(ctx,n)) itens.push({n,f});
+      for(let i=0;i<itens.length;i++){
+        await H.tick();
+        for(let j=i+1;j<itens.length;j++){
+          const a=itens[i], b=itens[j];
+          const r=H.inter(a.f,[b.f],ctx.tol);
+          if(r.area) out.push({camada:a.n,fid:H.id(a.f),msg:`${a.n} sobrepondo ${b.n} (${H.id(b.f)})`,area:r.area,sev:"erro",geom:r.geom});
         }
       }
       return out;
