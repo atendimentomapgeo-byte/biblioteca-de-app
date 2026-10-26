@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.15">
+<meta name="app-version" content="0.0.16">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -60,7 +60,7 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.15</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.16</button>
   <span class="sp"></span>
   <button id="dictBtn">Dicionário de camadas</button>
 </header>
@@ -100,8 +100,9 @@ tr.row{cursor:pointer}tr.row:hover{background:var(--ac2)}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.15";
+const APP_VERSION = "0.0.16";
 const CHANGELOG = [
+  {v:"0.0.16", d:"2026-10-25", t:["Mensagem da data de abertura da AUAS: \"A data de abertura da AUAS deve ser igual ou superior a 01/08/2008.\""]},
   {v:"0.0.15", d:"2026-10-25", t:["AUAS: data mínima de ABERTURA alterada para 01/08/2008."]},
   {v:"0.0.14", d:"2026-10-25", t:["Monitoramento de pasta lê somente os shapefiles da pasta escolhida (sem subpastas).","Ao escolher ou reabrir uma pasta, as camadas carregadas antes são removidas."]},
   {v:"0.0.13", d:"2026-10-25", t:["As feições passam a ser identificadas somente pelo FID (posição na tabela, começando em 0)."]},
@@ -324,7 +325,7 @@ const RULES = [
         const d=H.data((f.properties||{}).ABERTURA);
         if(d.vazio) out.push({camada:"AUAS",fid:id,msg:"ABERTURA vazio.",sev:"erro"});
         else if(!d.date) out.push({camada:"AUAS",fid:id,msg:`ABERTURA "${d.raw}" não é uma data válida.`,sev:"erro"});
-        else if(d.date<lim) out.push({camada:"AUAS",fid:id,msg:`ABERTURA ${d.date.toLocaleDateString("pt-BR")} anterior a 01/08/2008.`,sev:"erro"});
+        else if(d.date<lim) out.push({camada:"AUAS",fid:id,msg:"A data de abertura da AUAS deve ser igual ou superior a 01/08/2008.",sev:"erro"});
       }
       return out;
     }
