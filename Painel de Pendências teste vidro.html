@@ -320,6 +320,7 @@
 
   /* ---------- Users admin panel ---------- */
   .users-modal{ max-width:640px; }
+  .users-bulk{ display:flex; justify-content:flex-end; margin-bottom:2px; }
   .users-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
   .user-row{
     display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
@@ -1124,12 +1125,15 @@ function userRowActions(uid, data){
   if(data.status !== 'recusado') actions.push(`<button class="btn danger small" data-act="recusar" data-uid="${uid}">Recusar</button>`);
   if(data.status === 'aprovado' && data.role !== 'admin') actions.push(`<button class="btn ghost small" data-act="bloquear" data-uid="${uid}">Bloquear</button>`);
   if(data.role !== 'admin') actions.push(`<button class="btn ghost small" data-act="promover" data-uid="${uid}">Tornar admin</button>`);
+  if(data.status === 'recusado' && data.role !== 'admin') actions.push(`<button class="btn danger small" data-act="excluir" data-uid="${uid}" title="Remove o cadastro da lista">Excluir</button>`);
   return actions.join('');
 }
 function renderUsersList(docs){
   const el = document.getElementById('usersList');
   if(docs.length === 0){ el.innerHTML = '<p class="pending-msg">Nenhum usuário cadastrado ainda.</p>'; return; }
-  el.innerHTML = docs.map(({id, data}) => `
+  const recusados = docs.filter(d => d.data.status === 'recusado' && d.data.role !== 'admin');
+  const bulk = recusados.length > 1 ? `<div class="users-bulk"><button class="btn danger small" id="delAllRefused" type="button">Excluir todos os recusados (${recusados.length})</button></div>` : '';
+  el.innerHTML = bulk + docs.map(({id, data}) => `
     <div class="user-row">
       <div>
         <div class="user-email">${escapeHtml(data.email || id)}${data.role === 'admin' ? '<span class="user-badge admin">Admin</span>' : ''}</div>
@@ -1138,10 +1142,24 @@ function renderUsersList(docs){
       <div class="user-actions">${userRowActions(id, data)}</div>
     </div>
   `).join('');
+  const delAll = document.getElementById('delAllRefused');
+  if(delAll) delAll.addEventListener('click', async () => {
+    if(!confirm('Excluir ' + recusados.length + ' cadastro(s) recusado(s) da lista?\n\nIsso remove só o cadastro no painel. Se alguém entrar de novo com o mesmo e-mail e senha, o pedido volta como pendente.')) return;
+    delAll.disabled = true;
+    try{ for(const d of recusados){ await fbDb.collection(USERS_COL).doc(d.id).delete(); } }
+    catch(e){ alert('Não foi possível excluir: ' + fbErro(e)); }
+  });
   el.querySelectorAll('button[data-act]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const uid = btn.dataset.uid;
       const act = btn.dataset.act;
+      if(act === 'excluir'){
+        if(!confirm('Excluir este cadastro recusado da lista?\n\nIsso remove só o cadastro no painel. Se a pessoa entrar de novo com o mesmo e-mail e senha, o pedido volta como pendente.')) return;
+        btn.disabled = true;
+        try{ await fbDb.collection(USERS_COL).doc(uid).delete(); }
+        catch(e){ alert('Não foi possível excluir este usuário: ' + fbErro(e)); btn.disabled = false; }
+        return;
+      }
       const patch = act === 'aprovar' ? {status:'aprovado'}
         : act === 'recusar' ? {status:'recusado'}
         : act === 'bloquear' ? {status:'recusado'}
