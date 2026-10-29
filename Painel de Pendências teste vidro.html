@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel SIMCAR e SIMLAM v1.0.0 (teste vidro)</title>
+<meta name="version" content="1.0.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%2216%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%2216%22%20y%3D%2240%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20108%20L62%20130%20L156%2044%22/%3E%3Crect%20x%3D%22185%22%20y%3D%2240%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%2071%20H462%20M216%2095%20H462%20M216%20119%20H368%22%20stroke-width%3D%2214%22/%3E%3Crect%20x%3D%2216%22%20y%3D%22200%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20268%20L62%20290%20L156%20204%22/%3E%3Crect%20x%3D%22185%22%20y%3D%22200%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%20231%20H462%20M216%20255%20H462%20M216%20279%20H368%22%20stroke-width%3D%2214%22/%3E%3Crect%20x%3D%2216%22%20y%3D%22360%22%20width%3D%22112%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M40%20428%20L62%20450%20L156%20364%22/%3E%3Crect%20x%3D%22185%22%20y%3D%22360%22%20width%3D%22310%22%20height%3D%22110%22%20rx%3D%226%22/%3E%3Cpath%20d%3D%22M216%20391%20H462%20M216%20415%20H462%20M216%20439%20H368%22%20stroke-width%3D%2214%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0e2a42;
+    --bg-2: #0b2338;
+    --panel: #123a56;
+    --panel-2: #16456490;
+    --line: rgba(210,232,248,0.09);
+    --line-strong: rgba(200,225,240,0.28);
+    --ink: #eaf3f9;
+    --ink-dim: #9fbdd2;
+    --ink-faint: #6f93ab;
+    --cyan: #63d8d6;
+    --cyan-dim: #3d8f92;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --pending: #6f8ea3;
+    --radius: 3px;
+    font-size: 15px;
+  }
+  *{box-sizing:border-box;}
+  .hidden{ display:none !important; }
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(0deg, var(--line) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 28px),
+      radial-gradient(ellipse at top left, #123c5a 0%, var(--bg) 45%, var(--bg-2) 100%);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    padding: 28px 20px 60px;
+  }
+  .sheet{ max-width: 1600px; margin: 0 auto; }
+
+  /* ---------- Title block ---------- */
+  .titleblock{
+    border: 1px solid var(--line-strong);
+    background: linear-gradient(180deg, var(--panel-2), transparent);
+    padding: 18px 22px;
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;
+    position:relative;
+  }
+  .titleblock::before{
+    content:""; position:absolute; top:6px; left:6px; right:6px; bottom:6px;
+    border:1px solid rgba(210,232,248,0.14); pointer-events:none;
+  }
+  .panel-tabs{ margin-bottom:14px; }
+  .panel-tabs .tab-btn{ font-weight:700; letter-spacing:0.4px; }
+  .panel-badge{ display:inline-block; margin-right:8px; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:0.6px; vertical-align:middle; border:1px solid var(--line-strong); }
+  .panel-badge.panel-simcar{ color:var(--cyan); border-color:rgba(99,216,214,0.5); }
+  .panel-badge.panel-simlam{ color:var(--warn); border-color:rgba(255,200,90,0.5); }
+  .panel-simlam th.col-pdf, .panel-simlam td.col-pdf{ width:64px; min-width:64px; }
+  td.col-pdf .pdf-icon + .pdf-icon{ margin-left:2px; }
+  .pd-count{ display:inline-block; margin-left:8px; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600; color:var(--cyan); border:1px solid rgba(99,216,214,0.4); vertical-align:middle; white-space:nowrap; }
+  tr.group-header td{ background:rgba(99,216,214,0.07); border-top:1px solid var(--line-strong); cursor:default; }
+  tr.group-header .group-caret{ display:inline-block; width:16px; color:var(--cyan); }
+  tr.group-header .group-summary{ color:var(--ink-faint); font-size:12.5px; vertical-align:middle; }
+  tr.group-header .group-summary .pd-count{ margin-left:0; }
+  tr.pd-child td:first-child{ box-shadow: inset 3px 0 0 rgba(99,216,214,0.4); }
+  tr.pd-child td.propriedade{ padding-left:34px; }
+  .pd-child-label{ color:var(--ink-faint); font-size:12.5px; font-weight:500; letter-spacing:0.3px; }
+  .app-version{ font-size:11px; font-weight:500; margin-left:10px; color:var(--ink-faint); letter-spacing:0.5px; vertical-align:middle; }
+  .title-icon{ width:34px; height:34px; box-sizing:border-box; padding:4px; background:#fff; border-radius:6px; vertical-align:-8px; margin-right:12px; color:#000; flex:none; }
+  .titleblock h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight:700; letter-spacing:0.5px; margin:0;
+    text-transform:uppercase;
+  }
+  .titleblock h1 span{
+    display:block; font-family:'IBM Plex Mono', monospace; font-weight:400;
+    font-size:12px; letter-spacing:2px; color: var(--cyan); margin-top:4px;
+  }
+  .titleblock-grid{ display:flex; gap:26px; font-family:'IBM Plex Mono', monospace; }
+  .titleblock-grid div{ display:flex; flex-direction:column; gap:3px; min-width:90px; }
+  .titleblock-grid label{ font-size:10px; letter-spacing:1.5px; color: var(--ink-faint); text-transform:uppercase; }
+  .titleblock-grid span{ font-size:14px; color: var(--ink); }
+  .sync-status.sync-ok{ color: var(--ok); }
+  .sync-status.sync-bad{ color: var(--bad); }
+
+  /* ---------- Dashboard cards ---------- */
+  .dashboard{
+    display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-top:16px;
+  }
+  .card{
+    border:1px solid var(--line-strong); background: var(--panel-2);
+    padding:14px 16px; position:relative; overflow:hidden;
+  }
+  .card::after{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background: var(--accent, var(--cyan)); }
+  .card .num{ font-family:'Space Grotesk', sans-serif; font-size:30px; font-weight:700; line-height:1; }
+  .card .lbl{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1.5px; color: var(--ink-dim); text-transform:uppercase; margin-top:6px; }
+  .card.total{ --accent: var(--cyan); }
+  .card.overdue{ --accent: var(--bad); }
+  .card.soon{ --accent: var(--warn); }
+  .card.ok{ --accent: var(--ok); }
+
+  /* ---------- Toolbar ---------- */
+  .view-tabs{ display:flex; gap:4px; margin-top:18px; border-bottom:1px solid var(--line-strong); }
+  .tab-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;
+    padding:10px 16px; background:transparent; border:none; border-bottom:2px solid transparent;
+    color: var(--ink-faint); cursor:pointer;
+  }
+  .tab-btn:hover{ color: var(--ink-dim); }
+  .tab-btn.active{ color: var(--cyan); border-bottom-color: var(--cyan); }
+  .tab-count{ color: var(--ink-faint); font-size:11px; }
+  .tab-btn.active .tab-count{ color: var(--cyan); }
+  .toolbar{
+    display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; align-items:center;
+  }
+  .toolbar input[type=text], .toolbar select{
+    background: var(--panel-2); border:1px solid var(--line-strong); color: var(--ink);
+    padding:9px 12px; font-family:'Inter',sans-serif; font-size:13px; border-radius:var(--radius);
+  }
+  .toolbar input[type=text]{ flex:1; min-width:180px; }
+  .toolbar select{ font-family:'IBM Plex Mono', monospace; }
+  .btn{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    padding:10px 16px; border-radius:var(--radius); border:1px solid var(--cyan-dim);
+    background:transparent; color: var(--cyan); cursor:pointer; white-space:nowrap;
+    transition: background .15s, color .15s;
+  }
+  .btn:hover{ background: var(--cyan); color:#082333; }
+  .btn.primary{ background: var(--cyan); color:#082333; }
+  .btn.primary:hover{ background:#8be8e6; }
+  .btn.danger{ border-color: var(--bad); color: var(--bad); }
+  .btn.danger:hover{ background: var(--bad); color:#3a0d0d; }
+  .btn.ghost{ border-color: var(--line-strong); color: var(--ink-dim); }
+  .btn.ghost:hover{ background: var(--line-strong); color: var(--ink); }
+
+  /* ---------- Table ---------- */
+  .table-wrap{
+    margin-top:16px; border:1px solid var(--line-strong); overflow-x:auto; background: var(--panel-2);
+  }
+  table{ width:100%; border-collapse:collapse; min-width:900px; }
+  thead th{
+    text-align:left; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:1px;
+    text-transform:uppercase; color: var(--ink-faint); padding:10px 12px; border-bottom:1px solid var(--line-strong);
+    position:sticky; top:0; background: var(--bg-2);
+  }
+  tbody tr{ border-bottom:1px solid var(--line); cursor:pointer; }
+  tbody tr:hover{ background: rgba(99,216,214,0.06); }
+  tbody td{ padding:11px 12px; font-size:13px; vertical-align:middle; }
+  td.propriedade{ font-weight:600; }
+  .propriedade-nome{ font-weight:600; line-height:1.35; }
+  .propriedade-sub{ font-weight:400; font-size:12.5px; line-height:1.3; min-height:1.3em; color: var(--ink-faint); margin-top:3px; letter-spacing:0.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
+  .propriedade-sub + .propriedade-sub{ margin-top:1px; }
+  td.car{ font-family:'IBM Plex Mono', monospace; color: var(--ink-dim); font-size:12px; }
+  .deadline-pill{
+    display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:11.5px;
+    padding:4px 9px; border-radius:20px; border:1px solid currentColor;
+  }
+  .deadline-pill.bad{ color: var(--bad); }
+  .deadline-pill.warn{ color: var(--warn); }
+  .deadline-pill.good{ color: var(--ok); }
+  .deadline-pill .date{ color: var(--ink-dim); font-weight:400; }
+  .situacao-cell{ max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink-dim); font-size:12.5px; }
+  .progress-mini{ display:flex; align-items:center; gap:8px; }
+  .progress-track{ width:70px; height:5px; background: rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; }
+  .progress-fill{ height:100%; background: var(--ok); }
+  .progress-mini span{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-dim); }
+  .row-alert{ color: var(--bad); display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; }
+  .row-alert .ico{ display:block; }
+  td.col-flag, td.col-pdf, td.col-complete, th.col-flag, th.col-pdf, th.col-complete{ white-space:nowrap; width:34px; min-width:34px; text-align:center; padding-left:4px; padding-right:4px; }
+  .pdf-icon{ cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; transition:background .12s, transform .12s; }
+  .pdf-icon:hover{ background:rgba(255,255,255,0.10); transform:scale(1.1); }
+  .pdf-icon .ico{ display:block; }
+  .pdf-icon:has(.ico-pdf){ color:var(--cyan); }
+  .pdf-icon:has(.ico-mapa){ color:var(--ok); }
+  .ico{ vertical-align:-4px; flex:none; }
+  .ico-pdf{ color:var(--cyan); }
+  .ico-mapa{ color:var(--ok); }
+  td.processado{ font-size:12.5px; color: var(--ink-dim); }
+  .empty-row td{ text-align:center; padding:38px 10px; color: var(--ink-faint); font-family:'IBM Plex Mono', monospace; font-size:13px; }
+
+  /* ---------- Expanded detail row ---------- */
+  .detail-row td{ background: rgba(4,20,32,0.55); padding:16px 18px; }
+  .status-list{ display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items:stretch; gap:8px; margin-bottom:12px; }
+  .status-block{ display:flex; flex-direction:column; border:1px solid var(--line-strong); border-radius:var(--radius); padding:7px 9px; background: rgba(255,255,255,0.015); }
+  .status-block .top-row{ display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; }
+  .status-block .top-row .right-controls{ display:flex; align-items:center; gap:6px; }
+  .status-block .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600; }
+  .pend-expand-btn{
+    background:none; border:1px solid var(--line-strong); color: var(--ink-faint); border-radius:4px;
+    width:20px; height:20px; line-height:1; font-size:11px; cursor:pointer; display:inline-flex;
+    align-items:center; justify-content:center; flex-shrink:0; padding:0;
+  }
+  .pend-expand-btn:hover{ color: var(--cyan); border-color: var(--cyan-dim); }
+  .status-toggle{
+    font-family:'IBM Plex Mono', monospace; font-size:9.5px; padding:3px 8px; border-radius:20px;
+    border:1px solid currentColor; display:inline-flex; align-items:center; gap:5px; cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  .status-toggle .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .status-toggle.pendente{ color: var(--pending); }
+  .status-toggle.ok{ color: var(--ok); }
+  .status-toggle.atencao{ color: var(--warn); }
+  .status-toggle.objecao{ color: var(--bad); }
+  .status-block textarea.pend-text{
+    width:100%; flex:1; margin-top:6px; background: var(--panel-2); border:1px solid var(--line); color: var(--ink);
+    font-family:'Inter', sans-serif; font-size:11.5px; padding:6px 8px; border-radius:var(--radius);
+    resize:vertical; min-height:30px; box-sizing:border-box;
+  }
+  .status-block .pend-text-readonly{ margin-top:8px; font-size:12px; color: var(--ink-dim); line-height:1.5; }
+  .detail-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+  .archive-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; padding:8px 14px; border-radius:var(--radius);
+    border:1px solid var(--ok); color: var(--ok); background:transparent; cursor:pointer;
+  }
+  .archive-btn:hover{ background: var(--ok); color:#062814; }
+  .reopen-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; padding:8px 14px; border-radius:var(--radius);
+    border:1px solid var(--line-strong); color: var(--ink-dim); background:transparent; cursor:pointer;
+  }
+  .reopen-btn:hover{ color: var(--ink); border-color: var(--ink-dim); }
+  .archived-date{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-faint); }
+  .complete-badge{ margin-right:4px; }
+  .archived-badge{ display:inline-block; margin-left:8px; padding:1px 7px; border:1px solid var(--line-strong); border-radius:10px; font-size:10px; font-weight:600; letter-spacing:0.5px; color:var(--ink-faint); background:rgba(255,255,255,0.05); vertical-align:middle; white-space:nowrap; }
+
+  /* ---------- Text popup (expanded view/edit for a pendency description) ---------- */
+  .text-popup-modal{ max-width:640px; }
+  .text-popup-subtitle{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--cyan); margin:-10px 0 14px; letter-spacing:0.5px; }
+  textarea.text-popup-textarea{
+    width:100%; min-height:300px; background: var(--panel-2); border:1px solid var(--line-strong); color: var(--ink);
+    font-family:'Inter', sans-serif; font-size:14px; line-height:1.6; padding:12px 14px; border-radius:var(--radius);
+    resize:vertical;
+  }
+  .detail-summary{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px 18px; padding:6px 2px 16px; }
+  .ds-item{ min-width:0; }
+  .ds-wide{ grid-column:1 / -1; }
+  .ds-label{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.8px; text-transform:uppercase; color:var(--ink-faint); margin-bottom:3px; }
+  .ds-value{ font-size:13.5px; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; }
+  .ds-wide .ds-value{ background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:var(--radius); padding:8px 10px; min-height:20px; }
+  .ds-empty{ color:var(--ink-faint); }
+  .detail-obs{ font-size:12.5px; color: var(--ink-dim); margin: 4px 0 12px; font-style:italic; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(4,15,26,0.72); display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:50;
+  }
+  .modal-overlay.hidden{ display:none; }
+  .modal{
+    background: var(--bg-2); border:1px solid var(--line-strong); max-width:820px; width:100%;
+    max-height:88vh; overflow-y:auto; padding:24px; position:relative;
+  }
+  .modal h2{ font-family:'Space Grotesk',sans-serif; font-size:17px; margin:0 0 16px; text-transform:uppercase; letter-spacing:0.5px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:1px; color: var(--ink-faint); text-transform:uppercase; margin-bottom:5px; }
+  .field input, .field textarea, .field select{
+    width:100%; background: var(--panel-2); border:1px solid var(--line-strong); color: var(--ink);
+    padding:9px 11px; font-family:'Inter',sans-serif; font-size:13.5px; border-radius:var(--radius);
+  }
+  .field select option{ background:#0b2338; color:#eaf3f9; }
+  .field textarea{ resize:vertical; min-height:50px; font-family:'Inter',sans-serif; }
+  .field-row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .deadline-helper{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin: -4px 0 12px; }
+  .deadline-helper label{ display:flex; align-items:center; gap:6px; font-family:'Inter',sans-serif; font-size:12px; color: var(--ink-dim); cursor:pointer; }
+  .deadline-helper input[type=checkbox]{ accent-color: var(--cyan); width:14px; height:14px; }
+  .btn.small{ padding:7px 12px; font-size:11px; }
+  .auto-backup-status{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-faint); margin-top:6px; }
+  .pdf-attach-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .pdf-file-label{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--ink-dim); }
+  .pdf-file-label.attached{ color: var(--cyan); }
+  .pdf-link-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--cyan); background:none; border:none;
+    text-decoration:underline; cursor:pointer; padding:0; display:inline-flex; align-items:center; gap:5px;
+  }
+  .prorrogacao-badge{
+    font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.5px; color: var(--cyan);
+    border:1px solid var(--cyan-dim); border-radius:20px; padding:2px 6px; margin-left:6px;
+  }
+  .modal-section-title{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1.5px; color: var(--cyan);
+    text-transform:uppercase; margin: 18px 0 8px; border-top:1px solid var(--line); padding-top:14px;
+  }
+  .modal-actions{ display:flex; justify-content:space-between; margin-top:20px; gap:10px; }
+  .modal-actions .right{ display:flex; gap:8px; }
+  .close-x{ position:absolute; top:16px; right:16px; background:none; border:none; color: var(--ink-faint); font-size:20px; cursor:pointer; line-height:1; }
+  .close-x:hover{ color: var(--ink); }
+
+  /* ---------- Login ---------- */
+  .login-modal{ max-width:380px; }
+  .login-fields{ display:flex; flex-direction:column; gap:12px; margin-top:4px; }
+  .login-fields label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:1px; color: var(--ink-faint); text-transform:uppercase; }
+  .login-fields input{
+    width:100%; margin-top:5px; background: var(--panel-2); border:1px solid var(--line-strong); color: var(--ink);
+    padding:9px 11px; font-family:'Inter',sans-serif; font-size:13.5px; border-radius:var(--radius);
+  }
+  .login-error{ color: var(--bad); font-size:12.5px; margin-top:12px; font-family:'IBM Plex Mono', monospace; }
+  .login-error.hidden{ display:none; }
+  .login-toggle-row{ margin-top:14px; }
+  .link-btn{
+    background:none; border:none; color: var(--cyan); font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:0.3px; cursor:pointer; padding:0; text-decoration:underline;
+  }
+  .pending-msg{ font-size:13.5px; color: var(--ink-dim); line-height:1.6; margin: 10px 0 0; }
+  .pending-msg span{ color: var(--cyan); }
+
+  /* ---------- Users admin panel ---------- */
+  .users-modal{ max-width:640px; }
+  .users-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .user-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    border:1px solid var(--line-strong); background: var(--panel-2); padding:10px 14px; border-radius:var(--radius);
+  }
+  .user-row .user-email{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color: var(--ink); }
+  .user-row .user-meta{ font-size:10.5px; color: var(--ink-faint); letter-spacing:0.5px; text-transform:uppercase; margin-top:2px; }
+  .user-row .user-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .user-badge{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:0.5px; border-radius:20px; padding:2px 8px; text-transform:uppercase; }
+  .user-badge.pendente{ color: var(--warn); border:1px solid var(--warn); }
+  .user-badge.aprovado{ color: var(--ok); border:1px solid var(--ok); }
+  .user-badge.recusado{ color: var(--bad); border:1px solid var(--bad); }
+  .user-badge.admin{ color: var(--cyan); border:1px solid var(--cyan); margin-left:6px; }
+  #adminUsersBtn{ margin-left:8px; }
+  .titleblock-grid div:last-child span{ display:flex; gap:6px; }
+
+  @media (max-width: 720px){
+    .dashboard{ grid-template-columns: repeat(2,1fr); }
+    .status-block .top-row{ flex-direction:column; align-items:flex-start; }
+    .field-row{ grid-template-columns: 1fr; }
+    .titleblock{ flex-direction:column; align-items:flex-start; }
+  }
+/* ================= TEMA VIDRO (teste) ================= */
+:root{
+  --bg:#e9dfd3; --bg-2:#f3ece3;
+  --panel:rgba(255,255,255,.5);
+  --panel-2:rgba(255,255,255,.42);
+  --line:rgba(70,50,35,.09);
+  --line-strong:rgba(255,255,255,.75);
+  --ink:#241e19; --ink-dim:#5d534a; --ink-faint:#8c8178;
+  --cyan:#cf5a3c; --cyan-dim:rgba(207,90,60,.55);
+  --ok:#2e9a5b; --warn:#c48a10; --bad:#d23f3f; --pending:#8c8178;
+  --radius:12px;
+  --glass-blur:blur(22px) saturate(160%);
+  --glass-shadow:0 10px 34px rgba(80,55,35,.13), inset 0 1px 0 rgba(255,255,255,.8);
+}
+body{
+  background:
+    radial-gradient(900px 600px at 8% 12%, rgba(214,150,110,.55), transparent 60%),
+    radial-gradient(800px 600px at 92% 8%, rgba(190,160,130,.55), transparent 60%),
+    radial-gradient(900px 700px at 70% 100%, rgba(176,120,90,.45), transparent 60%),
+    radial-gradient(700px 500px at 20% 95%, rgba(225,205,180,.8), transparent 60%),
+    linear-gradient(135deg,#efe5d9,#e3d3c2 55%,#d9c3ae) fixed;
+  color:var(--ink);
+  padding:22px 22px 120px 100px;
+}
+.sheet{ max-width:1500px; }
+
+/* vidro base */
+.titleblock, .card, .table-wrap, .toolbar-glass, .glass-panel, .modal, .user-row{
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+}
+.titleblock{
+  border:1px solid rgba(255,255,255,.7); border-radius:26px; background:rgba(255,255,255,.4);
+  box-shadow:var(--glass-shadow); padding:14px 24px; align-items:center;
+}
+.titleblock::before{ display:none; }
+.titleblock h1{ text-transform:none; font-size:20px; letter-spacing:0; }
+.titleblock h1 span{ color:var(--ink-faint); letter-spacing:.3px; font-family:'Inter',sans-serif; font-size:12.5px; }
+.title-icon{ background:#fff; box-shadow:0 2px 8px rgba(80,55,35,.15); border-radius:10px; }
+.titleblock-grid{ font-family:'Inter',sans-serif; gap:22px; }
+.titleblock-grid label{ letter-spacing:.8px; }
+.titleblock-grid span{ font-size:13.5px; font-weight:500; }
+
+/* cards */
+.dashboard{ gap:16px; margin-top:20px; }
+.card{
+  border:1px solid rgba(255,255,255,.75); border-radius:22px; background:rgba(255,255,255,.45);
+  box-shadow:var(--glass-shadow); padding:18px 20px 16px;
+}
+.card::after{ left:20px; right:auto; top:auto; bottom:0; width:34px; height:4px; border-radius:4px 4px 0 0; }
+.card .num{ font-size:34px; letter-spacing:-.5px; }
+.card .lbl{ font-family:'Inter',sans-serif; font-size:12px; letter-spacing:.2px; text-transform:none; color:var(--ink-dim); font-weight:500; }
+
+/* gráficos */
+.glass-charts{ display:grid; grid-template-columns:1fr 1.4fr; gap:16px; margin-top:16px; }
+.glass-panel{
+  border:1px solid rgba(255,255,255,.75); border-radius:22px; background:rgba(255,255,255,.45);
+  box-shadow:var(--glass-shadow); padding:18px 22px;
+}
+.glass-panel h3{ margin:0 0 12px; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600; }
+.donut-wrap{ display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+.donut{ position:relative; width:140px; height:140px; flex:none; }
+.donut svg{ width:100%; height:100%; transform:rotate(-90deg); }
+.donut .center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.donut .center b{ font-family:'Space Grotesk',sans-serif; font-size:26px; line-height:1; }
+.donut .center small{ font-size:11px; color:var(--ink-faint); margin-top:3px; }
+.legend{ display:flex; flex-direction:column; gap:9px; font-size:13px; }
+.legend div{ display:flex; align-items:center; gap:9px; color:var(--ink-dim); }
+.legend i{ width:10px; height:10px; border-radius:50%; flex:none; }
+.legend b{ color:var(--ink); margin-left:auto; padding-left:14px; font-variant-numeric:tabular-nums; }
+.bars{ display:flex; flex-direction:column; gap:11px; }
+.bar-row{ display:grid; grid-template-columns:110px 1fr 34px; align-items:center; gap:12px; font-size:13px; }
+.bar-row .nm{ color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bar-row .tr{ height:10px; border-radius:10px; background:rgba(70,50,35,.09); overflow:hidden; }
+.bar-row .tr i{ display:block; height:100%; border-radius:10px; background:linear-gradient(90deg,#e0805f,#cf5a3c); }
+.bar-row .ct{ text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
+.glass-empty{ color:var(--ink-faint); font-size:13px; }
+
+/* abas originais somem (viram barra inferior) */
+.view-tabs{ display:none !important; }
+
+/* toolbar */
+.toolbar{ margin-top:20px; padding:10px; border:1px solid rgba(255,255,255,.7); border-radius:20px; background:rgba(255,255,255,.4); box-shadow:var(--glass-shadow); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur); }
+.toolbar input[type=text], .toolbar select{
+  background:rgba(255,255,255,.65); border:1px solid rgba(255,255,255,.9); border-radius:999px; padding:10px 16px; color:var(--ink);
+  font-family:'Inter',sans-serif;
+}
+.toolbar select{ font-family:'Inter',sans-serif; }
+.toolbar input[type=text]{ flex:2 1 300px; min-width:260px; }
+.btn{
+  font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:.2px; text-transform:none;
+  border-radius:999px; padding:10px 18px; border:1px solid rgba(255,255,255,.9); background:rgba(255,255,255,.55); color:var(--ink);
+}
+.btn:hover{ background:#fff; color:var(--ink); }
+.btn.primary{ background:#211d1a; border-color:#211d1a; color:#fff; box-shadow:0 6px 16px rgba(33,29,26,.28); }
+.btn.primary:hover{ background:#3a342f; color:#fff; }
+.btn.ghost{ color:var(--ink-dim); }
+.btn.danger{ color:var(--bad); border-color:rgba(210,63,63,.5); background:rgba(255,255,255,.5); }
+.btn.danger:hover{ background:var(--bad); color:#fff; }
+
+/* tabela */
+.table-wrap{ border:1px solid rgba(255,255,255,.75); border-radius:22px; background:rgba(255,255,255,.4); box-shadow:var(--glass-shadow); }
+thead th{ background:rgba(255,255,255,.55); font-family:'Inter',sans-serif; font-weight:600; letter-spacing:.4px; color:var(--ink-faint); }
+tbody tr{ border-bottom:1px solid rgba(70,50,35,.07); }
+tbody tr:hover{ background:rgba(255,255,255,.55); }
+td.car, .deadline-pill, .progress-mini span, .situacao-cell, td.processado{ font-family:'Inter',sans-serif; }
+.progress-track{ background:rgba(70,50,35,.1); }
+.pdf-icon:hover{ background:rgba(255,255,255,.85); box-shadow:0 2px 8px rgba(80,55,35,.15); }
+tr.group-header td{ background:rgba(207,90,60,.08); border-top:1px solid rgba(255,255,255,.8); }
+.detail-row td{ background:rgba(255,255,255,.5); }
+.status-block{ border:1px solid rgba(255,255,255,.85); background:rgba(255,255,255,.55); border-radius:14px; }
+.status-block textarea.pend-text, textarea.text-popup-textarea{ background:rgba(255,255,255,.75); border:1px solid rgba(70,50,35,.1); }
+.ds-wide .ds-value{ background:rgba(255,255,255,.6); border-radius:10px; }
+.panel-badge{ border-radius:999px; }
+.archive-btn{ border-radius:999px; background:rgba(255,255,255,.5); }
+.archive-btn:hover{ color:#fff; }
+.reopen-btn{ border-radius:999px; background:rgba(255,255,255,.5); }
+.pend-expand-btn{ background:rgba(255,255,255,.6); }
+
+/* modais */
+.modal-overlay{ background:rgba(60,42,30,.32); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+.modal{ background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.9); border-radius:26px; box-shadow:0 24px 70px rgba(60,40,25,.25); }
+.modal h2{ text-transform:none; letter-spacing:0; font-size:19px; }
+.field input, .field textarea, .field select, .login-fields input{ background:rgba(255,255,255,.8); border:1px solid rgba(70,50,35,.14); border-radius:12px; color:var(--ink); }
+.field select option{ background:#fff; color:#241e19; }
+.field label, .login-fields label{ font-family:'Inter',sans-serif; letter-spacing:.3px; text-transform:none; font-size:12px; font-weight:600; }
+.modal-section-title{ font-family:'Inter',sans-serif; text-transform:none; letter-spacing:0; font-size:13px; font-weight:700; }
+.user-row{ background:rgba(255,255,255,.6); border-radius:14px; }
+.empty-row td{ font-family:'Inter',sans-serif; }
+
+/* ---------- barra lateral flutuante ---------- */
+.glass-side{
+  position:fixed; left:20px; top:50%; transform:translateY(-50%); z-index:40;
+  display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 8px;
+  border:1px solid rgba(255,255,255,.8); border-radius:999px; background:rgba(255,255,255,.45);
+  box-shadow:var(--glass-shadow); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+}
+.glass-side .sb{
+  position:relative; width:40px; height:40px; border-radius:50%; border:none; background:transparent; color:var(--ink-dim);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .15s, color .15s, transform .15s;
+}
+.glass-side .sb:hover{ background:rgba(255,255,255,.85); color:var(--ink); transform:scale(1.06); }
+.glass-side .sb.on{ background:#fff; color:var(--ink); box-shadow:0 3px 10px rgba(80,55,35,.2); }
+.glass-side .sb svg{ width:19px; height:19px; }
+.glass-side .sep{ width:22px; height:1px; background:rgba(70,50,35,.14); margin:3px 0; }
+.glass-side .sb::after{
+  content:attr(data-tip); position:absolute; left:calc(100% + 12px); top:50%; transform:translateY(-50%);
+  background:#fff; color:var(--ink); font:600 11.5px 'Inter',sans-serif; padding:5px 10px; border-radius:8px; white-space:nowrap;
+  box-shadow:0 4px 14px rgba(60,40,25,.18); opacity:0; pointer-events:none; transition:opacity .12s;
+}
+.glass-side .sb:hover::after{ opacity:1; }
+
+/* ---------- barra inferior em pílula ---------- */
+.glass-bottom{
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:40;
+  display:flex; align-items:center; gap:4px; padding:7px 8px 7px 10px;
+  border:1px solid rgba(255,255,255,.85); border-radius:999px; background:rgba(255,255,255,.5);
+  box-shadow:var(--glass-shadow); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+}
+.glass-bottom .bt{
+  border:none; background:transparent; color:var(--ink-dim); font:500 13px 'Inter',sans-serif;
+  padding:9px 18px; border-radius:999px; cursor:pointer; white-space:nowrap; transition:background .15s,color .15s;
+}
+.glass-bottom .bt:hover{ color:var(--ink); background:rgba(255,255,255,.55); }
+.glass-bottom .bt.on{ background:#fff; color:var(--ink); font-weight:700; box-shadow:0 3px 10px rgba(80,55,35,.18); }
+.glass-bottom .bt-sep{ width:1px; height:20px; background:rgba(70,50,35,.16); margin:0 6px; }
+.glass-bottom .bt-add{ width:38px; height:38px; padding:0; font-size:22px; line-height:1; background:#211d1a; color:#fff; font-weight:400; margin-left:4px; box-shadow:0 5px 14px rgba(33,29,26,.3); }
+.glass-bottom .bt-add:hover{ background:#3a342f; color:#fff; }
+
+@media (max-width:980px){
+  .glass-charts{ grid-template-columns:1fr; }
+}
+@media (max-width:820px){
+  body{ padding:14px 12px 120px 12px; }
+  .glass-side{ display:none; }
+  .glass-bottom{ max-width:calc(100vw - 16px); overflow-x:auto; }
+  .glass-bottom .bt{ padding:9px 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="modal-overlay" id="loginOverlay">
+  <div class="modal login-modal">
+    <h2 id="loginTitle">Painel de Pendências</h2>
+    <div class="text-popup-subtitle">SIMCAR / SEMA-MT / INCRA-SIGEF — acesso restrito</div>
+    <div class="login-fields">
+      <label>E-mail<input type="email" id="loginEmail" autocomplete="username" placeholder="seuemail@exemplo.com"></label>
+      <label>Senha<input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••"></label>
+      <label id="loginPasswordConfirmWrap" class="hidden">Confirmar senha<input type="password" id="loginPasswordConfirm" autocomplete="new-password" placeholder="••••••••"></label>
+    </div>
+    <div id="loginError" class="login-error hidden"></div>
+    <div class="login-toggle-row">
+      <button type="button" class="link-btn" id="loginToggleMode">Ainda não tenho conta — quero me cadastrar</button>
+    </div>
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="btn primary" id="loginBtn">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="pendingOverlay">
+  <div class="modal login-modal">
+    <h2>Cadastro em análise</h2>
+    <div class="text-popup-subtitle">SIMCAR / SEMA-MT / INCRA-SIGEF</div>
+    <p class="pending-msg">Sua conta (<span id="pendingEmail"></span>) foi criada e está aguardando aprovação do administrador. Assim que for aprovado, é só entrar novamente com o mesmo e-mail e senha.</p>
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="btn ghost" id="pendingLogoutBtn">Sair</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="usersOverlay">
+  <div class="modal users-modal">
+    <button class="close-x" id="closeUsersOverlay">✕</button>
+    <h2>Usuários do painel</h2>
+    <div class="text-popup-subtitle">Aprove, bloqueie ou promova contas cadastradas</div>
+    <div id="usersList" class="users-list"></div>
+  </div>
+</div>
+
+<div class="sheet" id="appSheet" style="display:none;">
+
+  <header class="titleblock">
+    <div>
+      <h1><svg class="title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="16" y="40" width="112" height="110" rx="6"/><path d="M40 108 L62 130 L156 44"/><rect x="185" y="40" width="310" height="110" rx="6"/><path d="M216 71 H462 M216 95 H462 M216 119 H368" stroke-width="14"/><rect x="16" y="200" width="112" height="110" rx="6"/><path d="M40 268 L62 290 L156 204"/><rect x="185" y="200" width="310" height="110" rx="6"/><path d="M216 231 H462 M216 255 H462 M216 279 H368" stroke-width="14"/><rect x="16" y="360" width="112" height="110" rx="6"/><path d="M40 428 L62 450 L156 364"/><rect x="185" y="360" width="310" height="110" rx="6"/><path d="M216 391 H462 M216 415 H462 M216 439 H368" stroke-width="14"/></svg><b id="panelTitle" style="font:inherit">Painel SIMCAR</b><small class="app-version">v1.0.0</small><span id="panelSub">SIMCAR &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; INCRA-SIGEF</span></h1>
+    </div>
+    <div class="titleblock-grid">
+      <div><label>Projeto</label><span>Map GEO</span></div>
+      <div><label>Registros</label><span id="tbTotal">0</span></div>
+      <div><label>Atualizado</label><span id="tbUpdated">—</span></div>
+      <div><label>Servidor</label><span id="syncStatus" class="sync-status">Conectando…</span></div>
+      <div><label>Conta</label><span><button class="btn ghost small hidden" id="adminUsersBtn" type="button">Usuários</button><button class="btn ghost small" id="logoutBtn" type="button">Sair</button></span></div>
+    </div>
+  </header>
+
+  <div class="view-tabs panel-tabs">
+    <button class="tab-btn active" id="panelTabSimcar" data-panel="simcar">Painel SIMCAR</button>
+    <button class="tab-btn" id="panelTabSimlam" data-panel="simlam">Painel SIMLAM</button>
+  </div>
+
+  <section class="dashboard">
+    <div class="card total"><div class="num" id="cardTotal">0</div><div class="lbl">Processos ativos</div></div>
+    <div class="card overdue"><div class="num" id="cardOverdue">0</div><div class="lbl">Prazo vencido</div></div>
+    <div class="card soon"><div class="num" id="cardSoon">0</div><div class="lbl">Vence em 7 dias</div></div>
+    <div class="card ok"><div class="num" id="cardOk">0</div><div class="lbl" id="cardOkLbl">100% sem objeção</div></div>
+  </section>
+
+  <section class="glass-charts" id="glassCharts">
+    <div class="glass-panel">
+      <h3>Situação dos prazos</h3>
+      <div class="donut-wrap">
+        <div class="donut"><svg viewBox="0 0 42 42" id="donutSvg"></svg><div class="center"><b id="donutTotal">0</b><small>ativos</small></div></div>
+        <div class="legend" id="donutLegend"></div>
+      </div>
+    </div>
+    <div class="glass-panel">
+      <h3>Processos ativos por analista</h3>
+      <div class="bars" id="analystBars"></div>
+    </div>
+  </section>
+
+  <div class="view-tabs">
+    <button class="tab-btn active" id="tabAtivos" data-mode="ativos">Processos Ativos</button>
+    <button class="tab-btn" id="tabHistorico" data-mode="historico">Histórico <span id="historicoCount" class="tab-count"></span></button>
+  </div>
+
+  <section class="toolbar">
+    <input type="text" id="searchInput" placeholder="Buscar em SIMCAR e SIMLAM (inclui arquivados)…" title="Busca nos dois painéis (SIMCAR e SIMLAM) por propriedade, proprietário, analista, CAR/nº do PD ou objetivo, incluindo os arquivados">
+    <select id="filterStatus">
+      <option value="todos">Todos os prazos</option>
+      <option value="vencido">Vencidos</option>
+      <option value="proximo">Próximos 7 dias</option>
+      <option value="ok">Dentro do prazo</option>
+    </select>
+    <select id="sortBy">
+      <option value="prazo">Ordenar: prazo mais próximo</option>
+      <option value="propriedade">Ordenar: propriedade (A–Z)</option>
+      <option value="pendencias">Ordenar: mais objeções primeiro</option>
+    </select>
+    <button class="btn ghost" id="exportBtn">Exportar CSV</button>
+    <button class="btn ghost" id="backupExportBtn" title="Gera um arquivo .json com todos os processos e PDFs anexados — leve-o junto ao mover este HTML">Backup completo (.json)</button>
+    <input type="file" id="backupImportInput" accept="application/json" style="display:none">
+    <button class="btn ghost" id="backupImportBtn">Importar backup</button>
+    <button class="btn ghost" id="autoBackupBtn" title="Escolha um arquivo local uma vez — o app salva nele sozinho a cada alteração">Ativar backup automático</button>
+    <button class="btn primary" id="addBtn">+ Novo processo</button>
+  </section>
+  <div id="autoBackupStatus" class="auto-backup-status"></div>
+
+  <section class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th title="Marca processos com pelo menos um bloco 'Não Aprovado'" class="col-flag">Alerta</th>
+          <th title="PDF anexado" class="col-pdf"></th>
+          <th title="100% concluído" class="col-complete"></th>
+          <th id="thProp">Propriedade</th>
+          <th id="thProc">CAR Estadual</th>
+          <th id="thPrazo">Prazo para envio</th>
+          <th id="thProg">Progresso da análise</th>
+          <th id="thProcessado">Processado por</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </section>
+
+</div>
+
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <button class="close-x" id="closeModal">✕</button>
+    <h2 id="modalTitle">Novo processo</h2>
+    <input type="hidden" id="editId">
+
+    <div class="field">
+      <label id="lblPropriedade">Propriedade</label>
+      <input type="text" id="fPropriedade" placeholder="Ex: Fazenda Santa Catarina">
+    </div>
+    <div class="field">
+      <label>Proprietário</label>
+      <input type="text" id="fProprietario" placeholder="Ex: João da Silva">
+    </div>
+    <div class="field">
+      <label>Analista responsável</label>
+      <input type="text" id="fAnalista" placeholder="Ex: Fagner">
+    </div>
+    <div class="field-row">
+      <div class="field" id="fieldCar">
+        <label id="lblProc">CAR Estadual</label>
+        <input type="text" id="fCar" placeholder="Ex: MT24603/2018">
+      </div>
+      <div class="field" id="fieldProcessado">
+        <label id="lblProcessado">Processado no SIMCAR (quem mexeu nas geometrias)</label>
+        <input type="text" id="fProcessado" placeholder="Ex: Brunno">
+        <select id="fTipoSimlam" style="display:none"><option value="">*** Selecione ***</option><option value="Autorização para Limpeza e Reforma">Autorização para Limpeza e Reforma</option><option value="Desoneração de Reserva Legal">Desoneração de Reserva Legal</option><option value="Dinâmica de Desmate">Dinâmica de Desmate</option><option value="Licenciamento">Licenciamento</option><option value="Manejo">Manejo</option><option value="Piscicultura">Piscicultura</option><option value="Plano de Exploracao Florestal">Plano de Exploracao Florestal</option><option value="Queima Controlada">Queima Controlada</option></select>
+      </div>
+    </div>
+    <div class="field" id="andamentoField" style="display:none">
+      <label>Situação do PD — em que pé de desenvolvimento está</label>
+      <textarea id="fAndamento" placeholder="Descreva a situação do PD e o que já foi feito até o momento (etapas concluídas, datas, protocolos, pendências…)" style="min-height:110px"></textarea>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Data da análise</label>
+        <input type="date" id="fDataAnalise">
+      </div>
+      <div class="field">
+        <label id="lblDataFinal">Data final para envio</label>
+        <input type="date" id="fDataFinal">
+      </div>
+    </div>
+    <div class="deadline-helper" id="deadlineHelper">
+      <button type="button" class="btn ghost small" id="calcDeadlineBtn">Calcular prazo (análise + 90 dias)</button>
+      <label><input type="checkbox" id="fProrrogacao"> Prorrogação de 30 dias solicitada junto à SEMA-MT</label>
+    </div>
+    <div class="field">
+      <label>Observações</label>
+      <textarea id="fObs" placeholder="Notas sobre o processo…"></textarea>
+    </div>
+    <div class="field">
+      <label id="lblPdf">PDF da análise (parecer técnico)</label>
+      <div class="pdf-attach-row">
+        <input type="file" id="fPdfInput" accept="application/pdf" style="display:none">
+        <button type="button" class="btn ghost small" id="pdfChooseBtn">Escolher arquivo…</button>
+        <span id="pdfFileLabel" class="pdf-file-label">Nenhum PDF anexado</span>
+        <button type="button" class="btn danger small hidden" id="pdfRemoveBtn">Remover</button>
+      </div>
+    </div>
+    <div class="field" id="mapaField" style="display:none">
+      <label>Mapa temático (PDF)</label>
+      <div class="pdf-attach-row">
+        <input type="file" id="fMapaInput" accept="application/pdf" style="display:none">
+        <button type="button" class="btn ghost small" id="mapaChooseBtn">Escolher arquivo…</button>
+        <span id="mapaFileLabel" class="pdf-file-label">Nenhum mapa anexado</span>
+        <button type="button" class="btn danger small hidden" id="mapaRemoveBtn">Remover</button>
+      </div>
+    </div>
+
+    <div class="modal-section-title" id="statusSectionTitle">Resultado da análise — clique para alternar</div>
+    <div class="status-list" id="statusGrid"></div>
+
+    <div class="modal-actions">
+      <button class="btn danger hidden" id="deleteBtn">Excluir processo</button>
+      <div class="right">
+        <button class="btn ghost" id="cancelBtn">Cancelar</button>
+        <button class="btn primary" id="saveBtn">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="textPopupOverlay">
+  <div class="modal text-popup-modal">
+    <button class="close-x" id="closeTextPopup">✕</button>
+    <h2 id="textPopupTitle">Descrição da pendência</h2>
+    <div class="text-popup-subtitle" id="textPopupSubtitle"></div>
+    <textarea id="textPopupArea" class="text-popup-textarea" placeholder="Descrição da pendência…"></textarea>
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="btn primary" id="textPopupCloseBtn">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+/* ---------- Firebase (dados compartilhados entre todos os usuários do painel) ---------- */
+const APP_VERSION = "1.0.0";
+const firebaseConfig = {
+  apiKey: "AIzaSyCb-TUsJ3T274JvvG8YA35Jq5K__mtSUS0",
+  authDomain: "painel-pendencias-simcar.firebaseapp.com",
+  projectId: "painel-pendencias-simcar",
+  storageBucket: "painel-pendencias-simcar.firebasestorage.app",
+  messagingSenderId: "1030591360254",
+  appId: "1:1030591360254:web:0ddc57bd89a8146521c9af"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+fbAuth.languageCode = 'pt-BR';
+const fbDb = firebase.firestore();
+let RECORDS_COL = 'pendencias';
+let RECORDS_IDB_KEY = 'records';
+let recordsUnsub = null;
+let firestoreOnline = true; // becomes false after a failed write, shown in the UI
+
+/* ---------- Login gate (Firebase Authentication — cadastro + aprovação do administrador) ---------- */
+const USERS_COL = 'usuarios';
+let loginMode = 'login'; // 'login' | 'signup'
+let currentProfile = null; // {email, status, role} of the signed-in user
+
+function showOverlay(id){
+  ['loginOverlay','pendingOverlay'].forEach(o => document.getElementById(o).classList.toggle('hidden', o !== id));
+  document.getElementById('appSheet').style.display = id ? 'none' : '';
+}
+
+function setLoginMode(mode){
+  loginMode = mode;
+  const confirmWrap = document.getElementById('loginPasswordConfirmWrap');
+  const toggleBtn = document.getElementById('loginToggleMode');
+  const title = document.getElementById('loginTitle');
+  const loginBtn = document.getElementById('loginBtn');
+  document.getElementById('loginError').classList.add('hidden');
+  if(mode === 'signup'){
+    confirmWrap.classList.remove('hidden');
+    toggleBtn.textContent = 'Já tenho conta — quero entrar';
+    title.textContent = 'Criar conta';
+    loginBtn.textContent = 'Cadastrar';
+  } else {
+    confirmWrap.classList.add('hidden');
+    toggleBtn.textContent = 'Ainda não tenho conta — quero me cadastrar';
+    title.textContent = 'Painel de Pendências';
+    loginBtn.textContent = 'Entrar';
+  }
+}
+document.getElementById('loginToggleMode').addEventListener('click', () => {
+  setLoginMode(loginMode === 'login' ? 'signup' : 'login');
+});
+
+/* Traduz mensagens de erro do Firebase (Firestore/Auth) para português */
+const FB_ERROR_PT = {
+  'permission-denied': 'Sem permissão para esta operação (verifique se seu cadastro foi aprovado e se as regras do Firestore foram publicadas).',
+  'unavailable': 'Servidor indisponível ou sem internet.',
+  'unauthenticated': 'Você precisa entrar novamente.',
+  'not-found': 'Item não encontrado no servidor.',
+  'already-exists': 'Este item já existe.',
+  'resource-exhausted': 'Cota gratuita do Firebase esgotada por hoje. Tente novamente amanhã.',
+  'deadline-exceeded': 'O servidor demorou demais para responder.',
+  'failed-precondition': 'Operação não permitida no estado atual.',
+  'cancelled': 'Operação cancelada.',
+  'invalid-argument': 'Dados inválidos.',
+  'aborted': 'Operação interrompida. Tente novamente.',
+  'network-request-failed': 'Falha de conexão com a internet.',
+  'too-many-requests': 'Muitas tentativas. Aguarde um pouco e tente novamente.'
+};
+function fbErro(e){
+  const code = String((e && e.code) || '').replace(/^(auth|firestore)\//, '');
+  if(FB_ERROR_PT[code]) return FB_ERROR_PT[code];
+  if(typeof AUTH_ERROR_MAP !== 'undefined' && AUTH_ERROR_MAP[e && e.code]) return AUTH_ERROR_MAP[e.code];
+  return (e && e.message) || 'erro desconhecido';
+}
+const AUTH_ERROR_MAP = {
+  'auth/invalid-credential':'E-mail ou senha incorretos.',
+  'auth/invalid-email':'E-mail inválido.',
+  'auth/user-not-found':'E-mail ou senha incorretos.',
+  'auth/wrong-password':'E-mail ou senha incorretos.',
+  'auth/too-many-requests':'Muitas tentativas — aguarde um pouco e tente novamente.',
+  'auth/email-already-in-use':'Já existe uma conta com esse e-mail — tente entrar em vez de cadastrar.',
+  'auth/weak-password':'Senha muito curta — use pelo menos 6 caracteres.',
+};
+
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const confirmPw = document.getElementById('loginPasswordConfirm').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  errEl.classList.add('hidden');
+
+  if(!email || !password){ errEl.textContent = 'Informe e-mail e senha.'; errEl.classList.remove('hidden'); return; }
+  if(loginMode === 'signup' && password !== confirmPw){ errEl.textContent = 'As senhas não coincidem.'; errEl.classList.remove('hidden'); return; }
+
+  btn.disabled = true; btn.textContent = loginMode === 'signup' ? 'Cadastrando…' : 'Entrando…';
+  try{
+    if(loginMode === 'signup'){
+      const cred = await fbAuth.createUserWithEmailAndPassword(email, password);
+      await fbDb.collection(USERS_COL).doc(cred.user.uid).set({
+        email, status: 'pendente', role: 'membro',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      // onAuthStateChanged below picks this up and shows the "aguardando aprovação" screen
+    } else {
+      await fbAuth.signInWithEmailAndPassword(email, password);
+      // onAuthStateChanged below reveals the app (or the pending screen) once sign-in succeeds
+    }
+  }catch(e){
+    errEl.textContent = AUTH_ERROR_MAP[e.code] || ('Não foi possível continuar: ' + fbErro(e));
+    errEl.classList.remove('hidden');
+  }finally{
+    btn.disabled = false; btn.textContent = loginMode === 'signup' ? 'Cadastrar' : 'Entrar';
+  }
+}
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('loginPassword').addEventListener('keydown', (e) => { if(e.key === 'Enter') doLogin(); });
+document.getElementById('loginPasswordConfirm').addEventListener('keydown', (e) => { if(e.key === 'Enter') doLogin(); });
+document.getElementById('loginEmail').addEventListener('keydown', (e) => { if(e.key === 'Enter') document.getElementById('loginPassword').focus(); });
+async function doLogout(){
+  try{ await saveRecordsToDB([]); }catch(e){ /* non-fatal */ }
+  records = [];
+  await fbAuth.signOut();
+}
+document.getElementById('pendingLogoutBtn').addEventListener('click', doLogout);
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+
+let appStarted = false;
+let profileUnsub = null;
+
+fbAuth.onAuthStateChanged((user) => {
+  if(profileUnsub){ profileUnsub(); profileUnsub = null; }
+  if(!user){
+    currentProfile = null;
+    appStarted = false;
+    setLoginMode('login');
+    showOverlay('loginOverlay');
+    return;
+  }
+
+  // Live-watch this user's own profile doc, so an approval by the admin unlocks
+  // the screen immediately without the person needing to log in again.
+  profileUnsub = fbDb.collection(USERS_COL).doc(user.uid).onSnapshot(async (snap) => {
+    if(!snap.exists){
+      // Shouldn't normally happen (the signup flow always creates this doc), but recover gracefully.
+      try{
+        await fbDb.collection(USERS_COL).doc(user.uid).set({
+          email: user.email, status: 'pendente', role: 'membro',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }catch(e){ console.error('Falha ao criar perfil do usuário', e); }
+      return;
+    }
+    currentProfile = snap.data();
+    if(currentProfile.status === 'aprovado'){
+      showOverlay(null);
+      document.getElementById('adminUsersBtn').classList.toggle('hidden', currentProfile.role !== 'admin');
+      if(!appStarted){
+        appStarted = true;
+        await load();
+        render();
+        initAutoBackup();
+      }
+    } else {
+      document.getElementById('pendingEmail').textContent = currentProfile.email || user.email || '';
+      showOverlay('pendingOverlay');
+    }
+  }, (err) => {
+    console.error('Falha ao ler perfil do usuário', err);
+  });
+});
+
+/* ---------- Painel de administração de usuários (visível só para quem tem role: 'admin') ---------- */
+function userRowActions(uid, data){
+  const actions = [];
+  if(data.status !== 'aprovado') actions.push(`<button class="btn primary small" data-act="aprovar" data-uid="${uid}">Aprovar</button>`);
+  if(data.status !== 'recusado') actions.push(`<button class="btn danger small" data-act="recusar" data-uid="${uid}">Recusar</button>`);
+  if(data.status === 'aprovado' && data.role !== 'admin') actions.push(`<button class="btn ghost small" data-act="bloquear" data-uid="${uid}">Bloquear</button>`);
+  if(data.role !== 'admin') actions.push(`<button class="btn ghost small" data-act="promover" data-uid="${uid}">Tornar admin</button>`);
+  return actions.join('');
+}
+function renderUsersList(docs){
+  const el = document.getElementById('usersList');
+  if(docs.length === 0){ el.innerHTML = '<p class="pending-msg">Nenhum usuário cadastrado ainda.</p>'; return; }
+  el.innerHTML = docs.map(({id, data}) => `
+    <div class="user-row">
+      <div>
+        <div class="user-email">${escapeHtml(data.email || id)}${data.role === 'admin' ? '<span class="user-badge admin">Admin</span>' : ''}</div>
+        <div class="user-meta"><span class="user-badge ${data.status}">${data.status}</span></div>
+      </div>
+      <div class="user-actions">${userRowActions(id, data)}</div>
+    </div>
+  `).join('');
+  el.querySelectorAll('button[data-act]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid = btn.dataset.uid;
+      const act = btn.dataset.act;
+      const patch = act === 'aprovar' ? {status:'aprovado'}
+        : act === 'recusar' ? {status:'recusado'}
+        : act === 'bloquear' ? {status:'recusado'}
+        : act === 'promover' ? {role:'admin', status:'aprovado'}
+        : null;
+      if(!patch) return;
+      btn.disabled = true;
+      try{ await fbDb.collection(USERS_COL).doc(uid).update(patch); }
+      catch(e){ alert('Não foi possível atualizar este usuário: ' + fbErro(e)); }
+    });
+  });
+}
+let usersUnsub = null;
+document.getElementById('adminUsersBtn').addEventListener('click', () => {
+  document.getElementById('usersOverlay').classList.remove('hidden');
+  if(!usersUnsub){
+    usersUnsub = fbDb.collection(USERS_COL).orderBy('email').onSnapshot(snap => {
+      renderUsersList(snap.docs.map(d => ({id: d.id, data: d.data()})));
+    }, err => { console.error('Falha ao listar usuários', err); document.getElementById('usersList').innerHTML = '<p class="pending-msg">Não foi possível carregar a lista de usuários.</p>'; });
+  }
+});
+document.getElementById('closeUsersOverlay').addEventListener('click', () => {
+  document.getElementById('usersOverlay').classList.add('hidden');
+});
+
+function recDocRef(id){ return fbDb.collection(RECORDS_COL).doc(id); }
+
+function setSyncStatus(ok, msg){
+  firestoreOnline = ok;
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'sync-status ' + (ok ? 'sync-ok' : 'sync-bad');
+}
+
+async function pushRecordToFirestore(rec){
+  const clean = JSON.parse(JSON.stringify(rec));
+  await recDocRef(rec.id).set(clean);
+}
+async function deleteRecordFromFirestore(id){
+  await recDocRef(id).delete();
+}
+
+const STORAGE_KEY = 'simcar_pendencias_v1'; // legacy localStorage key — read once for migration, then unused
+
+/* ---------- IndexedDB (records + PDFs + settings — much larger quota than localStorage, works reliably on file:// pages) ---------- */
+const PDF_DB_NAME = 'simcar_pdfs_db';
+const PDF_STORE = 'pdfs';
+const META_STORE = 'meta';
+const APP_STORE = 'app_data';
+function openPdfDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PDF_DB_NAME, 3);
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if(!settled){ settled = true; reject(new Error('Tempo esgotado ao abrir o armazenamento local — feche outras abas deste arquivo e tente novamente.')); }
+    }, 3000);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(PDF_STORE)) db.createObjectStore(PDF_STORE);
+      if(!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE);
+      if(!db.objectStoreNames.contains(APP_STORE)) db.createObjectStore(APP_STORE);
+    };
+    req.onblocked = () => {
+      if(!settled){ settled = true; clearTimeout(timeout); reject(new Error('Armazenamento local bloqueado por outra aba aberta deste arquivo. Feche as outras abas e tente novamente.')); }
+    };
+    req.onsuccess = () => { if(!settled){ settled = true; clearTimeout(timeout); resolve(req.result); } };
+    req.onerror = () => { if(!settled){ settled = true; clearTimeout(timeout); reject(req.error); } };
+  });
+}
+async function saveRecordsToDB(recs){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(APP_STORE, 'readwrite');
+    tx.objectStore(APP_STORE).put(recs, RECORDS_IDB_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function loadRecordsFromDB(key){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(APP_STORE, 'readonly');
+    const req = tx.objectStore(APP_STORE).get(key || RECORDS_IDB_KEY);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function savePdfBlobLocal(id, file){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE, 'readwrite');
+    tx.objectStore(PDF_STORE).put(file, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getPdfBlobLocal(id){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE, 'readonly');
+    const req = tx.objectStore(PDF_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deletePdfBlobLocal(id){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PDF_STORE, 'readwrite');
+    tx.objectStore(PDF_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ---------- PDF anexos: cache local (rápido) + Firestore em pedaços base64 (compartilhado entre usuários) ----------
+   Cada PDF é cortado em pedaços de 525 KB (-> ~700 KB em base64) guardados em pendencias/{id}/pdfChunks/{n},
+   porque um documento do Firestore aceita no máximo 1 MiB. Plano gratuito: 1 GiB de armazenamento. */
+const PDF_RAW_CHUNK = 525000;            // múltiplo de 3 => base64 sem padding no meio
+const PDF_MAX_BYTES = 8 * 1024 * 1024;   // limite por PDF para não estourar a cota gratuita
+const pdfLocalKey = (id, kind) => kind === 'mapa' ? id + '::mapa' : id;
+function pdfChunksCol(id, col, kind){ return fbDb.collection(col || RECORDS_COL).doc(id).collection(kind === 'mapa' ? 'pdfChunksMapa' : 'pdfChunks'); }
+function blobSliceToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+async function deletePdfChunksRemote(id, kind){
+  const snap = await pdfChunksCol(id, undefined, kind).get();
+  for(const d of snap.docs){ await d.ref.delete(); }
+}
+async function savePdfBlob(id, file, kind){
+  try{ await savePdfBlobLocal(pdfLocalKey(id, kind), file); }catch(e){ console.error('Falha ao salvar PDF localmente', e); throw e; }
+  if(file.size > PDF_MAX_BYTES){
+    alert('Este PDF tem ' + (file.size/1048576).toFixed(1) + ' MB e passa do limite de ' + (PDF_MAX_BYTES/1048576) + ' MB para compartilhamento. Ele ficou salvo só neste dispositivo.');
+    return;
+  }
+  try{
+    await deletePdfChunksRemote(id, kind); // remove versão anterior, se houver
+    const total = Math.ceil(file.size / PDF_RAW_CHUNK);
+    for(let i = 0; i < total; i++){
+      const data = await blobSliceToBase64(file.slice(i * PDF_RAW_CHUNK, (i + 1) * PDF_RAW_CHUNK));
+      await pdfChunksCol(id, undefined, kind).doc(String(i).padStart(4, '0')).set({ i, total, data });
+    }
+  }catch(e){
+    console.warn('PDF salvo apenas localmente (envio ao servidor falhou):', e.message);
+    alert('O PDF foi salvo neste dispositivo, mas não foi enviado ao servidor (' + fbErro(e) + '). Outros usuários não o verão.');
+  }
+}
+async function getPdfBlob(id, col, kind){
+  try{
+    const local = await getPdfBlobLocal(pdfLocalKey(id, kind));
+    if(local) return local;
+  }catch(e){ /* fall through to remote */ }
+  try{
+    const snap = await pdfChunksCol(id, col, kind).orderBy('i').get();
+    if(snap.empty) return null;
+    const parts = snap.docs.map(d => {
+      const bin = atob(d.data().data);
+      const arr = new Uint8Array(bin.length);
+      for(let k = 0; k < bin.length; k++) arr[k] = bin.charCodeAt(k);
+      return arr;
+    });
+    const blob = new Blob(parts, {type: 'application/pdf'});
+    try{ await savePdfBlobLocal(pdfLocalKey(id, kind), blob); }catch(e){}
+    return blob;
+  }catch(e){ console.warn('Falha ao baixar PDF do servidor', e); }
+  return null;
+}
+async function deletePdfBlob(id, kind){
+  try{ await deletePdfBlobLocal(pdfLocalKey(id, kind)); }catch(e){ /* non-fatal */ }
+  try{ await deletePdfChunksRemote(id, kind); }catch(e){ /* may not exist remotely */ }
+}
+async function saveMeta(key, value){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getMeta(key){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readonly');
+    const req = tx.objectStore(META_STORE).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deleteMeta(key){
+  const db = await openPdfDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function openAttachedPdf(rec, kind){
+  if(!(kind === 'mapa' ? rec.mapaName : rec.pdfName)){ return; }
+  // Abre a aba já no clique (evita bloqueio de pop-up) e mostra "carregando" enquanto baixa do servidor.
+  const win = window.open('', '_blank');
+  if(win){
+    try{ win.document.write('<title>Carregando…</title><body style="font-family:sans-serif;background:#111;color:#ddd;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Carregando PDF… (na primeira vez pode demorar um pouco; depois fica salvo neste dispositivo)</body>'); }catch(e){}
+  }
+  try{
+    const blob = await getPdfBlob(rec.id, rec._panel ? PANELS[rec._panel].col : undefined, kind);
+    if(!blob){
+      if(win) win.close();
+      alert((kind === 'mapa' ? 'Mapa temático' : 'PDF') + ' não encontrado (nem neste dispositivo nem no servidor). Anexe-o novamente no processo.');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    if(win) win.location.href = url; else window.open(url, '_blank');
+  }catch(e){
+    if(win) win.close();
+    alert('Não foi possível abrir o PDF anexado.');
+  }
+}
+
+/* ---------- Full backup (records + attached PDFs embedded as base64) ---------- */
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result); // data:...;base64,....
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+async function buildBackupObject(){
+  const backup = { app: 'simcar-pendencias', panel: currentPanel, version: 1, exportedAt: new Date().toISOString(), records: [] };
+  for(const r of records){
+    const entry = JSON.parse(JSON.stringify(r));
+    if(r.pdfName){
+      try{
+        const blob = await getPdfBlob(r.id);
+        if(blob){ entry.pdfBase64 = await blobToBase64(blob); }
+      }catch(e){ /* skip PDF, keep record data */ }
+    }
+    if(r.mapaName){
+      try{
+        const mb = await getPdfBlob(r.id, undefined, 'mapa');
+        if(mb){ entry.mapaBase64 = await blobToBase64(mb); }
+      }catch(e){ /* skip mapa */ }
+    }
+    backup.records.push(entry);
+  }
+  return backup;
+}
+async function exportFullBackup(){
+  const backup = await buildBackupObject();
+  const json = JSON.stringify(backup);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${currentPanel}_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function importFullBackup(file){
+  let data;
+  try{ data = JSON.parse(await file.text()); }
+  catch(e){ alert('Arquivo de backup inválido — não é um JSON válido.'); return; }
+  if(!data || !Array.isArray(data.records)){ alert('Arquivo de backup inválido — formato não reconhecido.'); return; }
+  if((data.panel || 'simcar') !== currentPanel){ alert('Este backup é do painel ' + (data.panel || 'simcar').toUpperCase() + '. Abra a aba correspondente para importá-lo.'); return; }
+  if(!confirm(`Importar ${data.records.length} processo(s) deste backup?\n\nProcessos com o mesmo ID de um já existente serão substituídos; os demais serão adicionados à lista atual.`)) return;
+
+  for(const entry of data.records){
+    const { pdfBase64, mapaBase64, ...rec } = entry;
+    if(pdfBase64){
+      try{
+        const resp = await fetch(pdfBase64);
+        const blob = await resp.blob();
+        await savePdfBlob(rec.id, blob);
+      }catch(e){ /* keep going even if a PDF fails */ }
+    }
+    if(mapaBase64){
+      try{ const mr = await fetch(mapaBase64); await savePdfBlob(rec.id, await mr.blob(), 'mapa'); }catch(e){ /* keep going */ }
+    }
+    const idx = records.findIndex(r => r.id === rec.id);
+    if(idx >= 0){ records[idx] = rec; } else { records.push(rec); }
+  }
+  await save();
+  render();
+  alert('Backup importado com sucesso.');
+}
+
+/* ---------- Automatic backup to a chosen local file (File System Access API — Chrome/Edge) ---------- */
+let autoBackupHandle = null;
+let autoBackupTimer = null;
+
+async function initAutoBackup(){
+  const btn = document.getElementById('autoBackupBtn');
+  if(!window.showSaveFilePicker){
+    btn.textContent = 'Backup automático (requer Chrome/Edge)';
+    btn.disabled = true;
+    return;
+  }
+  try{
+    const handle = await getMeta('backupHandle');
+    if(handle){ autoBackupHandle = handle; }
+  }catch(e){ /* ignore */ }
+  await updateAutoBackupUI();
+}
+
+async function updateAutoBackupUI(){
+  const btn = document.getElementById('autoBackupBtn');
+  const status = document.getElementById('autoBackupStatus');
+  if(!window.showSaveFilePicker) return;
+  if(!autoBackupHandle){
+    btn.textContent = 'Ativar backup automático';
+    status.textContent = '';
+    return;
+  }
+  let perm = 'unknown';
+  try{ perm = await autoBackupHandle.queryPermission({mode:'readwrite'}); }catch(e){}
+  if(perm === 'granted'){
+    btn.textContent = '✓ Backup automático ativo — desativar';
+    status.textContent = `Arquivo: ${autoBackupHandle.name}`;
+  } else {
+    btn.textContent = '⚠ Reautorizar backup automático';
+    status.textContent = 'Permissão de escrita não confirmada — clique no botão';
+  }
+}
+
+async function writeAutoBackup(){
+  if(!autoBackupHandle) return;
+  if(currentPanel !== 'simcar') return; // o arquivo de backup automático é do Painel SIMCAR (evita sobrescrevê-lo com dados do SIMLAM)
+  try{
+    let perm = await autoBackupHandle.queryPermission({mode:'readwrite'});
+    if(perm !== 'granted') return; // don't prompt silently in the background
+    const backup = await buildBackupObject();
+    const writable = await autoBackupHandle.createWritable();
+    await writable.write(JSON.stringify(backup));
+    await writable.close();
+    const status = document.getElementById('autoBackupStatus');
+    if(status) status.textContent = `Arquivo: ${autoBackupHandle.name} · salvo às ${new Date().toLocaleTimeString('pt-BR')}`;
+  }catch(e){ console.error('Falha no backup automático', e); }
+}
+function scheduleAutoBackup(){
+  if(!autoBackupHandle) return;
+  clearTimeout(autoBackupTimer);
+  autoBackupTimer = setTimeout(writeAutoBackup, 2000);
+}
+
+const SIMCAR_FIELDS = [
+  {key:'objetivo', label:'Objetivo'},
+  {key:'propriedade', label:'Propriedade'},
+  {key:'interessado', label:'Interessado'},
+  {key:'respTecnico', label:'Resp. Técnico'},
+  {key:'dominialidade', label:'Dominialidade'},
+  {key:'justificativas', label:'Justificativas'},
+  {key:'limites', label:'Limites'},
+  {key:'servidao', label:'Servidão Adm.'},
+  {key:'cobertura', label:'Cobertura Solo'},
+  {key:'app', label:'APP/Uso Restrito'},
+  {key:'reservaLegal', label:'Reserva Legal'},
+];
+const SIMLAM_FIELDS = [];   // SIMLAM não usa blocos de análise
+let RESULT_FIELDS = SIMCAR_FIELDS;
+const STATUS_CYCLE = ['pendente','ok','atencao','objecao'];
+const STATUS_LABEL = {pendente:'Não Iniciado', ok:'Finalizado Aprovado', atencao:'Finalizada com Pendência', objecao:'Não Aprovado'};
+
+function emptyResults(){
+  const r = {};
+  RESULT_FIELDS.forEach(f => r[f.key] = {status:'pendente', texto:''});
+  return r;
+}
+function migrateResults(results, fields){
+  fields = Array.isArray(fields) ? fields : RESULT_FIELDS; // .map(normalizeRecord) passa o índice como 2º argumento
+  // Older records stored a plain status string per block; upgrade to {status, texto}
+  const out = {};
+  fields.forEach(f => {
+    const v = results ? results[f.key] : undefined;
+    if(v && typeof v === 'object'){ out[f.key] = {status: v.status || 'pendente', texto: v.texto || ''}; }
+    else { out[f.key] = {status: v || 'pendente', texto:''}; }
+  });
+  return out;
+}
+
+function seedData(){
+  const mk = (propriedade, car, dataFinal, results, processado) => ({
+    id: crypto.randomUUID(),
+    propriedade, car,
+    dataAnalise: '',
+    dataFinal,
+    processado: processado || '',
+    obs: '',
+    results: {...emptyResults(), ...results}
+  });
+  return [
+    mk('Estância Eco da Mata e Fazenda Sol Amarelo','MT17040/2017','2025-01-19',
+      {objetivo:'objecao', propriedade:'ok', interessado:'objecao', respTecnico:'ok', dominialidade:'ok', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'ok', app:'ok', reservaLegal:'ok'}, 'Brunno'),
+    mk('Fazenda São Pedro I, II e III','MT271793/2025','2026-08-26',
+      {objetivo:'ok', propriedade:'ok', interessado:'objecao', respTecnico:'ok', dominialidade:'ok', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'atencao', app:'ok', reservaLegal:'ok'}, 'Brunno'),
+    mk('Fazenda Borges - Área 02','MT17040/2017','2026-10-20',
+      {objetivo:'ok', propriedade:'ok', interessado:'ok', respTecnico:'ok', dominialidade:'objecao', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'ok', app:'ok', reservaLegal:'ok'}, ''),
+    mk('Fazenda Dona Lidia II','MT271793/2025','2026-10-25',
+      {objetivo:'ok', propriedade:'ok', interessado:'ok', respTecnico:'ok', dominialidade:'ok', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'atencao', app:'ok', reservaLegal:'ok'}, 'Brunno'),
+    mk('Fazenda Santa Catarina','MT24603/2018','2026-11-04',
+      {objetivo:'ok', propriedade:'ok', interessado:'objecao', respTecnico:'ok', dominialidade:'objecao', justificativas:'ok', limites:'objecao', servidao:'ok', cobertura:'objecao', app:'ok', reservaLegal:'pendente'}, ''),
+    (() => {
+      const r = mk('Fazenda Chão de Estrelas I','MT2821/2021', calcDeadline('2026-08-24', false),
+        {objetivo:'ok', propriedade:'ok', interessado:'ok', respTecnico:'ok', dominialidade:'atencao', justificativas:'ok', limites:'atencao', servidao:'ok', cobertura:'atencao', app:'atencao', reservaLegal:'atencao'}, '');
+      r.dataAnalise = '2026-08-24';
+      r.obs = 'Parecer SEMA 24/08/2026 (analista Suellen D. W. Cavalcante). Embargo SEMA nº 1095002325 / TAC nº 6903 incidente sobre o imóvel fracionado.';
+      r._pendTextos = {
+        dominialidade: 'Divergência de área acima de 5% entre a AIR vetorizada e a documentação das matrículas 1157, 1937 e 496. Corrigir vetorização ou apresentar certidão de georreferenciamento averbada (Art. 1.083, Provimento 42/2020-CGJ/MT).',
+        limites: 'Deslocamento acima de 25m em linha reta nos limites (coords. 11°15\'36.24"S/56°53\'42.76"W a 11°15\'35.65"S/56°53\'42.04"W e 11°15\'47.7"S/56°53\'33.34"W a 11°15\'47.2"S/56°53\'32.64"W). Mesma divergência de área >5% das matrículas reiterada aqui. Risco de suspensão por indeferimento se não houver manifestação (Art. 50, §2º, Decreto 1031/2017).',
+        cobertura: 'Áreas vetorizadas como Área Consolidada (AC) apresentam supressão de vegetação nativa após 22/07/2008 e devem ser reclassificadas como Área de Uso Antropizado do Solo (AUAS) — Art. 50, IN nº 05/2025. Constatado desmate/exploração seletiva com autuação/embargo SEMA-IBAMA (TAC nº 6903, processo 81072/2011; embargo SEMA nº 1095002325; SIMLAM nº 000182/2025).',
+        app: 'Hidrografias com deslocamento em relação à realidade do imóvel em múltiplos pontos; lagoas naturais vetorizadas incorretamente como reservatório artificial (Art. 34-A, Decreto 1.031/2017). Corrigir vetorização ou apresentar contestação conforme TR nº 002/CCRA/SRMA/GSAGA/SEMA-MT (Art. 24, IN nº 05/2025).',
+        reservaLegal: 'Análise prejudicada pelas pendências de hidrografia/limites (percentual mínimo e composição da ARL dependem da correção anterior). Sem RL averbada; imóvel enquadrado no Art. 67 da Lei 12.651/2012 (área < 4 módulos fiscais em 22/07/2008).',
+      };
+      return r;
+    })(),
+    mk('Fazenda Chão de Estrelas I PE','MT2821/2021','2026-11-22',
+      {objetivo:'ok', propriedade:'ok', interessado:'ok', respTecnico:'ok', dominialidade:'ok', justificativas:'ok', limites:'ok', servidao:'ok', cobertura:'ok', app:'ok', reservaLegal:'ok'}, ''),
+  ];
+}
+
+let records = [];
+
+/* ---------- Painéis (SIMCAR e SIMLAM) — mesma estrutura, coleções e rótulos próprios ---------- */
+const PANELS = {
+  simcar: {
+    title: 'Painel SIMCAR', sub: 'SIMCAR &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; INCRA-SIGEF',
+    col: 'pendencias', idbKey: 'records', fields: SIMCAR_FIELDS,
+    prop: 'Propriedade', proc: 'CAR Estadual', procPh: 'Ex: MT24603/2018',
+    processado: 'Processado por', processadoLong: 'Processado no SIMCAR (quem mexeu nas geometrias)', processadoPh: 'Ex: Brunno',
+    prazo: 'Prazo para envio', dataFinal: 'Data final para envio', progHeader: 'Progresso da análise', okLabel: '100% sem objeção', pdf: 'PDF da análise (parecer técnico)',
+    searchTitle: 'Busca nos dois painéis (SIMCAR e SIMLAM) por propriedade, proprietário, analista, CAR/nº do PD ou objetivo, incluindo os arquivados',
+    deadlineHelper: true, csvName: 'pendencias_simcar'
+  },
+  simlam: {
+    title: 'Painel SIMLAM', sub: 'SIMLAM &nbsp;/&nbsp; SEMA-MT &nbsp;/&nbsp; Licenciamento Ambiental',
+    col: 'pendencias_simlam', idbKey: 'records_simlam', fields: SIMLAM_FIELDS,
+    prop: 'Empreendimento / Propriedade', proc: 'Nº do PD (Projeto Digital)', procPh: 'Ex: PD-001',
+    processado: 'Objetivo', processadoLong: 'Objetivo', processadoPh: '',
+    prazo: 'Prazo', dataFinal: 'Prazo final', progHeader: 'Situação do PD', okLabel: 'Arquivados', pdf: 'PDF do processo / documento',
+    searchTitle: 'Busca nos dois painéis (SIMCAR e SIMLAM) por propriedade, proprietário, analista, CAR/nº do PD ou objetivo, incluindo os arquivados',
+    deadlineHelper: false, csvName: 'pendencias_simlam'
+  }
+};
+let currentPanel = 'simcar';
+
+function updateAndamentoVisibility(){
+  // SIMLAM: ao selecionar um objetivo, abre o campo para atribuir o nº do PD e a caixa de texto da situação do PD.
+  const lam = currentPanel === 'simlam';
+  const hasObj = getTipoProcesso() !== '';
+  const hasNum = document.getElementById('fCar').value.trim() !== '';
+  const hasTxt = document.getElementById('fAndamento').value.trim() !== '';
+  document.getElementById('fieldCar').style.display = (!lam || hasObj || hasNum) ? '' : 'none';
+  document.getElementById('andamentoField').style.display = (lam && (hasObj || hasNum || hasTxt)) ? '' : 'none';
+}
+function setTipoProcesso(v){
+  v = (v === 'Projeto Digital (PD)') ? '' : (v || '');
+  const sel = document.getElementById('fTipoSimlam');
+  // valor antigo (texto livre) que não está na lista: mantém como opção para não perder o dado
+  [...sel.querySelectorAll('option[data-extra]')].forEach(o => o.remove());
+  if(v && ![...sel.options].some(o => o.value === v)){
+    const o = document.createElement('option'); o.value = v; o.textContent = v; o.dataset.extra = '1'; sel.appendChild(o);
+  }
+  sel.value = v;
+  document.getElementById('fProcessado').value = v;
+}
+function getTipoProcesso(){
+  return currentPanel === 'simlam' ? document.getElementById('fTipoSimlam').value.trim() : document.getElementById('fProcessado').value.trim();
+}
+function applyPanelLabels(){
+  const P = PANELS[currentPanel];
+  const set = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  document.getElementById('panelTitle').textContent = P.title;
+  document.getElementById('panelSub').innerHTML = P.sub;
+  set('thProp', P.prop); set('thProc', P.proc); set('thProcessado', P.processado); set('thPrazo', P.prazo);
+  set('lblPropriedade', P.prop); set('lblProc', P.proc); set('lblProcessado', P.processadoLong);
+  set('lblDataFinal', P.dataFinal); set('lblPdf', P.pdf);
+  document.getElementById('fCar').placeholder = P.procPh;
+  const proc = document.getElementById('fProcessado');
+  proc.placeholder = P.processadoPh;
+  const isLam = currentPanel === 'simlam';
+  const fc = document.getElementById('fieldCar'), fp = document.getElementById('fieldProcessado');
+  if(isLam){ fc.parentNode.insertBefore(fp, fc); } else { fc.parentNode.insertBefore(fc, fp); }
+  proc.style.display = isLam ? 'none' : '';
+  document.getElementById('fTipoSimlam').style.display = isLam ? '' : 'none';
+  document.getElementById('searchInput').title = P.searchTitle;
+  set('thProg', P.progHeader); set('cardOkLbl', P.okLabel);
+  const hasBlocks = P.fields.length > 0;
+  document.getElementById('statusSectionTitle').style.display = hasBlocks ? '' : 'none';
+  document.getElementById('statusGrid').style.display = hasBlocks ? '' : 'none';
+  document.getElementById('deadlineHelper').style.display = P.deadlineHelper ? '' : 'none';
+  document.getElementById('mapaField').style.display = isLam ? '' : 'none';
+  document.body.classList.toggle('panel-simlam', isLam);
+  updateAndamentoVisibility();
+  document.getElementById('panelTabSimcar').classList.toggle('active', currentPanel === 'simcar');
+  document.getElementById('panelTabSimlam').classList.toggle('active', currentPanel === 'simlam');
+}
+
+/* ---------- Busca nos dois painéis: mantém o outro painel carregado (somente leitura) ---------- */
+let otherRecords = [];
+let otherUnsub = null;
+function otherPanelName(){ return currentPanel === 'simcar' ? 'simlam' : 'simcar'; }
+async function watchOtherPanel(uid, isAdminUser){
+  if(otherUnsub){ try{ otherUnsub(); }catch(e){} otherUnsub = null; }
+  otherRecords = [];
+  const name = otherPanelName();
+  const P = PANELS[name];
+  const hasQuery = () => !!document.getElementById('searchInput').value.trim();
+  try{
+    const cached = await loadRecordsFromDB(P.idbKey);
+    if(Array.isArray(cached) && name === otherPanelName()){ otherRecords = cached.map(r => normalizeRecord(r, P.fields)); }
+  }catch(e){ /* cache opcional */ }
+  let q = fbDb.collection(P.col);
+  if(!isAdminUser && uid){ q = q.where('ownerId', '==', uid); }
+  otherUnsub = q.onSnapshot((snap) => {
+    if(name !== otherPanelName()) return; // painel mudou enquanto carregava
+    const arr = [];
+    snap.forEach(d => arr.push(normalizeRecord(d.data(), P.fields)));
+    otherRecords = arr;
+    if(hasQuery()) render();
+  }, (err) => { console.warn('Não foi possível ler o outro painel para a busca', err); });
+}
+
+let switchingPanel = false;
+async function switchPanel(name){
+  if(!PANELS[name] || name === currentPanel || switchingPanel) return;
+  switchingPanel = true;
+  try{
+    const P = PANELS[name];
+    currentPanel = name;
+    RECORDS_COL = P.col; RECORDS_IDB_KEY = P.idbKey; RESULT_FIELDS = P.fields;
+    records = []; expandedId = null; editingChipsFor = null; viewMode = 'ativos';
+    document.getElementById('tabAtivos').classList.add('active');
+    document.getElementById('tabHistorico').classList.remove('active');
+    document.getElementById('searchInput').value = '';
+    applyPanelLabels();
+    render();
+    await load();
+    render();
+  } finally { switchingPanel = false; }
+}
+
+function normalizeRecord(r, fields){
+  r.results = migrateResults(r.results, fields);
+  if(typeof r.arquivado !== 'boolean') r.arquivado = false;
+  if(r.arquivadoEm === undefined) r.arquivadoEm = null;
+  if(r.proprietario === undefined) r.proprietario = '';
+  if(r.analista === undefined) r.analista = '';
+  if(r.andamento === undefined) r.andamento = '';
+  if(r.processado === 'Projeto Digital (PD)') r.processado = ''; // opção removida do menu (PD agora é o nº + situação do objetivo)
+  if(r.mapaName === undefined) r.mapaName = '';
+  if(r._pendTextos){
+    Object.keys(r._pendTextos).forEach(key => {
+      if(r.results[key]) r.results[key].texto = r._pendTextos[key];
+    });
+    delete r._pendTextos;
+  }
+  return r;
+}
+
+// Called every time the shared Firestore collection changes — including changes made by
+// other users on other devices — so everyone's screen stays in sync automatically.
+function applySnapshotToRecords(snapshot){
+  const remote = [];
+  snapshot.forEach(doc => remote.push(normalizeRecord(doc.data())));
+  records = remote;
+  saveRecordsToDB(records).catch(e => console.error('Falha ao atualizar cache local', e));
+  setSyncStatus(true, '☁ Sincronizado');
+  render();
+}
+
+async function load(){
+  if(recordsUnsub){ try{ recordsUnsub(); }catch(e){} recordsUnsub = null; }
+  // Paint instantly from the local cache (fast, works offline) while Firestore loads.
+  let fromDB = null;
+  try{ fromDB = await loadRecordsFromDB(); }catch(e){ console.error('Falha ao ler cache local', e); }
+  if(fromDB && Array.isArray(fromDB)){
+    records = fromDB.map(normalizeRecord);
+  } else {
+    let raw = null;
+    try{ raw = currentPanel === 'simcar' ? localStorage.getItem(STORAGE_KEY) : null; }catch(e){ /* localStorage may be unavailable/full */ }
+    if(raw){
+      try{ records = JSON.parse(raw).map(normalizeRecord); }catch(e){ records = []; }
+    }
+  }
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+
+  // Now connect to the shared server database. Regular users only ever query their OWN
+  // records (ownerId == their uid); the admin's query is unfiltered and sees everyone's.
+  const currentUid = fbAuth.currentUser ? fbAuth.currentUser.uid : null;
+  const isAdminUser = !!(currentProfile && currentProfile.role === 'admin');
+  let query = fbDb.collection(RECORDS_COL);
+  if(!isAdminUser && currentUid){ query = query.where('ownerId', '==', currentUid); }
+
+  watchOtherPanel(currentUid, isAdminUser);
+
+  // First snapshot resolves this promise; every snapshot after that (from this user's
+  // own records, or from everyone if admin) updates the screen live.
+  return new Promise((resolve) => {
+    let first = true;
+    recordsUnsub = query.onSnapshot(async (snapshot) => {
+      if(snapshot.empty && first){
+        if(isAdminUser && currentPanel === 'simcar'){
+          // Nothing on the server yet — seed it once (from local cache, or fresh sample data),
+          // tagged as the admin's own records.
+          if(records.length === 0){ records = seedData().map(normalizeRecord); }
+          records.forEach(r => { if(!r.ownerId) r.ownerId = currentUid; });
+          try{
+            await Promise.all(records.map(r => pushRecordToFirestore(r)));
+            setSyncStatus(true, '☁ Sincronizado');
+          }catch(e){
+            console.error('Falha ao inicializar dados no servidor', e);
+            setSyncStatus(false, '⚠ Sem conexão com o servidor — trabalhando localmente');
+          }
+        } else {
+          // A regular user with no records of their own yet — nothing to show, nothing to seed.
+          records = [];
+          setSyncStatus(true, '☁ Sincronizado');
+        }
+        render();
+      } else {
+        applySnapshotToRecords(snapshot);
+      }
+      if(first){ first = false; resolve(); }
+    }, (err) => {
+      console.error('Erro de sincronização com o servidor', err);
+      setSyncStatus(false, '⚠ Sem conexão com o servidor — trabalhando localmente');
+      if(first){ first = false; render(); resolve(); }
+    });
+  });
+}
+
+// Saves the record `id` (or the whole array, if no id given) both to the local cache
+// and to the shared server database, so other users see the change too.
+async function save(id){
+  document.getElementById('tbUpdated').textContent = new Date().toLocaleDateString('pt-BR');
+  scheduleAutoBackup();
+  try{
+    await saveRecordsToDB(records);
+  }catch(e){
+    console.error('Falha ao salvar no cache local', e);
+  }
+  try{
+    if(id){
+      const rec = records.find(r => r.id === id);
+      if(rec) await pushRecordToFirestore(rec);
+    } else {
+      await Promise.all(records.map(r => pushRecordToFirestore(r)));
+    }
+    setSyncStatus(true, '☁ Sincronizado');
+  }catch(e){
+    console.error('Falha ao sincronizar com o servidor', e);
+    setSyncStatus(false, '⚠ Alteração salva só neste dispositivo — verifique sua internet');
+  }
+}
+
+function calcDeadline(dataAnaliseStr, prorrogado){
+  if(!dataAnaliseStr) return '';
+  const d = new Date(dataAnaliseStr + 'T00:00:00');
+  d.setDate(d.getDate() + 90 + (prorrogado ? 30 : 0));
+  return d.toISOString().slice(0,10);
+}
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr + 'T00:00:00');
+  return Math.round((target - today) / 86400000);
+}
+function deadlineState(dateStr){
+  const d = daysUntil(dateStr);
+  if(d === null) return {cls:'', text:'sem prazo'};
+  if(d < 0) return {cls:'bad', text: `vencido há ${Math.abs(d)}d`};
+  if(d <= 7) return {cls:'warn', text: `${d}d restantes`};
+  return {cls:'good', text: `${d}d restantes`};
+}
+function fmtDate(dateStr){
+  if(!dateStr) return '—';
+  const [y,m,d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+function progressOf(rec){
+  const vals = Object.values(rec.results || {}).map(v => v.status);
+  if(vals.length === 0) return { pct: 0, okCount: 0, objCount: 0, total: 0 };
+  const okCount = vals.filter(v => v === 'ok').length;
+  const objCount = vals.filter(v => v === 'objecao').length;
+  return { pct: Math.round((okCount/vals.length)*100), okCount, objCount, total: vals.length };
+}
+
+let expandedId = null;
+const collapsedGroups = new Set();   // grupos (propriedades SIMLAM) recolhidos pelo usuário
+let childIds = new Set();            // ids exibidos como "filhos" de um grupo (apenas visual; não altera os dados)
+
+// SIMLAM: vários PDs da mesma propriedade aparecem agrupados sob um cabeçalho da propriedade.
+const ICON_PDF = '<svg class="ico ico-pdf" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>';
+const ICON_FLAG = '<svg class="ico ico-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.4h.01" stroke-width="2.4"/></svg>';
+const ICON_MAPA = '<svg class="ico ico-mapa" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg>';
+
+// SIMLAM: resumo do que está salvo no processo (somente leitura), mostrado ao expandir a linha.
+function simlamSummaryHtml(rec){
+  const v = x => (x && String(x).trim()) ? escapeHtml(String(x).trim()) : '<span class="ds-empty">—</span>';
+  const item = (label, value, wide) => `<div class="ds-item${wide ? ' ds-wide' : ''}"><div class="ds-label">${label}</div><div class="ds-value">${value}</div></div>`;
+  return `<div class="detail-summary">
+    ${item('Objetivo', v(rec.processado))}
+    ${item('Nº do PD', v(rec.car))}
+    ${item('Prazo final', rec.dataFinal ? escapeHtml(fmtDate(rec.dataFinal)) : '<span class="ds-empty">—</span>')}
+    ${item('Data da análise', rec.dataAnalise ? escapeHtml(fmtDate(rec.dataAnalise)) : '<span class="ds-empty">—</span>')}
+    ${item('Proprietário', v(rec.proprietario))}
+    ${item('Analista', v(rec.analista))}
+    ${item('PDF do processo', rec.pdfName ? ICON_PDF + ' ' + escapeHtml(rec.pdfName) : '<span class="ds-empty">não anexado</span>')}
+    ${item('Mapa temático', rec.mapaName ? ICON_MAPA + ' ' + escapeHtml(rec.mapaName) : '<span class="ds-empty">não anexado</span>')}
+    ${item('Situação do PD', v(rec.andamento), true)}
+    ${item('Observações', v(rec.obs), true)}
+  </div>`;
+}
+
+function groupForDisplay(list){
+  childIds = new Set();
+  const groups = new Map(), order = [];
+  list.forEach(rec => {
+    const pn = rec._panel || currentPanel;
+    if(pn !== 'simlam'){ order.push({single: rec}); return; }
+    const key = pn + '|' + (rec.propriedade || '').trim().toLowerCase();
+    if(!groups.has(key)){ const g = {key, items: []}; groups.set(key, g); order.push({group: g}); }
+    groups.get(key).items.push(rec);
+  });
+  const out = [];
+  order.forEach(o => {
+    if(o.single){ out.push(o.single); return; }
+    const g = o.group;
+    if(g.items.length === 1){ out.push(g.items[0]); return; }
+    out.push({_groupHeader: true, key: g.key, items: g.items});
+    if(!collapsedGroups.has(g.key)) g.items.forEach(r => { childIds.add(r.id); out.push(r); });
+  });
+  return out;
+}
+let editingChipsFor = null; // used inside modal
+let viewMode = 'ativos'; // 'ativos' | 'historico'
+
+function applyFiltersSort(list){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filt = document.getElementById('filterStatus').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  // Com texto na busca, procura em TODOS os processos (ativos e arquivados); sem busca, respeita a aba atual.
+  let out = q ? list.concat(otherRecords.map(r => ({...r, _panel: otherPanelName()}))) : list.filter(r => viewMode === 'historico' ? !!r.arquivado : !r.arquivado);
+
+  out = out.filter(r => {
+    if(q && !(r.propriedade.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.proprietario||'').toLowerCase().includes(q) || (r.analista||'').toLowerCase().includes(q) || (r.processado||'').toLowerCase().includes(q) || (r.andamento||'').toLowerCase().includes(q))) return false;
+    if(filt !== 'todos'){
+      const d = daysUntil(r.dataFinal);
+      if(filt === 'vencido' && !(d !== null && d < 0)) return false;
+      if(filt === 'proximo' && !(d !== null && d >= 0 && d <= 7)) return false;
+      if(filt === 'ok' && !(d !== null && d > 7)) return false;
+    }
+    return true;
+  });
+
+  out.sort((a,b) => {
+    if(sortBy === 'propriedade') return a.propriedade.localeCompare(b.propriedade);
+    if(sortBy === 'pendencias') return progressOf(b).objCount - progressOf(a).objCount;
+    const da = daysUntil(a.dataFinal); const db = daysUntil(b.dataFinal);
+    if(da === null) return 1;
+    if(db === null) return -1;
+    return da - db;
+  });
+  return out;
+}
+
+function render(){
+  const list = applyFiltersSort(records);
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  if(list.length === 0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Nenhum processo encontrado.</td></tr>`;
+  }
+
+  const displayList = groupForDisplay(list);
+  displayList.forEach(rec => {
+    if(rec._groupHeader){
+      const first = rec.items[0];
+      const n = rec.items.length;
+      const done = rec.items.filter(r => progressOf(r).pct === 100).length;
+      const alerts = rec.items.reduce((a, r) => a + progressOf(r).objCount, 0);
+      const collapsed = collapsedGroups.has(rec.key);
+      const htr = document.createElement('tr');
+      htr.className = 'group-header';
+      htr.title = 'Clique duas vezes para ' + (collapsed ? 'expandir' : 'recolher') + ' os projetos digitais desta propriedade';
+      htr.innerHTML = `
+        <td class="col-flag">${alerts > 0 ? `<span class="row-alert" title="${alerts} bloco(s) marcado(s) como Não Aprovado nesta propriedade">${ICON_FLAG}</span>` : ''}</td>
+        <td class="col-pdf"></td>
+        <td class="col-complete"></td>
+        <td class="propriedade">
+          <div class="propriedade-nome"><span class="group-caret">${collapsed ? '▸' : '▾'}</span>${escapeHtml(first.propriedade)}</div>
+          <div class="propriedade-sub" title="${first.proprietario ? escapeHtml(first.proprietario) : ''}">${first.proprietario ? escapeHtml(first.proprietario) : '&nbsp;'}</div>
+          <div class="propriedade-sub" title="${first.analista ? escapeHtml(first.analista) : ''}">${first.analista ? escapeHtml(first.analista) : '&nbsp;'}</div>
+        </td>
+        <td colspan="4" class="group-summary"><span class="pd-count">${n} projetos digitais</span> ${done ? `· ${done} concluído${done > 1 ? 's' : ''}` : ''}</td>`;
+      htr.addEventListener('dblclick', () => {
+        if(collapsedGroups.has(rec.key)) collapsedGroups.delete(rec.key); else collapsedGroups.add(rec.key);
+        render();
+      });
+      tbody.appendChild(htr);
+      return;
+    }
+    const isChild = childIds.has(rec.id);
+    const searchActive = !!document.getElementById('searchInput').value.trim();
+    const recPanel = rec._panel || currentPanel;
+    const dl = deadlineState(rec.dataFinal);
+    const prog = progressOf(rec);
+    const tr = document.createElement('tr');
+    tr.title = rec._panel && rec._panel !== currentPanel ? 'Clique duas vezes para abrir este processo no Painel ' + rec._panel.toUpperCase() : 'Clique duas vezes para ver/ocultar detalhes';
+    tr.innerHTML = `
+      <td class="col-flag">${prog.objCount > 0 ? `<span class="row-alert" title="${prog.objCount} bloco(s) marcado(s) como Não Aprovado — requer atenção prioritária">${ICON_FLAG}</span>` : ''}</td>
+      <td class="col-pdf">${rec.pdfName ? '<span class="pdf-icon" data-kind="pdf" role="button" tabindex="0" title="Clique para abrir o PDF: '+escapeHtml(rec.pdfName)+'">'+ICON_PDF+'</span>' : ''}${rec.mapaName ? '<span class="pdf-icon" data-kind="mapa" role="button" tabindex="0" title="Clique para abrir o mapa temático: '+escapeHtml(rec.mapaName)+'">'+ICON_MAPA+'</span>' : ''}</td>
+      <td class="col-complete">${(viewMode === 'ativos' && !rec.arquivado && prog.pct === 100) ? '<span class="complete-badge" title="100% concluído — pronto para arquivar no histórico">✅</span>' : ''}</td>
+      <td class="propriedade">
+        <div class="propriedade-nome">${searchActive ? `<span class="panel-badge panel-${recPanel}">${recPanel.toUpperCase()}</span>` : ''}${escapeHtml(rec.propriedade)}${rec.arquivado && viewMode === 'ativos' ? '<span class="archived-badge" title="Processo arquivado no histórico' + (rec.arquivadoEm ? ' em ' + fmtDate(rec.arquivadoEm.slice(0,10)) : '') + '">📁 ARQUIVADO</span>' : ''}</div>
+        <div class="propriedade-sub" title="${rec.proprietario ? escapeHtml(rec.proprietario) : ''}">${rec.proprietario ? escapeHtml(rec.proprietario) : '&nbsp;'}</div>
+        <div class="propriedade-sub" title="${rec.analista ? escapeHtml(rec.analista) : ''}">${rec.analista ? escapeHtml(rec.analista) : '&nbsp;'}</div>
+      </td>
+      <td class="car">${escapeHtml(rec.car)}</td>
+      <td><span class="deadline-pill ${dl.cls}">${dl.text}<span class="date">· ${fmtDate(rec.dataFinal)}</span></span>${rec.prorrogacao ? '<span class="prorrogacao-badge">+30 PRORROGADO</span>' : ''}</td>
+      <td>
+        ${RESULT_FIELDS.length === 0
+          ? `<div class="situacao-cell" title="${escapeHtml(rec.andamento || '')}">${rec.andamento ? escapeHtml(rec.andamento) : '—'}</div>`
+          : `<div class="progress-mini">
+          <div class="progress-track"><div class="progress-fill" style="width:${prog.pct}%; background:${prog.objCount>0?'var(--bad)':(prog.pct===100?'var(--ok)':'var(--warn)')}"></div></div>
+          <span>${prog.okCount}/${prog.total}</span>
+        </div>`}
+      </td>
+      <td class="processado">${escapeHtml(rec.processado) || '—'}</td>
+    `;
+    if(isChild){
+      tr.classList.add('pd-child');
+      tr.querySelector('td.propriedade').innerHTML = `<div class="pd-child-label">↳ Projeto Digital${rec.arquivado && viewMode === 'ativos' ? '<span class="archived-badge">📁 ARQUIVADO</span>' : ''}</div>`;
+    }
+    tr.querySelectorAll('.pdf-icon').forEach(ic => {
+      const kind = ic.dataset.kind === 'mapa' ? 'mapa' : undefined;
+      ic.addEventListener('click', e => { e.stopPropagation(); openAttachedPdf(rec, kind); });
+      ic.addEventListener('dblclick', e => e.stopPropagation());
+      ic.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openAttachedPdf(rec, kind); } });
+    });
+    tr.addEventListener('dblclick', async () => {
+      if(rec._panel && rec._panel !== currentPanel){
+        // Resultado do outro painel: vai para ele e abre o processo lá (onde dá para editar/arquivar).
+        const target = rec._panel, id = rec.id, arch = !!rec.arquivado;
+        await switchPanel(target);
+        viewMode = arch ? 'historico' : 'ativos';
+        document.getElementById('tabAtivos').classList.toggle('active', !arch);
+        document.getElementById('tabHistorico').classList.toggle('active', arch);
+        expandedId = id;
+        render();
+        return;
+      }
+      expandedId = expandedId === rec.id ? null : rec.id;
+      render();
+    });
+    tbody.appendChild(tr);
+
+    if(expandedId === rec.id){
+      const dtr = document.createElement('tr');
+      dtr.className = 'detail-row';
+      const td = document.createElement('td');
+      td.colSpan = 8;
+      const chips = RESULT_FIELDS.map(f => {
+        const entry = rec.results[f.key];
+        const st = entry.status;
+        return `<div class="status-block">
+          <div class="top-row">
+            <span class="label">${f.label}</span>
+            <div class="right-controls">
+              <button type="button" class="pend-expand-btn" data-key="${f.key}" title="Ver/editar em janela maior">⤢</button>
+              <span class="status-toggle ${st}" data-key="${f.key}"><span class="dot"></span>${STATUS_LABEL[st]}</span>
+            </div>
+          </div>
+          <textarea class="pend-text" data-key="${f.key}" placeholder="Descrição da pendência (opcional)…">${escapeHtml(entry.texto)}</textarea>
+        </div>`;
+      }).join('');
+      td.innerHTML = `
+        ${RESULT_FIELDS.length ? `<div class="status-list">${chips}</div>` : ''}
+        ${RESULT_FIELDS.length === 0 ? simlamSummaryHtml(rec) : `${rec.obs ? `<div class="detail-obs">${escapeHtml(rec.obs)}</div>` : ''}
+        ${rec.andamento ? `<div class="detail-obs" style="white-space:pre-wrap"><strong>Situação do PD:</strong>\n${escapeHtml(rec.andamento)}</div>` : ''}`}
+        <div class="detail-actions">
+          <button class="btn ghost edit-row">Editar processo</button>
+          ${currentPanel === 'simlam' ? `<button class="btn ghost new-pd-row">+ Novo PD desta propriedade</button>` : ''}
+          ${rec.pdfName ? `<button class="pdf-link-btn view-pdf">${ICON_PDF} Ver PDF anexado — ${escapeHtml(rec.pdfName)}</button>` : ''}
+          ${rec.mapaName ? `<button class="pdf-link-btn view-mapa">${ICON_MAPA} Ver mapa temático — ${escapeHtml(rec.mapaName)}</button>` : ''}
+          ${!rec.arquivado && (prog.pct === 100 || RESULT_FIELDS.length === 0) ? `<button class="archive-btn archive-action">✓ Arquivar no histórico${RESULT_FIELDS.length === 0 ? '' : ' (100% concluído)'}</button>` : ''}
+          ${rec.arquivado ? `<button class="reopen-btn reopen-action">↩ Reabrir processo</button><span class="archived-date">Arquivado em ${rec.arquivadoEm ? fmtDate(rec.arquivadoEm.slice(0,10)) : '—'}</span>` : ''}
+        </div>
+      `;
+      td.querySelectorAll('.status-toggle').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const key = toggle.dataset.key;
+          const cur = rec.results[key].status;
+          rec.results[key].status = STATUS_CYCLE[(STATUS_CYCLE.indexOf(cur)+1) % STATUS_CYCLE.length];
+          save(rec.id);
+          render();
+        });
+      });
+      td.querySelectorAll('.pend-text').forEach(ta => {
+        ta.addEventListener('click', (e) => e.stopPropagation());
+        ta.addEventListener('change', () => {
+          rec.results[ta.dataset.key].texto = ta.value;
+          save(rec.id);
+        });
+      });
+      td.querySelectorAll('.pend-expand-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const key = btn.dataset.key;
+          const fieldLabel = RESULT_FIELDS.find(f => f.key === key).label;
+          openTextPopup(fieldLabel, rec.propriedade, rec.results[key].texto, (val) => {
+            rec.results[key].texto = val;
+            const ta = td.querySelector(`.pend-text[data-key="${key}"]`);
+            if(ta) ta.value = val;
+          }, () => { save(rec.id); });
+        });
+      });
+      td.querySelector('.edit-row').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openModal(rec);
+      });
+      const newPdBtn = td.querySelector('.new-pd-row');
+      if(newPdBtn){
+        newPdBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openModal(null, { propriedade: rec.propriedade, proprietario: rec.proprietario, analista: rec.analista, processado: '' });
+        });
+      }
+      const viewPdfBtn = td.querySelector('.view-pdf');
+      if(viewPdfBtn){
+        viewPdfBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openAttachedPdf(rec);
+        });
+      }
+      const viewMapaBtn = td.querySelector('.view-mapa');
+      if(viewMapaBtn){ viewMapaBtn.addEventListener('click', (e) => { e.stopPropagation(); openAttachedPdf(rec, 'mapa'); }); }
+      const archiveBtn = td.querySelector('.archive-action');
+      if(archiveBtn){
+        archiveBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          rec.arquivado = true;
+          rec.arquivadoEm = new Date().toISOString();
+          expandedId = null;
+          save(rec.id);
+          render();
+        });
+      }
+      const reopenBtn = td.querySelector('.reopen-action');
+      if(reopenBtn){
+        reopenBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          rec.arquivado = false;
+          rec.arquivadoEm = null;
+          expandedId = null;
+          save(rec.id);
+          render();
+        });
+      }
+      dtr.appendChild(td);
+      tbody.appendChild(dtr);
+    }
+  });
+
+  const activeRecords = records.filter(r => !r.arquivado);
+  const archivedRecords = records.filter(r => r.arquivado);
+  document.getElementById('tbTotal').textContent = activeRecords.length;
+  document.getElementById('cardTotal').textContent = activeRecords.length;
+  document.getElementById('cardOverdue').textContent = activeRecords.filter(r => { const d = daysUntil(r.dataFinal); return d !== null && d < 0; }).length;
+  document.getElementById('cardSoon').textContent = activeRecords.filter(r => { const d = daysUntil(r.dataFinal); return d !== null && d >= 0 && d <= 7; }).length;
+  document.getElementById('cardOk').textContent = RESULT_FIELDS.length === 0 ? archivedRecords.length : activeRecords.filter(r => progressOf(r).pct === 100).length;
+  document.getElementById('historicoCount').textContent = archivedRecords.length ? `(${archivedRecords.length})` : '';
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ---------- Modal ---------- */
+let modalResults = null;
+let pendingPdfFile = null;   // newly chosen File not yet saved
+let pendingPdfRemove = false; // user asked to remove the currently attached PDF
+let pendingMapaFile = null;
+let pendingMapaRemove = false;
+function refreshMapaLabel(existingName){
+  const label = document.getElementById('mapaFileLabel');
+  const removeBtn = document.getElementById('mapaRemoveBtn');
+  if(pendingMapaFile){ label.innerHTML = ICON_MAPA + ' ' + escapeHtml(pendingMapaFile.name) + ' (novo)'; label.classList.add('attached'); removeBtn.classList.remove('hidden'); }
+  else if(existingName && !pendingMapaRemove){ label.innerHTML = ICON_MAPA + ' ' + escapeHtml(existingName); label.classList.add('attached'); removeBtn.classList.remove('hidden'); }
+  else { label.textContent = 'Nenhum mapa anexado'; label.classList.remove('attached'); removeBtn.classList.add('hidden'); }
+}
+
+function refreshPdfLabel(existingName){
+  const label = document.getElementById('pdfFileLabel');
+  const removeBtn = document.getElementById('pdfRemoveBtn');
+  if(pendingPdfFile){
+    label.innerHTML = ICON_PDF + ' ' + escapeHtml(pendingPdfFile.name) + ' (novo)';
+    label.classList.add('attached');
+    removeBtn.classList.remove('hidden');
+  } else if(existingName && !pendingPdfRemove){
+    label.innerHTML = ICON_PDF + ' ' + escapeHtml(existingName);
+    label.classList.add('attached');
+    removeBtn.classList.remove('hidden');
+  } else {
+    label.textContent = 'Nenhum PDF anexado';
+    label.classList.remove('attached');
+    removeBtn.classList.add('hidden');
+  }
+}
+
+function openModal(rec, prefill){
+  document.getElementById('modalTitle').textContent = rec ? 'Editar processo' : 'Novo processo';
+  document.getElementById('editId').value = rec ? rec.id : crypto.randomUUID();
+  document.getElementById('fPropriedade').value = rec ? rec.propriedade : '';
+  document.getElementById('fProprietario').value = rec ? (rec.proprietario || '') : '';
+  document.getElementById('fAnalista').value = rec ? (rec.analista || '') : '';
+  document.getElementById('fCar').value = rec ? rec.car : '';
+  setTipoProcesso(rec ? rec.processado : '');
+  document.getElementById('fDataAnalise').value = rec ? rec.dataAnalise : '';
+  document.getElementById('fDataFinal').value = rec ? rec.dataFinal : '';
+  document.getElementById('fObs').value = rec ? rec.obs : '';
+  document.getElementById('fProrrogacao').checked = rec ? !!rec.prorrogacao : false;
+  document.getElementById('deleteBtn').classList.toggle('hidden', !rec);
+  pendingPdfFile = null;
+  pendingPdfRemove = false;
+  document.getElementById('fPdfInput').value = '';
+  refreshPdfLabel(rec ? rec.pdfName : '');
+  pendingMapaFile = null; pendingMapaRemove = false;
+  document.getElementById('fMapaInput').value = '';
+  refreshMapaLabel(rec ? rec.mapaName : '');
+  document.getElementById('fAndamento').value = rec ? (rec.andamento || '') : '';
+  updateAndamentoVisibility();
+  if(!rec && prefill){
+    document.getElementById('fPropriedade').value = prefill.propriedade || '';
+    document.getElementById('fProprietario').value = prefill.proprietario || '';
+    document.getElementById('fAnalista').value = prefill.analista || '';
+    setTipoProcesso(prefill.processado || '');
+    document.getElementById('modalTitle').textContent = 'Novo PD — ' + (prefill.propriedade || '');
+    updateAndamentoVisibility();
+  }
+  modalResults = rec ? JSON.parse(JSON.stringify(rec.results)) : emptyResults();
+  renderStatusGrid();
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.add('hidden');
+}
+
+/* ---------- Text popup: expanded view/edit for a single pendency description ---------- */
+let textPopupOnChange = null;
+let textPopupOnClose = null;
+function openTextPopup(label, subtitle, initialText, onChange, onClose){
+  document.getElementById('textPopupTitle').textContent = label;
+  document.getElementById('textPopupSubtitle').textContent = subtitle || '';
+  const area = document.getElementById('textPopupArea');
+  area.value = initialText || '';
+  textPopupOnChange = onChange || null;
+  textPopupOnClose = onClose || null;
+  document.getElementById('textPopupOverlay').classList.remove('hidden');
+  area.focus();
+}
+function closeTextPopup(){
+  document.getElementById('textPopupOverlay').classList.add('hidden');
+  if(textPopupOnClose) textPopupOnClose();
+  textPopupOnChange = null;
+  textPopupOnClose = null;
+}
+document.getElementById('textPopupArea').addEventListener('input', (e) => {
+  if(textPopupOnChange) textPopupOnChange(e.target.value);
+});
+document.getElementById('closeTextPopup').addEventListener('click', closeTextPopup);
+document.getElementById('textPopupCloseBtn').addEventListener('click', closeTextPopup);
+document.getElementById('textPopupOverlay').addEventListener('click', (e) => { if(e.target.id === 'textPopupOverlay') closeTextPopup(); });
+
+function renderStatusGrid(){
+  const grid = document.getElementById('statusGrid');
+  grid.innerHTML = RESULT_FIELDS.map(f => {
+    const entry = modalResults[f.key];
+    return `<div class="status-block">
+      <div class="top-row">
+        <span class="label">${f.label}</span>
+        <div class="right-controls">
+          <button type="button" class="pend-expand-btn" data-key="${f.key}" title="Ver/editar em janela maior">⤢</button>
+          <span class="status-toggle ${entry.status}" data-key="${f.key}"><span class="dot"></span>${STATUS_LABEL[entry.status]}</span>
+        </div>
+      </div>
+      <textarea class="pend-text" data-key="${f.key}" placeholder="Descrição da pendência (opcional)…">${escapeHtml(entry.texto)}</textarea>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.status-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const key = toggle.dataset.key;
+      const cur = modalResults[key].status;
+      modalResults[key].status = STATUS_CYCLE[(STATUS_CYCLE.indexOf(cur)+1) % STATUS_CYCLE.length];
+      renderStatusGrid();
+    });
+  });
+  grid.querySelectorAll('.pend-text').forEach(ta => {
+    ta.addEventListener('input', () => {
+      modalResults[ta.dataset.key].texto = ta.value;
+    });
+  });
+  grid.querySelectorAll('.pend-expand-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.key;
+      const fieldLabel = RESULT_FIELDS.find(f => f.key === key).label;
+      const propName = document.getElementById('fPropriedade').value.trim();
+      openTextPopup(fieldLabel, propName, modalResults[key].texto, (val) => {
+        modalResults[key].texto = val;
+        const ta = grid.querySelector(`.pend-text[data-key="${key}"]`);
+        if(ta) ta.value = val;
+      });
+    });
+  });
+}
+
+document.getElementById('calcDeadlineBtn').addEventListener('click', () => {
+  const da = document.getElementById('fDataAnalise').value;
+  if(!da){ alert('Informe a Data da Análise primeiro.'); return; }
+  const prorrogado = document.getElementById('fProrrogacao').checked;
+  document.getElementById('fDataFinal').value = calcDeadline(da, prorrogado);
+});
+document.getElementById('fDataAnalise').addEventListener('change', () => {
+  if(!document.getElementById('fDataFinal').value){
+    const prorrogado = document.getElementById('fProrrogacao').checked;
+    document.getElementById('fDataFinal').value = calcDeadline(document.getElementById('fDataAnalise').value, prorrogado);
+  }
+});
+document.getElementById('fProrrogacao').addEventListener('change', () => {
+  const da = document.getElementById('fDataAnalise').value;
+  if(da) document.getElementById('fDataFinal').value = calcDeadline(da, document.getElementById('fProrrogacao').checked);
+});
+
+document.getElementById('fCar').addEventListener('input', updateAndamentoVisibility);
+document.getElementById('fTipoSimlam').addEventListener('change', updateAndamentoVisibility);
+document.getElementById('pdfChooseBtn').addEventListener('click', () => document.getElementById('fPdfInput').click());
+document.getElementById('fPdfInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.type !== 'application/pdf'){ alert('Selecione um arquivo PDF.'); return; }
+  pendingPdfFile = file;
+  pendingPdfRemove = false;
+  refreshPdfLabel(null);
+});
+document.getElementById('mapaChooseBtn').addEventListener('click', () => document.getElementById('fMapaInput').click());
+document.getElementById('fMapaInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.type !== 'application/pdf'){ alert('Selecione um arquivo PDF.'); return; }
+  pendingMapaFile = file; pendingMapaRemove = false; refreshMapaLabel(null);
+});
+document.getElementById('mapaRemoveBtn').addEventListener('click', () => {
+  pendingMapaFile = null; pendingMapaRemove = true;
+  document.getElementById('fMapaInput').value = '';
+  refreshMapaLabel(null);
+});
+document.getElementById('pdfRemoveBtn').addEventListener('click', () => {
+  pendingPdfFile = null;
+  pendingPdfRemove = true;
+  document.getElementById('fPdfInput').value = '';
+  refreshPdfLabel(null);
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    viewMode = btn.dataset.mode;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    expandedId = null;
+    render();
+  });
+});
+
+document.getElementById('addBtn').addEventListener('click', () => openModal(null));
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', (e) => { if(e.target.id === 'modalOverlay') closeModal(); });
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const saveBtn = document.getElementById('saveBtn');
+  const id = document.getElementById('editId').value;
+  const propriedade = document.getElementById('fPropriedade').value.trim();
+  if(!propriedade){ alert('Informe o nome da propriedade.'); return; }
+
+  saveBtn.disabled = true;
+  const originalLabel = saveBtn.textContent;
+  saveBtn.textContent = 'Salvando…';
+
+  try{
+    const existing = records.find(r => r.id === id);
+    const data = {
+      propriedade,
+      proprietario: document.getElementById('fProprietario').value.trim(),
+      analista: document.getElementById('fAnalista').value.trim(),
+      car: document.getElementById('fCar').value.trim(),
+      processado: getTipoProcesso(),
+      dataAnalise: document.getElementById('fDataAnalise').value,
+      dataFinal: document.getElementById('fDataFinal').value,
+      obs: document.getElementById('fObs').value.trim(),
+      prorrogacao: document.getElementById('fProrrogacao').checked,
+      results: modalResults,
+      pdfName: existing ? existing.pdfName : '',
+      mapaName: existing ? (existing.mapaName || '') : '',
+      andamento: currentPanel === 'simlam' ? document.getElementById('fAndamento').value.trim() : (existing ? (existing.andamento || '') : ''),
+      arquivado: existing ? existing.arquivado : false,
+      arquivadoEm: existing ? existing.arquivadoEm : null,
+      ownerId: existing ? (existing.ownerId || null) : (fbAuth.currentUser ? fbAuth.currentUser.uid : null),
+    };
+
+    const idx = records.findIndex(r => r.id === id);
+    if(idx >= 0){
+      records[idx] = {...records[idx], ...data};
+    } else {
+      records.push({ id, ...data });
+    }
+    // Write the record itself first — PDF uploads are only allowed once the matching
+    // record exists on the server with the right owner (see storage.rules).
+    await save(id);
+
+    if(pendingPdfFile){
+      try{
+        await savePdfBlob(id, pendingPdfFile);
+        const rec = records.find(r => r.id === id);
+        if(rec){ rec.pdfName = pendingPdfFile.name; await save(id); }
+      }catch(e){ alert('Aviso: o processo foi salvo, mas o PDF não foi anexado (' + fbErro(e) + '). Tente anexá-lo novamente depois.'); }
+    } else if(pendingPdfRemove){
+      try{
+        await deletePdfBlob(id);
+        const rec = records.find(r => r.id === id);
+        if(rec){ rec.pdfName = ''; await save(id); }
+      }catch(e){ /* non-fatal */ }
+    }
+
+    if(pendingMapaFile){
+      try{
+        await savePdfBlob(id, pendingMapaFile, 'mapa');
+        const rec = records.find(r => r.id === id);
+        if(rec){ rec.mapaName = pendingMapaFile.name; await save(id); }
+      }catch(e){ alert('Aviso: o processo foi salvo, mas o mapa temático não foi anexado (' + fbErro(e) + '). Tente anexá-lo novamente depois.'); }
+    } else if(pendingMapaRemove){
+      try{
+        await deletePdfBlob(id, 'mapa');
+        const rec = records.find(r => r.id === id);
+        if(rec){ rec.mapaName = ''; await save(id); }
+      }catch(e){ /* non-fatal */ }
+    }
+
+    closeModal();
+    render();
+  }catch(e){
+    alert('Não foi possível salvar o processo: ' + fbErro(e) + '\n\nSe o problema persistir, feche outras abas deste arquivo abertas no navegador e tente novamente.');
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalLabel;
+  }
+});
+
+document.getElementById('deleteBtn').addEventListener('click', async () => {
+  const id = document.getElementById('editId').value;
+  if(!id) return;
+  if(!confirm('Excluir este processo da lista? O PDF anexado também será removido.')) return;
+  try{ await deletePdfBlob(id); }catch(e){}
+  try{ await deletePdfBlob(id, 'mapa'); }catch(e){}
+  try{ await deleteRecordFromFirestore(id); setSyncStatus(true, '☁ Sincronizado'); }
+  catch(e){ console.error('Falha ao excluir no servidor', e); setSyncStatus(false, '⚠ Exclusão salva só neste dispositivo — verifique sua internet'); }
+  records = records.filter(r => r.id !== id);
+  expandedId = null;
+  try{ await saveRecordsToDB(records); }catch(e){ console.error('Falha ao atualizar cache local', e); }
+  closeModal();
+  render();
+});
+
+
+document.getElementById('panelTabSimcar').addEventListener('click', () => switchPanel('simcar'));
+document.getElementById('panelTabSimlam').addEventListener('click', () => switchPanel('simlam'));
+document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('filterStatus').addEventListener('change', render);
+document.getElementById('sortBy').addEventListener('change', render);
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const PL = PANELS[currentPanel];
+  const headers = [PL.prop,'Proprietário','Analista Responsável',PL.proc,'Data da Análise',PL.dataFinal, ...RESULT_FIELDS.map(f=>f.label), PL.processado,'Observações',...(currentPanel === 'simlam' ? ['Situação do PD'] : []),'Detalhamento das Pendências'];
+  const rows = records.map(r => {
+    const detalhamento = RESULT_FIELDS
+      .filter(f => r.results[f.key].texto.trim())
+      .map(f => `${f.label}: ${r.results[f.key].texto.trim()}`)
+      .join(' | ');
+    return [
+      r.propriedade, r.proprietario || '', r.analista || '', r.car, fmtDate(r.dataAnalise), fmtDate(r.dataFinal),
+      ...RESULT_FIELDS.map(f => STATUS_LABEL[r.results[f.key].status]),
+      r.processado, r.obs, ...(currentPanel === 'simlam' ? [r.andamento || ''] : []), detalhamento
+    ];
+  });
+  const csv = [headers, ...rows].map(row => row.map(cell => `"${String(cell||'').replace(/"/g,'""')}"`).join(';')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${PANELS[currentPanel].csvName}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('backupExportBtn').addEventListener('click', () => {
+  exportFullBackup();
+});
+document.getElementById('backupImportBtn').addEventListener('click', () => {
+  document.getElementById('backupImportInput').click();
+});
+document.getElementById('backupImportInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(file) importFullBackup(file);
+  e.target.value = '';
+});
+
+document.getElementById('autoBackupBtn').addEventListener('click', async () => {
+  if(!window.showSaveFilePicker) return;
+  if(!autoBackupHandle){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'simcar_backup.json',
+        types: [{ description: 'JSON', accept: {'application/json': ['.json']} }]
+      });
+      await saveMeta('backupHandle', handle);
+      autoBackupHandle = handle;
+      await writeAutoBackup();
+    }catch(e){ /* user cancelled the picker */ }
+  } else {
+    let perm = await autoBackupHandle.queryPermission({mode:'readwrite'});
+    if(perm !== 'granted'){
+      try{
+        perm = await autoBackupHandle.requestPermission({mode:'readwrite'});
+        if(perm === 'granted') await writeAutoBackup();
+      }catch(e){ /* ignore */ }
+    } else {
+      if(confirm('Desativar backup automático? O arquivo já salvo permanece no disco, mas deixará de ser atualizado sozinho.')){
+        await deleteMeta('backupHandle');
+        autoBackupHandle = null;
+      }
+    }
+  }
+  await updateAutoBackupUI();
+});
+</script>
+<nav class="glass-side" id="glassSide" aria-label="Atalhos">
+  <button class="sb" data-tip="Início" data-act="top" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg></button>
+  <button class="sb" data-tip="Buscar" data-act="search" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
+  <button class="sb" data-tip="Exportar CSV" data-click="exportBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg></button>
+  <button class="sb" data-tip="Backup completo" data-click="backupExportBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6"/><path d="M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></svg></button>
+  <div class="sep"></div>
+  <button class="sb hidden" id="gsUsers" data-tip="Usuários" data-click="adminUsersBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.3"/><path d="M2.8 19.5c.6-3.3 3-5 6.2-5s5.6 1.7 6.2 5"/><path d="M16 5.5a3.2 3.2 0 010 6M18.5 14.8c1.5.7 2.4 2 2.7 4.2"/></svg></button>
+  <button class="sb" data-tip="Sair" data-click="logoutBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h4.5a1.5 1.5 0 011.5 1.5v12a1.5 1.5 0 01-1.5 1.5H14"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h10"/></svg></button>
+</nav>
+<nav class="glass-bottom" id="glassBottom" aria-label="Navegação">
+  <button class="bt" data-click="tabAtivos" data-sync="tabAtivos" type="button">Ativos</button>
+  <button class="bt" data-click="tabHistorico" data-sync="tabHistorico" type="button">Histórico</button>
+  <span class="bt-sep"></span>
+  <button class="bt" data-click="panelTabSimcar" data-sync="panelTabSimcar" type="button">Painel SIMCAR</button>
+  <button class="bt" data-click="panelTabSimlam" data-sync="panelTabSimlam" type="button">Painel SIMLAM</button>
+  <button class="bt bt-add" data-click="addBtn" title="Novo processo" type="button">+</button>
+</nav>
+<script>
+/* ===== Tema vidro (teste): atalhos, barra inferior e gráficos ===== */
+(function(){
+  const $ = id => document.getElementById(id);
+  function syncNav(){
+    document.querySelectorAll('#glassBottom [data-sync]').forEach(b => {
+      const src = $(b.dataset.sync); b.classList.toggle('on', !!(src && src.classList.contains('active')));
+    });
+    const u = $('adminUsersBtn'), g = $('gsUsers');
+    if(u && g) g.classList.toggle('hidden', u.classList.contains('hidden'));
+  }
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-click],[data-act]'); if(!el) return;
+    if(el.dataset.click){ const t = $(el.dataset.click); if(t) t.click(); setTimeout(syncNav, 60); }
+    else if(el.dataset.act === 'top'){ window.scrollTo({top:0, behavior:'smooth'}); }
+    else if(el.dataset.act === 'search'){ const s = $('searchInput'); if(s){ s.scrollIntoView({behavior:'smooth', block:'center'}); s.focus(); } }
+  });
+  function num(id){ const n = parseInt(($(id)||{}).textContent, 10); return isNaN(n) ? 0 : n; }
+  function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function drawDonut(){
+    const total = num('cardTotal'), venc = num('cardOverdue'), prox = num('cardSoon');
+    const ok = Math.max(0, total - venc - prox);
+    const parts = [
+      {n:'Prazo vencido', v:venc, c:'#d23f3f'},
+      {n:'Vence em 7 dias', v:prox, c:'#e0a21b'},
+      {n:'Dentro do prazo', v:ok, c:'#2e9a5b'}
+    ];
+    const svg = $('donutSvg'), R = 15.915; let off = 0, h = '<circle cx="21" cy="21" r="'+R+'" fill="none" stroke="rgba(70,50,35,.1)" stroke-width="5"/>';
+    if(total > 0) parts.forEach(p => {
+      if(!p.v) return; const len = p.v / total * 100;
+      h += '<circle cx="21" cy="21" r="'+R+'" fill="none" stroke="'+p.c+'" stroke-width="5" stroke-dasharray="'+Math.max(0,len-0.8)+' '+(100-Math.max(0,len-0.8))+'" stroke-dashoffset="'+(-off)+'" stroke-linecap="round"/>';
+      off += len;
+    });
+    svg.innerHTML = h; $('donutTotal').textContent = total;
+    $('donutLegend').innerHTML = parts.map(p => '<div><i style="background:'+p.c+'"></i>'+p.n+'<b>'+p.v+'</b></div>').join('');
+  }
+  function drawBars(){
+    const box = $('analystBars'); let list = [];
+    try{ list = (typeof records !== 'undefined' ? records : []).filter(r => !r.arquivado); }catch(e){}
+    const m = new Map();
+    list.forEach(r => { const k = (r.analista || '').trim() || 'Sem analista'; m.set(k, (m.get(k)||0)+1); });
+    const rows = [...m.entries()].sort((a,b) => b[1]-a[1]).slice(0,6);
+    if(!rows.length){ box.innerHTML = '<div class="glass-empty">Nenhum processo ativo neste painel.</div>'; return; }
+    const max = rows[0][1];
+    box.innerHTML = rows.map(([n,c]) => '<div class="bar-row"><span class="nm" title="'+esc(n)+'">'+esc(n)+'</span><span class="tr"><i style="width:'+Math.round(c/max*100)+'%"></i></span><span class="ct">'+c+'</span></div>').join('');
+  }
+  let raf = 0;
+  function refresh(){ cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { try{ drawDonut(); drawBars(); syncNav(); }catch(e){ console.warn(e); } }); }
+  const mo = new MutationObserver(refresh);
+  ['cardTotal','cardOverdue','cardSoon','tableBody'].forEach(id => { const el = $(id); if(el) mo.observe(el, {childList:true, characterData:true, subtree:true}); });
+  ['tabAtivos','tabHistorico','panelTabSimcar','panelTabSimlam','adminUsersBtn'].forEach(id => { const el = $(id); if(el) new MutationObserver(refresh).observe(el, {attributes:true, attributeFilter:['class']}); });
+  refresh();
+})();
+</script>
+</body>
+</html>
