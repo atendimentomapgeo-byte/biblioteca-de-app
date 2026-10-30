@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.32">
+<meta name="app-version" content="0.0.36">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -170,13 +170,14 @@ tr.row{transition:background .15s}
 .tip td.n,.tip th.n{text-align:right}
 .tip tr.tt td{font-weight:700;border-top:2px solid var(--bd)}
 .tip .scr{max-height:34vh;overflow:auto}
+.tip td.sit{font-weight:700}.tip td.sit small{font-weight:600;opacity:.95}.tip td.sit.er{color:var(--er)}.tip td.sit.ok{color:var(--ok)}
 #tipSt.ok{color:var(--ok)}#tipSt.er{color:var(--er)}
 </style>
 </head>
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.32</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.36</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="tipBtn">Tipologia RADAM × ARL</button>
@@ -229,6 +230,7 @@ tr.row{transition:background .15s}
     <button id="tipPick">Importar Base de Tipologia (shapefile .zip ou .shp/.dbf/.prj)</button>
     <input type="file" id="tipFile" multiple accept=".zip,.shp,.dbf,.prj,.cpg,.shx" hidden>
   </fieldset>
+  <div class="row2"><label>Exigido Cerrado (%)<input id="tipRc" type="number" min="0" max="100" step="0.1" value="35"></label><label>Exigido Floresta (%)<input id="tipRf" type="number" min="0" max="100" step="0.1" value="80"></label></div>
   <div class="row2"><label>Campo da tipologia<select id="tipFld"></select></label><button class="pri" id="tipRun" disabled>Calcular</button></div>
   <div id="tipSt" class="empty">Nenhuma base carregada.</div>
   <div id="tipOut"></div>
@@ -241,8 +243,12 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.32";
+const APP_VERSION = "0.0.36";
 const CHANGELOG = [
+  {v:"0.0.36", d:"2026-10-30", t:["Tipologia RADAM acompanha a pasta monitorada: depois do primeiro cálculo, o quadro (ATP, ARL, percentual e Situação da ARL) é recalculado sozinho a cada alteração salva nas camadas, e a base do WFS é buscada de novo se a ARL sair da área já consultada."]},
+  {v:"0.0.35", d:"2026-10-30", t:["Tipologia RADAM: a linha Déficit virou Situação da ARL: Déficit de ARL (vermelho) ou Excedente de ARL (verde), em ha, por tipologia e no total."]},
+  {v:"0.0.34", d:"2026-10-30", t:["Tipologia RADAM: quadro ganha Percentual exigido (Cerrado 35% | Floresta 80%, editáveis), Área exigida e Déficit em ha por tipologia, com total e no CSV."]},
+  {v:"0.0.33", d:"2026-10-30", t:["Tipologia RADAM: novo quadro com a área da ATP e da ARL em ha por tipologia (Cerrado, Floresta…) e o percentual da ARL sobre a ATP em cada tipologia e no total."]},
   {v:"0.0.32", d:"2026-10-30", t:["Novo painel Tipologia RADAM × ARL: quantifica, em hectares, a área da ARL que incide sobre cada tipologia (por ARL e total), com exportação em CSV.","Base de tipologia pode vir do WFS da SEMA-MT (endereço, camada e chave editáveis; não testado) ou de um shapefile importado."]},
   {v:"0.0.31", d:"2026-10-30", t:["Lista de camadas mostra a área total de cada camada em hectares (ha), ao lado da quantidade de registros."]},
   {v:"0.0.30", d:"2026-10-29", t:["Novo tema em vidro fosco (frosted glass), escuro por padrão, igual ao do Painel de Pendências: cartões translúcidos com desfoque sobre fundo com luzes animadas, botões e cartões com animação."]},
@@ -831,6 +837,7 @@ async function ingest(groups,opt={}){
   }
   renderLayers(); if(opt.fit) fit();
   $("run").disabled=!Object.keys(LAYERS).length;
+  try{ if(n) tipAuto(); }catch(e){}
   return n;
 }
 
@@ -1097,6 +1104,7 @@ $("tipWfs").onclick=async()=>{
   const q=new URLSearchParams({service:"WFS",version:"1.0.0",request:"GetFeature",typeName:tn,outputFormat:"application/json",srsName:"EPSG:4326",bbox:[b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad].join(",")+",EPSG:4326"});
   const ak=$("tipKey").value.trim(); if(ak) q.set("authkey",ak);
   let u=$("tipUrl").value.trim(); u+=(u.includes("?")?"&":"?")+q;
+  TIP.box=[b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad];
   tipMsg("Consultando o WFS da SEMA…");
   try{
     const r=await fetch(u); if(!r.ok) throw new Error("HTTP "+r.status);
@@ -1104,7 +1112,27 @@ $("tipWfs").onclick=async()=>{
     tipSetBase(j,"WFS SEMA");
   }catch(err){ tipMsg("Falha na consulta WFS ("+err.message+"). Se for bloqueio do navegador (CORS), camada ou chave, use Importar Base de Tipologia.","er"); }
 };
-$("tipRun").onclick=async()=>{
+function tipReq(c){ const u=String(c).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); if(u.includes("CERRADO")) return +$("tipRc").value; if(u.includes("FLORESTA")) return +$("tipRf").value; return null; }
+function tipCalc(R){
+  const rq=R.cols.map(tipReq), ex=R.cols.map((c,i)=>rq[i]==null||!R.totA[c]?null:R.totA[c]*rq[i]/100), df=ex.map((e,i)=>e==null?null:Math.max(0,e-(R.tot[R.cols[i]]||0))), ec=ex.map((e,i)=>e==null?null:Math.max(0,(R.tot[R.cols[i]]||0)-e));
+  return {rq,ex,df,ec,exT:ex.reduce((a,b)=>a+(b||0),0),dfT:df.reduce((a,b)=>a+(b||0),0),ecT:ec.reduce((a,b)=>a+(b||0),0),temReq:rq.some(x=>x!=null)};
+}
+function tipQuad(){
+  const R=TIP.res, el=$("tipQuad"); if(!R||!el) return; const {tot,totA,totAtp,totArl,cols,fld}=R, C=tipCalc(R);
+  const td=v=>`<td class="n">${v}</td>`;
+  const sit=(d,e)=>d==null?td("—"):d>0.005?`<td class="n sit er"><small>Déficit de ARL</small><br>${fmtHa(d)} ha</td>`:`<td class="n sit ok"><small>${e>0.005?"Excedente de ARL":"ARL atendida"}</small><br>${fmtHa(e||0)} ha</td>`;
+  el.innerHTML=`<h4>Quantitativo por tipologia (campo ${esc(fld)})</h4><table><tr><th></th>${cols.map(c=>`<th class="n">${esc(c)}</th>`).join("")}<th class="n">Total</th></tr>
+  <tr><td><b>ATP</b> (ha)</td>${cols.map(c=>td(totA[c]?fmtHa(totA[c]):"0,00")).join("")}${td(fmtHa(totAtp))}</tr>
+  <tr><td><b>ARL</b> (ha)</td>${cols.map(c=>td(tot[c]?fmtHa(tot[c]):"0,00")).join("")}${td(fmtHa(totArl))}</tr>
+  <tr><td>Percentual (ARL ÷ ATP)</td>${cols.map(c=>td(totA[c]?fmtPc((tot[c]||0)/totA[c]*100):"—")).join("")}${td(totAtp?fmtPc(totArl/totAtp*100):"—")}</tr>
+  <tr><td>Percentual exigido</td>${C.rq.map(r=>td(r==null?"—":fmtPc(r))).join("")}${td("—")}</tr>
+  <tr><td>Área exigida (ha)</td>${C.ex.map(e=>td(e==null?"—":fmtHa(e))).join("")}${td(C.temReq?fmtHa(C.exT):"—")}</tr>
+  <tr class="tt"><td>Situação da ARL</td>${C.df.map((d,i)=>sit(d,C.ec[i])).join("")}${C.temReq?sit(C.dfT,C.ecT):td("—")}</tr></table>
+  ${totA&&totAtp?"":'<div class="empty">Camada ATP vazia ou não carregada: o quadro da ATP, o percentual e o déficit não puderam ser calculados.</div>'}`;
+}
+$("tipRc").oninput=$("tipRf").oninput=tipQuad;
+async function tipRunCore(){
+  TIP.auto=true;
   const arl=H.feats({layers:LAYERS},"ARL"), T=TIP.fc&&TIP.fc.features||[], fld=$("tipFld").value, tol=+$("tol").value||0;
   if(!arl.length) return tipMsg("Camada ARL vazia ou não carregada.","er");
   $("tipRun").disabled=true; tipMsg("Calculando…");
@@ -1122,20 +1150,57 @@ $("tipRun").onclick=async()=>{
     for(const [v,a] of Object.entries(por)){ det.push({fid:H.id(f),ident:p.IDENTIFIC==null?"":p.IDENTIFIC,sit:p.SITUACAO==null?"":p.SITUACAO,aArl,v,a}); tot[v]=(tot[v]||0)+a; }
     await H.tick();
   }
-  TIP.res={det,tot,totArl,fld,falhas};
+  const atpF=H.feats({layers:LAYERS},"ATP"), totA={}; let totAtp=0;
+  for(const f of atpF){
+    const a0=turf.area(f); totAtp+=a0; let soma=0;
+    for(const t of T){
+      if(H.disj(f,t)) continue;
+      let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ falhas++; continue; }
+      if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
+      const v=val(t); totA[v]=(totA[v]||0)+a; soma+=a;
+    }
+    const sem=a0-soma; if(sem>Math.max(tol,0.01)) totA[SEMTIP]=(totA[SEMTIP]||0)+sem;
+    await H.tick();
+  }
+  const cols=[...new Set([...Object.keys(totA),...Object.keys(tot)])].sort((a,b)=>(a===SEMTIP)-(b===SEMTIP)||((totA[b]||0)+(tot[b]||0))-((totA[a]||0)+(tot[a]||0)));
+  TIP.res={det,tot,totArl,totA,totAtp,cols,fld,falhas};
   const ord=Object.entries(tot).sort((a,b)=>b[1]-a[1]);
-  $("tipOut").innerHTML=`<h4>Resumo por tipologia (campo ${esc(fld)})</h4><table><tr><th>Tipologia</th><th class="n">Área da ARL (ha)</th><th class="n">% da ARL</th></tr>${ord.map(([v,a])=>`<tr><td>${esc(v)}</td><td class="n">${fmtHa(a)}</td><td class="n">${fmtPc(a/totArl*100)}</td></tr>`).join("")}<tr class="tt"><td>Total da ARL</td><td class="n">${fmtHa(totArl)}</td><td class="n">100,0%</td></tr></table>
+  $("tipOut").innerHTML=`<div id="tipQuad"></div>
   <h4>Por ARL</h4><div class="scr"><table><tr><th>ARL</th><th>IDENTIFIC</th><th>SITUACAO</th><th class="n">Área da ARL (ha)</th><th>Tipologia</th><th class="n">Área na tipologia (ha)</th><th class="n">%</th></tr>${det.map(d=>`<tr><td>${d.fid}</td><td>${esc(d.ident)}</td><td>${esc(d.sit)}</td><td class="n">${fmtHa(d.aArl)}</td><td>${esc(d.v)}</td><td class="n">${fmtHa(d.a)}</td><td class="n">${fmtPc(d.a/d.aArl*100)}</td></tr>`).join("")}</table></div>`;
-  tipMsg(`Calculado: ${arl.length} ARL sobre ${T.length} polígono(s) de tipologia (${TIP.src}).${falhas?` Atenção: ${falhas} cruzamento(s) falharam por geometria inválida na base.`:""}`,falhas?"er":"ok");
+  tipQuad();
+  tipMsg(`Calculado às ${new Date().toLocaleTimeString("pt-BR")}: ${arl.length} ARL sobre ${T.length} polígono(s) de tipologia (${TIP.src}).${falhas?` Atenção: ${falhas} cruzamento(s) falharam por geometria inválida na base.`:""}`,falhas?"er":"ok");
   $("tipRun").disabled=false; $("tipCsv").disabled=false;
-};
+}
+let tipBusy=false, tipAgain=false, tipT=null;
+async function tipRunSafe(){
+  if(tipBusy){ tipAgain=true; return; }
+  tipBusy=true;
+  try{ await tipRunCore(); }catch(e){ tipMsg("Falha ao calcular: "+e.message,"er"); $("tipRun").disabled=false; }
+  finally{ tipBusy=false; if(tipAgain){ tipAgain=false; tipAuto(); } }
+}
+$("tipRun").onclick=tipRunSafe;
+// recalcula sozinho quando as camadas são recarregadas (pasta monitorada ou nova importação)
+function tipAuto(){
+  if(!TIP.auto||!TIP.fc) return;
+  clearTimeout(tipT);
+  tipT=setTimeout(async()=>{
+    if(tipBusy){ tipAgain=true; return; }
+    if(TIP.src==="WFS SEMA"&&TIP.box){
+      const fs_=H.feats({layers:LAYERS},"ARL");
+      if(fs_.length){ const b=turf.bbox({type:"FeatureCollection",features:fs_}), q=TIP.box;
+        if(b[0]<q[0]||b[1]<q[1]||b[2]>q[2]||b[3]>q[3]){ await $("tipWfs").onclick(); }
+      }
+    }
+    tipRunSafe();
+  },700);
+}
 $("tipCsv").onclick=()=>{
-  const R=TIP.res; if(!R) return; const n=v=>(v/10000).toFixed(4).replace(".",","), q=v=>`"${String(v).replace(/"/g,'""')}"`;
+  const R=TIP.res; if(!R) return; const C=tipCalc(R); const n=v=>(v/10000).toFixed(4).replace(".",","), q=v=>`"${String(v).replace(/"/g,'""')}"`;
   const rows=[["ARL","IDENTIFIC","SITUACAO","Area ARL (ha)","Tipologia","Area na tipologia (ha)","% da ARL"].join(";"),
     ...R.det.map(d=>[d.fid,q(d.ident),q(d.sit),n(d.aArl),q(d.v),n(d.a),(d.a/d.aArl*100).toFixed(2).replace(".",",")].join(";")),"",
-    ["Resumo","","","","Tipologia","Area na ARL (ha)","% da ARL"].join(";"),
-    ...Object.entries(R.tot).sort((a,b)=>b[1]-a[1]).map(([v,a])=>["Total","","","",q(v),n(a),(a/R.totArl*100).toFixed(2).replace(".",",")].join(";")),
-    ["Total","","",n(R.totArl),"Total da ARL",n(R.totArl),"100,00"].join(";")];
+    ["Quantitativo","Tipologia","ATP (ha)","ARL (ha)","% ARL sobre ATP","% exigido","Area exigida (ha)","Situacao da ARL","Area (ha)"].join(";"),
+    ...R.cols.map((c,i)=>["",q(c),n(R.totA[c]||0),n(R.tot[c]||0),R.totA[c]?((R.tot[c]||0)/R.totA[c]*100).toFixed(2).replace(".",","):"",C.rq[i]==null?"":String(C.rq[i]).replace(".",","),C.ex[i]==null?"":n(C.ex[i]),C.df[i]==null?"":(C.df[i]>0.005?"Deficit de ARL":C.ec[i]>0.005?"Excedente de ARL":"ARL atendida"),C.df[i]==null?"":n(C.df[i]>0.005?C.df[i]:C.ec[i])].join(";")),
+    ["","Total",n(R.totAtp),n(R.totArl),R.totAtp?(R.totArl/R.totAtp*100).toFixed(2).replace(".",","):"","",C.temReq?n(C.exT):"",C.temReq?(C.dfT>0.005?"Deficit de ARL":C.ecT>0.005?"Excedente de ARL":"ARL atendida"):"",C.temReq?n(C.dfT>0.005?C.dfT:C.ecT):""].join(";")];
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob(["﻿"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"})); a.download="tipologia_radam_x_arl.csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 };
 
