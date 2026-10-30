@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.31">
+<meta name="app-version" content="0.0.32">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -159,14 +159,27 @@ tr.row{transition:background .15s}
 .L .g>*:nth-child(2){animation-delay:.06s}.L .g>*:nth-child(3){animation-delay:.12s}
 .stat:nth-child(2){animation-delay:.05s}.stat:nth-child(3){animation-delay:.1s}.stat:nth-child(4){animation-delay:.15s}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.dlg .box.tip{max-height:92vh;overflow:auto}
+.tip fieldset{border:1px solid var(--bd);border-radius:10px;margin:10px 0;padding:8px 10px}
+.tip legend{font-size:12px;color:var(--mt)}
+.tip label{display:block;font-size:12px;color:var(--mt);margin:4px 0}
+.tip input,.tip select{width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);margin-top:2px}
+.tip .row2{display:flex;gap:10px;align-items:flex-end}.tip .row2 label{flex:1;margin:0}
+.tip table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.tip th,.tip td{padding:5px 8px;border-bottom:1px solid var(--bd);text-align:left}
+.tip td.n,.tip th.n{text-align:right}
+.tip tr.tt td{font-weight:700;border-top:2px solid var(--bd)}
+.tip .scr{max-height:34vh;overflow:auto}
+#tipSt.ok{color:var(--ok)}#tipSt.er{color:var(--er)}
 </style>
 </head>
 <body>
 <header>
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.31</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.32</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
+  <button id="tipBtn">Tipologia RADAM × ARL</button>
   <button id="dictBtn">Dicionário de camadas</button>
 </header>
 <div id="app"></div>
@@ -204,6 +217,23 @@ tr.row{transition:background .15s}
 <div class="dlg" id="dlgVer"><div class="box"><h3>Histórico de versões</h3><ul id="chg"></ul><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 <div class="dlg" id="dlgDict"><div class="box" style="max-width:760px"><h3>Dicionário de camadas</h3><div id="dictBody"></div><br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 
+<div class="dlg" id="dlgTip"><div class="box tip" style="max-width:860px;width:min(860px,94vw)"><h3>Tipologia RADAM × ARL</h3>
+  <div class="empty">Quantifica a área da ARL (camada ARL carregada) que incide sobre cada tipologia da base RADAM BRASIL. ARLREM não entra na soma.</div>
+  <fieldset><legend>WFS da SEMA-MT <span class="tag wn">não testado</span></legend>
+    <label>Endereço WFS<input id="tipUrl" value="https://geo.sema.mt.gov.br/geoserver/ows"></label>
+    <label>Camada (typeName)<input id="tipTn" placeholder="workspace:nome_da_camada_radam"></label>
+    <label>Chave (authkey, se exigida)<input id="tipKey" placeholder="opcional"></label>
+    <button id="tipWfs">Buscar na SEMA (pela extensão da ARL)</button>
+  </fieldset>
+  <fieldset><legend>Ou importar a base</legend>
+    <button id="tipPick">Importar Base de Tipologia (shapefile .zip ou .shp/.dbf/.prj)</button>
+    <input type="file" id="tipFile" multiple accept=".zip,.shp,.dbf,.prj,.cpg,.shx" hidden>
+  </fieldset>
+  <div class="row2"><label>Campo da tipologia<select id="tipFld"></select></label><button class="pri" id="tipRun" disabled>Calcular</button></div>
+  <div id="tipSt" class="empty">Nenhuma base carregada.</div>
+  <div id="tipOut"></div>
+  <br><button id="tipCsv" disabled>Exportar CSV</button> <button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.2.0/turf.min.js"></script>
@@ -211,8 +241,9 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.31";
+const APP_VERSION = "0.0.32";
 const CHANGELOG = [
+  {v:"0.0.32", d:"2026-10-30", t:["Novo painel Tipologia RADAM × ARL: quantifica, em hectares, a área da ARL que incide sobre cada tipologia (por ARL e total), com exportação em CSV.","Base de tipologia pode vir do WFS da SEMA-MT (endereço, camada e chave editáveis; não testado) ou de um shapefile importado."]},
   {v:"0.0.31", d:"2026-10-30", t:["Lista de camadas mostra a área total de cada camada em hectares (ha), ao lado da quantidade de registros."]},
   {v:"0.0.30", d:"2026-10-29", t:["Novo tema em vidro fosco (frosted glass), escuro por padrão, igual ao do Painel de Pendências: cartões translúcidos com desfoque sobre fundo com luzes animadas, botões e cartões com animação."]},
   {v:"0.0.29", d:"2026-10-29", t:["Monitoramento de pasta lê apenas os shapefiles que têm geometrias salvas; os vazios são ignorados (e saem da tela se ficarem vazios)."]},
@@ -1027,6 +1058,87 @@ const dz=$("drop");
 ["dragleave","drop"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove("over");}));
 dz.addEventListener("drop",e=>{ if(e.dataTransfer.files.length) load([...e.dataTransfer.files]); });
 $("layoutSel").onchange=e=>applyLayout(e.target.value);
+/* ============ TIPOLOGIA RADAM × ARL ============ */
+const TIP={fc:null,src:"",res:null}, SEMTIP="(sem tipologia na base)";
+const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtHa=m=>(m/10000).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtPc=v=>v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
+function tipMsg(t,c){ const e=$("tipSt"); e.textContent=t; e.className="empty "+(c||""); }
+function tipSave(){ try{ localStorage.setItem("vt-tip",JSON.stringify({u:$("tipUrl").value,t:$("tipTn").value,k:$("tipKey").value})); }catch(e){} }
+try{ const o=JSON.parse(localStorage.getItem("vt-tip")||"null"); if(o){ $("tipUrl").value=o.u||$("tipUrl").value; $("tipTn").value=o.t||""; $("tipKey").value=o.k||""; } }catch(e){}
+function tipSetBase(fc,src){
+  const feats=(fc.features||[]).filter(f=>f.geometry&&/Polygon/.test(f.geometry.type));
+  feats.forEach((f,i)=>f._i=i);
+  TIP.fc={type:"FeatureCollection",features:feats}; TIP.src=src; TIP.res=null; $("tipOut").innerHTML=""; $("tipCsv").disabled=true;
+  const keys=feats.length?Object.keys(feats[0].properties||{}):[];
+  $("tipFld").innerHTML=keys.map(k=>`<option>${esc(k)}</option>`).join("");
+  const p=["FITOECOLOG","FITOECOLOGIA","TIPOLOGIA","TIPO","LEGENDA","NOME"].find(x=>keys.some(k=>k.toUpperCase()===x));
+  if(p) $("tipFld").value=keys.find(k=>k.toUpperCase()===p);
+  $("tipRun").disabled=!feats.length;
+  tipMsg(feats.length?`Base carregada (${src}): ${feats.length} polígono(s). Confira o campo da tipologia e clique em Calcular.`:`Nenhum polígono encontrado na base (${src}).`,feats.length?"ok":"er");
+}
+$("tipBtn").onclick=()=>$("dlgTip").classList.add("on");
+$("tipPick").onclick=()=>$("tipFile").click();
+$("tipFile").onchange=async e=>{
+  const files=[...e.target.files]; e.target.value=""; if(!files.length) return;
+  try{
+    const g=await collect(files), k=Object.keys(g).find(n=>g[n].shp&&g[n].dbf);
+    if(!k) throw new Error("não encontrei um par .shp + .dbf");
+    const prj=g[k].prj?new TextDecoder().decode(g[k].prj):"", cpg=g[k].cpg?new TextDecoder().decode(g[k].cpg).trim():undefined;
+    tipSetBase(shp.combine([shp.parseShp(g[k].shp,prj||undefined),shp.parseDbf(g[k].dbf,cpg)]),"shapefile "+k);
+  }catch(err){ tipMsg("Falha ao ler a base: "+err.message,"er"); }
+};
+$("tipWfs").onclick=async()=>{
+  const fs_=H.feats({layers:LAYERS},"ARL");
+  if(!fs_.length) return tipMsg("Carregue a camada ARL antes: a busca usa a extensão dela.","er");
+  const tn=$("tipTn").value.trim(); if(!tn) return tipMsg("Informe o nome da camada (typeName) da tipologia RADAM no WFS.","er");
+  tipSave();
+  const b=turf.bbox({type:"FeatureCollection",features:fs_}), pad=0.001;
+  const q=new URLSearchParams({service:"WFS",version:"1.0.0",request:"GetFeature",typeName:tn,outputFormat:"application/json",srsName:"EPSG:4326",bbox:[b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad].join(",")+",EPSG:4326"});
+  const ak=$("tipKey").value.trim(); if(ak) q.set("authkey",ak);
+  let u=$("tipUrl").value.trim(); u+=(u.includes("?")?"&":"?")+q;
+  tipMsg("Consultando o WFS da SEMA…");
+  try{
+    const r=await fetch(u); if(!r.ok) throw new Error("HTTP "+r.status);
+    const t=await r.text(); let j; try{ j=JSON.parse(t); }catch(e){ throw new Error("a resposta não é GeoJSON: "+t.slice(0,140).replace(/\s+/g," ")); }
+    tipSetBase(j,"WFS SEMA");
+  }catch(err){ tipMsg("Falha na consulta WFS ("+err.message+"). Se for bloqueio do navegador (CORS), camada ou chave, use Importar Base de Tipologia.","er"); }
+};
+$("tipRun").onclick=async()=>{
+  const arl=H.feats({layers:LAYERS},"ARL"), T=TIP.fc&&TIP.fc.features||[], fld=$("tipFld").value, tol=+$("tol").value||0;
+  if(!arl.length) return tipMsg("Camada ARL vazia ou não carregada.","er");
+  $("tipRun").disabled=true; tipMsg("Calculando…");
+  const val=t=>{ const v=(t.properties||{})[fld]; return (v==null||String(v).trim()==="")?"(sem valor)":String(v).trim(); };
+  const det=[], tot={}; let totArl=0, falhas=0;
+  for(const f of arl){
+    const aArl=turf.area(f), p=f.properties||{}; totArl+=aArl; let soma=0; const por={};
+    for(const t of T){
+      if(H.disj(f,t)) continue;
+      let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ falhas++; continue; }
+      if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
+      const v=val(t); por[v]=(por[v]||0)+a; soma+=a;
+    }
+    const sem=aArl-soma; if(sem>Math.max(tol,0.01)) por[SEMTIP]=sem;
+    for(const [v,a] of Object.entries(por)){ det.push({fid:H.id(f),ident:p.IDENTIFIC==null?"":p.IDENTIFIC,sit:p.SITUACAO==null?"":p.SITUACAO,aArl,v,a}); tot[v]=(tot[v]||0)+a; }
+    await H.tick();
+  }
+  TIP.res={det,tot,totArl,fld,falhas};
+  const ord=Object.entries(tot).sort((a,b)=>b[1]-a[1]);
+  $("tipOut").innerHTML=`<h4>Resumo por tipologia (campo ${esc(fld)})</h4><table><tr><th>Tipologia</th><th class="n">Área da ARL (ha)</th><th class="n">% da ARL</th></tr>${ord.map(([v,a])=>`<tr><td>${esc(v)}</td><td class="n">${fmtHa(a)}</td><td class="n">${fmtPc(a/totArl*100)}</td></tr>`).join("")}<tr class="tt"><td>Total da ARL</td><td class="n">${fmtHa(totArl)}</td><td class="n">100,0%</td></tr></table>
+  <h4>Por ARL</h4><div class="scr"><table><tr><th>ARL</th><th>IDENTIFIC</th><th>SITUACAO</th><th class="n">Área da ARL (ha)</th><th>Tipologia</th><th class="n">Área na tipologia (ha)</th><th class="n">%</th></tr>${det.map(d=>`<tr><td>${d.fid}</td><td>${esc(d.ident)}</td><td>${esc(d.sit)}</td><td class="n">${fmtHa(d.aArl)}</td><td>${esc(d.v)}</td><td class="n">${fmtHa(d.a)}</td><td class="n">${fmtPc(d.a/d.aArl*100)}</td></tr>`).join("")}</table></div>`;
+  tipMsg(`Calculado: ${arl.length} ARL sobre ${T.length} polígono(s) de tipologia (${TIP.src}).${falhas?` Atenção: ${falhas} cruzamento(s) falharam por geometria inválida na base.`:""}`,falhas?"er":"ok");
+  $("tipRun").disabled=false; $("tipCsv").disabled=false;
+};
+$("tipCsv").onclick=()=>{
+  const R=TIP.res; if(!R) return; const n=v=>(v/10000).toFixed(4).replace(".",","), q=v=>`"${String(v).replace(/"/g,'""')}"`;
+  const rows=[["ARL","IDENTIFIC","SITUACAO","Area ARL (ha)","Tipologia","Area na tipologia (ha)","% da ARL"].join(";"),
+    ...R.det.map(d=>[d.fid,q(d.ident),q(d.sit),n(d.aArl),q(d.v),n(d.a),(d.a/d.aArl*100).toFixed(2).replace(".",",")].join(";")),"",
+    ["Resumo","","","","Tipologia","Area na ARL (ha)","% da ARL"].join(";"),
+    ...Object.entries(R.tot).sort((a,b)=>b[1]-a[1]).map(([v,a])=>["Total","","","",q(v),n(a),(a/R.totArl*100).toFixed(2).replace(".",",")].join(";")),
+    ["Total","","",n(R.totArl),"Total da ARL",n(R.totArl),"100,00"].join(";")];
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob(["﻿"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"})); a.download="tipologia_radam_x_arl.csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+
 $("verBtn").onclick=()=>$("dlgVer").classList.add("on");
 $("dictBtn").onclick=()=>$("dlgDict").classList.add("on");
 $("chg").innerHTML=CHANGELOG.map(c=>`<li><b>v${c.v}</b> · ${c.d}<ul>${c.t.map(x=>`<li>${x}</li>`).join("")}</ul></li>`).join("");
