@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mapa GEO Alertas</title>
-<meta name="version" content="1.0.0">
-<meta name="app-version" content="1.0.0">
+<meta name="version" content="1.0.1">
+<meta name="app-version" content="1.0.1">
 <meta name="description" content="Mapa GEO Alertas — download de polígonos de alertas de desmatamento SCCON/SEMA-MT">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 2.8 19.5h18.4z'/%3E%3Cpath d='M12 10v4.5'/%3E%3Cpath d='M12 17v.01'/%3E%3C/svg%3E">
@@ -74,6 +74,9 @@
   th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   tr.clk{cursor:pointer;transition:background .15s} tr.clk:hover{background:var(--hover)}
+  tr.grp td{background:var(--hover);padding-top:9px;font-size:13px;border-top:2px solid var(--line)}
+  tr.grp .dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+  tr.grp .cnt{float:right;color:var(--muted);font-size:12px}
   .code{font:11.5px ui-monospace,Menlo,Consolas,monospace;color:var(--muted)}
   .missing{background:var(--warn-bg);border:1px solid var(--warn-bd);border-radius:10px;padding:8px 10px;font-size:13px;animation:fadeUp .3s ease both}
   .info{background:var(--info-bg);border:1px solid var(--info-bd);border-radius:10px;padding:8px 10px;font-size:13px;line-height:1.45;animation:fadeUp .3s ease both}
@@ -97,7 +100,7 @@
 <header>
   <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><path d="M12 17v.01"/></svg>
   <h1>Mapa GEO Alertas</h1>
-  <span class="ver" id="appVer">v1.0.0</span>
+  <span class="ver" id="appVer">v1.0.1</span>
   <span class="sub">Download de polígonos de alertas — SCCON / SEMA-MT</span>
   <span class="sp"></span>
   <button id="themeBtn" type="button" aria-label="Alternar tema claro/escuro">Tema</button>
@@ -233,6 +236,7 @@ const LAYER = 'dashboards:vw_v2_dashboard_alerts_all_defo-data_prod-mt';
 const CHUNK = 30;
 const SPATIAL_LIMIT = 5000;
 const TIPOS = { DEGRADATION_SELECTIVE_CUT: 'Corte seletivo' };
+const TIPO_CORES = ['#ff5a1f', '#1e88e5', '#8e24aa', '#43a047', '#fdd835', '#00acc1', '#d81b60', '#6d4c41'];
 
 function parseIds(text) {
   const m = String(text || '').match(/\d+/g) || [];
@@ -882,7 +886,7 @@ if (typeof module !== 'undefined') {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script id="ui">
 (function () {
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.0.1';
   const $ = id => document.getElementById(id);
   $('appVer').textContent = 'v' + APP_VERSION;
   const themeBtn = $('themeBtn');
@@ -945,7 +949,7 @@ if (typeof module !== 'undefined') {
     if (layer) { map.removeLayer(layer); layer = null; }
     if (results.length) {
       layer = L.geoJSON(toGeoJSON(results), {
-        style: { color: '#ff5a1f', weight: 2.5, fillColor: '#ff5a1f', fillOpacity: .25 },
+        style: f => { const c = corTipo(f.properties.qualification); return { color: c, weight: 2.5, fillColor: c, fillOpacity: .25 }; },
         onEachFeature: (f, l) => {
           const p = f.properties;
           l.bindPopup('<b>Alerta ' + p.idt_local_alert + '</b><br>' + (TIPOS[p.qualification] || p.qualification) + '<br>' + fmtHa(p.area_ha) + ' ha');
@@ -959,24 +963,37 @@ if (typeof module !== 'undefined') {
     } catch (e) { /* sem geometria */ }
   }
 
+  const tiposOrdenados = () => [...new Set(results.map(r => r.tipo))].sort((a, b) => (TIPOS[a] || a).localeCompare(TIPOS[b] || b, 'pt-BR'));
+  function corTipo(t) { const i = tiposOrdenados().indexOf(t); return TIPO_CORES[(i < 0 ? 0 : i) % TIPO_CORES.length]; }
+
   function renderTable() {
     const withOrigin = results.some(r => r.origem && r.origem.length);
-    $('thead').innerHTML = '<tr><th>ID</th><th>Tipo</th><th class="num">Área (ha)</th>' + (withOrigin ? '<th>Origem</th>' : '') + '</tr>';
+    const cols = 2 + (withOrigin ? 1 : 0);
+    $('thead').innerHTML = '<tr><th>ID</th><th class="num">Área (ha)</th>' + (withOrigin ? '<th>Origem</th>' : '') + '</tr>';
     const tb = $('rows'); tb.innerHTML = '';
     let total = 0;
-    for (const r of results) {
-      total += r.area_ha || 0;
-      const tr = document.createElement('tr'); tr.className = 'clk';
-      const label = TIPOS[r.tipo];
-      tr.innerHTML = '<td>' + r.id + '</td><td>' + (label ? label + ' <span class="code">' + r.tipo + '</span>' : '<span class="code">' + xmlEsc(r.tipo) + '</span>') + '</td><td class="num">' + fmtHa(r.area_ha) + '</td>' +
-        (withOrigin ? '<td>' + xmlEsc((r.origem || []).join(', ')) + '</td>' : '');
-      tr.addEventListener('click', () => {
-        if (!map || !layer) return;
-        layer.eachLayer(l => { if (l.feature.properties.idt_local_alert === r.id) { map.fitBounds(l.getBounds(), { padding: [40, 40], maxZoom: 17 }); l.openPopup(); } });
-      });
-      tb.appendChild(tr);
+    for (const t of tiposOrdenados()) {
+      const grupo = results.filter(r => r.tipo === t).sort((x, y) => x.id - y.id);
+      const sub = grupo.reduce((a, r) => a + (r.area_ha || 0), 0);
+      total += sub;
+      const label = TIPOS[t] || t || '(sem tipo)';
+      const h = document.createElement('tr'); h.className = 'grp';
+      h.innerHTML = '<td colspan="' + cols + '"><i class="dot" style="background:' + corTipo(t) + '"></i><b>' + xmlEsc(label) + '</b>' +
+        (TIPOS[t] ? ' <span class="code">' + xmlEsc(t) + '</span>' : '') +
+        ' <span class="cnt">' + grupo.length + (grupo.length === 1 ? ' alerta' : ' alertas') + ' · ' + fmtHa(sub) + ' ha</span></td>';
+      tb.appendChild(h);
+      for (const r of grupo) {
+        const tr = document.createElement('tr'); tr.className = 'clk';
+        tr.innerHTML = '<td>' + r.id + '</td><td class="num">' + fmtHa(r.area_ha) + '</td>' +
+          (withOrigin ? '<td>' + xmlEsc((r.origem || []).join(', ')) + '</td>' : '');
+        tr.addEventListener('click', () => {
+          if (!map || !layer) return;
+          layer.eachLayer(l => { if (l.feature.properties.idt_local_alert === r.id) { map.fitBounds(l.getBounds(), { padding: [40, 40], maxZoom: 17 }); l.openPopup(); } });
+        });
+        tb.appendChild(tr);
+      }
     }
-    $('tfoot').innerHTML = '<tr><th colspan="2">Total</th><th class="num">' + fmtHa(total) + '</th>' + (withOrigin ? '<th></th>' : '') + '</tr>';
+    $('tfoot').innerHTML = '<tr><th>Total (' + results.length + ')</th><th class="num">' + fmtHa(total) + '</th>' + (withOrigin ? '<th></th>' : '') + '</tr>';
     $('resultBox').hidden = !results.length;
     for (const b of ['dlShp', 'dlGeo', 'dlKml', 'dlCsv']) $(b).disabled = !results.length;
   }
