@@ -570,9 +570,12 @@ input[type="color"]{width:30px;height:28px;border:1px solid var(--border-subtle)
 .workspace-viewport{
   grid-column:2;grid-row:2;position:relative;overflow:auto;
   background:var(--bg-canvas-area);touch-action:none;
+  display:flex;
+  align-items:safe center;
+  justify-content:safe center;
 }
 .canvas-stage{
-  position:relative;display:inline-block;margin:60px;
+  position:relative;flex:none;margin:60px;
 }
 .canvas-stage svg{
   background:var(--bg-page);
@@ -1581,13 +1584,27 @@ App.Canvas = (function () {
     document.dispatchEvent(new CustomEvent('svgstudio:zoomchange'));
   }
 
+  function stageMargins() {
+    // Lê a margem real do .canvas-stage via CSS computado em vez de um valor
+    // fixo — o valor muda entre breakpoints (60px no desktop, 28px no
+    // mobile, ver workspace.css) e precisa bater exatamente com o CSS para
+    // a página ficar centralizada no viewport sem estourar (o overflow,
+    // mesmo pequeno, faz o `justify-content: safe center` cair para
+    // alinhamento no início, deixando a página "grudada" numa das bordas).
+    const cs = container ? getComputedStyle(container) : null;
+    const mh = cs ? (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0) : 120;
+    const mv = cs ? (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) : 120;
+    return { mh, mv };
+  }
+
   function zoomToFit(state) {
     const viewport = document.getElementById('workspace-viewport');
     if (!viewport) return;
     const p = state.project.page;
     const w = p.orientation === 'landscape' ? p.height : p.width;
     const h = p.orientation === 'landscape' ? p.width : p.height;
-    const availW = viewport.clientWidth - 80, availH = viewport.clientHeight - 80;
+    const margins = stageMargins();
+    const availW = viewport.clientWidth - margins.mh, availH = viewport.clientHeight - margins.mv;
     const z = Math.max(0.1, Math.min(availW / (w * PX_PER_MM), availH / (h * PX_PER_MM)));
     state.zoom = Math.min(z, 4);
     setupPage(state);
