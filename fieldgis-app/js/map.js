@@ -121,52 +121,15 @@
    * N/S/L/O do próprio mapa, não a orientação da tela).
    */
   function createCompassRoseIcon() {
+    // Usa literalmente a imagem de referência enviada pelo usuário (recortada
+    // em círculo, fundo transparente fora do anel azul) em vez de redesenhar
+    // o mostrador em SVG — evita qualquer divergência de proporção, cor ou
+    // formato da agulha em relação à referência.
     const tamanho = 260;
     const c = tamanho / 2;
-    const rExterno = c - 8;
-    const rNumeros = rExterno - 20;
-    const rInterno = rNumeros - 18;
-    const rCruz = 26;
-
-    let ticksFinos = '';
-    for (let g = 0; g < 360; g += 10) {
-      if (g % 30 === 0) continue; // esses viram números, não traço fino
-      const rad = (g - 90) * (Math.PI / 180);
-      const x1 = c + (rInterno - 4) * Math.cos(rad);
-      const y1 = c + (rInterno - 4) * Math.sin(rad);
-      const x2 = c + rInterno * Math.cos(rad);
-      const y2 = c + rInterno * Math.sin(rad);
-      ticksFinos += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#ffb300" stroke-width="1.6"/>`;
-    }
-
-    let numeros = '';
-    for (let g = 0; g < 360; g += 30) {
-      const rad = (g - 90) * (Math.PI / 180);
-      const x = c + rNumeros * Math.cos(rad);
-      const y = c + rNumeros * Math.sin(rad);
-      numeros += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#ffb300">${g}</text>`;
-    }
-
-    const cardeal = (letra, g, cor) => {
-      const rad = (g - 90) * (Math.PI / 180);
-      const rr = rInterno - 24;
-      const x = c + rr * Math.cos(rad);
-      const y = c + rr * Math.sin(rad);
-      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="800" font-size="22" fill="${cor}">${letra}</text>`;
-    };
-
     return L.divIcon({
       className: 'fg-compass-rose-icon',
-      html: `<svg width="${tamanho}" height="${tamanho}" viewBox="0 0 ${tamanho} ${tamanho}">
-               <circle cx="${c}" cy="${c}" r="${rExterno}" fill="none" stroke="#e9edf2" stroke-width="2.4"/>
-               <circle cx="${c}" cy="${c}" r="${rInterno}" fill="none" stroke="#e9edf2" stroke-width="1.4"/>
-               ${ticksFinos}
-               ${numeros}
-               ${cardeal('N', 0, '#e53935')}${cardeal('L', 90, '#e9edf2')}${cardeal('S', 180, '#e9edf2')}${cardeal('O', 270, '#e9edf2')}
-               <line x1="${c}" y1="${c - rCruz}" x2="${c}" y2="${c + rCruz}" stroke="#e53935" stroke-width="1.6" stroke-dasharray="4 3"/>
-               <line x1="${c - rCruz}" y1="${c}" x2="${c + rCruz}" y2="${c}" stroke="#e9edf2" stroke-width="1.6" stroke-dasharray="4 3"/>
-               <circle cx="${c}" cy="${c}" r="3" fill="#e53935"/>
-             </svg>`,
+      html: `<img src="assets/icons/compass-rose.png" width="${tamanho}" height="${tamanho}" style="display:block;pointer-events:none;" alt="" />`,
       iconSize: [tamanho, tamanho],
       iconAnchor: [c, c],
     });
