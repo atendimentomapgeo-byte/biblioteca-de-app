@@ -12,7 +12,7 @@
  * de rede. O Service Worker cuida apenas dos arquivos do próprio aplicativo.
  */
 
-const CACHE_NAME = 'fieldgis-cache-v66';
+const CACHE_NAME = 'fieldgis-cache-v69';
 const TILES_CACHE_NAME = 'fieldgis-tiles-v1';
 const TILES_CACHE_MAX_ENTRADAS = 6000; // limite aproximado para não estourar o armazenamento do navegador
 
@@ -76,6 +76,7 @@ const APP_SHELL = [
   './assets/icons/icon-maskable-512.png',
   './assets/icons/apple-touch-icon.png',
   './assets/icons/apple-touch-icon-192.png',
+  './assets/icons/compass-rose.png',
 ];
 
 self.addEventListener('install', (event) => {
