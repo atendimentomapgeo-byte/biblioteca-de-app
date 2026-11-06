@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.39">
+<meta name="app-version" content="0.0.54">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -173,12 +173,31 @@ tr.row{transition:background .15s}
 .tip .scr{max-height:34vh;overflow:auto}
 .tip td.sit{font-weight:700}.tip td.sit small{font-weight:600;opacity:.95}.tip td.sit.er{color:var(--er)}.tip td.sit.ok{color:var(--ok)}
 #tipSt.ok{color:var(--ok)}#tipSt.er{color:var(--er)}
+.qb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;min-width:0;margin:0 10px}
+.qb:empty{display:none}
+.L-D>.qb{flex:0 0 auto;margin:0 12px 12px}
+.L-B>.qb{flex:0 0 auto;margin:10px 12px 0}
+.qgrp{display:flex;flex-wrap:wrap;min-width:0;gap:2px 16px;align-items:center;padding:5px 14px;border:1px solid var(--bd);border-radius:10px;background:rgba(255,255,255,.05);font-size:12px;line-height:1.5}
+.qgrp>small{white-space:nowrap;color:var(--mt);text-transform:uppercase;letter-spacing:.05em;font-size:10px;font-weight:700}
+.qgrp b{font-weight:700}
+.qgrp span{white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.L-E .tb{flex-wrap:wrap}
+.L-E .tb .qb{flex:1 1 360px}
+.tb .qb+.sp{flex:0 0 0}
+.tb #statusTxt{margin-left:auto}
+.tb #statusTxt{white-space:nowrap}
+.qgrp i{font-style:normal;color:var(--mt)}
+.qgrp.app{border-color:rgba(255,183,3,.55)}.qgrp.app b{color:#ffb703}
+.qgrp.rl b.v{color:var(--ac)}
+.logo{width:40px;height:40px;padding:5px;border-radius:12px;background:#f4f7fb;box-shadow:0 2px 10px rgba(0,0,0,.35);flex:none}
 </style>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjQ5NiIgaGVpZ2h0PSI0OTYiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz48ZyBmaWxsPSJub25lIiBzdHJva2U9IiMwYTBhMGEiIHN0cm9rZS13aWR0aD0iMTgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGcgbWFzaz0idXJsKCNtMykiPjxwYXRoIGQ9Ik0yMzYgNjIgTDM5NiAxMzggTDIzNiAyMTQgTDc2IDEzOCBaIi8+PHBhdGggZD0iTTc2IDIwNiBMMjM2IDI4MiBMMzk2IDIwNiIvPjxwYXRoIGQ9Ik03NiAyNzQgTDIzNiAzNTAgTDM5NiAyNzQiLz48L2c+PGNpcmNsZSBjeD0iMzUyIiBjeT0iMzUyIiByPSI3NiIvPjxsaW5lIHgxPSI0MDYiIHkxPSI0MDYiIHgyPSI0NTQiIHkyPSI0NTQiIHN0cm9rZS13aWR0aD0iMjYiLz48cGF0aCBkPSJNMzMxLjg0IDM1NiBMMzQ2Ljk2IDM3MS45NiBMMzczLjg0IDMzOC4zNiIvPjwvZz48L3N2Zz4=">
 </head>
 <body>
 <header>
+  <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.39</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.54</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="appBtn">APP gerada</button>
@@ -239,6 +258,8 @@ tr.row{transition:background .15s}
   <fieldset><legend>Ou importar a base</legend>
     <button id="tipPick">Importar Base de Tipologia (shapefile .zip ou .shp/.dbf/.prj)</button>
     <input type="file" id="tipFile" multiple accept=".zip,.shp,.dbf,.prj,.cpg,.shx" hidden>
+    <button id="tipForget" hidden>Esquecer base salva</button>
+    <div class="empty" id="tipSaved" style="margin-top:6px">Depois de importada, a base fica salva neste navegador e carrega sozinha nas próximas vezes.</div>
   </fieldset>
   <div class="row2"><label>Exigido Cerrado (%)<input id="tipRc" type="number" min="0" max="100" step="0.1" value="35"></label><label>Exigido Floresta (%)<input id="tipRf" type="number" min="0" max="100" step="0.1" value="80"></label></div>
   <div class="row2"><label>Campo da tipologia<select id="tipFld"></select></label><button class="pri" id="tipRun" disabled>Calcular</button></div>
@@ -253,8 +274,23 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.39";
+const APP_VERSION = "0.0.54";
 const CHANGELOG = [
+  {v:"0.0.54", d:"2026-11-06", t:["Novo ícone do app (camadas com lupa e check, só linhas pretas): no cabeçalho, sobre uma pastilha clara, e como ícone da aba do navegador."]},
+  {v:"0.0.53", d:"2026-11-06", t:["Faixa da barra: ARL Exigida mostra apenas o total."]},
+  {v:"0.0.52", d:"2026-11-06", t:["Faixa da barra: novo grupo ARL Exigida, depois de APP, com a Reserva Legal exigida em ha por tipologia (Floresta 80% e Cerrado 35% da ATP, percentuais do painel Tipologia) e o total."]},
+  {v:"0.0.51", d:"2026-11-06", t:["Faixa da barra: alinhada com as margens dos painéis (12 px) e com a mesma distância acima e abaixo (12 px no Painel de resultados, 10 px no Assistente)."]},
+  {v:"0.0.50", d:"2026-11-06", t:["Faixa da barra: espaçamento uniforme entre ícone, valor e itens, e respiro abaixo da faixa nos layouts Assistente e Painel de resultados."]},
+  {v:"0.0.49", d:"2026-11-06", t:["Faixa da barra: removido o valor entre parênteses (ha em APP); ficam só os ha de ARL por tipologia, o total e a APP."]},
+  {v:"0.0.48", d:"2026-11-06", t:["Faixa da barra: Floresta e Cerrado aparecem só com o ícone (o nome fica ao passar o mouse), para economizar espaço."]},
+  {v:"0.0.47", d:"2026-11-06", t:["Faixa da barra: rótulos curtos (ARL e APP) e ícones por tipologia: 🌳 Floresta e 🍂 Cerrado."]},
+  {v:"0.0.46", d:"2026-11-06", t:["Faixa de Reserva Legal: o valor entre parênteses agora diz \"ha em APP\" (parte da ARL que está dentro da APP)."]},
+  {v:"0.0.45", d:"2026-11-06", t:["Faixa de Reserva Legal e APP: os valores passam para a linha de baixo dentro da própria faixa quando falta espaço, sem invadir o texto de status."]},
+  {v:"0.0.44", d:"2026-11-06", t:["Barra de ferramentas: a faixa de Reserva Legal e APP não se sobrepõe mais ao texto de status em telas estreitas (a barra quebra em linhas) e o rótulo não quebra."]},
+  {v:"0.0.43", d:"2026-11-06", t:["Corrige os layouts Assistente e Painel de resultados: a faixa de Reserva Legal e APP não ocupa mais metade da tela."]},
+  {v:"0.0.42", d:"2026-11-06", t:["Barra de ferramentas passa a mostrar sempre, no espaço vazio, a Reserva Legal (ARL) por tipologia (com o que está em APP) e a área da APP na ATP; nos outros layouts a mesma faixa aparece abaixo do cabeçalho do painel."]},
+  {v:"0.0.41", d:"2026-11-06", t:["Painel Tipologia: novo quadro da Reserva Legal (ARL) por tipologia e APP — ARL total, ARL em APP, ARL fora da APP e % da ARL em APP, por tipologia e no total, também por ARL e no CSV."]},
+  {v:"0.0.40", d:"2026-11-06", t:["Base de tipologia (RADAM) importada por shapefile fica salva no navegador: nas próximas aberturas ela carrega sozinha e o quantitativo é calculado assim que as camadas forem lidas. Botão para esquecer a base salva."]},
   {v:"0.0.39", d:"2026-11-04", t:["APP de NASCENTE (raio de 50 m) passa a ser gerada apenas para as nascentes que estão em RIO_ATE_10 (dentro ou tocando o polígono, tolerância 1 m); as demais são ignoradas e contadas no detalhamento."]},
   {v:"0.0.38", d:"2026-11-04", t:["Nova camada APP, gerada pelo próprio app e mostrada em primeiro lugar: faixa de 30 m dos rios RIO_ATE_10, 50 m dos RIO_10_A_50 e raio de 50 m das NASCENTE, unidas em um único polígono, com o quantitativo em ha contido na ATP (e por origem). Distâncias editáveis; o corpo d'água do rio é descontado (opcional). Recalcula sozinha a cada atualização das camadas."]},
   {v:"0.0.37", d:"2026-10-31", t:["Hidrografia (rios, LAGOA_NATURAL e RESERVATORIO_ARTIFICIAL): a área em ha da lista de camadas passa a considerar só a parte contida na ATP."]},
@@ -852,6 +888,7 @@ async function ingest(groups,opt={}){
   $("run").disabled=!Object.keys(LAYERS).length;
   try{ if(n) tipAuto(); }catch(e){}
   try{ if(n) appAuto(); }catch(e){}
+  try{ qbarUpdate(); }catch(e){}
   return n;
 }
 
@@ -943,11 +980,11 @@ const $=id=>document.getElementById(id);
 const COMPS=["cLayers","cRules","cMap","cRes","cStats"];
 let LAYOUT="E", STEP=1, RAN=new Set(), MAPREADY=false;
 const LAYOUTS={
-  E:`<div class="L L-E"><div class="tb"><button data-p="pick">⬆ Importar</button><button data-p="pickDir">📁 Pasta</button><button class="pri" data-p="run">▶ Executar</button><button data-p="csv">Exportar CSV</button><span class="sp"></span><span class="empty" id="statusTxt"></span></div>
+  E:`<div class="L L-E"><div class="tb"><button data-p="pick">⬆ Importar</button><button data-p="pickDir">📁 Pasta</button><button class="pri" data-p="run">▶ Executar</button><button data-p="csv">Exportar CSV</button><span class="qb"></span><span class="sp"></span><span class="empty" id="statusTxt"></span></div>
     <div class="g"><div class="c1" data-slot="cLayers"></div><div class="c2"><div data-slot="cMap"></div><div class="r" data-slot="cRes"></div></div><div class="c3" data-slot="cRules"></div></div></div>`,
-  D:`<div class="L L-D"><div data-slot="cStats"></div>
+  D:`<div class="L L-D"><div data-slot="cStats"></div><div class="qb"></div>
     <div class="g"><div class="c1"><div data-slot="cLayers"></div><div data-slot="cRules"></div></div><div class="c2"><div data-slot="cMap"></div><div data-slot="cRes"></div></div></div></div>`,
-  B:`<div class="L L-B" data-cur="1"><div class="steps"><button data-s="1"><i>1</i>Camadas</button><button data-s="2"><i>2</i>Regras</button><button data-s="3"><i>3</i>Resultados</button></div>
+  B:`<div class="L L-B" data-cur="1"><div class="qb"></div><div class="steps"><button data-s="1"><i>1</i>Camadas</button><button data-s="2"><i>2</i>Regras</button><button data-s="3"><i>3</i>Resultados</button></div>
     <div class="g"><div class="m" data-slot="cMap"></div><div class="side"><div class="sb" data-step="1" data-slot="cLayers"></div><div class="sb" data-step="2" data-slot="cRules"></div><div class="sb" data-step="3" data-slot="cRes"></div>
     <div class="nav"><button id="bBack">‹ Voltar</button><span class="sp"></span><button class="pri" id="bNext">Avançar ›</button></div></div></div></div>`
 };
@@ -970,7 +1007,7 @@ function applyLayout(name){
     $("bNext").onclick=()=>{ if(STEP===3) $("run").click(); else setStep(STEP+1); };
     setStep(STEP);
   }
-  $("layoutSel").value=name;
+  $("layoutSel").value=name; qbarUpdate();
   try{ localStorage.setItem("vt-layout",name); }catch(e){}
   syncUI();
   if(MAPREADY) setTimeout(()=>map.invalidateSize(),0);
@@ -1139,10 +1176,11 @@ async function appCompute(){
 }
 function appRender(){
   const R=APPG.res, el=$("appLyr");
-  if(!APPG.fc){ el.innerHTML=""; return; }
+  if(!APPG.fc){ el.innerHTML=""; qbarUpdate(); return; }
   const v=R.temAtp?R.atp:R.tot;
   el.innerHTML=`<div class="lyr" id="appRow" style="cursor:pointer" title="Clique para ver o detalhamento"><span class="sw" style="background:#ffb703"></span><span class="n">APP</span><span class="tag ok">gerada</span><span class="c">1 reg.</span><span class="c ha" title="${R.temAtp?"Área da APP contida na ATP":"ATP não carregada: área total da APP"}">${m2ha(v)} ha${R.temAtp?' <small>ATP</small>':""}</span></div>`;
   $("appRow").onclick=()=>$("dlgApp").classList.add("on");
+  qbarUpdate();
 }
 function appDraw(){
   if(APPG.leaf){ APPG.leaf.remove(); APPG.leaf=null; }
@@ -1169,14 +1207,43 @@ async function appRun(){
     if(!all){ APPG.fc=null; APPG.res=res; appRender(); appDraw(); $("apSt").textContent="Não foi possível gerar a APP."; return; }
     all.properties={NOME:"APP",AREA_HA:+(res.tot/10000).toFixed(4),HA_NA_ATP:res.atp==null?"":+(res.atp/10000).toFixed(4)};
     APPG.fc={type:"FeatureCollection",features:[all]}; APPG.res=res;
+    APPG.ver=(APPG.ver||0)+1;
     appRender(); appDraw(); appShow();
   }catch(e){ console.error(e); $("apSt").textContent="Falha ao gerar a APP: "+e.message; $("apSt").className="empty er"; }
-  finally{ APPG.busy=false; if(APPG.again){ APPG.again=false; appAuto(); } }
+  finally{ APPG.busy=false; if(APPG.again){ APPG.again=false; appAuto(); } try{ if(TIP.auto&&TIP.fc&&TIP.appVer!==APPG.ver) tipAuto(); }catch(e){} }
 }
-function appAuto(){ clearTimeout(APPG.t); APPG.t=setTimeout(appRun,900); }
+function appAuto(){ clearTimeout(APPG.t); APPG.t=setTimeout(()=>{ APPG.t=null; appRun(); },900); }
+async function appWait(){ for(let k=0;k<300&&(APPG.busy||APPG.t);k++) await new Promise(r=>setTimeout(r,100)); }
 $("appBtn").onclick=()=>$("dlgApp").classList.add("on");
 ["apR10","apR50","apNas","apSub"].forEach(i=>$(i).oninput=$(i).onchange=appAuto);
 
+/* ============ FAIXA DE QUANTITATIVOS (barra de ferramentas) ============ */
+function qbarUpdate(){
+  try{
+    const els=document.querySelectorAll(".qb"); if(!els.length) return;
+    const ico=c=>{ const u=String(c).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); return u.includes("FLORESTA")?"🌳 ":u.includes("CERRADO")?"🍂 ":""; };
+    let arl=0; H.feats({layers:LAYERS},"ARL").forEach(f=>{ arl+=turf.area(f); });
+    const T=TIP.res, A=APPG.res; let h="";
+    if(arl>0){
+      let itens="";
+      if(T&&T.tot){
+        const cs=T.cols.filter(c=>T.tot[c]);
+                itens=cs.map(c=>`<span title="${esc(c)}">${ico(c)?ico(c).trim():`<b>${esc(c)}</b>`} <b class="v">${fmtHa(T.tot[c])} ha</b></span>`).join("");
+      }
+      itens+=`<span><b>Total</b> <b class="v">${fmtHa(arl)} ha</b></span>`;
+      h+=`<span class="qgrp rl" title="Área da Reserva Legal (ARL) por tipologia"><small>ARL</small>${itens}</span>`;
+    }
+    if(A&&APPG.fc){
+      const v=A.temAtp?A.atp:A.tot;
+      h+=`<span class="qgrp app" title="${A.temAtp?"Área da APP contida na ATP":"ATP não carregada: área total da APP"}"><small>APP</small><b>${m2ha(v)} ha</b></span>`;
+    }
+    if(T&&T.totA){
+      const C=tipCalc(T);
+      if(C.temReq) h+=`<span class="qgrp rl" title="Reserva Legal exigida: percentual exigido × área da ATP em cada tipologia (Floresta + Cerrado)"><small>ARL Exigida</small><b class="v">${fmtHa(C.exT)} ha</b></span>`;
+    }
+    els.forEach(e=>{ e.innerHTML=h; });
+  }catch(e){}
+}
 /* ============ TIPOLOGIA RADAM × ARL ============ */
 const TIP={fc:null,src:"",res:null}, SEMTIP="(sem tipologia na base)";
 const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -1185,7 +1252,7 @@ const fmtPc=v=>v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFraction
 function tipMsg(t,c){ const e=$("tipSt"); e.textContent=t; e.className="empty "+(c||""); }
 function tipSave(){ try{ localStorage.setItem("vt-tip",JSON.stringify({u:$("tipUrl").value,t:$("tipTn").value,k:$("tipKey").value})); }catch(e){} }
 try{ const o=JSON.parse(localStorage.getItem("vt-tip")||"null"); if(o){ $("tipUrl").value=o.u||$("tipUrl").value; $("tipTn").value=o.t||""; $("tipKey").value=o.k||""; } }catch(e){}
-function tipSetBase(fc,src){
+function tipSetBase(fc,src,opt={}){
   const feats=(fc.features||[]).filter(f=>f.geometry&&/Polygon/.test(f.geometry.type));
   feats.forEach((f,i)=>f._i=i);
   TIP.fc={type:"FeatureCollection",features:feats}; TIP.src=src; TIP.res=null; $("tipOut").innerHTML=""; $("tipCsv").disabled=true;
@@ -1193,9 +1260,36 @@ function tipSetBase(fc,src){
   $("tipFld").innerHTML=keys.map(k=>`<option>${esc(k)}</option>`).join("");
   const p=["FITOECOLOG","FITOECOLOGIA","TIPOLOGIA","TIPO","LEGENDA","NOME"].find(x=>keys.some(k=>k.toUpperCase()===x));
   if(p) $("tipFld").value=keys.find(k=>k.toUpperCase()===p);
+  if(opt.fld&&keys.includes(opt.fld)) $("tipFld").value=opt.fld;
   $("tipRun").disabled=!feats.length;
-  tipMsg(feats.length?`Base carregada (${src}): ${feats.length} polígono(s). Confira o campo da tipologia e clique em Calcular.`:`Nenhum polígono encontrado na base (${src}).`,feats.length?"ok":"er");
+  tipMsg(feats.length?`Base carregada (${src}): ${feats.length} polígono(s). ${opt.saved?"Será usada automaticamente.":"Confira o campo da tipologia e clique em Calcular."}`:`Nenhum polígono encontrado na base (${src}).`,feats.length?"ok":"er");
+  if(opt.persist&&feats.length) tipPersist(src);
+  $("tipForget").hidden=!(opt.persist||opt.saved);
 }
+// ---- base de tipologia salva no navegador (IndexedDB) ----
+const idbTO=(p,ms=4000)=>Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]);
+let TIPSAVE=null;
+function tipPersist(src){
+  TIPSAVE={src:src.replace(/ \(salva\)$/,""),fld:$("tipFld").value,data:new Date().toLocaleString("pt-BR"),
+    feats:TIP.fc.features.map(f=>({type:"Feature",properties:f.properties||{},geometry:f.geometry}))};
+  idbTO(idb("readwrite",st=>st.put(TIPSAVE,"tipbase"))).then(()=>{ $("tipSaved").textContent=`Base salva neste navegador em ${TIPSAVE.data} (${TIPSAVE.feats.length} polígonos). Carrega sozinha nas próximas aberturas.`; }).catch(()=>{ $("tipSaved").textContent="Não foi possível salvar a base neste navegador."; });
+}
+$("tipFld").onchange=()=>{ if(TIPSAVE){ TIPSAVE.fld=$("tipFld").value; idbTO(idb("readwrite",st=>st.put(TIPSAVE,"tipbase"))).catch(()=>{}); } };
+$("tipForget").onclick=async()=>{
+  try{ await idbTO(idb("readwrite",st=>st.delete("tipbase"))); }catch(e){}
+  TIPSAVE=null; TIP.fc=null; TIP.res=null; TIP.src=""; $("tipOut").innerHTML=""; $("tipFld").innerHTML=""; $("tipRun").disabled=true; $("tipCsv").disabled=true; $("tipForget").hidden=true; qbarUpdate();
+  $("tipSaved").textContent="Base salva removida. Importe outra para voltar a calcular."; tipMsg("Nenhuma base carregada.");
+};
+(async()=>{
+  try{
+    const sv=await idbTO(idb("readonly",st=>st.get("tipbase")));
+    if(sv&&sv.feats&&sv.feats.length){
+      TIPSAVE=sv; tipSetBase({features:sv.feats},sv.src+" (salva)",{fld:sv.fld,saved:true});
+      $("tipSaved").textContent=`Base salva neste navegador em ${sv.data} (${sv.feats.length} polígonos). Carrega sozinha nas próximas aberturas.`;
+      TIP.auto=true; if(Object.keys(LAYERS).length) tipAuto();
+    }
+  }catch(e){}
+})();
 $("tipBtn").onclick=()=>$("dlgTip").classList.add("on");
 $("tipPick").onclick=()=>$("tipFile").click();
 $("tipFile").onchange=async e=>{
@@ -1204,7 +1298,7 @@ $("tipFile").onchange=async e=>{
     const g=await collect(files), k=Object.keys(g).find(n=>g[n].shp&&g[n].dbf);
     if(!k) throw new Error("não encontrei um par .shp + .dbf");
     const prj=g[k].prj?new TextDecoder().decode(g[k].prj):"", cpg=g[k].cpg?new TextDecoder().decode(g[k].cpg).trim():undefined;
-    tipSetBase(shp.combine([shp.parseShp(g[k].shp,prj||undefined),shp.parseDbf(g[k].dbf,cpg)]),"shapefile "+k);
+    tipSetBase(shp.combine([shp.parseShp(g[k].shp,prj||undefined),shp.parseDbf(g[k].dbf,cpg)]),"shapefile "+k,{persist:true});
   }catch(err){ tipMsg("Falha ao ler a base: "+err.message,"er"); }
 };
 $("tipWfs").onclick=async()=>{
@@ -1243,23 +1337,39 @@ function tipQuad(){
   ${totA&&totAtp?"":'<div class="empty">Camada ATP vazia ou não carregada: o quadro da ATP, o percentual e o déficit não puderam ser calculados.</div>'}`;
 }
 $("tipRc").oninput=$("tipRf").oninput=tipQuad;
+function tipAppTab(){
+  qbarUpdate();
+  const R=TIP.res, el=$("tipApp"); if(!R||!el) return;
+  if(!R.hasApp){ el.innerHTML='<h4>Reserva Legal (ARL) por tipologia e APP</h4><div class="empty">APP não gerada (é preciso ter RIO_ATE_10, RIO_10_A_50 ou NASCENTE em RIO_ATE_10 carregados).</div>'; return; }
+  const td=v=>`<td class="n">${v}</td>`, ac=R.cols.filter(c=>R.tot[c]);
+  const totApp=ac.reduce((a,c)=>a+(R.totApp[c]||0),0), totArl=ac.reduce((a,c)=>a+(R.tot[c]||0),0);
+  el.innerHTML=`<h4>Reserva Legal (ARL) por tipologia e APP</h4><table><tr><th></th>${ac.map(c=>`<th class="n">${esc(c)}</th>`).join("")}<th class="n">Total</th></tr>
+  <tr><td><b>ARL</b> (ha)</td>${ac.map(c=>td(fmtHa(R.tot[c]))).join("")}${td(fmtHa(totArl))}</tr>
+  <tr><td>ARL em APP (ha)</td>${ac.map(c=>td(fmtHa(R.totApp[c]||0))).join("")}${td(fmtHa(totApp))}</tr>
+  <tr><td>ARL fora da APP (ha)</td>${ac.map(c=>td(fmtHa(Math.max(0,R.tot[c]-(R.totApp[c]||0))))).join("")}${td(fmtHa(Math.max(0,totArl-totApp)))}</tr>
+  <tr class="tt"><td>% da ARL em APP</td>${ac.map(c=>td(fmtPc((R.totApp[c]||0)/R.tot[c]*100))).join("")}${td(totArl?fmtPc(totApp/totArl*100):"—")}</tr></table>`;
+}
 async function tipRunCore(){
   TIP.auto=true;
   const arl=H.feats({layers:LAYERS},"ARL"), T=TIP.fc&&TIP.fc.features||[], fld=$("tipFld").value, tol=+$("tol").value||0;
   if(!arl.length) return tipMsg("Camada ARL vazia ou não carregada.","er");
   $("tipRun").disabled=true; tipMsg("Calculando…");
+  if(!APPG.res&&!APPG.busy&&!APPG.t) await appRun(); else await appWait();
+  const app=APPG.fc&&APPG.fc.features[0]||null; TIP.appVer=APPG.ver;
   const val=t=>{ const v=(t.properties||{})[fld]; return (v==null||String(v).trim()==="")?"(sem valor)":String(v).trim(); };
-  const det=[], tot={}; let totArl=0, falhas=0;
+  const det=[], tot={}, totApp={}; let totArl=0, falhas=0;
+  const aInt=g=>{ if(!app||!g||H.disj(g,app)) return 0; try{ const x=turf.intersect(turf.featureCollection([g,app])); return x?turf.area(x):0; }catch(e){ return 0; } };
   for(const f of arl){
-    const aArl=turf.area(f), p=f.properties||{}; totArl+=aArl; let soma=0; const por={};
+    const aArl=turf.area(f), p=f.properties||{}; totArl+=aArl; let soma=0, somaApp=0; const por={}, porApp={}; const aAppF=aInt(f);
     for(const t of T){
       if(H.disj(f,t)) continue;
       let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ falhas++; continue; }
       if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
       const v=val(t); por[v]=(por[v]||0)+a; soma+=a;
+      if(aAppF>0){ const ap=aInt(i); if(ap>0){ porApp[v]=(porApp[v]||0)+ap; somaApp+=ap; } }
     }
-    const sem=aArl-soma; if(sem>Math.max(tol,0.01)) por[SEMTIP]=sem;
-    for(const [v,a] of Object.entries(por)){ det.push({fid:H.id(f),ident:p.IDENTIFIC==null?"":p.IDENTIFIC,sit:p.SITUACAO==null?"":p.SITUACAO,aArl,v,a}); tot[v]=(tot[v]||0)+a; }
+    const sem=aArl-soma; if(sem>Math.max(tol,0.01)){ por[SEMTIP]=sem; const sa=Math.max(0,aAppF-somaApp); if(sa>0) porApp[SEMTIP]=sa; }
+    for(const [v,a] of Object.entries(por)){ const ap=Math.min(a,porApp[v]||0); det.push({fid:H.id(f),ident:p.IDENTIFIC==null?"":p.IDENTIFIC,sit:p.SITUACAO==null?"":p.SITUACAO,aArl,v,a,ap}); tot[v]=(tot[v]||0)+a; totApp[v]=(totApp[v]||0)+ap; }
     await H.tick();
   }
   const atpF=H.feats({layers:LAYERS},"ATP"), totA={}; let totAtp=0;
@@ -1275,11 +1385,11 @@ async function tipRunCore(){
     await H.tick();
   }
   const cols=[...new Set([...Object.keys(totA),...Object.keys(tot)])].sort((a,b)=>(a===SEMTIP)-(b===SEMTIP)||((totA[b]||0)+(tot[b]||0))-((totA[a]||0)+(tot[a]||0)));
-  TIP.res={det,tot,totArl,totA,totAtp,cols,fld,falhas};
+  TIP.res={det,tot,totApp,hasApp:!!app,totArl,totA,totAtp,cols,fld,falhas};
   const ord=Object.entries(tot).sort((a,b)=>b[1]-a[1]);
-  $("tipOut").innerHTML=`<div id="tipQuad"></div>
-  <h4>Por ARL</h4><div class="scr"><table><tr><th>ARL</th><th>IDENTIFIC</th><th>SITUACAO</th><th class="n">Área da ARL (ha)</th><th>Tipologia</th><th class="n">Área na tipologia (ha)</th><th class="n">%</th></tr>${det.map(d=>`<tr><td>${d.fid}</td><td>${esc(d.ident)}</td><td>${esc(d.sit)}</td><td class="n">${fmtHa(d.aArl)}</td><td>${esc(d.v)}</td><td class="n">${fmtHa(d.a)}</td><td class="n">${fmtPc(d.a/d.aArl*100)}</td></tr>`).join("")}</table></div>`;
-  tipQuad();
+  $("tipOut").innerHTML=`<div id="tipQuad"></div><div id="tipApp"></div>
+  <h4>Por ARL</h4><div class="scr"><table><tr><th>ARL</th><th>IDENTIFIC</th><th>SITUACAO</th><th class="n">Área da ARL (ha)</th><th>Tipologia</th><th class="n">Área na tipologia (ha)</th><th class="n">%</th>${app?'<th class="n">Em APP (ha)</th>':""}</tr>${det.map(d=>`<tr><td>${d.fid}</td><td>${esc(d.ident)}</td><td>${esc(d.sit)}</td><td class="n">${fmtHa(d.aArl)}</td><td>${esc(d.v)}</td><td class="n">${fmtHa(d.a)}</td><td class="n">${fmtPc(d.a/d.aArl*100)}</td>${app?`<td class="n">${fmtHa(d.ap)}</td>`:""}</tr>`).join("")}</table></div>`;
+  tipQuad(); tipAppTab();
   tipMsg(`Calculado às ${new Date().toLocaleTimeString("pt-BR")}: ${arl.length} ARL sobre ${T.length} polígono(s) de tipologia (${TIP.src}).${falhas?` Atenção: ${falhas} cruzamento(s) falharam por geometria inválida na base.`:""}`,falhas?"er":"ok");
   $("tipRun").disabled=false; $("tipCsv").disabled=false;
 }
@@ -1308,8 +1418,10 @@ function tipAuto(){
 }
 $("tipCsv").onclick=()=>{
   const R=TIP.res; if(!R) return; const C=tipCalc(R); const n=v=>(v/10000).toFixed(4).replace(".",","), q=v=>`"${String(v).replace(/"/g,'""')}"`;
-  const rows=[["ARL","IDENTIFIC","SITUACAO","Area ARL (ha)","Tipologia","Area na tipologia (ha)","% da ARL"].join(";"),
-    ...R.det.map(d=>[d.fid,q(d.ident),q(d.sit),n(d.aArl),q(d.v),n(d.a),(d.a/d.aArl*100).toFixed(2).replace(".",",")].join(";")),"",
+  const rows=[["ARL","IDENTIFIC","SITUACAO","Area ARL (ha)","Tipologia","Area na tipologia (ha)","% da ARL","Em APP (ha)"].join(";"),
+    ...R.det.map(d=>[d.fid,q(d.ident),q(d.sit),n(d.aArl),q(d.v),n(d.a),(d.a/d.aArl*100).toFixed(2).replace(".",","),R.hasApp?n(d.ap):""].join(";")),"",
+    ["ARL por tipologia e APP","Tipologia","ARL (ha)","ARL em APP (ha)","ARL fora da APP (ha)","% da ARL em APP"].join(";"),
+    ...R.cols.filter(c=>R.tot[c]).map(c=>["",q(c),n(R.tot[c]),R.hasApp?n(R.totApp[c]||0):"",R.hasApp?n(Math.max(0,R.tot[c]-(R.totApp[c]||0))):"",R.hasApp?((R.totApp[c]||0)/R.tot[c]*100).toFixed(2).replace(".",","):""].join(";")),"",
     ["Quantitativo","Tipologia","ATP (ha)","ARL (ha)","% ARL sobre ATP","% exigido","Area exigida (ha)","Situacao da ARL","Area (ha)"].join(";"),
     ...R.cols.map((c,i)=>["",q(c),n(R.totA[c]||0),n(R.tot[c]||0),R.totA[c]?((R.tot[c]||0)/R.totA[c]*100).toFixed(2).replace(".",","):"",C.rq[i]==null?"":String(C.rq[i]).replace(".",","),C.ex[i]==null?"":n(C.ex[i]),C.df[i]==null?"":(C.df[i]>0.005?"Deficit de ARL":C.ec[i]>0.005?"Excedente de ARL":"ARL atendida"),C.df[i]==null?"":n(C.df[i]>0.005?C.df[i]:C.ec[i])].join(";")),
     ["","Total",n(R.totAtp),n(R.totArl),R.totAtp?(R.totArl/R.totAtp*100).toFixed(2).replace(".",","):"","",C.temReq?n(C.exT):"",C.temReq?(C.dfT>0.005?"Deficit de ARL":C.ecT>0.005?"Excedente de ARL":"ARL atendida"):"",C.temReq?n(C.dfT>0.005?C.dfT:C.ecT):""].join(";")];
