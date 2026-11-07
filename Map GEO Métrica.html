@@ -7724,13 +7724,21 @@ const INCRA_METODOS_POSICIONAMENTO = [
   {codigo:'PT9', nome:'Estação livre', aplicacao:['Artificial','Natural'], vertice:['M','P']},
   {codigo:'PA1', nome:'Paralela', aplicacao:['Artificial','Natural'], vertice:['V']},
   {codigo:'PA2', nome:'Interseção de retas', aplicacao:['Artificial','Natural'], vertice:['V']},
-  {codigo:'PA3', nome:'Projeção técnica', aplicacao:['Artificial','Natural'], vertice:['V']},
-  {codigo:'PS1', nome:'Aerofotogrametria', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V']},
-  {codigo:'PS2', nome:'Radar aerotransportado', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V']},
-  {codigo:'PS3', nome:'Laser scanner aerotransportado', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V']},
+  // PA3 é o único método cuja linha de Artificial na planilha oficial do SIGEF (aba
+  // parametros_vertice_validacao) NÃO usa o grupo genérico "LA" — usa o código específico "LA7"
+  // (Limite artificial não tipificado). Ou seja, dentro de Artificial, PA3 só vale pra LA7; LA1-LA6
+  // disparam a mensagem "possui incompatibilidade..." no validador oficial (Sigef/Perimetro.xba).
+  {codigo:'PA3', nome:'Projeção técnica', aplicacao:['Artificial','Natural'], vertice:['V'], apenasTipoLimiteArtificial:['LA7']},
+  // PS1/PS2/PS3/PS4 têm LA1 na aba de exceção da planilha oficial (parametros_vertice_validacao_excecao)
+  // — os 4 métodos de Sensoriamento Remoto não valem pra limite por cerca, não só o PS4.
+  {codigo:'PS1', nome:'Aerofotogrametria', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V'], excetoTipoLimite:['LA1']},
+  {codigo:'PS2', nome:'Radar aerotransportado', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V'], excetoTipoLimite:['LA1']},
+  {codigo:'PS3', nome:'Laser scanner aerotransportado', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V'], excetoTipoLimite:['LA1']},
   {codigo:'PS4', nome:'Sensores orbitais', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V'], excetoTipoLimite:['LA1']},
   {codigo:'PB1', nome:'Base cartográfica com precisão conhecida', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V']},
-  {codigo:'PB2', nome:'Base cartográfica sem precisão conhecida', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V'], excetoTipoLimite:['LA1']},
+  // PB2 NÃO está na aba de exceção oficial (só PS1-4 estão) — ao contrário do que este arquivo tinha
+  // antes, PB2 vale normalmente pra LA1 (usa o grupo "LA" genérico na planilha, igual PB1).
+  {codigo:'PB2', nome:'Base cartográfica sem precisão conhecida', aplicacao:['Artificial','Natural','Inacessivel'], vertice:['V']},
 ];
 // Mantido pelo nome antigo por compatibilidade com o fluxo de importação Topcon/GNSS, que só filtra por
 // categoria de limite (Artificial/Natural/Inacessível) — não lida com tipo de vértice M/P/V/B.
@@ -7755,7 +7763,14 @@ function incraMetodosValidosParaMarco(tipoVertice, codigoTipoLimite){
   let lista = INCRA_METODOS_POSICIONAMENTO;
   if(tipoVertice) lista = lista.filter(m=>m.vertice.includes(tipoVertice));
   const categoria = incraCategoriaTipoLimite(codigoTipoLimite);
-  if(categoria) lista = lista.filter(m=>m.aplicacao.includes(categoria) && !(m.excetoTipoLimite && m.excetoTipoLimite.includes(codigoTipoLimite)));
+  if(categoria) lista = lista.filter(m=>{
+    if(!m.aplicacao.includes(categoria)) return false;
+    if(m.excetoTipoLimite && m.excetoTipoLimite.includes(codigoTipoLimite)) return false;
+    // apenasTipoLimiteArtificial: quando presente, restringe Artificial a só esse(s) código(s) LA1-7
+    // específico(s) (caso do PA3, que só vale LA7) — em vez do grupo "LA" inteiro valer.
+    if(categoria==='Artificial' && m.apenasTipoLimiteArtificial && !m.apenasTipoLimiteArtificial.includes(codigoTipoLimite)) return false;
+    return true;
+  });
   return lista;
 }
 const INCRA_METODO_GRUPO_LABEL = {
