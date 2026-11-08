@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>MapGEO — Consulta Fundiária e Ambiental</title>
+<title>Map GEO Ambiental v1.0.3</title>
+<meta name="version" content="1.0.3">
+<meta name="app-version" content="1.0.3">
+<meta name="description" content="Map GEO Ambiental — consulta fundiária e ambiental de imóveis rurais em MT">
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21.5s-6.5-5.7-6.5-11.2a6.5 6.5 0 0 1 13 0c0 5.5-6.5 11.2-6.5 11.2z'/%3E%3Cpath d='M9.2 11.2c0-2.2 1.2-3.5 3.3-3.8.2 2.2-.9 3.8-3.3 3.8z'/%3E%3Cpath d='M9.2 11.2l2-2'/%3E%3C/svg%3E">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1117,9 +1122,9 @@ const state = {
   requerimentoId: ''
 };
 
-// Versão do app — mostrada abaixo do título no cabeçalho. A cada alteração, incrementar aqui (V 1.0.01 → V 1.0.02 …).
-const APP_VERSION = 'V 1.0.02';
-document.getElementById('app-version').textContent = APP_VERSION;
+// Versão do app — mostrada abaixo do título no cabeçalho. A cada alteração, incrementar aqui E nas meta tags/<title> do <head> (1.0.3 → 1.0.4 …).
+const APP_VERSION = '1.0.3';   // padrão da biblioteca: x.y.z — sobe o último número a cada alteração (e igual às meta tags e ao <title>)
+document.getElementById('app-version').textContent = 'Versão ' + APP_VERSION;
 
 const IBGE_UF_CODE = 51; // Mato Grosso
 const IBGE_UF_SIGLA = 'MT';
@@ -2089,6 +2094,12 @@ const connectors = [
     workspace:'deter-cerrado-nb', typeName:'deter_cerrado',
     async query(propertyFeature, forceRefresh){ return queryTerraBrasilisWfs(this.workspace, this.typeName, propertyFeature, this.id, forceRefresh); }
   },
+  // ---------- ALERTAS SCCON / SEMA-MT ----------
+  {
+    id:'sccon_alertas', group:'ambiental', category:'SCCON — Alertas de Desmatamento (SEMA-MT)', name:'Alertas de desmatamento — SCCON/SEMA-MT',
+    source:'SCCON — Plataforma de Monitoramento da SEMA-MT (WFS)', type:'WFS', status:'unverified',
+    async query(propertyFeature, forceRefresh){ return querySccAlertas(propertyFeature, this.id, forceRefresh); }
+  },
   // ---------- FUNDIÁRIO — INCRA ----------
   {
     id:'incra_sigef_part', group:'fundiario', name:'SIGEF particular — INCRA',
@@ -2380,6 +2391,7 @@ function logSourceStatus(connector, count, errorMsg){
     : connector.id.startsWith('intermat_') ? 'intermat'
     : connector.id.startsWith('ibama_') ? 'ibama'
     : connector.id.startsWith('inpe_') ? 'inpe'
+    : connector.id.startsWith('sccon_') ? 'sccon'
     : connector.id.startsWith('sema_') ? 'sema'
     : 'outros';
   sourceStatusLog[groupKey] = sourceStatusLog[groupKey] || {};
@@ -2904,6 +2916,85 @@ async function querySemaWfs(layerName, propertyFeature, connectorId, forceRefres
   return gj;
 }
 
+/* ---------- SCCON — alertas de desmatamento (plataforma de monitoramento da SEMA-MT) ----------
+   Mesmo GeoServer e mesma camada que o app "Mapa GEO Alertas" já usa (campos conhecidos por lá:
+   idt_local_alert, qualification, area_ha, area_m2, geometry; SRS EPSG:4674). Consulta por interseção com o
+   retângulo envolvente do imóvel (WKT em ordem lat/lon, como no Mapa GEO Alertas); a interseção exata com o
+   polígono do imóvel é feita no cliente, como nas demais camadas. O campo de DATA da camada ainda não foi
+   confirmado com dado real: a data só aparece se alguma propriedade da feição tiver nome de data (ver
+   resolveFeatureName). Tenta direto do navegador primeiro e só usa o proxy se a conexão direta falhar. */
+const SCCON_WFS_BASE = 'https://geoserver-dashboard-mt.sccon.com.br/geoserver/dashboards/wfs';
+const SCCON_LAYER = 'dashboards:vw_v2_dashboard_alerts_all_defo-data_prod-mt';
+const SCCON_LIMITE_FEICOES = 5000;
+const SCCON_TIPOS = { DEGRADATION_SELECTIVE_CUT:'Corte seletivo', CUT:'Corte raso' };
+
+function sccWktBboxLatLon(b){
+  const [x0,y0,x1,y1] = b;
+  const n = v=> Number(v).toFixed(7);
+  return 'POLYGON((' + [[y0,x0],[y0,x1],[y1,x1],[y1,x0],[y0,x0]].map(q=> n(q[0])+' '+n(q[1])).join(',') + '))';
+}
+function sccWktBboxLonLat(b){
+  const [x0,y0,x1,y1] = b;
+  const n = v=> Number(v).toFixed(7);
+  return 'POLYGON((' + [[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]].map(q=> n(q[0])+' '+n(q[1])).join(',') + '))';
+}
+async function fetchSccOnce(wkt){
+  const params = { service:'WFS', version:'2.0.0', request:'GetFeature', typeNames:SCCON_LAYER, outputFormat:'application/json',
+    srsName:'EPSG:4674', count:SCCON_LIMITE_FEICOES, cql_filter:`INTERSECTS(geometry,${wkt})` };
+  const baseUrl = SCCON_WFS_BASE + '?' + Object.entries(params).map(([k,v])=> k+'='+encodeURIComponent(v)).join('&');
+
+  async function tentar(url){
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=>controller.abort(), 30000);
+    try{
+      const resp = await fetch(url, { signal: controller.signal });
+      const txt = await resp.text();
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}. Resposta: ${txt.slice(0,200)}`);
+      return txt;
+    } finally { clearTimeout(timeoutId); }
+  }
+  let txt;
+  try{
+    txt = await tentar(baseUrl);                                   // 1º: direto do navegador
+  }catch(errDireto){
+    if(!settings.proxy) throw new Error('Não foi possível consultar os alertas do SCCON diretamente pelo navegador (' + errDireto.message + '). Configure um proxy em "⚙ Conexão".');
+    try{
+      txt = await tentar(settings.proxy + encodeURIComponent(baseUrl));   // 2º: pelo proxy
+    }catch(errProxy){
+      throw new Error('Não foi possível consultar os alertas do SCCON. Se usa o proxy, confira se geoserver-dashboard-mt.sccon.com.br está no ALLOWED_HOSTS do Worker. Detalhe técnico: ' + errProxy.message);
+    }
+  }
+  if(txt.includes('ServiceExceptionReport') || txt.includes('ExceptionReport')){
+    const m = txt.match(/<(?:ows:)?ExceptionText>([\s\S]*?)<\/(?:ows:)?ExceptionText>/);
+    throw new Error('O servidor do SCCON recusou a consulta: ' + (m ? m[1].trim() : txt.slice(0,300)));
+  }
+  let gj;
+  try{ gj = JSON.parse(txt); }
+  catch(e){ throw new Error('O servidor do SCCON não retornou JSON válido. Início da resposta: ' + txt.slice(0,200)); }
+  if(!gj || !Array.isArray(gj.features)) throw new Error('Resposta do SCCON não trouxe a chave "features" esperada.');
+  return gj;
+}
+async function querySccAlertas(propertyFeature, connectorId, forceRefresh){
+  if(!forceRefresh){
+    const cached = cacheGet(connectorId, propertyFeature);
+    if(cached) return cached.geojson;
+  }
+  const bbox = turf.bbox(propertyFeature); // [minLon, minLat, maxLon, maxLat]
+  let gj = await fetchSccOnce(sccWktBboxLatLon(bbox));
+  if(gj.features.length === 0){
+    // mesma salvaguarda das outras camadas: se vier vazio, confere a ordem de eixos alternativa antes de aceitar "sem alerta"
+    try{
+      const alt = await fetchSccOnce(sccWktBboxLonLat(bbox));
+      if(alt.features.length > 0) gj = alt;
+    }catch(e){ /* mantém o resultado vazio da 1ª tentativa */ }
+  }
+  if(gj.features.length >= SCCON_LIMITE_FEICOES){
+    throw new Error(`A área do imóvel tem ${SCCON_LIMITE_FEICOES} alertas ou mais na consulta — o resultado pode estar truncado. Consulte a plataforma do SCCON diretamente.`);
+  }
+  cacheSet(connectorId, propertyFeature, gj);
+  return gj;
+}
+
 /* ---------- TerraBrasilis (INPE) — DETER (alertas de desmatamento quase em tempo real, sucessor prático do PRODES pra este uso) ---------- */
 async function fetchTerraBrasilisOnce(workspace, typeName, bboxParam){
   const baseUrl = `https://terrabrasilis.dpi.inpe.br/geoserver/${workspace}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=${typeName}&outputFormat=application/json&srsName=EPSG:4326&bbox=${bboxParam},EPSG:4326`;
@@ -3190,6 +3281,20 @@ function computeOverlaps(propertyFeature, layerFC, connector){
 function resolveFeatureName(props, idx, connectorId){
   if(!props) return `Feição ${idx+1}`;
 
+  if(connectorId === 'sccon_alertas'){
+    // ID + tipo ("qualification") + data do alerta. O nome do campo de data não foi confirmado: usa a primeira
+    // propriedade com nome de data (date/data/dt_/detect) cujo valor seja uma data ISO. Sem isso, omite a data.
+    const partes = [];
+    if(props.idt_local_alert != null) partes.push('Alerta ' + props.idt_local_alert);
+    if(props.qualification){ const q = String(props.qualification); partes.push(SCCON_TIPOS[q] || q); }
+    const kData = Object.keys(props).find(k=> /(^|_)(date|data|dt)(_|$)|detect/i.test(k) && /^\d{4}-\d{2}-\d{2}/.test(String(props[k] || '')));
+    if(kData){
+      const d = new Date(String(props[kData]).slice(0,10) + 'T12:00:00');
+      if(!isNaN(d)) partes.push(d.toLocaleDateString('pt-BR'));
+    }
+    if(partes.length) return partes.join(' · ');
+  }
+
   if(connectorId === 'sema_lim_municipios_mt'){
     // campos prováveis para o nome do município nesta camada — ainda não confirmado com dado real;
     // se cair no fallback "Feição N", clique no polígono no mapa (popup de atributos) pra ver o nome real do campo.
@@ -3356,7 +3461,7 @@ function iconeFeicao(connectorId, cls, featureName){
     if(/PANTANAL/.test(n)) return '💧';
   }
   if(connectorId === 'sema_autex_pmfs_sema') return '🪓';
-  if(connectorId === 'inpe_deter_amz' || connectorId === 'inpe_deter_cerrado') return '🛰️';
+  if(connectorId === 'inpe_deter_amz' || connectorId === 'inpe_deter_cerrado' || connectorId === 'sccon_alertas') return '🛰️';
   if(connectorId === 'sema_car_auas' && cls === 'info') return '<span class="dot-pink"></span>';
   return cls==='crit'?'🔴':cls==='warn'?'🟡':cls==='info'?'🔵':'🟢';
 }
@@ -4735,6 +4840,7 @@ async function gerarRelatorio(){
     { titulo:'Embargos', hasCodes:false, ids:['sema_area_embargada_siga_poligono','sema_areas_embargadas_sema','ibama_embargos'] },
     { titulo:'Desembargo', hasCodes:false, ids:['sema_areas_desembargadas_siga_poligono','sema_areas_desembargadas_sema'] },
     { titulo:'Prodes/DETER', hasCodes:false, ids:['inpe_deter_amz','inpe_deter_cerrado'] },
+    { titulo:'Alertas SCCON (SEMA-MT)', hasCodes:false, ids:['sccon_alertas'] },
     { titulo:'Fundiário — INCRA', hasCodes:true, ids:['incra_sigef_part','incra_sigef_pub','incra_snci_privado','incra_snci_publico','incra_parcelageo','incra_assentamentos','incra_quilombolas'] },
     { titulo:'Fundiário — INTERMAT', hasCodes:true, ids:['intermat_ti','intermat_assentamento','intermat_loteamento'] },
   ];
