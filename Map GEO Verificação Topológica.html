@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.58">
+<meta name="app-version" content="0.0.59">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -198,7 +198,7 @@ tr.row{transition:background .15s}
 <header>
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.58</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.59</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="appBtn" title="APP gerada pelo app: faixas dos rios e raio das nascentes">APP Calculada</button>
@@ -275,8 +275,9 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.58";
+const APP_VERSION = "0.0.59";
 const CHANGELOG = [
+  {v:"0.0.59", d:"2026-11-10", t:["Processamento bem mais rápido: só recalcula o que mudou. Regras, APP e tipologia reaproveitam resultados de camadas que não foram alteradas na pasta monitorada.","Cruzamentos entre feições já calculados ficam em memória; menos pausas entre feições; verificação mostra qual regra está rodando."]},
   {v:"0.0.58", d:"2026-11-09", t:["ARL tipo R também não pode sobrepor AUAS, AREA_CONSOLIDADA nem rios (AVN, inclusive tipo R, já tinha essa restrição)."]},
   {v:"0.0.57", d:"2026-11-09", t:["ARL: SITUACAO R passa a ser aceita e a ARL tipo R só pode sobrepor AVN tipo R (sobrepor AVN de outro tipo é erro, com a área)."]},
   {v:"0.0.56", d:"2026-11-06", t:["Botões do cabeçalho com nomes curtos: APP Calculada, Tipologia e Dicionário (sem quebra de linha)."]},
@@ -377,6 +378,8 @@ const LAYERS = {};      // nome -> {name, fc (GeoJSON), fields[], prj, leaflet, 
 const COLORS = ["#0f6e56","#c0392b","#2874a6","#b9770e","#7d3c98","#117a65","#a93226","#1f618d","#9c640c","#6c3483","#148f77","#cb4335","#2e86c1","#d68910","#884ea0","#17a589","#e74c3c","#3498db","#f39c12","#9b59b6"];
 let RESULTS = [];
 let SIGS = {}, PEND = {}, ERRS = {};
+let VERC=0; const lver=n=>LAYERS[n]?(LAYERS[n].ver||0):0;
+const RC={}; // cache de resultados por regra
 
 /* ============ REGRAS ============ */
 // Cada regra: {id, nome, desc, run(ctx) -> [{camada, fid, msg, sev, geom?}]}
@@ -687,7 +690,10 @@ const RIOS=["RIO_ATE_10","RIO_10_A_50","RIO_50_A_200","RIO_200_A_600","RIO_ACIMA
 /* ---------- utilitários geométricos ---------- */
 const H={
   W:0,
-  tick:()=>new Promise(r=>setTimeout(r,0)),
+  T0:0,
+  // só cede a vez ao navegador a cada ~40 ms (setTimeout(0) por feição deixava tudo lento)
+  tick(){ if(performance.now()-H.T0<40) return undefined; return new Promise(r=>setTimeout(()=>{ H.T0=performance.now(); r(); },0)); },
+  PM:new WeakMap(), OM:new WeakMap(), AM:new WeakMap(),
   // descarta fragmentos finos (lascas): resto do polígono depois de erodir W metros
   grosso(g){
     if(!(H.W>0)) return true;
@@ -713,6 +719,11 @@ const H={
   disj(a,b){ const x=H.bb(a),y=H.bb(b); return x[0]>y[2]||y[0]>x[2]||x[1]>y[3]||y[1]>x[3]; },
   // área de a que fica fora de b
   outside(a,b){
+    let m=H.OM.get(a); if(!m) H.OM.set(a,m=new WeakMap());
+    const c=m.get(b); if(c&&c.k===H.W) return c.r;
+    const r=H.outside0(a,b); m.set(b,{k:H.W,r}); return r;
+  },
+  outside0(a,b){
     try{
       if(H.disj(a,b)) return {area:turf.area(a),geom:a.geometry};
       const d=turf.difference(turf.featureCollection([a,b]));
@@ -724,9 +735,17 @@ const H={
   // área de a que sobrepõe as feições de lista
   inter(a,lista,tol){
     let area=0; const gs=[];
+    let m=H.PM.get(a); if(!m) H.PM.set(a,m=new WeakMap());
+    const k=tol+"|"+H.W;
     for(const b of lista){
       if(H.disj(a,b)) continue;
-      try{ const i=turf.intersect(turf.featureCollection([a,b])); if(i){const ar=turf.area(i); if(ar>tol&&H.grosso(i)){area+=ar;gs.push(i);}} }catch(e){}
+      let c=m.get(b);
+      if(!c||c.k!==k){
+        c={k,ar:0,i:null};
+        try{ const i=turf.intersect(turf.featureCollection([a,b])); if(i){const ar=turf.area(i); if(ar>tol&&H.grosso(i)){ c.ar=ar; c.i=i; }} }catch(e){}
+        m.set(b,c);
+      }
+      if(c.i){ area+=c.ar; gs.push(c.i); }
     }
     return {area,geom:gs.length?turf.featureCollection(gs):null};
   },
@@ -806,6 +825,10 @@ const H={
     return out;
   },
   autoRes(nome,f){
+    let c=H.AM.get(f); if(c&&c.n===nome) return c.r;
+    const r=H.autoRes0(nome,f); H.AM.set(f,{n:nome,r}); return r;
+  },
+  autoRes0(nome,f){
     const un=l=>{ const m=new Map(); l.forEach(c=>m.set(c[0].toFixed(8)+","+c[1].toFixed(8),c)); return [...m.values()]; };
     let a; try{ a=H.autoint(f); }catch(e){ return [{camada:nome,fid:H.id(f),msg:"Falha ao verificar auto-interseção: "+e.message,sev:"aviso"}]; }
     const id=H.id(f), pts=l=>turf.featureCollection(l.map(c=>turf.point(c))), out=[];
@@ -893,7 +916,7 @@ async function ingest(groups,opt={}){
       feats.forEach((f,i)=>{ f._i=i; if(raw[i]) f._raw=raw[i]; });
       const old=LAYERS[name];
       if(old&&old.leaflet) old.leaflet.remove();
-      LAYERS[name]={name,fc:{type:"FeatureCollection",features:feats},fields:dbfHeader(g.dbf),prj,gtype,color:old?old.color:COLORS[Object.keys(LAYERS).length%COLORS.length]};
+      LAYERS[name]={ver:++VERC,name,fc:{type:"FeatureCollection",features:feats},fields:dbfHeader(g.dbf),prj,gtype,color:old?old.color:COLORS[Object.keys(LAYERS).length%COLORS.length]};
       drawLayer(LAYERS[name]); delete ERRS[name]; n++;
     }catch(e){ console.error(name,e); ERRS[name]=e.message||String(e); delete SIGS[name]; }
   }
@@ -1104,9 +1127,20 @@ async function run(){
   RESULTS=[]; RAN=new Set(sel);
   const ctx={layers:LAYERS,dict:DICT,get:n=>LAYERS[n],tol:Math.max(0,parseFloat($("tol").value)||0),wtol:Math.max(0,parseFloat($("wtol").value)||0),vtol:Math.max(0,parseFloat($("vtol").value)||0)};
   H.W=ctx.wtol;
+  const par=[ctx.tol,ctx.wtol,ctx.vtol].join("|");
   for(const r of RULES) if(sel.has(r.id)){
-    try{ (await r.run(ctx)).forEach(x=>RESULTS.push({regra:r.id,...x})); }
-    catch(e){ RESULTS.push({regra:r.id,camada:"—",msg:"Falha ao executar a regra: "+e.message,sev:"erro"}); }
+    const c=RC[r.id], nomes=Object.keys(LAYERS).sort().join(",");
+    if(c&&c.par===par&&Object.keys(c.v).every(n=>lver(n)===c.v[n])&&(!c.all||c.nomes===nomes)){ c.res.forEach(x=>RESULTS.push({regra:r.id,...x})); continue; }
+    $("sum").textContent="Executando… "+r.id; await new Promise(q=>setTimeout(q,0)); H.T0=performance.now();
+    const deps=new Set(); let all=false;
+    const lay=new Proxy(LAYERS,{get(t,k){ if(typeof k==="string") deps.add(k); return t[k]; },has(t,k){ if(typeof k==="string") deps.add(k); return k in t; },ownKeys(t){ all=true; return Reflect.ownKeys(t); }});
+    const rc={...ctx,layers:lay,get:n=>{ deps.add(n); return LAYERS[n]; }};
+    try{
+      const res=await r.run(rc); res.forEach(x=>RESULTS.push({regra:r.id,...x}));
+      const v={}; (all?Object.keys(LAYERS):[...deps]).forEach(n=>v[n]=lver(n)); if(all) deps.forEach(n=>v[n]=lver(n));
+      RC[r.id]={par,v,all,nomes,res};
+    }
+    catch(e){ delete RC[r.id]; RESULTS.push({regra:r.id,camada:"—",msg:"Falha ao executar a regra: "+e.message,sev:"erro"}); }
   }
   showResults(); $("run").disabled=false; syncUI();
   if(LAYOUT==="B") setStep(3);
@@ -1167,23 +1201,38 @@ function noRio10(pt,rios){
   }
   return false;
 }
+let ATPU={v:-1,u:null};
+function atpUni(){ const v=lver("ATP"); if(ATPU.v!==v){ ATPU={v,u:uniF(ATPF())}; } return ATPU.u; }
+function appSig(){
+  const nm=Object.keys(LAYERS).filter(n=>/^RIO_|^NASCENTE$|^ATP$/.test(n)).sort();
+  return nm.map(n=>n+":"+lver(n)).join(",")+"|"+$("apSub").checked+"|"+APP_FONTES.map(s=>$(s.inp).value).join(",");
+}
 async function appCompute(){
   const sub=$("apSub").checked;
+  const rioV=Object.keys(LAYERS).filter(n=>/^RIO_/.test(n)).sort().map(n=>n+":"+lver(n)).join(",");
+  APPG.cache=APPG.cache||{};
   const rios=[]; Object.keys(LAYERS).filter(n=>/^RIO_/.test(n)).forEach(n=>H.feats({layers:LAYERS},n).forEach(f=>rios.push(f)));
-  const canal=(sub&&rios.length)?uniF(rios):null, atp=uniF(ATPF());
+  let canalC; const canalF=()=>canalC!==undefined?canalC:(canalC=(sub&&rios.length)?uniF(rios):null); const atp=atpUni(), atpV=lver("ATP");
   const fontes=[]; let falhas=0;
   for(const s of APP_FONTES){
-    const d=+$(s.inp).value||0, todas=H.feats({layers:LAYERS},s.nome), bufs=[];
-    let fs_=todas, ign=0;
-    if(s.nome==="NASCENTE"){ const r10=H.feats({layers:LAYERS},"RIO_ATE_10"); fs_=todas.filter(f=>noRio10(f,r10)); ign=todas.length-fs_.length; }
-    for(const f of fs_){ try{ const b=turf.buffer(f,d,{units:"meters",steps:32}); if(b&&b.geometry) bufs.push(b); }catch(e){ falhas++; } await H.tick(); }
-    let B=uniF(bufs);
-    if(B&&s.rio&&canal){ try{ B=turf.difference(turf.featureCollection([B,canal])); }catch(e){ falhas++; } }
-    fontes.push({...s,d,n:fs_.length,ign,B});
+    const d=+$(s.inp).value||0, todas=H.feats({layers:LAYERS},s.nome);
+    const key=[d,sub,lver(s.nome),s.rio&&sub?rioV:"",s.nome==="NASCENTE"?lver("RIO_ATE_10"):""].join("|");
+    let ent=APPG.cache[s.nome];
+    if(!ent||ent.key!==key){
+      const bufs=[]; let fs_=todas, ign=0, fl=0;
+      if(s.nome==="NASCENTE"){ const r10=H.feats({layers:LAYERS},"RIO_ATE_10"); fs_=todas.filter(f=>noRio10(f,r10)); ign=todas.length-fs_.length; }
+      for(const f of fs_){ try{ const b=turf.buffer(f,d,{units:"meters",steps:32}); if(b&&b.geometry) bufs.push(b); }catch(e){ fl++; } await H.tick(); }
+      let B=uniF(bufs);
+      const canal=s.rio?canalF():null;
+      if(B&&s.rio&&canal){ try{ B=turf.difference(turf.featureCollection([B,canal])); }catch(e){ fl++; } }
+      ent={key,B,n:fs_.length,ign,fl,atpV:-1,atpA:null}; APPG.cache[s.nome]=ent;
+    }
+    falhas+=ent.fl;
+    fontes.push({...s,d,n:ent.n,ign:ent.ign,B:ent.B,ent});
   }
   const all=uniF(fontes.map(f=>f.B));
   const area=g=>g?turf.area(g):0;
-  const res={fontes:fontes.map(f=>({nome:f.nome,d:f.d,n:f.n,ign:f.ign,tot:area(f.B),atp:atp?area(clipAtp(f.B,atp)):null})),
+  const res={fontes:fontes.map(f=>({nome:f.nome,d:f.d,n:f.n,ign:f.ign,tot:area(f.B),atp:atp?(f.ent.atpV===atpV?f.ent.atpA:(f.ent.atpV=atpV,f.ent.atpA=area(clipAtp(f.B,atp)))):null})),
     tot:area(all), atp:atp?area(clipAtp(all,atp)):null, temAtp:!!atp, sub, falhas, hora:new Date().toLocaleTimeString("pt-BR")};
   return {all,res};
 }
@@ -1212,20 +1261,23 @@ function appShow(){
 }
 async function appRun(){
   if(APPG.busy){ APPG.again=true; return; }
-  APPG.busy=true; $("apSt").textContent="Calculando…"; $("apSt").className="empty";
+  APPG.busy=true;
   try{
+    const sig=appSig();
+    if(APPG.sig===sig&&APPG.res&&APPG.fc){ appShow(); return; }
+    $("apSt").textContent="Calculando…"; $("apSt").className="empty";
     const n=H.feats({layers:LAYERS},"RIO_ATE_10").length+H.feats({layers:LAYERS},"RIO_10_A_50").length;
-    if(!n){ APPG.fc=null; APPG.res=null; $("apOut").innerHTML=""; $("apSt").textContent="Sem feições em RIO_ATE_10 nem em RIO_10_A_50: nada a gerar."; appRender(); appDraw(); return; }
+    if(!n){ APPG.fc=null; APPG.res=null; APPG.sig=null; $("apOut").innerHTML=""; $("apSt").textContent="Sem feições em RIO_ATE_10 nem em RIO_10_A_50: nada a gerar."; appRender(); appDraw(); return; }
     const {all,res}=await appCompute();
     if(!all){ APPG.fc=null; APPG.res=res; appRender(); appDraw(); $("apSt").textContent="Não foi possível gerar a APP."; return; }
     all.properties={NOME:"APP",AREA_HA:+(res.tot/10000).toFixed(4),HA_NA_ATP:res.atp==null?"":+(res.atp/10000).toFixed(4)};
     APPG.fc={type:"FeatureCollection",features:[all]}; APPG.res=res;
-    APPG.ver=(APPG.ver||0)+1;
+    APPG.ver=(APPG.ver||0)+1; APPG.sig=sig;
     appRender(); appDraw(); appShow();
   }catch(e){ console.error(e); $("apSt").textContent="Falha ao gerar a APP: "+e.message; $("apSt").className="empty er"; }
   finally{ APPG.busy=false; if(APPG.again){ APPG.again=false; appAuto(); } try{ if(TIP.auto&&TIP.fc&&TIP.appVer!==APPG.ver) tipAuto(); }catch(e){} }
 }
-function appAuto(){ clearTimeout(APPG.t); APPG.t=setTimeout(()=>{ APPG.t=null; appRun(); },900); }
+function appAuto(){ clearTimeout(APPG.t); APPG.t=setTimeout(()=>{ APPG.t=null; appRun(); },500); }
 async function appWait(){ for(let k=0;k<300&&(APPG.busy||APPG.t);k++) await new Promise(r=>setTimeout(r,100)); }
 $("appBtn").onclick=()=>$("dlgApp").classList.add("on");
 ["apR10","apR50","apNas","apSub"].forEach(i=>$(i).oninput=$(i).onchange=appAuto);
@@ -1362,6 +1414,7 @@ function tipAppTab(){
   <tr><td>ARL fora da APP (ha)</td>${ac.map(c=>td(fmtHa(Math.max(0,R.tot[c]-(R.totApp[c]||0))))).join("")}${td(fmtHa(Math.max(0,totArl-totApp)))}</tr>
   <tr class="tt"><td>% da ARL em APP</td>${ac.map(c=>td(fmtPc((R.totApp[c]||0)/R.tot[c]*100))).join("")}${td(totArl?fmtPc(totApp/totArl*100):"—")}</tr></table>`;
 }
+const ARLC=new WeakMap(); let TIPA=null;
 async function tipRunCore(){
   TIP.auto=true;
   const arl=H.feats({layers:LAYERS},"ARL"), T=TIP.fc&&TIP.fc.features||[], fld=$("tipFld").value, tol=+$("tol").value||0;
@@ -1371,31 +1424,59 @@ async function tipRunCore(){
   const app=APPG.fc&&APPG.fc.features[0]||null; TIP.appVer=APPG.ver;
   const val=t=>{ const v=(t.properties||{})[fld]; return (v==null||String(v).trim()==="")?"(sem valor)":String(v).trim(); };
   const det=[], tot={}, totApp={}; let totArl=0, falhas=0;
-  const aInt=g=>{ if(!app||!g||H.disj(g,app)) return 0; try{ const x=turf.intersect(turf.featureCollection([g,app])); return x?turf.area(x):0; }catch(e){ return 0; } };
+  let appL=app; // APP recortada ao retângulo da ARL em análise (muito menos vértices)
+  const aInt=g=>{ if(!appL||!g||H.disj(g,appL)) return 0; try{ const x=turf.intersect(turf.featureCollection([g,appL])); return x?turf.area(x):0; }catch(e){ return 0; } };
+  const clipApp=f=>{
+    appL=app; if(!app||H.disj(f,app)) return;
+    try{
+      const b=H.bb(f), g=app.geometry, polys=g.type==="MultiPolygon"?g.coordinates:[g.coordinates], keep=[]; let nv=0;
+      for(const pc of polys){
+        let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const q of pc[0]){ if(q[0]<x0)x0=q[0]; if(q[0]>x1)x1=q[0]; if(q[1]<y0)y0=q[1]; if(q[1]>y1)y1=q[1]; }
+        if(x0>b[2]||x1<b[0]||y0>b[3]||y1<b[1]) continue;
+        keep.push(pc); for(const r of pc) nv+=r.length;
+      }
+      if(!keep.length){ appL=null; return; }
+      let c=turf.feature({type:"MultiPolygon",coordinates:keep});
+      if(nv>2000){ const m=1e-6, x=turf.intersect(turf.featureCollection([c,turf.bboxPolygon([b[0]-m,b[1]-m,b[2]+m,b[3]+m])])); if(x) c=x; }
+      appL=c;
+    }catch(e){ appL=app; }
+  };
+  const kk=[fld,tol,APPG.ver].join("|");
   for(const f of arl){
-    const aArl=turf.area(f), p=f.properties||{}; totArl+=aArl; let soma=0, somaApp=0; const por={}, porApp={}; const aAppF=aInt(f);
-    for(const t of T){
-      if(H.disj(f,t)) continue;
-      let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ falhas++; continue; }
-      if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
-      const v=val(t); por[v]=(por[v]||0)+a; soma+=a;
-      if(aAppF>0){ const ap=aInt(i); if(ap>0){ porApp[v]=(porApp[v]||0)+ap; somaApp+=ap; } }
+    const p=f.properties||{};
+    let c=ARLC.get(f);
+    if(!c||c.fc!==TIP.fc||c.k!==kk){
+      const aArl=turf.area(f); let soma=0, somaApp=0, fl=0; const por={}, porApp={}; clipApp(f); const aAppF=aInt(f);
+      for(const t of T){
+        if(H.disj(f,t)) continue;
+        let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ fl++; continue; }
+        if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
+        const v=val(t); por[v]=(por[v]||0)+a; soma+=a;
+        if(aAppF>0){ const ap=aInt(i); if(ap>0){ porApp[v]=(porApp[v]||0)+ap; somaApp+=ap; } }
+      }
+      const sem=aArl-soma; if(sem>Math.max(tol,0.01)){ por[SEMTIP]=sem; const sa=Math.max(0,aAppF-somaApp); if(sa>0) porApp[SEMTIP]=sa; }
+      c={fc:TIP.fc,k:kk,aArl,por,porApp,fl}; ARLC.set(f,c); await H.tick();
     }
-    const sem=aArl-soma; if(sem>Math.max(tol,0.01)){ por[SEMTIP]=sem; const sa=Math.max(0,aAppF-somaApp); if(sa>0) porApp[SEMTIP]=sa; }
-    for(const [v,a] of Object.entries(por)){ const ap=Math.min(a,porApp[v]||0); det.push({fid:H.id(f),ident:p.IDENTIFIC==null?"":p.IDENTIFIC,sit:p.SITUACAO==null?"":p.SITUACAO,aArl,v,a,ap}); tot[v]=(tot[v]||0)+a; totApp[v]=(totApp[v]||0)+ap; }
-    await H.tick();
+    const aArl=c.aArl; totArl+=aArl; falhas+=c.fl;
+    for(const [v,a] of Object.entries(c.por)){ const ap=Math.min(a,c.porApp[v]||0); det.push({fid:H.id(f),ident:p.IDENTIFIC==null?"":p.IDENTIFIC,sit:p.SITUACAO==null?"":p.SITUACAO,aArl,v,a,ap}); tot[v]=(tot[v]||0)+a; totApp[v]=(totApp[v]||0)+ap; }
   }
-  const atpF=H.feats({layers:LAYERS},"ATP"), totA={}; let totAtp=0;
-  for(const f of atpF){
-    const a0=turf.area(f); totAtp+=a0; let soma=0;
-    for(const t of T){
-      if(H.disj(f,t)) continue;
-      let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ falhas++; continue; }
-      if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
-      const v=val(t); totA[v]=(totA[v]||0)+a; soma+=a;
+  const atpF=H.feats({layers:LAYERS},"ATP"); let totA={}, totAtp=0;
+  const ka=[lver("ATP"),fld,tol].join("|");
+  if(TIPA&&TIPA.fc===TIP.fc&&TIPA.k===ka){ totA=TIPA.totA; totAtp=TIPA.totAtp; falhas+=TIPA.fl; }
+  else{
+    let fl=0;
+    for(const f of atpF){
+      const a0=turf.area(f); totAtp+=a0; let soma=0;
+      for(const t of T){
+        if(H.disj(f,t)) continue;
+        let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ fl++; continue; }
+        if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
+        const v=val(t); totA[v]=(totA[v]||0)+a; soma+=a;
+      }
+      const sem=a0-soma; if(sem>Math.max(tol,0.01)) totA[SEMTIP]=(totA[SEMTIP]||0)+sem;
+      await H.tick();
     }
-    const sem=a0-soma; if(sem>Math.max(tol,0.01)) totA[SEMTIP]=(totA[SEMTIP]||0)+sem;
-    await H.tick();
+    falhas+=fl; TIPA={fc:TIP.fc,k:ka,totA,totAtp,fl};
   }
   const cols=[...new Set([...Object.keys(totA),...Object.keys(tot)])].sort((a,b)=>(a===SEMTIP)-(b===SEMTIP)||((totA[b]||0)+(tot[b]||0))-((totA[a]||0)+(tot[a]||0)));
   TIP.res={det,tot,totApp,hasApp:!!app,totArl,totA,totAtp,cols,fld,falhas};
@@ -1427,7 +1508,7 @@ function tipAuto(){
       }
     }
     tipRunSafe();
-  },700);
+  },450);
 }
 $("tipCsv").onclick=()=>{
   const R=TIP.res; if(!R) return; const C=tipCalc(R); const n=v=>(v/10000).toFixed(4).replace(".",","), q=v=>`"${String(v).replace(/"/g,'""')}"`;
