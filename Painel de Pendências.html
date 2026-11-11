@@ -363,7 +363,7 @@
 .legend i{ width:10px; height:10px; border-radius:50%; flex:none; }
 .legend b{ color:var(--ink); margin-left:auto; padding-left:14px; font-variant-numeric:tabular-nums; }
 .bars{ display:flex; flex-direction:column; gap:11px; }
-.bar-row{ display:grid; grid-template-columns:110px 1fr 34px; align-items:center; gap:12px; font-size:13px; }
+.bar-row{ display:grid; grid-template-columns:160px 1fr 34px; align-items:center; gap:12px; font-size:13px; }
 .bar-row .nm{ color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bar-row .tr{ height:10px; border-radius:10px; background:rgba(70,50,35,.09); overflow:hidden; }
 .bar-row .tr i{ display:block; height:100%; border-radius:10px; background:linear-gradient(90deg,#e0805f,#cf5a3c); }
@@ -547,6 +547,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible{ outline:none;
   tbody tr:not(.detail-row):not(.group-header):not(.empty-row) td:nth-child(5){ grid-row:2; grid-column:4; justify-self:end; font-size:12px; }
   tbody tr:not(.detail-row):not(.group-header):not(.empty-row) td:nth-child(6){ grid-row:3; grid-column:1 / 4; }
   tbody tr:not(.detail-row):not(.group-header):not(.empty-row) td:nth-child(7){ grid-row:3; grid-column:4; justify-self:end; }
+  .panel-simlam tbody tr:not(.detail-row):not(.group-header):not(.empty-row) td:nth-child(6){ grid-column:1 / -1; }
+  .panel-simlam tbody tr:not(.detail-row):not(.group-header):not(.empty-row) td:nth-child(7){ grid-row:4; grid-column:1 / -1; justify-self:start; }
+  .panel-simlam .situacao-cell{ max-width:none; white-space:normal; }
   tbody tr td:nth-child(8){ display:none !important; }
   .deadline-pill .date{ display:inline; }
   .progress-track{ width:56px; }
@@ -674,7 +677,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible{ outline:none;
       </div>
     </div>
     <div class="glass-panel">
-      <h3>Processos ativos por analista</h3>
+      <h3 id="chartAnalistaTitle">Processos ativos por analista</h3>
       <div class="bars" id="analystBars"></div>
     </div>
   </section>
@@ -741,7 +744,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible{ outline:none;
       <input type="text" id="fProprietario" placeholder="Ex: João da Silva">
     </div>
     <div class="field">
-      <label>Analista responsável</label>
+      <label id="lblAnalista">Analista responsável</label>
       <input type="text" id="fAnalista" placeholder="Ex: Fagner">
     </div>
     <div class="field-row">
@@ -1480,6 +1483,7 @@ const PANELS = {
     processado: 'Processado por', processadoLong: 'Processado no SIMCAR (quem mexeu nas geometrias)', processadoPh: 'Ex: Brunno',
     prazo: 'Prazo para envio', dataFinal: 'Data final para envio', progHeader: 'Progresso da análise', okLabel: '100% sem objeção', pdf: 'PDF da análise (parecer técnico)',
     searchTitle: 'Busca nos dois painéis (SIMCAR e SIMLAM) por propriedade, proprietário, analista, CAR/nº do PD ou objetivo, incluindo os arquivados',
+    analista: 'Analista responsável', analistaCsv: 'Analista Responsável', analistaPh: 'Ex: Fagner', analistaShort: 'Analista', chartTitle: 'Processos ativos por analista',
     deadlineHelper: true, csvName: 'pendencias_simcar'
   },
   simlam: {
@@ -1489,6 +1493,7 @@ const PANELS = {
     processado: 'Objetivo', processadoLong: 'Objetivo', processadoPh: '',
     prazo: 'Prazo', dataFinal: 'Prazo final', progHeader: 'Situação do PD', okLabel: 'Arquivados', pdf: 'PDF do processo / documento',
     searchTitle: 'Busca nos dois painéis (SIMCAR e SIMLAM) por propriedade, proprietário, analista, CAR/nº do PD ou objetivo, incluindo os arquivados',
+    analista: 'Eng. Responsável', analistaCsv: 'Eng. Responsável', analistaPh: 'Ex: nome do engenheiro', analistaShort: 'Eng. Responsável', chartTitle: 'Processos ativos por eng. responsável',
     deadlineHelper: false, csvName: 'pendencias_simlam'
   }
 };
@@ -1524,7 +1529,8 @@ function applyPanelLabels(){
   document.getElementById('panelSub').innerHTML = P.sub;
   set('thProp', P.prop); set('thProc', P.proc); set('thProcessado', P.processado); set('thPrazo', P.prazo);
   set('lblPropriedade', P.prop); set('lblProc', P.proc); set('lblProcessado', P.processadoLong);
-  set('lblDataFinal', P.dataFinal); set('lblPdf', P.pdf);
+  set('lblDataFinal', P.dataFinal); set('lblPdf', P.pdf); set('lblAnalista', P.analista); set('chartAnalistaTitle', P.chartTitle);
+  document.getElementById('fAnalista').placeholder = P.analistaPh;
   document.getElementById('fCar').placeholder = P.procPh;
   const proc = document.getElementById('fProcessado');
   proc.placeholder = P.processadoPh;
@@ -1755,7 +1761,7 @@ function simlamSummaryHtml(rec){
     ${item('Prazo final', rec.dataFinal ? escapeHtml(fmtDate(rec.dataFinal)) : '<span class="ds-empty">—</span>')}
     ${item('Data da análise', rec.dataAnalise ? escapeHtml(fmtDate(rec.dataAnalise)) : '<span class="ds-empty">—</span>')}
     ${item('Proprietário', v(rec.proprietario))}
-    ${item('Analista', v(rec.analista))}
+    ${item(PANELS[rec._panel || currentPanel].analistaShort, v(rec.analista))}
     ${item('PDF do processo', rec.pdfName ? ICON_PDF + ' ' + escapeHtml(rec.pdfName) : '<span class="ds-empty">não anexado</span>')}
     ${item('Mapa temático', rec.mapaName ? ICON_MAPA + ' ' + escapeHtml(rec.mapaName) : '<span class="ds-empty">não anexado</span>')}
     ${item('Situação do PD', v(rec.andamento), true)}
@@ -2335,7 +2341,7 @@ document.getElementById('sortBy').addEventListener('change', render);
 
 document.getElementById('exportBtn').addEventListener('click', () => {
   const PL = PANELS[currentPanel];
-  const headers = [PL.prop,'Proprietário','Analista Responsável',PL.proc,'Data da Análise',PL.dataFinal, ...RESULT_FIELDS.map(f=>f.label), PL.processado,'Observações',...(currentPanel === 'simlam' ? ['Situação do PD'] : []),'Detalhamento das Pendências'];
+  const headers = [PL.prop,'Proprietário',PL.analistaCsv,PL.proc,'Data da Análise',PL.dataFinal, ...RESULT_FIELDS.map(f=>f.label), PL.processado,'Observações',...(currentPanel === 'simlam' ? ['Situação do PD'] : []),'Detalhamento das Pendências'];
   const rows = records.map(r => {
     const detalhamento = RESULT_FIELDS
       .filter(f => r.results[f.key].texto.trim())
@@ -2449,7 +2455,7 @@ document.getElementById('autoBackupBtn').addEventListener('click', async () => {
     const box = $('analystBars'); let list = [];
     try{ list = (typeof records !== 'undefined' ? records : []).filter(r => !r.arquivado); }catch(e){}
     const m = new Map();
-    list.forEach(r => { const k = (r.analista || '').trim() || 'Sem analista'; m.set(k, (m.get(k)||0)+1); });
+    list.forEach(r => { const k = (r.analista || '').trim() || (currentPanel === 'simlam' ? 'Sem eng. responsável' : 'Sem analista'); m.set(k, (m.get(k)||0)+1); });
     const rows = [...m.entries()].sort((a,b) => b[1]-a[1]).slice(0,6);
     if(!rows.length){ box.dataset.sig = ''; box.innerHTML = '<div class="glass-empty">Nenhum processo ativo neste painel.</div>'; return; }
     const max = rows[0][1];
