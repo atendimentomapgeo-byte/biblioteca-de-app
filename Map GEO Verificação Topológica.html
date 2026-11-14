@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.59">
+<meta name="app-version" content="0.0.60">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -198,7 +198,7 @@ tr.row{transition:background .15s}
 <header>
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.59</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.60</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="appBtn" title="APP gerada pelo app: faixas dos rios e raio das nascentes">APP Calculada</button>
@@ -226,6 +226,7 @@ tr.row{transition:background .15s}
     <label class="empty" style="display:block;margin:8px 0 4px">Tolerância de área (m²)<br><input id="tol" type="number" min="0" step="0.1" value="1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
     <label class="empty" style="display:block;margin:0 0 4px">Tolerância de largura (m)<br><input id="wtol" type="number" min="0" step="0.01" value="0.1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
     <label class="empty" style="display:block;margin:0 0 4px">Distância mínima entre vértices (m)<br><input id="vtol" type="number" min="0" step="0.01" value="0.1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
+    <label class="empty" style="display:block;margin:0 0 4px">Módulo de cálculo de área<br><select id="areaModo" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"><option value="SIMCAR">SIMCAR — UTM SIRGAS 2000 (plana)</option><option value="SIGEF">SIGEF — Elipsóide GRS80</option></select></label>
     <button class="pri" id="run" disabled style="width:100%;margin-top:6px">Executar verificação</button>
   </div>
   <div id="cMap"><div id="map"></div></div>
@@ -275,8 +276,9 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.59";
+const APP_VERSION = "0.0.60";
 const CHANGELOG = [
+  {v:"0.0.60", d:"2026-11-13", t:["Novo seletor \"Módulo de cálculo de área\": SIMCAR (UTM SIRGAS 2000, plana, fuso detectado pela ATP/camadas) ou SIGEF (elipsóide GRS80). Vale para regras, APP, tipologia/ARL e quantitativos. Padrão: SIMCAR; a escolha fica salva no navegador."]},
   {v:"0.0.59", d:"2026-11-10", t:["Processamento bem mais rápido: só recalcula o que mudou. Regras, APP e tipologia reaproveitam resultados de camadas que não foram alteradas na pasta monitorada.","Cruzamentos entre feições já calculados ficam em memória; menos pausas entre feições; verificação mostra qual regra está rodando."]},
   {v:"0.0.58", d:"2026-11-09", t:["ARL tipo R também não pode sobrepor AUAS, AREA_CONSOLIDADA nem rios (AVN, inclusive tipo R, já tinha essa restrição)."]},
   {v:"0.0.57", d:"2026-11-09", t:["ARL: SITUACAO R passa a ser aceita e a ARL tipo R só pode sobrepor AVN tipo R (sobrepor AVN de outro tipo é erro, com a área)."]},
@@ -380,6 +382,55 @@ let RESULTS = [];
 let SIGS = {}, PEND = {}, ERRS = {};
 let VERC=0; const lver=n=>LAYERS[n]?(LAYERS[n].ver||0):0;
 const RC={}; // cache de resultados por regra
+/* ===== módulo de cálculo de área: SIMCAR (UTM plana) ou SIGEF (elipsóide GRS80) ===== */
+const AREAV={modo:"SIMCAR",zk:null,zona:21};
+try{ const m=localStorage.getItem("vt-areamodo"); if(m==="SIGEF"||m==="SIMCAR") AREAV.modo=m; }catch(e){}
+const GRS={a:6378137,f:1/298.257222101};
+GRS.e2=GRS.f*(2-GRS.f); GRS.e=Math.sqrt(GRS.e2);
+const authQ=p=>{ const s=Math.sin(p), e=GRS.e; return (1-GRS.e2)*(s/(1-GRS.e2*s*s)-Math.log((1-e*s)/(1+e*s))/(2*e)); };
+function utmZona(){
+  const k=lver("ATP")+"|"+Object.keys(LAYERS).length+"|"+Object.values(LAYERS).reduce((a,l)=>a+(l.ver||0),0);
+  if(AREAV.zk===k) return AREAV.zona;
+  AREAV.zk=k;
+  try{
+    const fs_=(LAYERS.ATP?LAYERS.ATP.fc.features:[]).filter(f=>f.geometry);
+    const src=fs_.length?fs_:Object.values(LAYERS).flatMap(l=>l.fc.features.filter(f=>f.geometry)).slice(0,500);
+    if(src.length){ const b=turf.bbox({type:"FeatureCollection",features:src}); const lon=(b[0]+b[2])/2; AREAV.zona=Math.min(60,Math.max(1,Math.floor((lon+180)/6)+1)); }
+  }catch(e){}
+  return AREAV.zona;
+}
+const AK=()=>AREAV.modo+(AREAV.modo==="SIMCAR"?utmZona():"");
+function utmXY(lon,lat,l0){ // Krüger (Karney), SIRGAS 2000 / GRS80
+  const n=GRS.f/(2-GRS.f), A=GRS.a/(1+n)*(1+n*n/4+n**4/64), k0=0.9996, r=Math.PI/180;
+  const al=[n/2-2*n*n/3+5*n**3/16, 13*n*n/48-3*n**3/5, 61*n**3/240];
+  const ph=lat*r, dl=(lon-l0)*r, c=2*Math.sqrt(n)/(1+n), sp=Math.sin(ph);
+  const t=Math.sinh(Math.atanh(sp)-c*Math.atanh(c*sp));
+  const xi=Math.atan2(t,Math.cos(dl)), eta=Math.atanh(Math.sin(dl)/Math.sqrt(1+t*t));
+  let E=eta,N=xi; for(let j=1;j<=3;j++){ E+=al[j-1]*Math.cos(2*j*xi)*Math.sinh(2*j*eta); N+=al[j-1]*Math.sin(2*j*xi)*Math.cosh(2*j*eta); }
+  return [k0*A*E,k0*A*N];
+}
+function ringArea(r,modo,l0){
+  const n=r.length; if(n<4) return 0; let s=0;
+  if(modo==="SIGEF"){
+    const rad=Math.PI/180; let l1=r[0][0]*rad, q1=authQ(r[0][1]*rad);
+    for(let i=1;i<n;i++){ const l2=r[i][0]*rad, q2=authQ(r[i][1]*rad); s+=(l2-l1)*(q1+q2)/2; l1=l2; q1=q2; }
+    return Math.abs(s)*GRS.a*GRS.a/2;
+  }
+  let p0=utmXY(r[0][0],r[0][1],l0);
+  for(let i=1;i<n;i++){ const p1=utmXY(r[i][0],r[i][1],l0); s+=p0[0]*p1[1]-p1[0]*p0[1]; p0=p1; }
+  return Math.abs(s)/2;
+}
+function AREA(x){
+  if(!x) return 0;
+  if(x.type==="FeatureCollection") return x.features.reduce((a,f)=>a+AREA(f),0);
+  const g=x.type==="Feature"?x.geometry:x; if(!g) return 0;
+  if(g.type==="GeometryCollection") return g.geometries.reduce((a,h)=>a+AREA(h),0);
+  const polys=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:null; if(!polys) return 0;
+  const modo=AREAV.modo, l0=modo==="SIMCAR"?(utmZona()-1)*6-180+3:0; let t=0;
+  for(const pc of polys) pc.forEach((r,i)=>{ const a=ringArea(r,modo,l0); t+=i?-a:a; });
+  return Math.max(0,t);
+}
+
 
 /* ============ REGRAS ============ */
 // Cada regra: {id, nome, desc, run(ctx) -> [{camada, fid, msg, sev, geom?}]}
@@ -637,7 +688,7 @@ const RULES = [
           else if(!v.some(([k])=>k===x)) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:id,msg:`O campo ${c} ("${x}") é inválido. Deve ser ${txt}.`,sev:"erro"});
         }
         if(p.ZONA==="R"&&f.geometry){
-          let ha=null; try{ ha=turf.area(f)/10000; }catch(e){}
+          let ha=null; try{ ha=AREA(f)/10000; }catch(e){}
           if(ha!==null&&ha<=50){
             const fx=p.FAIXA_APP, num=(fx===null||fx===undefined||fx===""||(typeof fx==="number"&&isNaN(fx)))?null:Number(fx);
             if(num===null||isNaN(num)) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:id,msg:"O campo FAIXA_APP está vazio. Deve ser no mínimo 30 para reservatório em zona rural com superfície até 50 hectares.",sev:"erro"});
@@ -697,7 +748,7 @@ const H={
   // descarta fragmentos finos (lascas): resto do polígono depois de erodir W metros
   grosso(g){
     if(!(H.W>0)) return true;
-    try{ const b=turf.buffer(g,-H.W,{units:"meters"}); return !!(b&&b.geometry&&b.geometry.coordinates&&b.geometry.coordinates.length&&turf.area(b)>0); }
+    try{ const b=turf.buffer(g,-H.W,{units:"meters"}); return !!(b&&b.geometry&&b.geometry.coordinates&&b.geometry.coordinates.length&&AREA(b)>0); }
     catch(e){ return true; }
   },
   feats:(ctx,n)=>(ctx.layers[n]?ctx.layers[n].fc.features:[]).filter(f=>f.geometry),
@@ -720,29 +771,29 @@ const H={
   // área de a que fica fora de b
   outside(a,b){
     let m=H.OM.get(a); if(!m) H.OM.set(a,m=new WeakMap());
-    const c=m.get(b); if(c&&c.k===H.W) return c.r;
-    const r=H.outside0(a,b); m.set(b,{k:H.W,r}); return r;
+    const kk=H.W+"|"+AK(), c=m.get(b); if(c&&c.k===kk) return c.r;
+    const r=H.outside0(a,b); m.set(b,{k:kk,r}); return r;
   },
   outside0(a,b){
     try{
-      if(H.disj(a,b)) return {area:turf.area(a),geom:a.geometry};
+      if(H.disj(a,b)) return {area:AREA(a),geom:a.geometry};
       const d=turf.difference(turf.featureCollection([a,b]));
       if(!d) return {area:0,geom:null};
-      const ar=turf.area(d);
+      const ar=AREA(d);
       return (ar>0&&!H.grosso(d))?{area:0,geom:null}:{area:ar,geom:d.geometry};
-    }catch(e){ return {area:turf.area(a),geom:a.geometry}; }
+    }catch(e){ return {area:AREA(a),geom:a.geometry}; }
   },
   // área de a que sobrepõe as feições de lista
   inter(a,lista,tol){
     let area=0; const gs=[];
     let m=H.PM.get(a); if(!m) H.PM.set(a,m=new WeakMap());
-    const k=tol+"|"+H.W;
+    const k=tol+"|"+H.W+"|"+AK();
     for(const b of lista){
       if(H.disj(a,b)) continue;
       let c=m.get(b);
       if(!c||c.k!==k){
         c={k,ar:0,i:null};
-        try{ const i=turf.intersect(turf.featureCollection([a,b])); if(i){const ar=turf.area(i); if(ar>tol&&H.grosso(i)){ c.ar=ar; c.i=i; }} }catch(e){}
+        try{ const i=turf.intersect(turf.featureCollection([a,b])); if(i){const ar=AREA(i); if(ar>tol&&H.grosso(i)){ c.ar=ar; c.i=i; }} }catch(e){}
         m.set(b,c);
       }
       if(c.i){ area+=c.ar; gs.push(c.i); }
@@ -1105,8 +1156,8 @@ function renderLayers(){
       let t=0, naAtp=hid&&atp.length;
       l.fc.features.forEach(f=>{
         if(!f.geometry) return;
-        if(!naAtp){ t+=turf.area(f); return; }
-        for(const a of atp){ if(H.disj(f,a)) continue; try{ const i=turf.intersect(turf.featureCollection([f,a])); if(i) t+=turf.area(i); }catch(e){} }
+        if(!naAtp){ t+=AREA(f); return; }
+        for(const a of atp){ if(H.disj(f,a)) continue; try{ const i=turf.intersect(turf.featureCollection([f,a])); if(i) t+=AREA(i); }catch(e){} }
       });
       const tip=hid?(naAtp?"Área contida na ATP":"ATP não carregada: área total da camada"):"Área total da camada";
       ha=`<span class="c ha" title="${tip}">${(t/10000).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})} ha${naAtp?' <small>ATP</small>':""}</span>`; }catch(e){} }
@@ -1127,7 +1178,7 @@ async function run(){
   RESULTS=[]; RAN=new Set(sel);
   const ctx={layers:LAYERS,dict:DICT,get:n=>LAYERS[n],tol:Math.max(0,parseFloat($("tol").value)||0),wtol:Math.max(0,parseFloat($("wtol").value)||0),vtol:Math.max(0,parseFloat($("vtol").value)||0)};
   H.W=ctx.wtol;
-  const par=[ctx.tol,ctx.wtol,ctx.vtol].join("|");
+  const par=[ctx.tol,ctx.wtol,ctx.vtol,AK()].join("|");
   for(const r of RULES) if(sel.has(r.id)){
     const c=RC[r.id], nomes=Object.keys(LAYERS).sort().join(",");
     if(c&&c.par===par&&Object.keys(c.v).every(n=>lver(n)===c.v[n])&&(!c.all||c.nomes===nomes)){ c.res.forEach(x=>RESULTS.push({regra:r.id,...x})); continue; }
@@ -1205,14 +1256,14 @@ let ATPU={v:-1,u:null};
 function atpUni(){ const v=lver("ATP"); if(ATPU.v!==v){ ATPU={v,u:uniF(ATPF())}; } return ATPU.u; }
 function appSig(){
   const nm=Object.keys(LAYERS).filter(n=>/^RIO_|^NASCENTE$|^ATP$/.test(n)).sort();
-  return nm.map(n=>n+":"+lver(n)).join(",")+"|"+$("apSub").checked+"|"+APP_FONTES.map(s=>$(s.inp).value).join(",");
+  return nm.map(n=>n+":"+lver(n)).join(",")+"|"+AK()+"|"+$("apSub").checked+"|"+APP_FONTES.map(s=>$(s.inp).value).join(",");
 }
 async function appCompute(){
   const sub=$("apSub").checked;
   const rioV=Object.keys(LAYERS).filter(n=>/^RIO_/.test(n)).sort().map(n=>n+":"+lver(n)).join(",");
   APPG.cache=APPG.cache||{};
   const rios=[]; Object.keys(LAYERS).filter(n=>/^RIO_/.test(n)).forEach(n=>H.feats({layers:LAYERS},n).forEach(f=>rios.push(f)));
-  let canalC; const canalF=()=>canalC!==undefined?canalC:(canalC=(sub&&rios.length)?uniF(rios):null); const atp=atpUni(), atpV=lver("ATP");
+  let canalC; const canalF=()=>canalC!==undefined?canalC:(canalC=(sub&&rios.length)?uniF(rios):null); const atp=atpUni(), atpV=lver("ATP")+"|"+AK();
   const fontes=[]; let falhas=0;
   for(const s of APP_FONTES){
     const d=+$(s.inp).value||0, todas=H.feats({layers:LAYERS},s.nome);
@@ -1231,7 +1282,7 @@ async function appCompute(){
     fontes.push({...s,d,n:ent.n,ign:ent.ign,B:ent.B,ent});
   }
   const all=uniF(fontes.map(f=>f.B));
-  const area=g=>g?turf.area(g):0;
+  const area=g=>g?AREA(g):0;
   const res={fontes:fontes.map(f=>({nome:f.nome,d:f.d,n:f.n,ign:f.ign,tot:area(f.B),atp:atp?(f.ent.atpV===atpV?f.ent.atpA:(f.ent.atpV=atpV,f.ent.atpA=area(clipAtp(f.B,atp)))):null})),
     tot:area(all), atp:atp?area(clipAtp(all,atp)):null, temAtp:!!atp, sub, falhas, hora:new Date().toLocaleTimeString("pt-BR")};
   return {all,res};
@@ -1256,7 +1307,7 @@ function appShow(){
   $("apOut").innerHTML=`<table><tr><th>Origem</th><th class="n">Distância (m)</th><th class="n">Feições</th><th class="n">APP na ATP (ha)</th><th class="n">APP total (ha)</th></tr>
   ${R.fontes.map(f=>`<tr><td>${f.nome}${f.nome==="NASCENTE"?" <small>(só as que estão em RIO_ATE_10)</small>":""}</td><td class="n">${f.d}</td><td class="n">${f.n}${f.ign?` <small>(${f.ign} ignorada${f.ign>1?"s":""})</small>`:""}</td><td class="n">${c(f.atp)}</td><td class="n">${m2ha(f.tot)}</td></tr>`).join("")}
   <tr class="tt"><td>APP mergeada (1 polígono)</td><td></td><td class="n">${R.fontes.reduce((a,f)=>a+f.n,0)}</td><td class="n">${c(R.atp)}</td><td class="n">${m2ha(R.tot)}</td></tr></table>
-  <div class="empty" style="margin-top:6px">${R.temAtp?"":"Camada ATP vazia ou não carregada: sem o recorte pela ATP. "}As origens se sobrepõem entre si; por isso a soma das linhas pode ser maior que a APP mergeada. Área geodésica.${R.sub?" Corpo d'água do rio descontado.":""}${R.falhas?` Atenção: ${R.falhas} feição(ões) falharam por geometria inválida.`:""}</div>`;
+  <div class="empty" style="margin-top:6px">${R.temAtp?"":"Camada ATP vazia ou não carregada: sem o recorte pela ATP. "}As origens se sobrepõem entre si; por isso a soma das linhas pode ser maior que a APP mergeada. Área: ${AREAV.modo==="SIGEF"?"elipsóide GRS80 (SIGEF)":"UTM SIRGAS 2000, plana (SIMCAR)"}.${R.sub?" Corpo d'água do rio descontado.":""}${R.falhas?` Atenção: ${R.falhas} feição(ões) falharam por geometria inválida.`:""}</div>`;
   $("apSt").textContent=`Calculado às ${R.hora}.`; $("apSt").className="empty ok";
 }
 async function appRun(){
@@ -1287,7 +1338,7 @@ function qbarUpdate(){
   try{
     const els=document.querySelectorAll(".qb"); if(!els.length) return;
     const ico=c=>{ const u=String(c).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); return u.includes("FLORESTA")?"🌳 ":u.includes("CERRADO")?"🍂 ":""; };
-    let arl=0; H.feats({layers:LAYERS},"ARL").forEach(f=>{ arl+=turf.area(f); });
+    let arl=0; H.feats({layers:LAYERS},"ARL").forEach(f=>{ arl+=AREA(f); });
     const T=TIP.res, A=APPG.res; let h="";
     if(arl>0){
       let itens="";
@@ -1425,7 +1476,7 @@ async function tipRunCore(){
   const val=t=>{ const v=(t.properties||{})[fld]; return (v==null||String(v).trim()==="")?"(sem valor)":String(v).trim(); };
   const det=[], tot={}, totApp={}; let totArl=0, falhas=0;
   let appL=app; // APP recortada ao retângulo da ARL em análise (muito menos vértices)
-  const aInt=g=>{ if(!appL||!g||H.disj(g,appL)) return 0; try{ const x=turf.intersect(turf.featureCollection([g,appL])); return x?turf.area(x):0; }catch(e){ return 0; } };
+  const aInt=g=>{ if(!appL||!g||H.disj(g,appL)) return 0; try{ const x=turf.intersect(turf.featureCollection([g,appL])); return x?AREA(x):0; }catch(e){ return 0; } };
   const clipApp=f=>{
     appL=app; if(!app||H.disj(f,app)) return;
     try{
@@ -1441,39 +1492,39 @@ async function tipRunCore(){
       appL=c;
     }catch(e){ appL=app; }
   };
-  const kk=[fld,tol,APPG.ver].join("|");
+  const kk=[fld,tol,APPG.ver,AK()].join("|");
   for(const f of arl){
     const p=f.properties||{};
     let c=ARLC.get(f);
     if(!c||c.fc!==TIP.fc||c.k!==kk){
-      const aArl=turf.area(f); let soma=0, somaApp=0, fl=0; const por={}, porApp={}; clipApp(f); const aAppF=aInt(f);
+      const aArl=AREA(f); let soma=0, somaApp=0, fl=0; const por={}, porApp={}; clipApp(f); const aAppF=aInt(f);
       for(const t of T){
         if(H.disj(f,t)) continue;
         let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ fl++; continue; }
-        if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
+        if(!i) continue; const a=AREA(i); if(!(a>0)) continue;
         const v=val(t); por[v]=(por[v]||0)+a; soma+=a;
         if(aAppF>0){ const ap=aInt(i); if(ap>0){ porApp[v]=(porApp[v]||0)+ap; somaApp+=ap; } }
       }
-      const sem=aArl-soma; if(sem>Math.max(tol,0.01)){ por[SEMTIP]=sem; const sa=Math.max(0,aAppF-somaApp); if(sa>0) porApp[SEMTIP]=sa; }
+      const sem=aArl-soma; if(sem>Math.max(tol,0.01,aArl*1e-5)){ por[SEMTIP]=sem; const sa=Math.max(0,aAppF-somaApp); if(sa>0) porApp[SEMTIP]=sa; }
       c={fc:TIP.fc,k:kk,aArl,por,porApp,fl}; ARLC.set(f,c); await H.tick();
     }
     const aArl=c.aArl; totArl+=aArl; falhas+=c.fl;
     for(const [v,a] of Object.entries(c.por)){ const ap=Math.min(a,c.porApp[v]||0); det.push({fid:H.id(f),ident:p.IDENTIFIC==null?"":p.IDENTIFIC,sit:p.SITUACAO==null?"":p.SITUACAO,aArl,v,a,ap}); tot[v]=(tot[v]||0)+a; totApp[v]=(totApp[v]||0)+ap; }
   }
   const atpF=H.feats({layers:LAYERS},"ATP"); let totA={}, totAtp=0;
-  const ka=[lver("ATP"),fld,tol].join("|");
+  const ka=[lver("ATP"),fld,tol,AK()].join("|");
   if(TIPA&&TIPA.fc===TIP.fc&&TIPA.k===ka){ totA=TIPA.totA; totAtp=TIPA.totAtp; falhas+=TIPA.fl; }
   else{
     let fl=0;
     for(const f of atpF){
-      const a0=turf.area(f); totAtp+=a0; let soma=0;
+      const a0=AREA(f); totAtp+=a0; let soma=0;
       for(const t of T){
         if(H.disj(f,t)) continue;
         let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ fl++; continue; }
-        if(!i) continue; const a=turf.area(i); if(!(a>0)) continue;
+        if(!i) continue; const a=AREA(i); if(!(a>0)) continue;
         const v=val(t); totA[v]=(totA[v]||0)+a; soma+=a;
       }
-      const sem=a0-soma; if(sem>Math.max(tol,0.01)) totA[SEMTIP]=(totA[SEMTIP]||0)+sem;
+      const sem=a0-soma; if(sem>Math.max(tol,0.01,a0*1e-5)) totA[SEMTIP]=(totA[SEMTIP]||0)+sem;
       await H.tick();
     }
     falhas+=fl; TIPA={fc:TIP.fc,k:ka,totA,totAtp,fl};
@@ -1527,6 +1578,13 @@ $("dictBtn").onclick=()=>$("dlgDict").classList.add("on");
 $("chg").innerHTML=CHANGELOG.map(c=>`<li><b>v${c.v}</b> · ${c.d}<ul>${c.t.map(x=>`<li>${x}</li>`).join("")}</ul></li>`).join("");
 $("dictBody").innerHTML=`<table><tr><th>Camada</th><th>Geom.</th><th>Campos</th></tr>${Object.entries(DICT).map(([n,d])=>`<tr><td><b>${n}</b>${d.grupo?`<br><small>grupo ${d.grupo}</small>`:""}</td><td>${d.g==="PT"?"ponto":"polígono"}</td><td>${d.f.map(f=>`${f[0]} <small>(${TIPO_NOME[f[1]]})</small>`).join(", ")}</td></tr>`).join("")}</table>`;
 document.querySelectorAll(".dlg").forEach(d=>d.addEventListener("click",e=>{if(e.target===d)d.classList.remove("on");}));
+$("areaModo").value=AREAV.modo;
+$("areaModo").onchange=()=>{
+  AREAV.modo=$("areaModo").value; try{ localStorage.setItem("vt-areamodo",AREAV.modo); }catch(e){}
+  Object.keys(RC).forEach(k=>delete RC[k]);
+  try{ renderLayers(); }catch(e){} try{ appAuto(); }catch(e){} try{ tipAuto(); }catch(e){} try{ qbarUpdate(); }catch(e){}
+  if(Object.keys(LAYERS).length&&RAN&&RAN.size) run();
+};
 renderLayers(); renderRules(); initDir();
 </script>
 </body>
