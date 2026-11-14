@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.62">
+<meta name="app-version" content="0.0.66">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -187,8 +187,10 @@ tr.row{transition:background .15s}
 .tb .qb+.sp{flex:0 0 0}
 .tb #statusTxt{margin-left:auto}
 .tb #statusTxt{white-space:nowrap}
+.tip tr.bad td{color:var(--er);font-weight:700}
 .qgrp i{font-style:normal;color:var(--mt)}
 .qgrp.app{border-color:rgba(255,183,3,.55)}.qgrp.app b{color:#ffb703}
+.qgrp.bad,.qgrp.bad>small,.qgrp.app.bad b{color:var(--er)}.qgrp.app.bad{border-color:var(--er)}
 .qgrp.rl b.v{color:var(--ac)}
 .logo{width:40px;height:40px;padding:5px;border-radius:12px;background:#f4f7fb;box-shadow:0 2px 10px rgba(0,0,0,.35);flex:none}
 </style>
@@ -198,7 +200,7 @@ tr.row{transition:background .15s}
 <header>
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.62</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.66</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="appBtn" title="APP gerada pelo app: faixas dos rios e raio das nascentes">APP Calculada</button>
@@ -277,8 +279,12 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.62";
+const APP_VERSION = "0.0.66";
 const CHANGELOG = [
+  {v:"0.0.66", d:"2026-11-14", t:["APPD volta ao visual da v0.0.64: grupo inteiro em vermelho (rótulo, valor e borda) e linhas do diálogo em vermelho."]},
+  {v:"0.0.65", d:"2026-11-14", t:["APPD: só o quantitativo (valor em ha e %) fica em vermelho; rótulo e borda voltam ao padrão."]},
+  {v:"0.0.64", d:"2026-11-14", t:["Quantitativo de APPD em vermelho (barra de resumo e diálogo APP Calculada)."]},
+  {v:"0.0.63", d:"2026-11-13", t:["Novo quantitativo APPD (APP que sobrepõe AUAS e AREA_CONSOLIDADA): ha dentro da ATP, ha total e % da APP. Aparece no diálogo APP Calculada, na barra de resumo e no CSV."]},
   {v:"0.0.62", d:"2026-11-13", t:["APP: RESERVATORIO_ARTIFICIAL com área acima de 1 ha (editável) passa a gerar APP de 30 m (editável) a partir da borda, unida às demais origens e descontando o espelho d'água quando a opção estiver marcada."]},
   {v:"0.0.61", d:"2026-11-13", t:["Quantitativos de área em hectares (camadas, APP, tipologia, ARL, barra de resumo) com 4 casas decimais."]},
   {v:"0.0.60", d:"2026-11-13", t:["Novo seletor \"Módulo de cálculo de área\": SIMCAR (UTM SIRGAS 2000, plana, fuso detectado pela ATP/camadas) ou SIGEF (elipsóide GRS80). Vale para regras, APP, tipologia/ARL e quantitativos. Padrão: SIMCAR; a escolha fica salva no navegador."]},
@@ -1259,7 +1265,7 @@ function noRio10(pt,rios){
 let ATPU={v:-1,u:null};
 function atpUni(){ const v=lver("ATP"); if(ATPU.v!==v){ ATPU={v,u:uniF(ATPF())}; } return ATPU.u; }
 function appSig(){
-  const nm=Object.keys(LAYERS).filter(n=>/^RIO_|^NASCENTE$|^ATP$|^RESERVATORIO_ARTIFICIAL$/.test(n)).sort();
+  const nm=Object.keys(LAYERS).filter(n=>/^RIO_|^NASCENTE$|^ATP$|^RESERVATORIO_ARTIFICIAL$|^AUAS$|^AREA_CONSOLIDADA$/.test(n)).sort();
   return nm.map(n=>n+":"+lver(n)).join(",")+"|"+AK()+"|"+$("apSub").checked+"|"+APP_FONTES.map(s=>$(s.inp).value).join(",")+"|"+$("apResMin").value;
 }
 async function appCompute(){
@@ -1288,8 +1294,12 @@ async function appCompute(){
   }
   const all=uniF(fontes.map(f=>f.B));
   const area=g=>g?AREA(g):0;
+  // APPD = APP que sobrepõe AUAS e AREA_CONSOLIDADA
+  const uk=lver("AUAS")+"|"+lver("AREA_CONSOLIDADA"); if(!APPG.uac||APPG.uac.k!==uk) APPG.uac={k:uk,u:uniF([...H.feats({layers:LAYERS},"AUAS"),...H.feats({layers:LAYERS},"AREA_CONSOLIDADA")])};
+  let appd=null; if(all&&APPG.uac.u){ try{ appd=turf.intersect(turf.featureCollection([all,APPG.uac.u])); }catch(e){ falhas++; } }
+  const dres={tot:area(appd),atp:atp&&appd?area(clipAtp(appd,atp)):(atp?0:null),tem:!!APPG.uac.u};
   const res={fontes:fontes.map(f=>({nome:f.nome,d:f.d,n:f.n,ign:f.ign,tot:area(f.B),atp:atp?(f.ent.atpV===atpV?f.ent.atpA:(f.ent.atpV=atpV,f.ent.atpA=area(clipAtp(f.B,atp)))):null})),
-    tot:area(all), atp:atp?area(clipAtp(all,atp)):null, temAtp:!!atp, sub, falhas, hora:new Date().toLocaleTimeString("pt-BR")};
+    tot:area(all), atp:atp?area(clipAtp(all,atp)):null, appd:dres, temAtp:!!atp, sub, falhas, hora:new Date().toLocaleTimeString("pt-BR")};
   return {all,res};
 }
 function appRender(){
@@ -1311,7 +1321,9 @@ function appShow(){
   const c=(v)=>v==null?"—":m2ha(v);
   $("apOut").innerHTML=`<table><tr><th>Origem</th><th class="n">Distância (m)</th><th class="n">Feições</th><th class="n">APP na ATP (ha)</th><th class="n">APP total (ha)</th></tr>
   ${R.fontes.map(f=>`<tr><td>${f.nome}${f.nome==="NASCENTE"?" <small>(só as que estão em RIO_ATE_10)</small>":""}${f.nome==="RESERVATORIO_ARTIFICIAL"?` <small>(só área &gt; ${esc($("apResMin").value)} ha)</small>`:""}</td><td class="n">${f.d}</td><td class="n">${f.n}${f.ign?` <small>(${f.ign} ignorada${f.ign>1?"s":""})</small>`:""}</td><td class="n">${c(f.atp)}</td><td class="n">${m2ha(f.tot)}</td></tr>`).join("")}
-  <tr class="tt"><td>APP mergeada (1 polígono)</td><td></td><td class="n">${R.fontes.reduce((a,f)=>a+f.n,0)}</td><td class="n">${c(R.atp)}</td><td class="n">${m2ha(R.tot)}</td></tr></table>
+  <tr class="tt"><td>APP mergeada (1 polígono)</td><td></td><td class="n">${R.fontes.reduce((a,f)=>a+f.n,0)}</td><td class="n">${c(R.atp)}</td><td class="n">${m2ha(R.tot)}</td></tr>
+  <tr class="bad"><td><b>APPD</b> <small>(APP que sobrepõe AUAS e AREA_CONSOLIDADA)</small></td><td></td><td class="n"></td><td class="n">${R.appd.tem?c(R.appd.atp):"—"}</td><td class="n">${R.appd.tem?m2ha(R.appd.tot):"—"}</td></tr>
+  <tr class="bad"><td>% da APP que é APPD</td><td></td><td class="n"></td><td class="n">${R.appd.tem&&R.atp>0?fmtPc(R.appd.atp/R.atp*100):"—"}</td><td class="n">${R.appd.tem&&R.tot>0?fmtPc(R.appd.tot/R.tot*100):"—"}</td></tr></table>
   <div class="empty" style="margin-top:6px">${R.temAtp?"":"Camada ATP vazia ou não carregada: sem o recorte pela ATP. "}As origens se sobrepõem entre si; por isso a soma das linhas pode ser maior que a APP mergeada. Área: ${AREAV.modo==="SIGEF"?"elipsóide GRS80 (SIGEF)":"UTM SIRGAS 2000, plana (SIMCAR)"}.${R.sub?" Corpo d'água do rio descontado.":""}${R.falhas?` Atenção: ${R.falhas} feição(ões) falharam por geometria inválida.`:""}</div>`;
   $("apSt").textContent=`Calculado às ${R.hora}.`; $("apSt").className="empty ok";
 }
@@ -1357,6 +1369,7 @@ function qbarUpdate(){
     if(A&&APPG.fc){
       const v=A.temAtp?A.atp:A.tot;
       h+=`<span class="qgrp app" title="${A.temAtp?"Área da APP contida na ATP":"ATP não carregada: área total da APP"}"><small>APP</small><b>${m2ha(v)} ha</b></span>`;
+      if(A.appd&&A.appd.tem){ const d=A.temAtp?A.appd.atp:A.appd.tot; h+=`<span class="qgrp app bad" title="APPD: APP que sobrepõe AUAS e AREA_CONSOLIDADA${A.temAtp?" (dentro da ATP)":""}"><small>APPD</small><b>${m2ha(d)} ha</b></span>`; }
     }
     if(T&&T.totA){
       const C=tipCalc(T);
@@ -1575,6 +1588,7 @@ $("tipCsv").onclick=()=>{
     ["Quantitativo","Tipologia","ATP (ha)","ARL (ha)","% ARL sobre ATP","% exigido","Area exigida (ha)","Situacao da ARL","Area (ha)"].join(";"),
     ...R.cols.map((c,i)=>["",q(c),n(R.totA[c]||0),n(R.tot[c]||0),R.totA[c]?((R.tot[c]||0)/R.totA[c]*100).toFixed(2).replace(".",","):"",C.rq[i]==null?"":String(C.rq[i]).replace(".",","),C.ex[i]==null?"":n(C.ex[i]),C.df[i]==null?"":(C.df[i]>0.005?"Deficit de ARL":C.ec[i]>0.005?"Excedente de ARL":"ARL atendida"),C.df[i]==null?"":n(C.df[i]>0.005?C.df[i]:C.ec[i])].join(";")),
     ["","Total",n(R.totAtp),n(R.totArl),R.totAtp?(R.totArl/R.totAtp*100).toFixed(2).replace(".",","):"","",C.temReq?n(C.exT):"",C.temReq?(C.dfT>0.005?"Deficit de ARL":C.ecT>0.005?"Excedente de ARL":"ARL atendida"):"",C.temReq?n(C.dfT>0.005?C.dfT:C.ecT):""].join(";")];
+  if(APPG.res&&APPG.res.appd&&APPG.res.appd.tem){ const D=APPG.res; rows.push("",["APPD (APP sobre AUAS e AREA_CONSOLIDADA)","APP na ATP (ha)","APP total (ha)","APPD na ATP (ha)","APPD total (ha)"].join(";"),["",D.temAtp?n(D.atp):"",n(D.tot),D.temAtp?n(D.appd.atp):"",n(D.appd.tot)].join(";")); }
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob(["﻿"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"})); a.download="tipologia_radam_x_arl.csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 };
 
