@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.70">
+<meta name="app-version" content="0.0.72">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -200,11 +200,12 @@ tr.row{transition:background .15s}
 <header>
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.70</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.72</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="appBtn" title="APP gerada pelo app: faixas dos rios e raio das nascentes">APP Calculada</button>
   <button id="tipBtn" title="Tipologia RADAM × ARL">Tipologia</button>
+  <button id="compBtn" title="Compensador de AUAS: ARL tipo A deve ser no mínimo igual à área de AUAS">Compensador de AUAS</button>
   <button id="dictBtn" title="Dicionário de camadas">Dicionário</button>
 </header>
 <div id="app"></div>
@@ -244,6 +245,11 @@ tr.row{transition:background .15s}
 <div class="dlg" id="dlgVer"><div class="box"><h3>Histórico de versões</h3><ul id="chg"></ul><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 <div class="dlg" id="dlgDict"><div class="box" style="max-width:760px"><h3>Dicionário de camadas</h3><div id="dictBody"></div><br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 
+<div class="dlg" id="dlgComp"><div class="box tip" style="max-width:760px;width:min(760px,94vw)"><h3>Compensador de AUAS</h3>
+  <div class="empty">Regra: a ARL tipo A (SITUACAO = A) vetorizada não pode ser menor que a área de AUAS existente. O quantitativo de AUAS deve ser compensado, no mínimo, com o mesmo quantitativo de ARL tipo A. Atualiza sozinho com a pasta monitorada.</div>
+  <div id="compOut"></div>
+  <br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
+
 <div class="dlg" id="dlgApp"><div class="box tip" style="max-width:820px;width:min(820px,94vw)"><h3>APP gerada pelo app</h3>
   <div class="empty">Faixa a partir da borda do polígono do rio (cada lado) raio ao redor das nascentes que estão em RIO_ATE_10 e faixa ao redor de RESERVATORIO_ARTIFICIAL acima da área mínima, unidos em um único polígono. O quantitativo considera só o que está contido na ATP.</div>
   <div class="row2"><label>RIO_ATE_10 (m)<input id="apR10" type="number" min="0" step="1" value="30"></label><label>RIO_10_A_50 (m)<input id="apR50" type="number" min="0" step="1" value="50"></label><label>NASCENTE raio (m)<input id="apNas" type="number" min="0" step="1" value="50"></label></div>
@@ -279,8 +285,10 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.70";
+const APP_VERSION = "0.0.72";
 const CHANGELOG = [
+  {v:"0.0.72", d:"2026-11-18", t:["Compensador de AUAS mais simples: só AUAS e ARL tipo A com seus quantitativos e a situação; a lista de ARL tipo A fica minimizada (clique para abrir)."]},
+  {v:"0.0.71", d:"2026-11-18", t:["Nova ferramenta \"Compensador de AUAS\" (popup): calcula a área de AUAS e exige o mesmo quantitativo como ARL tipo A; mostra o que falta vetorizar ou o excedente.","Nova regra AUAS-02: ARL tipo A vetorizada não pode ser menor que a área de AUAS existente."]},
   {v:"0.0.70", d:"2026-11-16", t:["EST-01: o campo AREA_HA (gerado pelo processamento do Arquivo Modelo) não conta mais como \"Campo fora do dicionário\" (aviso)."]},
   {v:"0.0.69", d:"2026-11-16", t:["Nova regra ARM-01 (ARLREM): não pode sobrepor ARL."]},
   {v:"0.0.68", d:"2026-11-16", t:["ARU-01 (AREA_USO_RESTRITO): também deve estar completamente contida em uma AIR e não pode sobrepor as hidrografias (RIO_ATE_10, RIO_10_A_50, etc.)."]},
@@ -766,6 +774,18 @@ const RULES = [
     }
   },
   {
+    id:"AUAS-02", nome:"AUAS compensada por ARL tipo A",
+    desc:"A ARL tipo A vetorizada não pode ser menor que a área de AUAS existente.",
+    on:true,
+    run(ctx){
+      const au=H.feats(ctx,"AUAS"), arl=H.feats(ctx,"ARL");
+      if(!au.length) return [];
+      const C=compCalc({AUAS:au,ARL:arl});
+      if(C.st!=="falta") return [];
+      return [{camada:"ARL",fid:"—",msg:`ARL tipo A vetorizada (${(C.tA/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha) é menor que a área de AUAS (${(C.tAuas/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha): faltam ${(C.dif/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha.`,area:C.dif,sev:"erro"}];
+    }
+  },
+  {
     id:"UTP-01", nome:"UTILIDADE_PUBLICA: posição e atributos",
     desc:"Completamente contida em uma AIR. Não sobrepõe ARL com SITUACAO P. FINALIDADE preenchida.",
     on:true,
@@ -1024,6 +1044,7 @@ async function ingest(groups,opt={}){
   try{ if(n) tipAuto(); }catch(e){}
   try{ if(n) appAuto(); }catch(e){}
   try{ qbarUpdate(); }catch(e){}
+  try{ if($("dlgComp").classList.contains("on")) compRender(); }catch(e){}
   return n;
 }
 
@@ -1387,6 +1408,28 @@ async function appRun(){
 function appAuto(){ clearTimeout(APPG.t); APPG.t=setTimeout(()=>{ APPG.t=null; appRun(); },500); }
 async function appWait(){ for(let k=0;k<300&&(APPG.busy||APPG.t);k++) await new Promise(r=>setTimeout(r,100)); }
 $("appBtn").onclick=()=>$("dlgApp").classList.add("on");
+/* ============ COMPENSADOR DE AUAS ============ */
+const sitArl=f=>String((f.properties||{}).SITUACAO==null?"":f.properties.SITUACAO).trim();
+function compCalc(feats){ // feats: {AUAS, ARL}
+  const au=feats.AUAS, aA=feats.ARL.filter(f=>sitArl(f)==="A");
+  const tAuas=au.reduce((a,f)=>a+AREA(f),0), tA=aA.reduce((a,f)=>a+AREA(f),0), tol=Math.max(0,parseFloat($("tol").value)||0);
+  const dif=tAuas-tA;
+  return {au,aA,tAuas,tA,dif,tol,st:dif>tol?"falta":(-dif>tol?"exc":"ok")};
+}
+function compRender(){
+  const el=$("compOut"); if(!el) return;
+  const C=compCalc({AUAS:H.feats({layers:LAYERS},"AUAS"),ARL:H.feats({layers:LAYERS},"ARL")});
+  if(!C.au.length){ el.innerHTML='<div class="empty" style="margin-top:8px">Camada AUAS vazia ou não carregada: não há quantitativo a compensar.</div>'; return; }
+  const td=v=>`<td class="n">${v}</td>`;
+  const sit=C.st==="falta"?`<td class="n sit er"><small>Falta vetorizar ARL tipo A</small><br>${m2ha(C.dif)} ha</td>`:C.st==="exc"?`<td class="n sit ok"><small>Excedente de ARL tipo A</small><br>${m2ha(-C.dif)} ha</td>`:`<td class="n sit ok"><small>Compensação atendida</small><br>${m2ha(0)} ha</td>`;
+  el.innerHTML=`<table style="margin-top:8px">
+  <tr><td><b>AUAS</b></td><td class="n">${m2ha(C.tAuas)} ha</td></tr>
+  <tr><td><b>ARL A</b></td><td class="n">${m2ha(C.tA)} ha</td></tr>
+  <tr class="tt"><td>Situação</td>${sit}</tr></table>
+  <details style="margin-top:10px"><summary class="empty" style="cursor:pointer">Feições de ARL tipo A (${C.aA.length})</summary>${C.aA.length?`<div class="scr"><table><tr><th>ARL</th><th>IDENTIFIC</th><th class="n">Área (ha)</th></tr>${C.aA.map(f=>`<tr><td>${H.id(f)}</td><td>${esc((f.properties||{}).IDENTIFIC==null?"":String((f.properties||{}).IDENTIFIC))}</td><td class="n">${m2ha(AREA(f))}</td></tr>`).join("")}</table></div>`:'<div class="empty">Nenhuma ARL com SITUACAO A carregada.</div>'}</details>`;
+}
+$("compBtn").onclick=()=>{ compRender(); $("dlgComp").classList.add("on"); };
+
 ["apR10","apR50","apNas","apRes","apResMin","apSub"].forEach(i=>$(i).oninput=$(i).onchange=appAuto);
 
 /* ============ FAIXA DE QUANTITATIVOS (barra de ferramentas) ============ */
@@ -1640,7 +1683,7 @@ $("areaModo").value=AREAV.modo;
 $("areaModo").onchange=()=>{
   AREAV.modo=$("areaModo").value; try{ localStorage.setItem("vt-areamodo",AREAV.modo); }catch(e){}
   Object.keys(RC).forEach(k=>delete RC[k]);
-  try{ renderLayers(); }catch(e){} try{ appAuto(); }catch(e){} try{ tipAuto(); }catch(e){} try{ qbarUpdate(); }catch(e){}
+  try{ renderLayers(); }catch(e){} try{ compRender(); }catch(e){} try{ appAuto(); }catch(e){} try{ tipAuto(); }catch(e){} try{ qbarUpdate(); }catch(e){}
   if(Object.keys(LAYERS).length&&RAN&&RAN.size) run();
 };
 renderLayers(); renderRules(); initDir();
