@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.72">
+<meta name="app-version" content="0.0.73">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -200,7 +200,7 @@ tr.row{transition:background .15s}
 <header>
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.72</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.73</button>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="appBtn" title="APP gerada pelo app: faixas dos rios e raio das nascentes">APP Calculada</button>
@@ -285,8 +285,9 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.72";
+const APP_VERSION = "0.0.73";
 const CHANGELOG = [
+  {v:"0.0.73", d:"2026-11-19", t:["Geometrias bem mais rápidas: antes de cruzar dois polígonos, o app testa de forma barata se eles estão totalmente separados ou se um está inteiro dentro do outro e só usa a operação pesada (intersect/difference) quando as bordas realmente se cruzam ou se tocam.","Polígonos com muitos vértices são recortados à janela do outro antes da operação pesada; pares já calculados são reaproveitados entre regras.","Vale para as regras (contida em AIR/AVN/AUAS/AREA_CONSOLIDADA, sobreposições), tipologia, ARL em APP, APP na ATP e APPD."]},
   {v:"0.0.72", d:"2026-11-18", t:["Compensador de AUAS mais simples: só AUAS e ARL tipo A com seus quantitativos e a situação; a lista de ARL tipo A fica minimizada (clique para abrir)."]},
   {v:"0.0.71", d:"2026-11-18", t:["Nova ferramenta \"Compensador de AUAS\" (popup): calcula a área de AUAS e exige o mesmo quantitativo como ARL tipo A; mostra o que falta vetorizar ou o excedente.","Nova regra AUAS-02: ARL tipo A vetorizada não pode ser menor que a área de AUAS existente."]},
   {v:"0.0.70", d:"2026-11-16", t:["EST-01: o campo AREA_HA (gerado pelo processamento do Arquivo Modelo) não conta mais como \"Campo fora do dicionário\" (aviso)."]},
@@ -600,11 +601,7 @@ const RULES = [
         if(H.vazio(s)) out.push({camada:"ARL",fid:id,msg:"SITUACAO vazio.",sev:"erro"});
         else if(s==="P") out.push(...H.sobrepoe(ctx,"ARL",f,restr,"ARL tipo P"));
         else if(s==="A"){
-          let melhor=Infinity, geom=null;
-          for(const c of ["AUAS","AREA_CONSOLIDADA"]) for(const o of H.feats(ctx,c)){
-            const r=H.outside(f,o); if(r.area<melhor){melhor=r.area;geom=r.geom;}
-            if(melhor<=ctx.tol) break;
-          }
+          const {melhor,geom}=H.contida(ctx,f,["AUAS","AREA_CONSOLIDADA"]);
           if(melhor>ctx.tol) out.push({camada:"ARL",fid:id,msg:"ARL com SITUACAO A deve estar completamente contida em AUAS ou AREA_CONSOLIDADA.",area:melhor===Infinity?undefined:melhor,sev:"erro",geom:geom||f.geometry});
         } else if(s==="R"){
           out.push(...H.sobrepoe(ctx,"ARL",f,["AREA_CONSOLIDADA","AUAS",...RIOS],"ARL tipo R"));
@@ -662,12 +659,7 @@ const RULES = [
       for(const f of H.feats(ctx,"VEREDA")){
         await H.tick(); const id=H.id(f);
         out.push(...H.emAir(ctx,"VEREDA",f));
-        let melhor=Infinity, geom=null, tem=false;
-        for(const c of hosp) for(const b of H.feats(ctx,c)){
-          tem=true; const o=H.outside(f,b);
-          if(o.area<melhor){melhor=o.area;geom=o.geom;}
-          if(melhor<=ctx.tol) break;
-        }
+        const {melhor,geom,tem}=H.contida(ctx,f,hosp);
         if(!tem) out.push({camada:"VEREDA",fid:id,msg:"VEREDA deve estar contida em AVN, AUAS ou AREA_CONSOLIDADA, mas essas camadas estão vazias ou não carregadas.",sev:"erro",geom:f.geometry});
         else if(melhor>ctx.tol) out.push({camada:"VEREDA",fid:id,msg:"VEREDA não está completamente contida em uma AVN, AUAS ou AREA_CONSOLIDADA.",area:melhor,sev:"erro",geom:geom||f.geometry});
       }
@@ -748,12 +740,7 @@ const RULES = [
         await H.tick(); const id=H.id(f);
         out.push(...H.emAir(ctx,"AREA_USO_RESTRITO",f));
         out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,RIOS,"AREA_USO_RESTRITO"));
-        let melhor=Infinity, geom=null, tem=false;
-        for(const c of hosp) for(const b of H.feats(ctx,c)){
-          tem=true; const o=H.outside(f,b);
-          if(o.area<melhor){melhor=o.area;geom=o.geom;}
-          if(melhor<=ctx.tol) break;
-        }
+        const {melhor,geom,tem}=H.contida(ctx,f,hosp);
         if(!tem) out.push({camada:"AREA_USO_RESTRITO",fid:id,msg:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA, mas essas camadas estão vazias ou não carregadas.",sev:"erro",geom:f.geometry});
         else if(melhor>ctx.tol) out.push({camada:"AREA_USO_RESTRITO",fid:id,msg:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA.",area:melhor,sev:"erro",geom:geom||f.geometry});
       }
@@ -808,7 +795,7 @@ const RULES = [
 const RIOS=["RIO_ATE_10","RIO_10_A_50","RIO_50_A_200","RIO_200_A_600","RIO_ACIMA_600"];
 /* ---------- utilitários geométricos ---------- */
 const H={
-  W:0,
+  W:0, T:0,
   T0:0,
   // só cede a vez ao navegador a cada ~40 ms (setTimeout(0) por feição deixava tudo lento)
   tick(){ if(performance.now()-H.T0<40) return undefined; return new Promise(r=>setTimeout(()=>{ H.T0=performance.now(); r(); },0)); },
@@ -836,15 +823,124 @@ const H={
   m2:a=>a.toLocaleString("pt-BR",{maximumFractionDigits:2})+" m²",
   bb(f){ return f._bb||(f._bb=turf.bbox(f)); },
   disj(a,b){ const x=H.bb(a),y=H.bb(b); return x[0]>y[2]||y[0]>x[2]||x[1]>y[3]||y[1]>x[3]; },
+  // ---- teste rápido de relação entre dois polígonos (evita intersect/difference quando não é preciso)
+  prep(f){
+    if(f._pp) return f._pp;
+    const g=f.geometry, polys=g.type==="MultiPolygon"?g.coordinates:g.type==="Polygon"?[g.coordinates]:[], segs=[], rings=[];
+    for(const pc of polys) for(const r of pc){
+      rings.push(r);
+      for(let i=0;i<r.length-1;i++){ const a=r[i],b=r[i+1]; segs.push({ax:a[0],ay:a[1],bx:b[0],by:b[1],x0:Math.min(a[0],b[0]),x1:Math.max(a[0],b[0]),y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])}); }
+    }
+    segs.sort((p,q)=>p.x0-q.x0);
+    return f._pp={segs,rings,reps:rings.map(r=>r[0]),nv:segs.length,polys};
+  },
+  pip(pt,P){ // par-ímpar sobre todos os anéis (furos incluídos)
+    let c=false; const x=pt[0], y=pt[1];
+    for(const r of P.rings) for(let i=0,j=r.length-1;i<r.length;j=i++){
+      const yi=r[i][1], yj=r[j][1];
+      if((yi>y)!==(yj>y) && x<(r[j][0]-r[i][0])*(y-yi)/(yj-yi)+r[i][0]) c=!c;
+    }
+    return c;
+  },
+  bordasSeTocam(A,B){
+    const a=A.segs, b=B.segs, m=[]; let i=0, j=0;
+    while(i<a.length||j<b.length){ if(j>=b.length||(i<a.length&&a[i].x0<=b[j].x0)) m.push([a[i++],0]); else m.push([b[j++],1]); }
+    const or=(ax,ay,bx,by,cx,cy)=>(bx-ax)*(cy-ay)-(by-ay)*(cx-ax);
+    for(let k=0;k<m.length;k++){
+      const s=m[k][0], tag=m[k][1];
+      for(let q=k+1;q<m.length;q++){
+        const t=m[q][0]; if(t.x0>s.x1) break;
+        if(m[q][1]===tag||t.y0>s.y1||t.y1<s.y0) continue;
+        const o1=or(t.ax,t.ay,t.bx,t.by,s.ax,s.ay), o2=or(t.ax,t.ay,t.bx,t.by,s.bx,s.by), o3=or(s.ax,s.ay,s.bx,s.by,t.ax,t.ay), o4=or(s.ax,s.ay,s.bx,s.by,t.bx,t.by);
+        if(o1*o2<=0&&o3*o4<=0) return true;
+      }
+    }
+    return false;
+  },
+  // "disj" (separados), "in" (a dentro de b), "ctn" (b dentro de a) ou "x" (bordas se cruzam/tocam: usar a operação completa)
+  rel(a,b){
+    try{
+      if(!a.geometry||!b.geometry) return "x";
+      const A=H.prep(a), B=H.prep(b);
+      if(!A.segs.length||!B.segs.length) return "x";
+      if(H.bordasSeTocam(A,B)) return "x";
+      const aInB=A.reps.map(q=>H.pip(q,B)), bInA=B.reps.map(q=>H.pip(q,A));
+      const a1=aInB.every(Boolean), a0=!aInB.some(Boolean), b1=bInA.every(Boolean), b0=!bInA.some(Boolean);
+      if(a1&&b0) return "in";
+      if(a0&&b0) return "disj";
+      if(b1&&a0) return "ctn";
+      return "x";
+    }catch(e){ return "x"; }
+  },
+  // recorta a feição (muitos vértices) à janela do retângulo bb: o resultado da interseção/diferença com algo
+  // que está dentro da janela não muda, mas a operação fica muito mais barata
+  recorta(f,bb,m){
+    const P=H.prep(f), x0=bb[0]-m, y0=bb[1]-m, x1=bb[2]+m, y1=bb[3]+m, out=[];
+    const clip=(ring)=>{
+      let pts=ring.length>1&&ring[0][0]===ring[ring.length-1][0]&&ring[0][1]===ring[ring.length-1][1]?ring.slice(0,-1):ring.slice();
+      const passes=[[p=>p[0]>=x0,(a,b)=>[x0,a[1]+(b[1]-a[1])*(x0-a[0])/(b[0]-a[0])]],[p=>p[0]<=x1,(a,b)=>[x1,a[1]+(b[1]-a[1])*(x1-a[0])/(b[0]-a[0])]],[p=>p[1]>=y0,(a,b)=>[a[0]+(b[0]-a[0])*(y0-a[1])/(b[1]-a[1]),y0]],[p=>p[1]<=y1,(a,b)=>[a[0]+(b[0]-a[0])*(y1-a[1])/(b[1]-a[1]),y1]]];
+      for(const [inside,cross] of passes){
+        if(!pts.length) return null; const res=[];
+        for(let i=0;i<pts.length;i++){ const cur=pts[i], prev=pts[(i+pts.length-1)%pts.length], ci=inside(cur), pi=inside(prev);
+          if(ci){ if(!pi) res.push(cross(prev,cur)); res.push(cur); } else if(pi) res.push(cross(prev,cur)); }
+        pts=res;
+      }
+      if(pts.length<3) return null; pts.push(pts[0]); return pts;
+    };
+    for(const pc of P.polys){
+      let a0=1e9,b0=1e9,a1=-1e9,b1=-1e9; for(const q of pc[0]){ if(q[0]<a0)a0=q[0]; if(q[0]>a1)a1=q[0]; if(q[1]<b0)b0=q[1]; if(q[1]>b1)b1=q[1]; }
+      if(a0>x1||a1<x0||b0>y1||b1<y0) continue;
+      const o=clip(pc[0]); if(!o) continue;
+      const np=[o]; for(let k=1;k<pc.length;k++){ const h=clip(pc[k]); if(h) np.push(h); }
+      out.push(np);
+    }
+    if(!out.length) return null;
+    return {type:"Feature",properties:{},geometry:out.length===1?{type:"Polygon",coordinates:out[0]}:{type:"MultiPolygon",coordinates:out}};
+  },
+  // interseção real (cara), recortando o operando grande à janela do outro
+  isectFull(a,b){
+    const na=H.prep(a).nv, nb=H.prep(b).nv;
+    if(Math.max(na,nb)>150&&Math.max(na,nb)>3*Math.min(na,nb)){
+      const big=na>=nb?a:b, small=na>=nb?b:a, m=1e-6;
+      const c=H.recorta(big,H.bb(small),m); if(!c) return null;
+      return turf.intersect(turf.featureCollection(na>=nb?[c,small]:[small,c]));
+    }
+    return turf.intersect(turf.featureCollection([a,b]));
+  },
+  // interseção de duas feições com atalho
+  isect(a,b){
+    const r=H.rel(a,b);
+    if(r==="disj") return null;
+    if(r==="in") return a;
+    if(r==="ctn") return b;
+    return H.isectFull(a,b);
+  },
+  // menor área de f fora de uma única feição das camadas indicadas; primeiro só testa as que cobrem o retângulo de f
+  contida(ctx,f,camadas){
+    const hs=[]; let tem=false;
+    for(const c of camadas) for(const b of H.feats(ctx,c)){ tem=true; hs.push(b); }
+    if(!tem) return {tem:false,melhor:Infinity,geom:null};
+    const bf=H.bb(f), m=1e-7;
+    const cand=hs.filter(b=>{ const q=H.bb(b); return q[0]<=bf[0]+m&&q[1]<=bf[1]+m&&q[2]>=bf[2]-m&&q[3]>=bf[3]-m; });
+    let melhor=Infinity, geom=null;
+    for(const b of cand){ const o=H.outside(f,b); if(o.area<melhor){melhor=o.area;geom=o.geom;} if(melhor<=ctx.tol) return {tem:true,melhor,geom}; }
+    for(const b of hs){ if(cand.includes(b)) continue; const o=H.outside(f,b); if(o.area<melhor){melhor=o.area;geom=o.geom;} if(melhor<=ctx.tol) break; }
+    return {tem:true,melhor,geom};
+  },
   // área de a que fica fora de b
   outside(a,b){
     let m=H.OM.get(a); if(!m) H.OM.set(a,m=new WeakMap());
-    const kk=H.W+"|"+AK(), c=m.get(b); if(c&&c.k===kk) return c.r;
+    const kk=H.W+"|"+H.T+"|"+AK(), c=m.get(b); if(c&&c.k===kk) return c.r;
     const r=H.outside0(a,b); m.set(b,{k:kk,r}); return r;
   },
   outside0(a,b){
     try{
       if(H.disj(a,b)) return {area:AREA(a),geom:a.geometry};
+      const rl=H.rel(a,b);
+      if(rl==="in") return {area:0,geom:null};
+      if(rl==="disj") return {area:AREA(a),geom:a.geometry};
+      // área fora = área de a − área de (a ∩ b); só faz a diferença completa (geometria) se passar da tolerância
+      { const i=H.isectFull(a,b), fora=AREA(a)-(i?AREA(i):0); if(fora<=H.T) return {area:0,geom:null}; }
       const d=turf.difference(turf.featureCollection([a,b]));
       if(!d) return {area:0,geom:null};
       const ar=AREA(d);
@@ -859,9 +955,10 @@ const H={
     for(const b of lista){
       if(H.disj(a,b)) continue;
       let c=m.get(b);
+      if(!c||c.k!==k){ const rv=H.PM.get(b), cr=rv&&rv.get(a); if(cr&&cr.k===k){ c=cr; m.set(b,c); } } // mesmo par na ordem inversa
       if(!c||c.k!==k){
         c={k,ar:0,i:null};
-        try{ const i=turf.intersect(turf.featureCollection([a,b])); if(i){const ar=AREA(i); if(ar>tol&&H.grosso(i)){ c.ar=ar; c.i=i; }} }catch(e){}
+        try{ const i=H.isect(a,b); if(i){const ar=AREA(i); if(ar>tol&&H.grosso(i)){ c.ar=ar; c.i=i; }} }catch(e){}
         m.set(b,c);
       }
       if(c.i){ area+=c.ar; gs.push(c.i); }
@@ -1246,7 +1343,7 @@ async function run(){
   const sel=new Set([...document.querySelectorAll("#rules input:checked")].map(i=>i.dataset.r));
   RESULTS=[]; RAN=new Set(sel);
   const ctx={layers:LAYERS,dict:DICT,get:n=>LAYERS[n],tol:Math.max(0,parseFloat($("tol").value)||0),wtol:Math.max(0,parseFloat($("wtol").value)||0),vtol:Math.max(0,parseFloat($("vtol").value)||0)};
-  H.W=ctx.wtol;
+  H.W=ctx.wtol; H.T=ctx.tol;
   const par=[ctx.tol,ctx.wtol,ctx.vtol,AK()].join("|");
   for(const r of RULES) if(sel.has(r.id)){
     const c=RC[r.id], nomes=Object.keys(LAYERS).sort().join(",");
@@ -1306,7 +1403,7 @@ function uniF(arr){
   try{ return turf.union(turf.featureCollection(arr)); }
   catch(e){ let u=arr[0]; for(let i=1;i<arr.length;i++){ try{ u=turf.union(turf.featureCollection([u,arr[i]]))||u; }catch(_){} } return u; }
 }
-function clipAtp(B,atp){ if(!B||!atp) return null; try{ return turf.intersect(turf.featureCollection([B,atp])); }catch(e){ return null; } }
+function clipAtp(B,atp){ if(!B||!atp) return null; try{ return H.isect(B,atp); }catch(e){ return null; } }
 const m2ha=m=>(m/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4});
 function noRio10(pt,rios){
   const [x,y]=pt.geometry.coordinates, e=0.0003;
@@ -1356,7 +1453,7 @@ async function appCompute(){
   const area=g=>g?AREA(g):0;
   // APPD = APP que sobrepõe AUAS e AREA_CONSOLIDADA
   const uk=lver("AUAS")+"|"+lver("AREA_CONSOLIDADA"); if(!APPG.uac||APPG.uac.k!==uk) APPG.uac={k:uk,u:uniF([...H.feats({layers:LAYERS},"AUAS"),...H.feats({layers:LAYERS},"AREA_CONSOLIDADA")])};
-  let appd=null; if(all&&APPG.uac.u){ try{ appd=turf.intersect(turf.featureCollection([all,APPG.uac.u])); }catch(e){ falhas++; } }
+  let appd=null; if(all&&APPG.uac.u){ try{ appd=H.isect(all,APPG.uac.u); }catch(e){ falhas++; } }
   const dres={tot:area(appd),atp:atp&&appd?area(clipAtp(appd,atp)):(atp?0:null),tem:!!APPG.uac.u};
   const res={fontes:fontes.map(f=>({nome:f.nome,d:f.d,n:f.n,ign:f.ign,tot:area(f.B),atp:atp?(f.ent.atpV===atpV?f.ent.atpA:(f.ent.atpV=atpV,f.ent.atpA=area(clipAtp(f.B,atp)))):null})),
     tot:area(all), atp:atp?area(clipAtp(all,atp)):null, appd:dres, temAtp:!!atp, sub, falhas, hora:new Date().toLocaleTimeString("pt-BR")};
@@ -1576,7 +1673,7 @@ async function tipRunCore(){
   const val=t=>{ const v=(t.properties||{})[fld]; return (v==null||String(v).trim()==="")?"(sem valor)":String(v).trim(); };
   const det=[], tot={}, totApp={}; let totArl=0, falhas=0;
   let appL=app; // APP recortada ao retângulo da ARL em análise (muito menos vértices)
-  const aInt=g=>{ if(!appL||!g||H.disj(g,appL)) return 0; try{ const x=turf.intersect(turf.featureCollection([g,appL])); return x?AREA(x):0; }catch(e){ return 0; } };
+  const aInt=g=>{ if(!appL||!g||H.disj(g,appL)) return 0; try{ const x=H.isect(g,appL); return x?AREA(x):0; }catch(e){ return 0; } };
   const clipApp=f=>{
     appL=app; if(!app||H.disj(f,app)) return;
     try{
@@ -1600,7 +1697,7 @@ async function tipRunCore(){
       const aArl=AREA(f); let soma=0, somaApp=0, fl=0; const por={}, porApp={}; clipApp(f); const aAppF=aInt(f);
       for(const t of T){
         if(H.disj(f,t)) continue;
-        let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ fl++; continue; }
+        let i; try{ i=H.isect(f,t); }catch(e){ fl++; continue; }
         if(!i) continue; const a=AREA(i); if(!(a>0)) continue;
         const v=val(t); por[v]=(por[v]||0)+a; soma+=a;
         if(aAppF>0){ const ap=aInt(i); if(ap>0){ porApp[v]=(porApp[v]||0)+ap; somaApp+=ap; } }
@@ -1620,7 +1717,7 @@ async function tipRunCore(){
       const a0=AREA(f); totAtp+=a0; let soma=0;
       for(const t of T){
         if(H.disj(f,t)) continue;
-        let i; try{ i=turf.intersect(turf.featureCollection([f,t])); }catch(e){ fl++; continue; }
+        let i; try{ i=H.isect(f,t); }catch(e){ fl++; continue; }
         if(!i) continue; const a=AREA(i); if(!(a>0)) continue;
         const v=val(t); totA[v]=(totA[v]||0)+a; soma+=a;
       }
