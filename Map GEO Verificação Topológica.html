@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.80">
+<meta name="app-version" content="0.0.81">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -220,7 +220,7 @@ tr.row{transition:background .15s}
 <header id="hdr">
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.80</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.81</button>
   <span id="procAviso" class="procav" style="display:none">⚠ Arquivo processado em edição</span>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="F">Layout: Painel GIS</option><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
@@ -269,7 +269,7 @@ tr.row{transition:background .15s}
 <div class="dlg" id="dlgRules"><div class="box" style="max-width:560px"><div id="rulesSlot"></div><br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 
 <div class="dlg" id="dlgComp"><div class="box tip" style="max-width:760px;width:min(760px,94vw)"><h3>Compensador de AUAS</h3>
-  <div class="empty">Regra: a ARL tipo A (SITUACAO = A) vetorizada não pode ser menor que a área de AUAS existente. O quantitativo de AUAS deve ser compensado, no mínimo, com o mesmo quantitativo de ARL tipo A. Atualiza sozinho com a pasta monitorada.</div>
+  <div class="empty">Regra: a AUAS só é interpretada como exigência de ARL tipo A quando há déficit de ARL. O déficit (ARL exigida − ARL vetorizada sem o tipo A) vira exigência de ARL tipo A, limitada ao quantitativo de AUAS vetorizada. Atualiza sozinho com a pasta monitorada.</div>
   <div id="compOut"></div>
   <br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 
@@ -308,8 +308,9 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.80";
+const APP_VERSION = "0.0.81";
 const CHANGELOG = [
+  {v:"0.0.81", d:"2026-11-20", t:["Compensador de AUAS: a AUAS só é interpretada como exigência de ARL tipo A quando há déficit de ARL. Déficit = ARL exigida − ARL vetorizada sem o tipo A; a exigência de ARL tipo A é o menor valor entre a AUAS vetorizada e esse déficit. Sem déficit, AUAS não exige ARL tipo A. A regra AUAS-02 e a faixa de quantitativos seguem esse cálculo."]},
   {v:"0.0.80", d:"2026-11-20", t:["Correção: só o arquivo processado tem AREA_HA e as camadas de saída do SIMCAR. A etiqueta \"Gerado pelo SIMCAR\" (e a ausência do aviso de dicionário nessas camadas) só vale quando a pasta tem AREA_HA; no Arquivo Modelo essas camadas voltam a ser \"fora do dicionário\"."]},
   {v:"0.0.79", d:"2026-11-20", t:["Na lista de camadas, as camadas de saída do SIMCAR passam a mostrar a etiqueta \"Gerado pelo SIMCAR\"."]},
   {v:"0.0.78", d:"2026-11-20", t:["As camadas de saída do SIMCAR (APP, APPD, APPRL, ARL_CERRADO/FLORESTA_PRESERVADA/RECOMPOR, RIO_LINHA, AREA_ABRANGENCIA) não mostram mais \"fora do dicionário\" nem o aviso de dicionário, em qualquer situação (antes só no modo processado)."]},
@@ -792,14 +793,14 @@ const RULES = [
   },
   {
     id:"AUAS-02", nome:"AUAS compensada por ARL tipo A",
-    desc:"A ARL tipo A vetorizada não pode ser menor que a área de AUAS existente.",
+    desc:"Havendo AUAS e déficit de ARL, a ARL tipo A vetorizada deve cobrir o déficit (limitado à área de AUAS).",
     on:true,
     run(ctx){
       const au=H.feats(ctx,"AUAS"), arl=H.feats(ctx,"ARL");
       if(!au.length) return [];
       const C=compCalc({AUAS:au,ARL:arl});
       if(C.st!=="falta") return [];
-      return [{camada:"ARL",fid:"—",msg:`ARL tipo A vetorizada (${(C.tA/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha) é menor que a área de AUAS (${(C.tAuas/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha): faltam ${(C.dif/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha.`,area:C.dif,sev:"erro"}];
+      return [{camada:"ARL",fid:"—",msg:`ARL tipo A vetorizada (${(C.tA/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha) é menor que a exigência de ARL tipo A (${(C.req/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha; AUAS ${(C.tAuas/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha): faltam ${(C.dif/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})} ha.`,area:C.dif,sev:"erro"}];
     }
   },
   {
@@ -1560,21 +1561,26 @@ async function appWait(){ for(let k=0;k<300&&(APPG.busy||APPG.t);k++) await new 
 $("appBtn").onclick=()=>$("dlgApp").classList.add("on");
 /* ============ COMPENSADOR DE AUAS ============ */
 const sitArl=f=>String((f.properties||{}).SITUACAO==null?"":f.properties.SITUACAO).trim();
-function compCalc(feats){ // feats: {AUAS, ARL}
+function compCalc(feats){ // feats: {AUAS, ARL}. AUAS só exige ARL tipo A quando há déficit de ARL.
   const au=feats.AUAS, aA=feats.ARL.filter(f=>sitArl(f)==="A");
   const tAuas=au.reduce((a,f)=>a+AREA(f),0), tA=aA.reduce((a,f)=>a+AREA(f),0), tol=Math.max(0,parseFloat($("tol").value)||0);
-  const dif=tAuas-tA;
-  return {au,aA,tAuas,tA,dif,tol,st:dif>tol?"falta":(-dif>tol?"exc":"ok")};
+  const tArl=feats.ARL.reduce((a,f)=>a+AREA(f),0), arlNA=tArl-tA;
+  const TC=TIP.res?tipCalc(TIP.res):null, exT=TC&&TC.temReq?TC.exT:null;
+  if(exT==null) return {au,aA,tAuas,tA,tol,exT:null,defBase:null,req:null,dif:0,st:"indef"};
+  const defBase=Math.max(0,exT-arlNA), req=Math.min(tAuas,defBase), dif=req-tA;
+  return {au,aA,tAuas,tA,tol,exT,arlNA,defBase,req,dif,st:req<=tol?"sem":(dif>tol?"falta":(-dif>tol?"exc":"ok"))};
 }
 function compRender(){
   const el=$("compOut"); if(!el) return;
   const C=compCalc({AUAS:H.feats({layers:LAYERS},"AUAS"),ARL:H.feats({layers:LAYERS},"ARL")});
   if(!C.au.length){ el.innerHTML='<div class="empty" style="margin-top:8px">Camada AUAS vazia ou não carregada: não há quantitativo a compensar.</div>'; return; }
   const td=v=>`<td class="n">${v}</td>`;
-  const sit=C.st==="falta"?`<td class="n sit er"><small>Falta vetorizar ARL tipo A</small><br>${m2ha(C.dif)} ha</td>`:C.st==="exc"?`<td class="n sit ok"><small>Excedente de ARL tipo A</small><br>${m2ha(-C.dif)} ha</td>`:`<td class="n sit ok"><small>Compensação atendida</small><br>${m2ha(0)} ha</td>`;
+  const sit=C.st==="indef"?`<td class="n sit"><small>Aguardando ARL exigida (ATP, tipologia e percentuais)</small></td>`:C.st==="sem"?`<td class="n sit ok"><small>AUAS sem exigência de ARL tipo A (não há déficit de ARL)</small></td>`:C.st==="falta"?`<td class="n sit er"><small>Falta vetorizar ARL tipo A</small><br>${m2ha(C.dif)} ha</td>`:C.st==="exc"?`<td class="n sit ok"><small>Excedente de ARL tipo A</small><br>${m2ha(-C.dif)} ha</td>`:`<td class="n sit ok"><small>Compensação atendida</small><br>${m2ha(0)} ha</td>`;
   el.innerHTML=`<table style="margin-top:8px">
   <tr><td><b>AUAS</b></td><td class="n">${m2ha(C.tAuas)} ha</td></tr>
-  <tr><td><b>ARL A</b></td><td class="n">${m2ha(C.tA)} ha</td></tr>
+  <tr><td>Déficit de ARL (exigida − ARL sem tipo A)</td><td class="n">${C.defBase==null?"—":m2ha(C.defBase)+" ha"}</td></tr>
+  <tr><td><b>Exigência de ARL A</b> (menor entre AUAS e déficit)</td><td class="n">${C.req==null?"—":m2ha(C.req)+" ha"}</td></tr>
+  <tr><td><b>ARL A</b> vetorizada</td><td class="n">${m2ha(C.tA)} ha</td></tr>
   <tr class="tt"><td>Situação</td>${sit}</tr></table>
   <details style="margin-top:10px"><summary class="empty" style="cursor:pointer">Feições de ARL tipo A (${C.aA.length})</summary>${C.aA.length?`<div class="scr"><table><tr><th>ARL</th><th>IDENTIFIC</th><th class="n">Área (ha)</th></tr>${C.aA.map(f=>`<tr><td>${H.id(f)}</td><td>${esc((f.properties||{}).IDENTIFIC==null?"":String((f.properties||{}).IDENTIFIC))}</td><td class="n">${m2ha(AREA(f))}</td></tr>`).join("")}</table></div>`:'<div class="empty">Nenhuma ARL com SITUACAO A carregada.</div>'}</details>`;
 }
@@ -1610,9 +1616,9 @@ function qbarUpdate(){
     }
     { const au=H.feats({layers:LAYERS},"AUAS");
       if(au.length){
-        const k=lver("AUAS")+"|"+lver("ARL")+"|"+AK()+"|"+$("tol").value; if(!QAU||QAU.k!==k) QAU={k,C:compCalc({AUAS:au,ARL:H.feats({layers:LAYERS},"ARL")})};
-        const C=QAU.C, sit=C.st==="falta"?`<span style="color:var(--er)"><b>Falta ${m2ha(C.dif)} ha</b></span>`:C.st==="exc"?`<span style="color:var(--ok)"><b>Excedente ${m2ha(-C.dif)} ha</b></span>`:`<span style="color:var(--ok)"><b>Compensada</b></span>`;
-        h+=`<span class="qgrp rl" title="Compensador de AUAS: a ARL tipo A vetorizada deve ser no mínimo igual à área de AUAS"><small>AUAS</small><b class="v">${m2ha(C.tAuas)} ha</b><small>ARL A</small><b class="v">${m2ha(C.tA)} ha</b>${sit}</span>`;
+        const k=lver("AUAS")+"|"+lver("ARL")+"|"+AK()+"|"+$("tol").value; if(!QAU||QAU.k!==k||QAU.r!==TIP.res) QAU={k,r:TIP.res,C:compCalc({AUAS:au,ARL:H.feats({layers:LAYERS},"ARL")})};
+        const C=QAU.C, sit=C.st==="indef"?`<span style="color:var(--mt)"><b>ARL exigida pendente</b></span>`:C.st==="sem"?`<span style="color:var(--ok)"><b>Sem déficit de ARL</b></span>`:C.st==="falta"?`<span style="color:var(--er)"><b>Falta ${m2ha(C.dif)} ha</b></span>`:C.st==="exc"?`<span style="color:var(--ok)"><b>Excedente ${m2ha(-C.dif)} ha</b></span>`:`<span style="color:var(--ok)"><b>Compensada</b></span>`;
+        h+=`<span class="qgrp rl" title="Compensador de AUAS: AUAS só exige ARL tipo A quando há déficit de ARL; a exigência é o menor valor entre AUAS e o déficit"><small>AUAS</small><b class="v">${m2ha(C.tAuas)} ha</b>${C.req==null?"":`<small>Exig. A</small><b class="v">${m2ha(C.req)} ha</b>`}<small>ARL A</small><b class="v">${m2ha(C.tA)} ha</b>${sit}</span>`;
       } }
     els.forEach(e=>{ e.innerHTML=h; });
   }catch(e){}
