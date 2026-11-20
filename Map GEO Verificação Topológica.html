@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.73">
+<meta name="app-version" content="0.0.80">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -47,6 +47,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mt);
 .empty.ok{color:var(--ok)}.empty.er{color:var(--er)}
 [hidden]{display:none!important}
 #map{height:100%;min-height:200px}
+.leaflet-bar a.atpbtn{width:auto;padding:0 9px;font-size:12px;font-weight:600;line-height:30px;white-space:nowrap}
 #cMap{height:100%;min-height:0}
 #cRes{height:100%;display:flex;flex-direction:column;background:var(--pn);overflow:hidden}
 #cRes .bar{display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd);flex:none}
@@ -73,6 +74,24 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mt);
 .L-E .c2{display:grid;grid-template-rows:1fr 270px;min-width:0;min-height:0}
 .L-E .c2>div{min-height:0;border-bottom:0}
 .L-E .c2>.r{border-top:1px solid var(--bd)}
+/* F · Painel GIS: SHP à esquerda, menus no topo, cálculos, mapa e erros */
+.L-F{flex-direction:row;gap:12px;padding:12px;overflow:hidden}
+.L-F .fl,.L-F .ftop,.L-F .fgreen,.L-F .fmap,.L-F .fres{background:var(--pn);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border:1px solid var(--bd);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.28)}
+.L-F .fl{width:clamp(300px,26vw,400px);flex:none;overflow:auto;padding:12px;min-height:0}
+.L-F .lyr .tag{white-space:nowrap;font-size:10px;padding:1px 6px}
+.L-F .ftop header{gap:8px}
+.L-F .fr{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+.L-F .ftop{flex:none}
+.L-F .ftop header{margin:0;border:0;box-shadow:none;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:0;padding:8px 14px;flex-wrap:wrap}
+.L-F .ftop .tb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 14px 10px}
+.L-F .ftop .tb .sp{flex:1}
+.L-F .fgreen{flex:none;padding:8px 12px;display:flex;align-items:center;min-height:46px}
+.L-F .fgreen .qb{margin:0;flex:1}
+.L-F .qb:empty{display:flex}.L-F .qb:empty::before{content:"Aqui aparecem os cálculos de Reserva Legal (ARL) e AUAS depois de carregar as camadas.";color:var(--mt);font-size:12px}
+.L-F .fbot{flex:1;min-height:0;display:grid;grid-template-columns:3fr 2fr;gap:12px}
+.L-F .fmap,.L-F .fres{min-height:0;min-width:0;overflow:hidden}
+.L-F #tbl{display:none}.L-F #cards{display:flex}
+@media (max-width:900px){.L-F{flex-direction:column;overflow:auto}.L-F .fl{width:auto;max-height:46vh}.L-F .fbot{grid-template-columns:1fr}.L-F .fmap,.L-F .fres{height:360px}}
 /* D · Painel */
 .L-D .g{display:grid;grid-template-columns:420px 1fr;gap:14px;padding:0 14px 14px}
 .L-D .c1{overflow:auto;display:flex;flex-direction:column;gap:14px;min-height:0}
@@ -138,6 +157,7 @@ button,.btn{background:rgba(255,255,255,.08);border-color:var(--bd);transition:t
 button:hover:not(:disabled){background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.28);transform:translateY(-1px)}
 button.pri{background:linear-gradient(135deg,#2fd3a3,#1ea8c7);border:0;color:#04201a;font-weight:650;box-shadow:0 6px 18px rgba(47,211,163,.32)}
 button.pri:hover:not(:disabled){background:linear-gradient(135deg,#3be0b0,#27b8d8);box-shadow:0 8px 22px rgba(47,211,163,.45)}
+.procav{font-size:12px;font-weight:600;color:#f5b942;background:rgba(245,185,66,.12);border:1px solid rgba(245,185,66,.45);padding:3px 10px;border-radius:99px;white-space:nowrap}
 .ver{background:var(--ac2);border:1px solid rgba(52,211,160,.35);color:var(--ac)}
 #layoutSel{background:rgba(255,255,255,.08);color:var(--tx);border-color:var(--bd)}
 #layoutSel option{background:#141c2e;color:#e8eefc}
@@ -197,12 +217,13 @@ tr.row{transition:background .15s}
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+">
 </head>
 <body>
-<header>
+<header id="hdr">
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.73</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.80</button>
+  <span id="procAviso" class="procav" style="display:none">⚠ Arquivo processado em edição</span>
   <span class="sp"></span>
-  <select id="layoutSel" title="Layout"><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
+  <select id="layoutSel" title="Layout"><option value="F">Layout: Painel GIS</option><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
   <button id="appBtn" title="APP gerada pelo app: faixas dos rios e raio das nascentes">APP Calculada</button>
   <button id="tipBtn" title="Tipologia RADAM × ARL">Tipologia</button>
   <button id="compBtn" title="Compensador de AUAS: ARL tipo A deve ser no mínimo igual à área de AUAS">Compensador de AUAS</button>
@@ -245,6 +266,8 @@ tr.row{transition:background .15s}
 <div class="dlg" id="dlgVer"><div class="box"><h3>Histórico de versões</h3><ul id="chg"></ul><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 <div class="dlg" id="dlgDict"><div class="box" style="max-width:760px"><h3>Dicionário de camadas</h3><div id="dictBody"></div><br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 
+<div class="dlg" id="dlgRules"><div class="box" style="max-width:560px"><div id="rulesSlot"></div><br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
+
 <div class="dlg" id="dlgComp"><div class="box tip" style="max-width:760px;width:min(760px,94vw)"><h3>Compensador de AUAS</h3>
   <div class="empty">Regra: a ARL tipo A (SITUACAO = A) vetorizada não pode ser menor que a área de AUAS existente. O quantitativo de AUAS deve ser compensado, no mínimo, com o mesmo quantitativo de ARL tipo A. Atualiza sozinho com a pasta monitorada.</div>
   <div id="compOut"></div>
@@ -285,8 +308,15 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.73";
+const APP_VERSION = "0.0.80";
 const CHANGELOG = [
+  {v:"0.0.80", d:"2026-11-20", t:["Correção: só o arquivo processado tem AREA_HA e as camadas de saída do SIMCAR. A etiqueta \"Gerado pelo SIMCAR\" (e a ausência do aviso de dicionário nessas camadas) só vale quando a pasta tem AREA_HA; no Arquivo Modelo essas camadas voltam a ser \"fora do dicionário\"."]},
+  {v:"0.0.79", d:"2026-11-20", t:["Na lista de camadas, as camadas de saída do SIMCAR passam a mostrar a etiqueta \"Gerado pelo SIMCAR\"."]},
+  {v:"0.0.78", d:"2026-11-20", t:["As camadas de saída do SIMCAR (APP, APPD, APPRL, ARL_CERRADO/FLORESTA_PRESERVADA/RECOMPOR, RIO_LINHA, AREA_ABRANGENCIA) não mostram mais \"fora do dicionário\" nem o aviso de dicionário, em qualquer situação (antes só no modo processado)."]},
+  {v:"0.0.77", d:"2026-11-20", t:["Novo botão no mapa (\"◎ ATP\", abaixo do zoom) para centralizar a ATP na tela; sem ATP carregada, avisa. Na lista de camadas, as camadas de saída do SIMCAR não mostram mais a etiqueta \"fora do dicionário\" quando o arquivo é processado."]},
+  {v:"0.0.76", d:"2026-11-20", t:["Faixa de quantitativos: ARL EXIGIDA agora aparece logo depois do bloco ARL e antes de AUAS / ARL A (e de APP)."]},
+  {v:"0.0.75", d:"2026-11-20", t:["Quando todas as camadas poligonais da pasta têm a coluna AREA_HA (sinal de que é o arquivo processado pelo SIMCAR), aparece apenas o aviso \"Arquivo processado em edição\" no cabeçalho. Nesse caso, ORIGEM em TIPOLOGIA_VEGETAL e as camadas de saída do SIMCAR (APP, APPD, APPRL, ARL_*_PRESERVADA/RECOMPOR, RIO_LINHA, AREA_ABRANGENCIA) não geram aviso de dicionário. ID = 0 continua aceito (vem do Arquivo Modelo)."]},
+  {v:"0.0.74", d:"2026-11-20", t:["Novo layout padrão \"Painel GIS\": à esquerda a lista de todos os SHP monitorados; no topo os menus; abaixo os cálculos de Reserva Legal (ARL) e AUAS; embaixo o mapa com os vetores e, ao lado, os erros. As regras e tolerâncias abrem no botão Regras.","Barra de cálculos passa a mostrar também AUAS × ARL tipo A (falta/excedente)."]},
   {v:"0.0.73", d:"2026-11-19", t:["Geometrias bem mais rápidas: antes de cruzar dois polígonos, o app testa de forma barata se eles estão totalmente separados ou se um está inteiro dentro do outro e só usa a operação pesada (intersect/difference) quando as bordas realmente se cruzam ou se tocam.","Polígonos com muitos vértices são recortados à janela do outro antes da operação pesada; pares já calculados são reaproveitados entre regras.","Vale para as regras (contida em AIR/AVN/AUAS/AREA_CONSOLIDADA, sobreposições), tipologia, ARL em APP, APP na ATP e APPD."]},
   {v:"0.0.72", d:"2026-11-18", t:["Compensador de AUAS mais simples: só AUAS e ARL tipo A com seus quantitativos e a situação; a lista de ARL tipo A fica minimizada (clique para abrir)."]},
   {v:"0.0.71", d:"2026-11-18", t:["Nova ferramenta \"Compensador de AUAS\" (popup): calcula a área de AUAS e exige o mesmo quantitativo como ARL tipo A; mostra o que falta vetorizar ou o excedente.","Nova regra AUAS-02: ARL tipo A vetorizada não pode ser menor que a área de AUAS existente."]},
@@ -464,10 +494,10 @@ const RULES = [
     desc:"Camadas, campos, tipo de geometria e SIRGAS 2000 conforme o dicionário.",
     on:true,
     run(ctx){
-      const out=[];
+      const out=[]; const pe=procEdit(ctx.layers,ctx.dict);
       for(const L of Object.values(ctx.layers)){
         const d=ctx.dict[L.name];
-        if(!d){ out.push({camada:L.name,msg:"Camada não consta no dicionário.",sev:"aviso"}); continue; }
+        if(!d){ if(!(temProc(ctx.layers)&&SIMCAR_SAIDA.includes(L.name))) out.push({camada:L.name,msg:"Camada não consta no dicionário.",sev:"aviso"}); continue; }
         const have=new Map(L.fields.map(f=>[f.n.toUpperCase(),f]));
         for(const [n,t,l,dc] of d.f){
           const f=have.get(n);
@@ -475,7 +505,7 @@ const RULES = [
           else if(f.t!==t) out.push({camada:L.name,msg:`Campo ${n}: tipo ${TIPO_NOME[f.t]||f.t}, esperado ${TIPO_NOME[t]}.`,sev:"erro"});
         }
         const exp=new Set(d.f.map(x=>x[0]));
-        for(const f of L.fields) if(!exp.has(f.n.toUpperCase())&&f.n.toUpperCase()!=="AREA_HA") out.push({camada:L.name,msg:`Campo fora do dicionário: ${f.n}.`,sev:"aviso"});
+        for(const f of L.fields) if(!exp.has(f.n.toUpperCase())&&f.n.toUpperCase()!=="AREA_HA"&&!(pe&&L.name==="TIPOLOGIA_VEGETAL"&&f.n.toUpperCase()==="ORIGEM")) out.push({camada:L.name,msg:`Campo fora do dicionário: ${f.n}.`,sev:"aviso"});
         if(L.gtype!==null){
           const ok=d.g==="PT"?/Point/.test(L.gtype):/Polygon/.test(L.gtype);
           if(!ok) out.push({camada:L.name,msg:`Geometria ${L.gtype}, esperado ${d.g==="PT"?"ponto":"polígono"}.`,sev:"erro"});
@@ -1137,7 +1167,7 @@ async function ingest(groups,opt={}){
     }catch(e){ console.error(name,e); ERRS[name]=e.message||String(e); delete SIGS[name]; }
   }
   renderLayers(); if(opt.fit) fit();
-  $("run").disabled=!Object.keys(LAYERS).length;
+  $("run").disabled=!Object.keys(LAYERS).length; try{ syncUI(); }catch(e){}
   try{ if(n) tipAuto(); }catch(e){}
   try{ if(n) appAuto(); }catch(e){}
   try{ qbarUpdate(); }catch(e){}
@@ -1187,7 +1217,7 @@ async function scan(first){
       const groups={};
       for(const [b,g,sig] of changed){ const o={}; for(const k of Object.keys(g)) o[k]=await g[k].arrayBuffer(); groups[b]=o; SIGS[b]=sig; }
       n=await ingest(groups,{fit:first&&!Object.keys(LAYERS).some(x=>!groups[x])});
-    } else if(gone.length){ renderLayers(); $("run").disabled=!Object.keys(LAYERS).length; }
+    } else if(gone.length){ renderLayers(); $("run").disabled=!Object.keys(LAYERS).length; try{ syncUI(); }catch(e){} }
     if(first&&changed.length) fit();
     const hora=new Date().toLocaleTimeString("pt-BR");
     dirMsg(`Pasta "${DIR.name}" · monitorando · ${Object.keys(cur).filter(b=>cur[b].shp&&cur[b].dbf&&cur[b].shp.size>100).length} shapefile(s) com geometria${vazios?` · ${vazios} vazio(s) ignorado(s)`:""} · lido às ${hora}`,"ok");
@@ -1202,7 +1232,7 @@ function clearLayers(){
   Object.values(LAYERS).forEach(l=>{ if(l.leaflet) l.leaflet.remove(); });
   for(const k of Object.keys(LAYERS)) delete LAYERS[k];
   for(const k of Object.keys(ERRS)) delete ERRS[k];
-  RESULTS=[]; showResults(); renderLayers(); $("run").disabled=true;
+  RESULTS=[]; showResults(); renderLayers(); $("run").disabled=true; try{ syncUI(); }catch(e){}
 }
 async function startWatch(h){
   clearLayers();
@@ -1231,8 +1261,12 @@ async function initDir(){
 const $=id=>document.getElementById(id);
 /* ============ LAYOUTS ============ */
 const COMPS=["cLayers","cRules","cMap","cRes","cStats"];
-let LAYOUT="E", STEP=1, RAN=new Set(), MAPREADY=false;
+let LAYOUT="F", STEP=1, RAN=new Set(), MAPREADY=false;
 const LAYOUTS={
+  F:`<div class="L L-F"><div class="fl" data-slot="cLayers"></div>
+    <div class="fr"><div class="ftop"><div data-slot="hdr"></div><div class="tb"><button data-p="pick">⬆ Importar</button><button data-p="pickDir">📁 Pasta</button><button class="pri" data-p="run">▶ Executar</button><button data-p="csv">Exportar CSV</button><button id="rulesBtn">⚙ Regras</button><span class="sp"></span><span class="empty" id="statusTxt"></span></div></div>
+      <div class="fgreen"><div class="qb"></div></div>
+      <div class="fbot"><div class="fmap" data-slot="cMap"></div><div class="fres" data-slot="cRes"></div></div></div></div>`,
   E:`<div class="L L-E"><div class="tb"><button data-p="pick">⬆ Importar</button><button data-p="pickDir">📁 Pasta</button><button class="pri" data-p="run">▶ Executar</button><button data-p="csv">Exportar CSV</button><span class="qb"></span><span class="sp"></span><span class="empty" id="statusTxt"></span></div>
     <div class="g"><div class="c1" data-slot="cLayers"></div><div class="c2"><div data-slot="cMap"></div><div class="r" data-slot="cRes"></div></div><div class="c3" data-slot="cRules"></div></div></div>`,
   D:`<div class="L L-D"><div data-slot="cStats"></div><div class="qb"></div>
@@ -1251,9 +1285,11 @@ function setStep(n){
 function applyLayout(name){
   if(!LAYOUTS[name]) name="E"; LAYOUT=name;
   const pool=$("pool"); COMPS.forEach(id=>pool.appendChild($(id)));
+  document.body.insertBefore($("hdr"),$("app")); $("hdr").insertBefore($("layoutSel"),$("appBtn"));
   $("app").innerHTML=LAYOUTS[name];
   $("app").querySelectorAll("[data-slot]").forEach(sl=>sl.appendChild($(sl.dataset.slot)));
   $("app").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>$(b.dataset.p).click());
+  if(name==="F"){ $("app").querySelector(".tb .sp").before($("layoutSel")); $("rulesSlot").appendChild($("cRules")); $("rulesBtn").onclick=()=>$("dlgRules").classList.add("on"); }
   if(name==="B"){
     $("app").querySelectorAll(".steps button").forEach(b=>b.onclick=()=>setStep(+b.dataset.s));
     $("bBack").onclick=()=>setStep(STEP-1);
@@ -1261,11 +1297,18 @@ function applyLayout(name){
     setStep(STEP);
   }
   $("layoutSel").value=name; qbarUpdate();
-  try{ localStorage.setItem("vt-layout",name); }catch(e){}
+  try{ localStorage.setItem("vt-layout2",name); }catch(e){}
   syncUI();
   if(MAPREADY) setTimeout(()=>map.invalidateSize(),0);
 }
+const SIMCAR_SAIDA=["APP","APPD","APPRL","ARL_CERRADO_PRESERVADA","ARL_CERRADO_RECOMPOR","ARL_FLORESTA_PRESERVADA","ARL_FLORESTA_RECOMPOR","RIO_LINHA","AREA_ABRANGENCIA"];
+function temProc(layers){ return Object.values(layers||{}).some(l=>l.fields.some(f=>f.n.toUpperCase()==="AREA_HA")); }
+function procEdit(layers,dict){
+  const L=Object.values(layers||{}).filter(l=>{ const d=(dict||DICT)[l.name]; return d&&d.g==="P"; });
+  return L.length>0&&L.every(l=>l.fields.some(f=>f.n.toUpperCase()==="AREA_HA"));
+}
 function syncUI(){
+  if($("procAviso")) $("procAviso").style.display=procEdit(LAYERS)?"":"none";
   const er=RESULTS.filter(r=>r.sev==="erro").length, av=RESULTS.filter(r=>r.sev==="aviso").length, ran=RAN.size;
   const ok=[...RAN].filter(id=>!RESULTS.some(r=>r.regra===id)).length;
   if($("stL")){ $("stL").textContent=Object.keys(LAYERS).length; $("stE").textContent=ran?er:"—"; $("stW").textContent=ran?av:"—"; $("stO").textContent=ran?`${ok} de ${ran}`:"—"; }
@@ -1282,7 +1325,7 @@ function updateRuleCounts(){
     bar.style.width=k?Math.max(6,Math.round(k/mx*100))+"%":"100%"; bar.style.background=k?"var(--er)":"var(--ok)";
   });
 }
-try{ LAYOUT=localStorage.getItem("vt-layout")||"E"; }catch(e){}
+try{ LAYOUT=localStorage.getItem("vt-layout2")||"F"; }catch(e){ LAYOUT="F"; }
 applyLayout(LAYOUT);
 const map=L.map("map",{preferCanvas:true}).setView([-13.5,-56],5); MAPREADY=true;
 const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/";
@@ -1298,6 +1341,16 @@ if(!BASES[baseSel]) baseSel="Satélite";
 BASES[baseSel].addTo(map);
 L.control.layers(BASES,null,{position:"topright",collapsed:true}).addTo(map);
 map.on("baselayerchange",e=>{ try{ localStorage.setItem("vt-base",e.name); }catch(_){} });
+function centrarATP(){
+  const L=LAYERS.ATP; const el=document.getElementById("statusTxt");
+  if(!L||!L.leaflet){ if(el){ const o=el.textContent; el.textContent="ATP não carregada"; setTimeout(()=>{ el.textContent=o; },2500); } return false; }
+  map.fitBounds(L.leaflet.getBounds(),{padding:[30,30]}); return true;
+}
+const CtlATP=L.Control.extend({options:{position:"topleft"},onAdd(){
+  const d=L.DomUtil.create("div","leaflet-bar leaflet-control"); const a=L.DomUtil.create("a","atpbtn",d);
+  a.href="#"; a.textContent="◎ ATP"; a.title="Centralizar a ATP no mapa"; a.setAttribute("role","button");
+  L.DomEvent.disableClickPropagation(d); L.DomEvent.on(a,"click",e=>{ L.DomEvent.preventDefault(e); centrarATP(); }); return d; }});
+new CtlATP().addTo(map);
 let hl=null;
 function drawLayer(l){
   if(!l.fc.features.length){ l.leaflet=null; return; }
@@ -1315,7 +1368,7 @@ const ATPF=()=>LAYERS.ATP?LAYERS.ATP.fc.features.filter(f=>f.geometry):[];
 function renderLayers(){
   const names=Object.keys(LAYERS).sort();
   $("lyrs").innerHTML=names.length?names.map(n=>{
-    const l=LAYERS[n], k=DICT[n]?"":'<span class="tag wn">fora do dicionário</span>';
+    const l=LAYERS[n], k=DICT[n]?"":(SIMCAR_SAIDA.includes(n)&&temProc(LAYERS))?'<span class="tag ok">Gerado pelo SIMCAR</span>':'<span class="tag wn">fora do dicionário</span>';
     let ha="";
     if(n!=="NASCENTE"){ try{
       const hid=HIDRO.includes(n), atp=hid?ATPF():[];
@@ -1530,6 +1583,7 @@ $("compBtn").onclick=()=>{ compRender(); $("dlgComp").classList.add("on"); };
 ["apR10","apR50","apNas","apRes","apResMin","apSub"].forEach(i=>$(i).oninput=$(i).onchange=appAuto);
 
 /* ============ FAIXA DE QUANTITATIVOS (barra de ferramentas) ============ */
+let QAU=null;
 function qbarUpdate(){
   try{
     const els=document.querySelectorAll(".qb"); if(!els.length) return;
@@ -1545,15 +1599,21 @@ function qbarUpdate(){
       itens+=`<span><b>Total</b> <b class="v">${fmtHa(arl)} ha</b></span>`;
       h+=`<span class="qgrp rl" title="Área da Reserva Legal (ARL) por tipologia"><small>ARL</small>${itens}</span>`;
     }
+    if(T&&T.totA){
+      const C=tipCalc(T);
+      if(C.temReq) h+=`<span class="qgrp rl" title="Reserva Legal exigida: percentual exigido × área da ATP em cada tipologia (Floresta + Cerrado)"><small>ARL Exigida</small><b class="v">${fmtHa(C.exT)} ha</b></span>`;
+    }
     if(A&&APPG.fc){
       const v=A.temAtp?A.atp:A.tot;
       h+=`<span class="qgrp app" title="${A.temAtp?"Área da APP contida na ATP":"ATP não carregada: área total da APP"}"><small>APP</small><b>${m2ha(v)} ha</b></span>`;
       if(A.appd&&A.appd.tem){ const d=A.temAtp?A.appd.atp:A.appd.tot; h+=`<span class="qgrp app bad" title="APPD: APP que sobrepõe AUAS e AREA_CONSOLIDADA${A.temAtp?" (dentro da ATP)":""}"><small>APPD</small><b>${m2ha(d)} ha</b></span>`; }
     }
-    if(T&&T.totA){
-      const C=tipCalc(T);
-      if(C.temReq) h+=`<span class="qgrp rl" title="Reserva Legal exigida: percentual exigido × área da ATP em cada tipologia (Floresta + Cerrado)"><small>ARL Exigida</small><b class="v">${fmtHa(C.exT)} ha</b></span>`;
-    }
+    { const au=H.feats({layers:LAYERS},"AUAS");
+      if(au.length){
+        const k=lver("AUAS")+"|"+lver("ARL")+"|"+AK()+"|"+$("tol").value; if(!QAU||QAU.k!==k) QAU={k,C:compCalc({AUAS:au,ARL:H.feats({layers:LAYERS},"ARL")})};
+        const C=QAU.C, sit=C.st==="falta"?`<span style="color:var(--er)"><b>Falta ${m2ha(C.dif)} ha</b></span>`:C.st==="exc"?`<span style="color:var(--ok)"><b>Excedente ${m2ha(-C.dif)} ha</b></span>`:`<span style="color:var(--ok)"><b>Compensada</b></span>`;
+        h+=`<span class="qgrp rl" title="Compensador de AUAS: a ARL tipo A vetorizada deve ser no mínimo igual à área de AUAS"><small>AUAS</small><b class="v">${m2ha(C.tAuas)} ha</b><small>ARL A</small><b class="v">${m2ha(C.tA)} ha</b>${sit}</span>`;
+      } }
     els.forEach(e=>{ e.innerHTML=h; });
   }catch(e){}
 }
