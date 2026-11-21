@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.83">
+<meta name="app-version" content="0.0.95">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -221,7 +221,7 @@ tr.row{transition:background .15s}
 <header id="hdr">
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.83</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.95</button>
   <span id="procAviso" class="procav" style="display:none">⚠ Arquivo processado em edição</span>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="F">Layout: Painel GIS</option><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
@@ -270,20 +270,21 @@ tr.row{transition:background .15s}
 <div class="dlg" id="dlgRules"><div class="box" style="max-width:560px"><div id="rulesSlot"></div><br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 
 <div class="dlg" id="dlgComp"><div class="box tip" style="max-width:760px;width:min(760px,94vw)"><h3>Compensador de AUAS</h3>
-  <div class="empty">Regra: a AUAS só é interpretada como exigência de ARL tipo A quando há déficit de ARL. O déficit (ARL exigida − ARL vetorizada sem o tipo A) vira exigência de ARL tipo A, limitada ao quantitativo de AUAS vetorizada. Atualiza sozinho com a pasta monitorada.</div>
+  <div class="empty">Regra: a AUAS só é interpretada como exigência de ARL tipo A quando há déficit de ARL. O déficit (ARL exigida − ARL vetorizada sem o tipo A − ARLREM, que é cedida por outro CAR) vira exigência de ARL tipo A, limitada ao quantitativo de AUAS vetorizada. Atualiza sozinho com a pasta monitorada.</div>
   <div id="compOut"></div>
   <br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 
 <div class="dlg" id="dlgApp"><div class="box tip" style="max-width:820px;width:min(820px,94vw)"><h3>APP gerada pelo app</h3>
-  <div class="empty">Faixa a partir da borda do polígono do rio (cada lado) raio ao redor das nascentes que estão em RIO_ATE_10 e faixa ao redor de RESERVATORIO_ARTIFICIAL acima da área mínima, unidos em um único polígono. O quantitativo considera só o que está contido na ATP.</div>
+  <div class="empty">Faixa a partir da borda do polígono do rio (cada lado) raio ao redor das nascentes que estão em RIO_ATE_10 e faixa ao redor de RESERVATORIO_ARTIFICIAL acima da área mínima faixa de 50 m ao redor de VEREDA e a própria AREA_DECLIVIDADE (que é APP), unidos em um único polígono. O quantitativo considera só o que está contido na ATP.</div>
   <div class="row2"><label>RIO_ATE_10 (m)<input id="apR10" type="number" min="0" step="1" value="30"></label><label>RIO_10_A_50 (m)<input id="apR50" type="number" min="0" step="1" value="50"></label><label>NASCENTE raio (m)<input id="apNas" type="number" min="0" step="1" value="50"></label></div>
-  <div class="row2" style="margin-top:6px"><label>RESERVATORIO_ARTIFICIAL (m)<input id="apRes" type="number" min="0" step="1" value="30"></label><label>…só com área acima de (ha)<input id="apResMin" type="number" min="0" step="0.1" value="1"></label><label></label></div>
+  <div class="row2" style="margin-top:6px"><label>RESERVATORIO_ARTIFICIAL (m)<input id="apRes" type="number" min="0" step="1" value="30"></label><label>…só com área acima de (ha)<input id="apResMin" type="number" min="0" step="0.1" value="1"></label><label>VEREDA (m)<input id="apVer" type="number" min="0" step="1" value="50"></label></div>
+  <input id="apDec" type="hidden" value="0">
   <label class="empty" style="display:block;margin-top:8px"><input type="checkbox" id="apSub" checked style="width:auto"> Descontar o corpo d'água (polígono do rio) da faixa de APP</label>
   <div id="apSt" class="empty">Aguardando camadas.</div>
   <div id="apOut"></div>
   <br><button onclick="this.closest('.dlg').classList.remove('on')">Fechar</button></div></div>
 <div class="dlg" id="dlgTip"><div class="box tip" style="max-width:860px;width:min(860px,94vw)"><h3>Tipologia RADAM × ARL</h3>
-  <div class="empty">Quantifica a área da ARL (camada ARL carregada) que incide sobre cada tipologia da base RADAM BRASIL. ARLREM não entra na soma.</div>
+  <div class="empty">Quantifica a área da ARL (camada ARL carregada) que incide sobre cada tipologia da base RADAM BRASIL. ARLREM não entra na soma da ARL: é a ARL cedida por outro CAR com excedente e, por isso, abate o déficit.</div>
   <fieldset><legend>WFS da SEMA-MT <span class="tag wn">não testado</span></legend>
     <label>Endereço WFS<input id="tipUrl" value="https://geo.sema.mt.gov.br/geoserver/ows"></label>
     <label>Camada (typeName)<input id="tipTn" placeholder="workspace:nome_da_camada_radam"></label>
@@ -309,8 +310,20 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.83";
+const APP_VERSION = "0.0.95";
 const CHANGELOG = [
+  {v:"0.0.95", d:"2026-11-21", t:["RESERVATORIO_ARTIFICIAL sem barramento (BARRAMENTO = N): sobrepor AREA_CONSOLIDADA ou AUAS deixa de ser erro (CON-01 e AUAS-01) e a FAIXA_APP não é exigida (RES-01)."]},
+  {v:"0.0.94", d:"2026-11-21", t:["Nova regra RES-02 (RESERVATORIO_ARTIFICIAL sem barramento, BARRAMENTO = N): A feição RESERVATORIO_ARTIFICIAL (sem barramento), deve estar completamente contida em uma AUAS ou ÁREA CONSOLIDADA."]},
+  {v:"0.0.93", d:"2026-11-21", t:["ARU-01 (AREA_USO_RESTRITO): também não pode sobrepor AREA_UMIDA. Mensagem do SIMCAR: \"Área de Uso Restrito está sobrepondo Área Úmida.\""]},
+  {v:"0.0.92", d:"2026-11-21", t:["Correção: AREA_DECLIVIDADE não gera faixa de 30 m; ela própria é a APP. A APP gerada passa a incluir a própria área de AREA_DECLIVIDADE (sem buffer), e a ARLREM sobre ela dá \"ARLREM está sobrepondo APP.\" (sem mensagem duplicada)."]},
+  {v:"0.0.91", d:"2026-11-20", t:["ARM-01: a mensagem de ARLREM sobre a APP gerada passa a usar o texto do SIMCAR: \"ARLREM está sobrepondo APP.\""]},
+  {v:"0.0.90", d:"2026-11-20", t:["ARM-01 (ARLREM): não pode sobrepor a APP gerada pelo app (todas as fontes, inclusive os 30 m da AREA_DECLIVIDADE). A regra é recalculada quando a APP muda."]},
+  {v:"0.0.89", d:"2026-11-20", t:["AREA_DECLIVIDADE passa a gerar APP de 30 m (campo \"AREA_DECLIVIDADE (m)\" nas configurações de APP), somada à APP gerada, ao quantitativo de APP e ao APPD."]},
+  {v:"0.0.88", d:"2026-11-20", t:["ARM-01 (ARLREM): além de não sobrepor ARL, também não pode sobrepor AREA_DECLIVIDADE nem a APP de 30 m gerada por ela."]},
+  {v:"0.0.87", d:"2026-11-20", t:["Novas regras do SIMCAR: DEC-01 (AREA_DECLIVIDADE): (Campo INCLINACAO) Inclinação Inválida. A inclinação deve ser '>45' para maior de 45 graus. ARU-01 (AREA_USO_RESTRITO): Área de Uso Restrito está sobrepondo Área de Declividade."]},
+  {v:"0.0.86", d:"2026-11-20", t:["VER-01 (VEREDA): passa a usar o texto do SIMCAR (\"Geometria deve ser completamente contida por uma AIR.\") e deixa de exigir que a VEREDA esteja contida em AVN, AUAS ou AREA_CONSOLIDADA."]},
+  {v:"0.0.85", d:"2026-11-20", t:["VEREDA passa a gerar APP de 50 m (campo \"VEREDA (m)\" nas configurações de APP; faixa ao redor da vereda, sem a própria vereda quando a opção de subtrair o corpo d'água está marcada).","ARLREM não gera déficit: o quantitativo vetorizado em ARLREM é cedido por outro CAR com excedente de ARL, então é somado à ARL por tipologia para abater o déficit (quadro de Tipologia, ARL EXIGIDA e Compensador de AUAS)."]},
+  {v:"0.0.84", d:"2026-11-20", t:["Nova regra ARU-02 (AREA_USO_RESTRITO): (Campo TIPO) Tipo Inválido. O Tipo deve ser 'P' para Área Pantaneira ou 'D' para Área de Declividade 25-45."]},
   {v:"0.0.83", d:"2026-11-20", t:["Mapa: APP gerada pelo app em linha pontilhada verde; APP do arquivo em pontilhado preto; APPD do arquivo em pontilhado vermelho. As cores da lista de camadas e da faixa de APP acompanham."]},
   {v:"0.0.82", d:"2026-11-20", t:["Removida a regra AUAS-02 da lista de erros: a falta de ARL tipo A não é erro topológico. O quantitativo continua na faixa de cálculos e no Compensador de AUAS."]},
   {v:"0.0.81", d:"2026-11-20", t:["Compensador de AUAS: a AUAS só é interpretada como exigência de ARL tipo A quando há déficit de ARL. Déficit = ARL exigida − ARL vetorizada sem o tipo A; a exigência de ARL tipo A é o menor valor entre a AUAS vetorizada e esse déficit. Sem déficit, AUAS não exige ARL tipo A. A regra AUAS-02 e a faixa de quantitativos seguem esse cálculo."]},
@@ -686,16 +699,18 @@ const RULES = [
   /* ---------- Etapa 3 ---------- */
   {
     id:"VER-01", nome:"VEREDA: posição",
-    desc:"Contida em uma única AIR, sem sobrepor outra AIR. Completamente contida em uma AVN, AUAS ou AREA_CONSOLIDADA.",
+    desc:"Geometria deve ser completamente contida por uma AIR (sem sobrepor outra AIR).",
     on:true,
     async run(ctx){
-      const out=[], hosp=["AVN","AUAS","AREA_CONSOLIDADA"];
+      const out=[], air=H.feats(ctx,"AIR");
       for(const f of H.feats(ctx,"VEREDA")){
-        await H.tick(); const id=H.id(f);
-        out.push(...H.emAir(ctx,"VEREDA",f));
-        const {melhor,geom,tem}=H.contida(ctx,f,hosp);
-        if(!tem) out.push({camada:"VEREDA",fid:id,msg:"VEREDA deve estar contida em AVN, AUAS ou AREA_CONSOLIDADA, mas essas camadas estão vazias ou não carregadas.",sev:"erro",geom:f.geometry});
-        else if(melhor>ctx.tol) out.push({camada:"VEREDA",fid:id,msg:"VEREDA não está completamente contida em uma AVN, AUAS ou AREA_CONSOLIDADA.",area:melhor,sev:"erro",geom:geom||f.geometry});
+        await H.tick();
+        for(const e of H.emAir(ctx,"VEREDA",f)){
+          if(/^Não está contida/.test(e.msg)){
+            let m=Infinity; air.forEach(a=>{ const o=H.outside(f,a); if(o.area<m) m=o.area; });
+            out.push({...e,msg:"Geometria deve ser completamente contida por uma AIR.",area:isFinite(m)?m:undefined});
+          } else out.push(e);
+        }
       }
       return out;
     }
@@ -716,7 +731,7 @@ const RULES = [
   },
   {
     id:"RES-01", nome:"RESERVATORIO_ARTIFICIAL: atributos",
-    desc:"ZONA = R ou U. BARRAMENTO = S ou N. OBJETIVO = A, E ou O. SITUACAO = A, D, S ou O. FAIXA_APP mínima de 30 m em zona rural com superfície até 50 ha.",
+    desc:"ZONA = R ou U. BARRAMENTO = S ou N. OBJETIVO = A, E ou O. SITUACAO = A, D, S ou O. FAIXA_APP mínima de 30 m em zona rural com superfície até 50 ha (não exigida sem barramento, BARRAMENTO = N).",
     on:true,
     async run(ctx){
       const out=[], L=ctx.layers.RESERVATORIO_ARTIFICIAL;
@@ -734,7 +749,7 @@ const RULES = [
           if(H.vazio(x)) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:id,msg:`O campo ${c} está vazio. Deve ser ${txt}.`,sev:"erro"});
           else if(!v.some(([k])=>k===x)) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:id,msg:`O campo ${c} ("${x}") é inválido. Deve ser ${txt}.`,sev:"erro"});
         }
-        if(p.ZONA==="R"&&f.geometry){
+        if(p.ZONA==="R"&&p.BARRAMENTO!=="N"&&f.geometry){
           let ha=null; try{ ha=AREA(f)/10000; }catch(e){}
           if(ha!==null&&ha<=50){
             const fx=p.FAIXA_APP, num=(fx===null||fx===undefined||fx===""||(typeof fx==="number"&&isNaN(fx)))?null:Number(fx);
@@ -742,6 +757,23 @@ const RULES = [
             else if(num<30) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:id,msg:`O campo FAIXA_APP (${num.toLocaleString("pt-BR")}) deve ser no mínimo 30 para reservatório em zona rural com superfície até 50 hectares.`,sev:"erro"});
           }
         }
+      }
+      return out;
+    }
+  },
+  {
+    id:"RES-02", nome:"RESERVATORIO_ARTIFICIAL: sem barramento",
+    desc:"RESERVATORIO_ARTIFICIAL sem barramento (BARRAMENTO = N) deve estar completamente contido em uma AUAS ou AREA_CONSOLIDADA.",
+    on:true,
+    async run(ctx){
+      const out=[];
+      for(const f of H.feats(ctx,"RESERVATORIO_ARTIFICIAL")){
+        if(((f.properties||{}).BARRAMENTO)!=="N") continue;
+        await H.tick();
+        const {melhor,geom,tem}=H.contida(ctx,f,["AUAS","AREA_CONSOLIDADA"]);
+        const msg="A feição RESERVATORIO_ARTIFICIAL (sem barramento), deve estar completamente contida em uma AUAS ou ÁREA CONSOLIDADA";
+        if(!tem) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:H.id(f),msg,sev:"erro",geom:f.geometry});
+        else if(melhor>ctx.tol) out.push({camada:"RESERVATORIO_ARTIFICIAL",fid:H.id(f),msg,area:melhor,sev:"erro",geom:geom||f.geometry});
       }
       return out;
     }
@@ -766,7 +798,7 @@ const RULES = [
   },
   {
     id:"ARU-01", nome:"AREA_USO_RESTRITO: posição",
-    desc:"Completamente contida em uma AIR. Geometria completamente contida por AVN, AUAS ou AREA_CONSOLIDADA. Não pode sobrepor as hidrografias.",
+    desc:"Completamente contida em uma AIR. Geometria completamente contida por AVN, AUAS ou AREA_CONSOLIDADA. Não pode sobrepor as hidrografias, a AREA_DECLIVIDADE nem a AREA_UMIDA.",
     on:true,
     async run(ctx){
       const out=[], hosp=["AVN","AUAS","AREA_CONSOLIDADA"];
@@ -774,6 +806,8 @@ const RULES = [
         await H.tick(); const id=H.id(f);
         out.push(...H.emAir(ctx,"AREA_USO_RESTRITO",f));
         out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,RIOS,"AREA_USO_RESTRITO"));
+        out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,["AREA_DECLIVIDADE"]).map(e=>({...e,msg:"Área de Uso Restrito está sobrepondo Área de Declividade."})));
+        out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,["AREA_UMIDA"]).map(e=>({...e,msg:"Área de Uso Restrito está sobrepondo Área Úmida."})));
         const {melhor,geom,tem}=H.contida(ctx,f,hosp);
         if(!tem) out.push({camada:"AREA_USO_RESTRITO",fid:id,msg:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA, mas essas camadas estão vazias ou não carregadas.",sev:"erro",geom:f.geometry});
         else if(melhor>ctx.tol) out.push({camada:"AREA_USO_RESTRITO",fid:id,msg:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA.",area:melhor,sev:"erro",geom:geom||f.geometry});
@@ -782,14 +816,42 @@ const RULES = [
     }
   },
   {
-    id:"ARM-01", nome:"ARLREM: posição",
-    desc:"Não pode sobrepor ARL.",
+    id:"ARU-02", nome:"AREA_USO_RESTRITO: atributo TIPO",
+    desc:"(Campo TIPO) O Tipo deve ser 'P' para Área Pantaneira ou 'D' para Área de Declividade 25-45.",
     on:true,
+    run(ctx){
+      const out=[];
+      for(const f of H.feats(ctx,"AREA_USO_RESTRITO")){
+        const t=(f.properties||{}).TIPO;
+        if(t!=="P"&&t!=="D") out.push({camada:"AREA_USO_RESTRITO",fid:H.id(f),msg:"(Campo TIPO) Tipo Inválido. O Tipo deve ser 'P' para Área Pantaneira ou 'D' para Área de Declividade 25-45.",sev:"erro",geom:f.geometry});
+      }
+      return out;
+    }
+  },
+  {
+    id:"DEC-01", nome:"AREA_DECLIVIDADE: atributo INCLINACAO",
+    desc:"(Campo INCLINACAO) A inclinação deve ser '>45' para maior de 45 graus.",
+    on:true,
+    run(ctx){
+      const out=[];
+      for(const f of H.feats(ctx,"AREA_DECLIVIDADE")){
+        if((f.properties||{}).INCLINACAO!==">45") out.push({camada:"AREA_DECLIVIDADE",fid:H.id(f),msg:"(Campo INCLINACAO) Inclinação Inválida. A inclinação deve ser '>45' para maior de 45 graus.",sev:"erro",geom:f.geometry});
+      }
+      return out;
+    }
+  },
+  {
+    id:"ARM-01", nome:"ARLREM: posição",
+    desc:"Não pode sobrepor ARL nem a APP gerada pelo app (inclusive a própria AREA_DECLIVIDADE, que é APP).",
+    on:true, usaApp:true,
     async run(ctx){
       const out=[];
+      if(H.feats(ctx,"ARLREM").length){ if(!APPG.res&&!APPG.busy&&!APPG.t) await appRun(); else await appWait(); }
+      const app=APPG.fc&&APPG.fc.features[0]||null;
       for(const f of H.feats(ctx,"ARLREM")){
         await H.tick();
         out.push(...H.sobrepoe(ctx,"ARLREM",f,["ARL"],"ARLREM"));
+        if(app){ const r=H.inter(f,[app],ctx.tol); if(r.area) out.push({camada:"ARLREM",fid:H.id(f),msg:"ARLREM está sobrepondo APP.",area:r.area,sev:"erro",geom:r.geom}); }
       }
       return out;
     }
@@ -990,7 +1052,10 @@ const H={
   sobrepoe(ctx,nome,f,camadas,rotulo){
     const out=[];
     for(const c of camadas){
-      const r=H.inter(f,H.feats(ctx,c),ctx.tol);
+      let lista=H.feats(ctx,c);
+      // reservatório sem barramento (BARRAMENTO = N) fica dentro de AUAS/AREA_CONSOLIDADA: sobreposição não é erro
+      if(c==="RESERVATORIO_ARTIFICIAL"&&(nome==="AREA_CONSOLIDADA"||nome==="AUAS")) lista=lista.filter(x=>(x.properties||{}).BARRAMENTO!=="N");
+      const r=H.inter(f,lista,ctx.tol);
       if(r.area) out.push({camada:nome,fid:H.id(f),msg:`${rotulo||nome} sobrepondo ${c}`,area:r.area,sev:"erro",geom:r.geom});
     }
     return out;
@@ -1393,7 +1458,7 @@ async function run(){
   const par=[ctx.tol,ctx.wtol,ctx.vtol,AK()].join("|");
   for(const r of RULES) if(sel.has(r.id)){
     const c=RC[r.id], nomes=Object.keys(LAYERS).sort().join(",");
-    if(c&&c.par===par&&Object.keys(c.v).every(n=>lver(n)===c.v[n])&&(!c.all||c.nomes===nomes)){ c.res.forEach(x=>RESULTS.push({regra:r.id,...x})); continue; }
+    if(c&&c.par===par&&Object.keys(c.v).every(n=>lver(n)===c.v[n])&&(!c.all||c.nomes===nomes)&&(!r.usaApp||c.av===APPG.ver)){ c.res.forEach(x=>RESULTS.push({regra:r.id,...x})); continue; }
     $("sum").textContent="Executando… "+r.id; await new Promise(q=>setTimeout(q,0)); H.T0=performance.now();
     const deps=new Set(); let all=false;
     const lay=new Proxy(LAYERS,{get(t,k){ if(typeof k==="string") deps.add(k); return t[k]; },has(t,k){ if(typeof k==="string") deps.add(k); return k in t; },ownKeys(t){ all=true; return Reflect.ownKeys(t); }});
@@ -1401,7 +1466,7 @@ async function run(){
     try{
       const res=await r.run(rc); res.forEach(x=>RESULTS.push({regra:r.id,...x}));
       const v={}; (all?Object.keys(LAYERS):[...deps]).forEach(n=>v[n]=lver(n)); if(all) deps.forEach(n=>v[n]=lver(n));
-      RC[r.id]={par,v,all,nomes,res};
+      RC[r.id]={par,v,all,nomes,res,av:APPG.ver};
     }
     catch(e){ delete RC[r.id]; RESULTS.push({regra:r.id,camada:"—",msg:"Falha ao executar a regra: "+e.message,sev:"erro"}); }
   }
@@ -1443,7 +1508,9 @@ const APP_FONTES=[
   {nome:"RIO_ATE_10",inp:"apR10",rio:true},
   {nome:"RIO_10_A_50",inp:"apR50",rio:true},
   {nome:"NASCENTE",inp:"apNas",rio:false},
-  {nome:"RESERVATORIO_ARTIFICIAL",inp:"apRes",rio:false,res:true}];
+  {nome:"RESERVATORIO_ARTIFICIAL",inp:"apRes",rio:false,res:true},
+  {nome:"VEREDA",inp:"apVer",rio:false,vp:true},
+  {nome:"AREA_DECLIVIDADE",inp:"apDec",rio:false,prop:true}];
 function uniF(arr){
   arr=arr.filter(Boolean); if(!arr.length) return null; if(arr.length===1) return arr[0];
   try{ return turf.union(turf.featureCollection(arr)); }
@@ -1468,7 +1535,7 @@ function noRio10(pt,rios){
 let ATPU={v:-1,u:null};
 function atpUni(){ const v=lver("ATP"); if(ATPU.v!==v){ ATPU={v,u:uniF(ATPF())}; } return ATPU.u; }
 function appSig(){
-  const nm=Object.keys(LAYERS).filter(n=>/^RIO_|^NASCENTE$|^ATP$|^RESERVATORIO_ARTIFICIAL$|^AUAS$|^AREA_CONSOLIDADA$/.test(n)).sort();
+  const nm=Object.keys(LAYERS).filter(n=>/^RIO_|^NASCENTE$|^ATP$|^RESERVATORIO_ARTIFICIAL$|^VEREDA$|^AREA_DECLIVIDADE$|^AUAS$|^AREA_CONSOLIDADA$/.test(n)).sort();
   return nm.map(n=>n+":"+lver(n)).join(",")+"|"+AK()+"|"+$("apSub").checked+"|"+APP_FONTES.map(s=>$(s.inp).value).join(",")+"|"+$("apResMin").value;
 }
 async function appCompute(){
@@ -1486,10 +1553,11 @@ async function appCompute(){
       const bufs=[]; let fs_=todas, ign=0, fl=0;
       if(s.nome==="NASCENTE"){ const r10=H.feats({layers:LAYERS},"RIO_ATE_10"); fs_=todas.filter(f=>noRio10(f,r10)); ign=todas.length-fs_.length; }
       if(s.res){ const mn=+$("apResMin").value||0; fs_=todas.filter(f=>AREA(f)/10000>mn); ign=todas.length-fs_.length; }
-      for(const f of fs_){ try{ const b=turf.buffer(f,d,{units:"meters",steps:32}); if(b&&b.geometry) bufs.push(b); }catch(e){ fl++; } await H.tick(); }
+      if(s.prop){ fs_.forEach(f=>bufs.push(f)); } // AREA_DECLIVIDADE já é a própria APP (sem faixa)
+      else for(const f of fs_){ try{ const b=turf.buffer(f,d,{units:"meters",steps:32}); if(b&&b.geometry) bufs.push(b); }catch(e){ fl++; } await H.tick(); }
       let B=uniF(bufs);
-      const canal=s.rio?canalF():(s.res&&sub&&fs_.length?uniF(fs_):null);
-      if(B&&(s.rio||s.res)&&canal){ try{ B=turf.difference(turf.featureCollection([B,canal])); }catch(e){ fl++; } }
+      const canal=s.rio?canalF():((s.res||s.vp)&&sub&&fs_.length?uniF(fs_):null);
+      if(B&&(s.rio||s.res||s.vp)&&canal){ try{ B=turf.difference(turf.featureCollection([B,canal])); }catch(e){ fl++; } }
       ent={key,B,n:fs_.length,ign,fl,atpV:-1,atpA:null}; APPG.cache[s.nome]=ent;
     }
     falhas+=ent.fl;
@@ -1523,7 +1591,7 @@ function appShow(){
   const R=APPG.res; if(!R){ return; }
   const c=(v)=>v==null?"—":m2ha(v);
   $("apOut").innerHTML=`<table><tr><th>Origem</th><th class="n">Distância (m)</th><th class="n">Feições</th><th class="n">APP na ATP (ha)</th><th class="n">APP total (ha)</th></tr>
-  ${R.fontes.map(f=>`<tr><td>${f.nome}${f.nome==="NASCENTE"?" <small>(só as que estão em RIO_ATE_10)</small>":""}${f.nome==="RESERVATORIO_ARTIFICIAL"?` <small>(só área &gt; ${esc($("apResMin").value)} ha)</small>`:""}</td><td class="n">${f.d}</td><td class="n">${f.n}${f.ign?` <small>(${f.ign} ignorada${f.ign>1?"s":""})</small>`:""}</td><td class="n">${c(f.atp)}</td><td class="n">${m2ha(f.tot)}</td></tr>`).join("")}
+  ${R.fontes.map(f=>`<tr><td>${f.nome}${f.nome==="AREA_DECLIVIDADE"?" <small>(a própria área é APP)</small>":""}${f.nome==="NASCENTE"?" <small>(só as que estão em RIO_ATE_10)</small>":""}${f.nome==="RESERVATORIO_ARTIFICIAL"?` <small>(só área &gt; ${esc($("apResMin").value)} ha)</small>`:""}</td><td class="n">${f.d}</td><td class="n">${f.n}${f.ign?` <small>(${f.ign} ignorada${f.ign>1?"s":""})</small>`:""}</td><td class="n">${c(f.atp)}</td><td class="n">${m2ha(f.tot)}</td></tr>`).join("")}
   <tr class="tt"><td>APP mergeada (1 polígono)</td><td></td><td class="n">${R.fontes.reduce((a,f)=>a+f.n,0)}</td><td class="n">${c(R.atp)}</td><td class="n">${m2ha(R.tot)}</td></tr>
   <tr class="bad"><td><b>APPD</b> <small>(APP que sobrepõe AUAS e AREA_CONSOLIDADA)</small></td><td></td><td class="n"></td><td class="n">${R.appd.tem?c(R.appd.atp):"—"}</td><td class="n">${R.appd.tem?m2ha(R.appd.tot):"—"}</td></tr>
   <tr class="bad"><td>% da APP que é APPD</td><td></td><td class="n"></td><td class="n">${R.appd.tem&&R.atp>0?fmtPc(R.appd.atp/R.atp*100):"—"}</td><td class="n">${R.appd.tem&&R.tot>0?fmtPc(R.appd.tot/R.tot*100):"—"}</td></tr></table>
@@ -1537,8 +1605,8 @@ async function appRun(){
     const sig=appSig();
     if(APPG.sig===sig&&APPG.res&&APPG.fc){ appShow(); return; }
     $("apSt").textContent="Calculando…"; $("apSt").className="empty";
-    const n=H.feats({layers:LAYERS},"RIO_ATE_10").length+H.feats({layers:LAYERS},"RIO_10_A_50").length+H.feats({layers:LAYERS},"RESERVATORIO_ARTIFICIAL").length;
-    if(!n){ APPG.fc=null; APPG.res=null; APPG.sig=null; $("apOut").innerHTML=""; $("apSt").textContent="Sem feições em RIO_ATE_10, RIO_10_A_50 nem RESERVATORIO_ARTIFICIAL: nada a gerar."; appRender(); appDraw(); return; }
+    const n=H.feats({layers:LAYERS},"RIO_ATE_10").length+H.feats({layers:LAYERS},"RIO_10_A_50").length+H.feats({layers:LAYERS},"RESERVATORIO_ARTIFICIAL").length+H.feats({layers:LAYERS},"VEREDA").length+H.feats({layers:LAYERS},"AREA_DECLIVIDADE").length;
+    if(!n){ APPG.fc=null; APPG.res=null; APPG.sig=null; $("apOut").innerHTML=""; $("apSt").textContent="Sem feições em RIO_ATE_10, RIO_10_A_50, RESERVATORIO_ARTIFICIAL, VEREDA nem AREA_DECLIVIDADE: nada a gerar."; appRender(); appDraw(); return; }
     const {all,res}=await appCompute();
     if(!all){ APPG.fc=null; APPG.res=res; appRender(); appDraw(); $("apSt").textContent="Não foi possível gerar a APP."; return; }
     all.properties={NOME:"APP",AREA_HA:+(res.tot/10000).toFixed(4),HA_NA_ATP:res.atp==null?"":+(res.atp/10000).toFixed(4)};
@@ -1559,8 +1627,8 @@ function compCalc(feats){ // feats: {AUAS, ARL}. AUAS só exige ARL tipo A quand
   const tArl=feats.ARL.reduce((a,f)=>a+AREA(f),0), arlNA=tArl-tA;
   const TC=TIP.res?tipCalc(TIP.res):null, exT=TC&&TC.temReq?TC.exT:null;
   if(exT==null) return {au,aA,tAuas,tA,tol,exT:null,defBase:null,req:null,dif:0,st:"indef"};
-  const defBase=Math.max(0,exT-arlNA), req=Math.min(tAuas,defBase), dif=req-tA;
-  return {au,aA,tAuas,tA,tol,exT,arlNA,defBase,req,dif,st:req<=tol?"sem":(dif>tol?"falta":(-dif>tol?"exc":"ok"))};
+  const rem=TIP.res.cols.reduce((a,c,i)=>a+(TC.rq[i]==null?0:((TIP.res.totRem&&TIP.res.totRem[c])||0)),0), defBase=Math.max(0,exT-arlNA-rem), req=Math.min(tAuas,defBase), dif=req-tA;
+  return {au,aA,tAuas,tA,tol,exT,arlNA,rem,defBase,req,dif,st:req<=tol?"sem":(dif>tol?"falta":(-dif>tol?"exc":"ok"))};
 }
 function compRender(){
   const el=$("compOut"); if(!el) return;
@@ -1570,7 +1638,7 @@ function compRender(){
   const sit=C.st==="indef"?`<td class="n sit"><small>Aguardando ARL exigida (ATP, tipologia e percentuais)</small></td>`:C.st==="sem"?`<td class="n sit ok"><small>AUAS sem exigência de ARL tipo A (não há déficit de ARL)</small></td>`:C.st==="falta"?`<td class="n sit er"><small>Falta vetorizar ARL tipo A</small><br>${m2ha(C.dif)} ha</td>`:C.st==="exc"?`<td class="n sit ok"><small>Excedente de ARL tipo A</small><br>${m2ha(-C.dif)} ha</td>`:`<td class="n sit ok"><small>Compensação atendida</small><br>${m2ha(0)} ha</td>`;
   el.innerHTML=`<table style="margin-top:8px">
   <tr><td><b>AUAS</b></td><td class="n">${m2ha(C.tAuas)} ha</td></tr>
-  <tr><td>Déficit de ARL (exigida − ARL sem tipo A)</td><td class="n">${C.defBase==null?"—":m2ha(C.defBase)+" ha"}</td></tr>
+  <tr><td>Déficit de ARL (exigida − ARL sem tipo A − ARLREM)</td><td class="n">${C.defBase==null?"—":m2ha(C.defBase)+" ha"}</td></tr>
   <tr><td><b>Exigência de ARL A</b> (menor entre AUAS e déficit)</td><td class="n">${C.req==null?"—":m2ha(C.req)+" ha"}</td></tr>
   <tr><td><b>ARL A</b> vetorizada</td><td class="n">${m2ha(C.tA)} ha</td></tr>
   <tr class="tt"><td>Situação</td>${sit}</tr></table>
@@ -1578,7 +1646,7 @@ function compRender(){
 }
 $("compBtn").onclick=()=>{ compRender(); $("dlgComp").classList.add("on"); };
 
-["apR10","apR50","apNas","apRes","apResMin","apSub"].forEach(i=>$(i).oninput=$(i).onchange=appAuto);
+["apR10","apR50","apNas","apRes","apResMin","apVer","apDec","apSub"].forEach(i=>$(i).oninput=$(i).onchange=appAuto);
 
 /* ============ FAIXA DE QUANTITATIVOS (barra de ferramentas) ============ */
 let QAU=null;
@@ -1691,7 +1759,7 @@ $("tipWfs").onclick=async()=>{
 };
 function tipReq(c){ const u=String(c).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); if(u.includes("CERRADO")) return +$("tipRc").value; if(u.includes("FLORESTA")) return +$("tipRf").value; return null; }
 function tipCalc(R){
-  const rq=R.cols.map(tipReq), ex=R.cols.map((c,i)=>rq[i]==null||!R.totA[c]?null:R.totA[c]*rq[i]/100), df=ex.map((e,i)=>e==null?null:Math.max(0,e-(R.tot[R.cols[i]]||0))), ec=ex.map((e,i)=>e==null?null:Math.max(0,(R.tot[R.cols[i]]||0)-e));
+  const rq=R.cols.map(tipReq), ex=R.cols.map((c,i)=>rq[i]==null||!R.totA[c]?null:R.totA[c]*rq[i]/100), rm=c=>(R.totRem&&R.totRem[c])||0, df=ex.map((e,i)=>e==null?null:Math.max(0,e-(R.tot[R.cols[i]]||0)-rm(R.cols[i]))), ec=ex.map((e,i)=>e==null?null:Math.max(0,(R.tot[R.cols[i]]||0)+rm(R.cols[i])-e));
   return {rq,ex,df,ec,exT:ex.reduce((a,b)=>a+(b||0),0),dfT:df.reduce((a,b)=>a+(b||0),0),ecT:ec.reduce((a,b)=>a+(b||0),0),temReq:rq.some(x=>x!=null)};
 }
 function tipQuad(){
@@ -1701,6 +1769,7 @@ function tipQuad(){
   el.innerHTML=`<h4>Quantitativo por tipologia (campo ${esc(fld)})</h4><table><tr><th></th>${cols.map(c=>`<th class="n">${esc(c)}</th>`).join("")}<th class="n">Total</th></tr>
   <tr><td><b>ATP</b> (ha)</td>${cols.map(c=>td(totA[c]?fmtHa(totA[c]):"0,0000")).join("")}${td(fmtHa(totAtp))}</tr>
   <tr><td><b>ARL</b> (ha)</td>${cols.map(c=>td(tot[c]?fmtHa(tot[c]):"0,0000")).join("")}${td(fmtHa(totArl))}</tr>
+  ${R.totRemAll>0?`<tr><td><b>ARLREM</b> (ha) <small>cedida por outro CAR: abate o déficit</small></td>${cols.map(c=>td(fmtHa((R.totRem&&R.totRem[c])||0))).join("")}${td(fmtHa(R.totRemAll))}</tr>`:""}
   <tr><td>Percentual (ARL ÷ ATP)</td>${cols.map(c=>td(totA[c]?fmtPc((tot[c]||0)/totA[c]*100):"—")).join("")}${td(totAtp?fmtPc(totArl/totAtp*100):"—")}</tr>
   <tr><td>Percentual exigido</td>${C.rq.map(r=>td(r==null?"—":fmtPc(r))).join("")}${td("—")}</tr>
   <tr><td>Área exigida (ha)</td>${C.ex.map(e=>td(e==null?"—":fmtHa(e))).join("")}${td(C.temReq?fmtHa(C.exT):"—")}</tr>
@@ -1766,6 +1835,18 @@ async function tipRunCore(){
     const aArl=c.aArl; totArl+=aArl; falhas+=c.fl;
     for(const [v,a] of Object.entries(c.por)){ const ap=Math.min(a,c.porApp[v]||0); det.push({fid:H.id(f),ident:p.IDENTIFIC==null?"":p.IDENTIFIC,sit:p.SITUACAO==null?"":p.SITUACAO,aArl,v,a,ap}); tot[v]=(tot[v]||0)+a; totApp[v]=(totApp[v]||0)+ap; }
   }
+  const totRem={}; let totRemAll=0;
+  for(const f of H.feats({layers:LAYERS},"ARLREM")){
+    totRemAll+=AREA(f); let soma=0;
+    for(const t of T){
+      if(H.disj(f,t)) continue;
+      let i; try{ i=H.isect(f,t); }catch(e){ falhas++; continue; }
+      if(!i) continue; const a=AREA(i); if(!(a>0)) continue;
+      const v=val(t); totRem[v]=(totRem[v]||0)+a; soma+=a;
+    }
+    const a0=AREA(f), sem=a0-soma; if(sem>Math.max(tol,0.01,a0*1e-5)) totRem[SEMTIP]=(totRem[SEMTIP]||0)+sem;
+    await H.tick();
+  }
   const atpF=H.feats({layers:LAYERS},"ATP"); let totA={}, totAtp=0;
   const ka=[lver("ATP"),fld,tol,AK()].join("|");
   if(TIPA&&TIPA.fc===TIP.fc&&TIPA.k===ka){ totA=TIPA.totA; totAtp=TIPA.totAtp; falhas+=TIPA.fl; }
@@ -1784,8 +1865,8 @@ async function tipRunCore(){
     }
     falhas+=fl; TIPA={fc:TIP.fc,k:ka,totA,totAtp,fl};
   }
-  const cols=[...new Set([...Object.keys(totA),...Object.keys(tot)])].sort((a,b)=>(a===SEMTIP)-(b===SEMTIP)||((totA[b]||0)+(tot[b]||0))-((totA[a]||0)+(tot[a]||0)));
-  TIP.res={det,tot,totApp,hasApp:!!app,totArl,totA,totAtp,cols,fld,falhas};
+  const cols=[...new Set([...Object.keys(totA),...Object.keys(tot),...Object.keys(totRem)])].sort((a,b)=>(a===SEMTIP)-(b===SEMTIP)||((totA[b]||0)+(tot[b]||0))-((totA[a]||0)+(tot[a]||0)));
+  TIP.res={det,tot,totApp,totRem,totRemAll,hasApp:!!app,totArl,totA,totAtp,cols,fld,falhas};
   const ord=Object.entries(tot).sort((a,b)=>b[1]-a[1]);
   $("tipOut").innerHTML=`<div id="tipQuad"></div><div id="tipApp"></div>
   <h4>Por ARL</h4><div class="scr"><table><tr><th>ARL</th><th>IDENTIFIC</th><th>SITUACAO</th><th class="n">Área da ARL (ha)</th><th>Tipologia</th><th class="n">Área na tipologia (ha)</th><th class="n">%</th>${app?'<th class="n">Em APP (ha)</th>':""}</tr>${det.map(d=>`<tr><td>${d.fid}</td><td>${esc(d.ident)}</td><td>${esc(d.sit)}</td><td class="n">${fmtHa(d.aArl)}</td><td>${esc(d.v)}</td><td class="n">${fmtHa(d.a)}</td><td class="n">${fmtPc(d.a/d.aArl*100)}</td>${app?`<td class="n">${fmtHa(d.ap)}</td>`:""}</tr>`).join("")}</table></div>`;
