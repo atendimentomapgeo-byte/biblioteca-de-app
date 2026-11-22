@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.96">
+<meta name="app-version" content="0.0.99">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -221,7 +221,7 @@ tr.row{transition:background .15s}
 <header id="hdr">
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.96</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.99</button>
   <span id="procAviso" class="procav" style="display:none">⚠ Arquivo processado em edição</span>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="F">Layout: Painel GIS</option><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
@@ -310,8 +310,11 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.96";
+const APP_VERSION = "0.0.99";
 const CHANGELOG = [
+  {v:"0.0.99", d:"2026-11-22", t:["Nova regra ATM-01 (AREA_TOPO_MORRO): não pode sobrepor ARL."]},
+  {v:"0.0.98", d:"2026-11-22", t:["ARU-01 (AREA_USO_RESTRITO): não pode sobrepor hidrografias, LAGOA_NATURAL nem RESERVATORIO_ARTIFICIAL com BARRAMENTO = S (reservatório sem barramento, N, fica de fora)."]},
+  {v:"0.0.97", d:"2026-11-22", t:["ARU-01 (AREA_USO_RESTRITO): também não pode sobrepor AREA_TOPO_MORRO. Mensagem do SIMCAR: \"Área de Uso Restrito está sobrepondo Área de Topo de Morro.\""]},
   {v:"0.0.96", d:"2026-11-22", t:["ARM-01 (ARLREM): também não pode sobrepor UTILIDADE_PUBLICA. Mensagem do SIMCAR: \"ARLREM está sobrepondo Utilidade Pública.\""]},
   {v:"0.0.95", d:"2026-11-21", t:["RESERVATORIO_ARTIFICIAL sem barramento (BARRAMENTO = N): sobrepor AREA_CONSOLIDADA ou AUAS deixa de ser erro (CON-01 e AUAS-01) e a FAIXA_APP não é exigida (RES-01)."]},
   {v:"0.0.94", d:"2026-11-21", t:["Nova regra RES-02 (RESERVATORIO_ARTIFICIAL sem barramento, BARRAMENTO = N): A feição RESERVATORIO_ARTIFICIAL (sem barramento), deve estar completamente contida em uma AUAS ou ÁREA CONSOLIDADA."]},
@@ -799,16 +802,17 @@ const RULES = [
   },
   {
     id:"ARU-01", nome:"AREA_USO_RESTRITO: posição",
-    desc:"Completamente contida em uma AIR. Geometria completamente contida por AVN, AUAS ou AREA_CONSOLIDADA. Não pode sobrepor as hidrografias, a AREA_DECLIVIDADE nem a AREA_UMIDA.",
+    desc:"Completamente contida em uma AIR. Geometria completamente contida por AVN, AUAS ou AREA_CONSOLIDADA. Não pode sobrepor as hidrografias, LAGOA_NATURAL, RESERVATORIO_ARTIFICIAL com BARRAMENTO = S, a AREA_DECLIVIDADE, a AREA_UMIDA nem a AREA_TOPO_MORRO.",
     on:true,
     async run(ctx){
       const out=[], hosp=["AVN","AUAS","AREA_CONSOLIDADA"];
       for(const f of H.feats(ctx,"AREA_USO_RESTRITO")){
         await H.tick(); const id=H.id(f);
         out.push(...H.emAir(ctx,"AREA_USO_RESTRITO",f));
-        out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,RIOS,"AREA_USO_RESTRITO"));
+        out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,[...RIOS,"LAGOA_NATURAL","RESERVATORIO_ARTIFICIAL"],"AREA_USO_RESTRITO"));
         out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,["AREA_DECLIVIDADE"]).map(e=>({...e,msg:"Área de Uso Restrito está sobrepondo Área de Declividade."})));
         out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,["AREA_UMIDA"]).map(e=>({...e,msg:"Área de Uso Restrito está sobrepondo Área Úmida."})));
+        out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,["AREA_TOPO_MORRO"]).map(e=>({...e,msg:"Área de Uso Restrito está sobrepondo Área de Topo de Morro."})));
         const {melhor,geom,tem}=H.contida(ctx,f,hosp);
         if(!tem) out.push({camada:"AREA_USO_RESTRITO",fid:id,msg:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA, mas essas camadas estão vazias ou não carregadas.",sev:"erro",geom:f.geometry});
         else if(melhor>ctx.tol) out.push({camada:"AREA_USO_RESTRITO",fid:id,msg:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA.",area:melhor,sev:"erro",geom:geom||f.geometry});
@@ -837,6 +841,19 @@ const RULES = [
       const out=[];
       for(const f of H.feats(ctx,"AREA_DECLIVIDADE")){
         if((f.properties||{}).INCLINACAO!==">45") out.push({camada:"AREA_DECLIVIDADE",fid:H.id(f),msg:"(Campo INCLINACAO) Inclinação Inválida. A inclinação deve ser '>45' para maior de 45 graus.",sev:"erro",geom:f.geometry});
+      }
+      return out;
+    }
+  },
+  {
+    id:"ATM-01", nome:"AREA_TOPO_MORRO: posição",
+    desc:"Não pode sobrepor ARL.",
+    on:true,
+    async run(ctx){
+      const out=[];
+      for(const f of H.feats(ctx,"AREA_TOPO_MORRO")){
+        await H.tick();
+        out.push(...H.sobrepoe(ctx,"AREA_TOPO_MORRO",f,["ARL"],"AREA_TOPO_MORRO"));
       }
       return out;
     }
@@ -1057,6 +1074,8 @@ const H={
       let lista=H.feats(ctx,c);
       // reservatório sem barramento (BARRAMENTO = N) fica dentro de AUAS/AREA_CONSOLIDADA: sobreposição não é erro
       if(c==="RESERVATORIO_ARTIFICIAL"&&(nome==="AREA_CONSOLIDADA"||nome==="AUAS")) lista=lista.filter(x=>(x.properties||{}).BARRAMENTO!=="N");
+      // AREA_USO_RESTRITO só não pode sobrepor reservatório com barramento (BARRAMENTO = S)
+      if(c==="RESERVATORIO_ARTIFICIAL"&&nome==="AREA_USO_RESTRITO") lista=lista.filter(x=>(x.properties||{}).BARRAMENTO==="S");
       const r=H.inter(f,lista,ctx.tol);
       if(r.area) out.push({camada:nome,fid:H.id(f),msg:`${rotulo||nome} sobrepondo ${c}`,area:r.area,sev:"erro",geom:r.geom});
     }
