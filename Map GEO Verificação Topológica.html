@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.99">
+<meta name="app-version" content="0.0.106">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -221,7 +221,7 @@ tr.row{transition:background .15s}
 <header id="hdr">
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.99</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.106</button>
   <span id="procAviso" class="procav" style="display:none">⚠ Arquivo processado em edição</span>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="F">Layout: Painel GIS</option><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
@@ -310,8 +310,15 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.99";
+const APP_VERSION = "0.0.106";
 const CHANGELOG = [
+  {v:"0.0.106", d:"2026-11-23", t:["ARU-01 (AREA_USO_RESTRITO): removida a exigência de estar completamente contida por AVN, AUAS ou AREA_CONSOLIDADA."]},
+  {v:"0.0.105", d:"2026-11-23", t:["AIR-02: a hidrografia da soma passa a incluir LAGOA_NATURAL e RESERVATORIO_ARTIFICIAL (o reservatório com BARRAMENTO = N não entra, pois já está em AUAS/AREA_CONSOLIDADA)."]},
+  {v:"0.0.104", d:"2026-11-22", t:["Áreas dos resultados e das mensagens passam de m² para ha (4 casas decimais): cards, tabela, exportação CSV e mensagens das regras."]},
+  {v:"0.0.103", d:"2026-11-22", t:["AIR-02: mensagem exatamente como no SIMCAR; a diferença de área aparece só uma vez (o app já a exibe ao lado da mensagem)."]},
+  {v:"0.0.102", d:"2026-11-22", t:["VER-01 (VEREDA): volta a exigir geometria completamente contida por uma AVN, AUAS ou ÁREA CONSOLIDADA (texto do SIMCAR), além da AIR."]},
+  {v:"0.0.101", d:"2026-11-22", t:["Nova regra UMI-01 (AREA_UMIDA): geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA (texto do SIMCAR)."]},
+  {v:"0.0.100", d:"2026-11-22", t:["Nova regra AIR-02: a soma das áreas de AVN, AUAS, AREA_CONSOLIDADA e hidrografias dentro de cada AIR deve corresponder à área total da AIR (texto do SIMCAR)."]},
   {v:"0.0.99", d:"2026-11-22", t:["Nova regra ATM-01 (AREA_TOPO_MORRO): não pode sobrepor ARL."]},
   {v:"0.0.98", d:"2026-11-22", t:["ARU-01 (AREA_USO_RESTRITO): não pode sobrepor hidrografias, LAGOA_NATURAL nem RESERVATORIO_ARTIFICIAL com BARRAMENTO = S (reservatório sem barramento, N, fica de fora)."]},
   {v:"0.0.97", d:"2026-11-22", t:["ARU-01 (AREA_USO_RESTRITO): também não pode sobrepor AREA_TOPO_MORRO. Mensagem do SIMCAR: \"Área de Uso Restrito está sobrepondo Área de Topo de Morro.\""]},
@@ -616,6 +623,27 @@ const RULES = [
     }
   },
   {
+    id:"AIR-02", nome:"AIR: soma das áreas",
+    desc:"A soma das áreas de AVN, AUAS, AREA_CONSOLIDADA e hidrografias (rios, LAGOA_NATURAL e RESERVATORIO_ARTIFICIAL com BARRAMENTO = S) dentro de cada AIR deve corresponder à área total da AIR.",
+    on:true,
+    async run(ctx){
+      const out=[], camadas=["AVN","AUAS","AREA_CONSOLIDADA",...RIOS,"LAGOA_NATURAL","RESERVATORIO_ARTIFICIAL"];
+      for(const a of H.feats(ctx,"AIR")){
+        await H.tick();
+        const p=a.properties||{}; let soma=0;
+        for(const c of camadas) for(const f of H.feats(ctx,c)){
+          // reservatório sem barramento (N) já está dentro de AUAS/AREA_CONSOLIDADA: não soma de novo
+          if(c==="RESERVATORIO_ARTIFICIAL"&&(f.properties||{}).BARRAMENTO==="N") continue;
+          try{ const i=H.isect(a,f); if(i) soma+=AREA(i); }catch(e){}
+        }
+        const dif=AREA(a)-soma;
+        if(Math.abs(dif)>ctx.tol)
+          out.push({camada:"AIR",fid:H.id(a),msg:`A soma das áreas de AVN, AUAS, Área Consolidada e Hidrografia não corresponde à área total da AIR de tipo '${p.TIPO}' e identificação '${p.IDENTIFIC}'.`,area:Math.abs(dif),sev:"erro",geom:a.geometry});
+      }
+      return out;
+    }
+  },
+  {
     id:"AVN-01", nome:"AVN: posição e atributos",
     desc:"Contida em uma única AIR, sem sobrepor outra AIR. Não sobrepõe consolidada, AUAS, rios, lagoa e reservatório. SITUACAO = P ou R.",
     on:true,
@@ -703,7 +731,7 @@ const RULES = [
   /* ---------- Etapa 3 ---------- */
   {
     id:"VER-01", nome:"VEREDA: posição",
-    desc:"Geometria deve ser completamente contida por uma AIR (sem sobrepor outra AIR).",
+    desc:"Geometria deve ser completamente contida por uma AIR (sem sobrepor outra AIR) e por uma AVN, AUAS ou ÁREA CONSOLIDADA.",
     on:true,
     async run(ctx){
       const out=[], air=H.feats(ctx,"AIR");
@@ -715,6 +743,10 @@ const RULES = [
             out.push({...e,msg:"Geometria deve ser completamente contida por uma AIR.",area:isFinite(m)?m:undefined});
           } else out.push(e);
         }
+        const {melhor,geom,tem}=H.contida(ctx,f,["AVN","AUAS","AREA_CONSOLIDADA"]);
+        const msg="Geometria deve ser completamente contida por uma AVN, AUAS ou ÁREA CONSOLIDADA.";
+        if(!tem) out.push({camada:"VEREDA",fid:H.id(f),msg,sev:"erro",geom:f.geometry});
+        else if(melhor>ctx.tol) out.push({camada:"VEREDA",fid:H.id(f),msg,area:melhor,sev:"erro",geom:geom||f.geometry});
       }
       return out;
     }
@@ -783,6 +815,22 @@ const RULES = [
     }
   },
   {
+    id:"UMI-01", nome:"AREA_UMIDA: posição",
+    desc:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA.",
+    on:true,
+    async run(ctx){
+      const out=[];
+      for(const f of H.feats(ctx,"AREA_UMIDA")){
+        await H.tick();
+        const {melhor,geom,tem}=H.contida(ctx,f,["AVN","AUAS","AREA_CONSOLIDADA"]);
+        const msg="Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA.";
+        if(!tem) out.push({camada:"AREA_UMIDA",fid:H.id(f),msg,sev:"erro",geom:f.geometry});
+        else if(melhor>ctx.tol) out.push({camada:"AREA_UMIDA",fid:H.id(f),msg,area:melhor,sev:"erro",geom:geom||f.geometry});
+      }
+      return out;
+    }
+  },
+  {
     id:"HID-01", nome:"Hidrografia sem sobreposição",
     desc:"Rios (5 classes), LAGOA_NATURAL e RESERVATORIO_ARTIFICIAL não podem se sobrepor entre si, nem dentro da mesma camada.",
     on:true,
@@ -802,10 +850,10 @@ const RULES = [
   },
   {
     id:"ARU-01", nome:"AREA_USO_RESTRITO: posição",
-    desc:"Completamente contida em uma AIR. Geometria completamente contida por AVN, AUAS ou AREA_CONSOLIDADA. Não pode sobrepor as hidrografias, LAGOA_NATURAL, RESERVATORIO_ARTIFICIAL com BARRAMENTO = S, a AREA_DECLIVIDADE, a AREA_UMIDA nem a AREA_TOPO_MORRO.",
+    desc:"Completamente contida em uma AIR. Não pode sobrepor as hidrografias, LAGOA_NATURAL, RESERVATORIO_ARTIFICIAL com BARRAMENTO = S, a AREA_DECLIVIDADE, a AREA_UMIDA nem a AREA_TOPO_MORRO.",
     on:true,
     async run(ctx){
-      const out=[], hosp=["AVN","AUAS","AREA_CONSOLIDADA"];
+      const out=[];
       for(const f of H.feats(ctx,"AREA_USO_RESTRITO")){
         await H.tick(); const id=H.id(f);
         out.push(...H.emAir(ctx,"AREA_USO_RESTRITO",f));
@@ -813,9 +861,6 @@ const RULES = [
         out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,["AREA_DECLIVIDADE"]).map(e=>({...e,msg:"Área de Uso Restrito está sobrepondo Área de Declividade."})));
         out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,["AREA_UMIDA"]).map(e=>({...e,msg:"Área de Uso Restrito está sobrepondo Área Úmida."})));
         out.push(...H.sobrepoe(ctx,"AREA_USO_RESTRITO",f,["AREA_TOPO_MORRO"]).map(e=>({...e,msg:"Área de Uso Restrito está sobrepondo Área de Topo de Morro."})));
-        const {melhor,geom,tem}=H.contida(ctx,f,hosp);
-        if(!tem) out.push({camada:"AREA_USO_RESTRITO",fid:id,msg:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA, mas essas camadas estão vazias ou não carregadas.",sev:"erro",geom:f.geometry});
-        else if(melhor>ctx.tol) out.push({camada:"AREA_USO_RESTRITO",fid:id,msg:"Geometria deve ser completamente contida por AVN, AUAS ou AREA_CONSOLIDADA.",area:melhor,sev:"erro",geom:geom||f.geometry});
       }
       return out;
     }
@@ -923,7 +968,7 @@ const H={
     const dt=new Date(y,mo-1,d);
     return (dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)?{date:dt}:{raw:t};
   },
-  m2:a=>a.toLocaleString("pt-BR",{maximumFractionDigits:2})+" m²",
+  m2:a=>(a/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})+" ha",
   bb(f){ return f._bb||(f._bb=turf.bbox(f)); },
   disj(a,b){ const x=H.bb(a),y=H.bb(b); return x[0]>y[2]||y[0]>x[2]||x[1]>y[3]||y[1]>x[3]; },
   // ---- teste rápido de relação entre dois polígonos (evita intersect/difference quando não é preciso)
@@ -1499,9 +1544,9 @@ function showResults(){
   $("sum").className=er?"tag er":av?"tag wn":"tag ok";
   $("sum").textContent=RESULTS.length?`${er} erro(s) · ${av} aviso(s)`:"Nenhuma inconsistência encontrada";
   $("csv").disabled=!RESULTS.length;
-  $("cards").innerHTML=RESULTS.map((r,i)=>`<div class="rcard" data-i="${i}"><div class="t"><span class="tag ${r.sev==="erro"?"er":"wn"}">${r.sev}</span><b>${r.camada||""} · ${r.fid??""}</b><span class="r">${r.regra}</span></div><div class="m">${r.msg}${r.area!=null?" · "+r.area.toLocaleString("pt-BR",{maximumFractionDigits:2})+" m²":""}</div></div>`).join("");
+  $("cards").innerHTML=RESULTS.map((r,i)=>`<div class="rcard" data-i="${i}"><div class="t"><span class="tag ${r.sev==="erro"?"er":"wn"}">${r.sev}</span><b>${r.camada||""} · ${r.fid??""}</b><span class="r">${r.regra}</span></div><div class="m">${r.msg}${r.area!=null?" · "+(r.area/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4})+" ha":""}</div></div>`).join("");
   updateRuleCounts(); syncUI();
-  $("tbl").innerHTML=RESULTS.length?`<table><tr><th>Regra</th><th>Camada</th><th>Feição</th><th>Gravidade</th><th>Descrição</th><th>Área (m²)</th></tr>${RESULTS.map((r,i)=>`<tr class="row" data-i="${i}"><td>${r.regra}</td><td>${r.camada||""}</td><td>${r.fid??""}</td><td><span class="tag ${r.sev==="erro"?"er":"wn"}">${r.sev}</span></td><td>${r.msg}</td><td>${r.area!=null?r.area.toLocaleString("pt-BR",{maximumFractionDigits:2}):""}</td></tr>`).join("")}</table>`:"";
+  $("tbl").innerHTML=RESULTS.length?`<table><tr><th>Regra</th><th>Camada</th><th>Feição</th><th>Gravidade</th><th>Descrição</th><th>Área (ha)</th></tr>${RESULTS.map((r,i)=>`<tr class="row" data-i="${i}"><td>${r.regra}</td><td>${r.camada||""}</td><td>${r.fid??""}</td><td><span class="tag ${r.sev==="erro"?"er":"wn"}">${r.sev}</span></td><td>${r.msg}</td><td>${r.area!=null?(r.area/10000).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4}):""}</td></tr>`).join("")}</table>`:"";
 }
 $("cRes").addEventListener("click",e=>{
   const tr=e.target.closest("[data-i]"); if(!tr) return;
@@ -1510,7 +1555,7 @@ $("cRes").addEventListener("click",e=>{
 });
 $("csv").onclick=()=>{
   const q=s=>`"${String(s??"").replace(/"/g,'""')}"`;
-  const rows=[["Regra","Camada","Feição","Gravidade","Descrição","Área (m²)"],...RESULTS.map(r=>[r.regra,r.camada,r.fid,r.sev,r.msg,r.area!=null?r.area.toFixed(2).replace(".",","):""])];
+  const rows=[["Regra","Camada","Feição","Gravidade","Descrição","Área (ha)"],...RESULTS.map(r=>[r.regra,r.camada,r.fid,r.sev,r.msg,r.area!=null?(r.area/10000).toFixed(4).replace(".",","):""])];
   const blob=new Blob(["﻿"+rows.map(r=>r.map(q).join(";")).join("\r\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="verificacao_topologica.csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 };
