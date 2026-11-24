@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map GEO Verificação Topológica</title>
 <meta name="app-name" content="Map GEO Verificação Topológica">
-<meta name="app-version" content="0.0.106">
+<meta name="app-version" content="0.0.107">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#f4f6f8;--pn:#fff;--tx:#1d2733;--mt:#6a7684;--bd:#d9dfe6;--ac:#0f6e56;--ac2:#e8f4f0;--er:#c0392b;--wn:#c77d0a;--ok:#1e8449}
@@ -221,7 +221,7 @@ tr.row{transition:background .15s}
 <header id="hdr">
   <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjAiIHkxPSI2MCIgeDI9IjQ1MiIgeTI9IjQ1MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzRkM2EwIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmZhNmUwIi8+PC9saW5lYXJHcmFkaWVudD48bWFzayBpZD0ibTMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iMTAwIiBmaWxsPSIjMDAwIi8+PC9tYXNrPjwvZGVmcz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGEwYTBhIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIG1hc2s9InVybCgjbTMpIj48cGF0aCBkPSJNMjM2IDYyIEwzOTYgMTM4IEwyMzYgMjE0IEw3NiAxMzggWiIvPjxwYXRoIGQ9Ik03NiAyMDYgTDIzNiAyODIgTDM5NiAyMDYiLz48cGF0aCBkPSJNNzYgMjc0IEwyMzYgMzUwIEwzOTYgMjc0Ii8+PC9nPjxjaXJjbGUgY3g9IjM1MiIgY3k9IjM1MiIgcj0iNzYiLz48bGluZSB4MT0iNDA2IiB5MT0iNDA2IiB4Mj0iNDU0IiB5Mj0iNDU0IiBzdHJva2Utd2lkdGg9IjI2Ii8+PHBhdGggZD0iTTMzMS44NCAzNTYgTDM0Ni45NiAzNzEuOTYgTDM3My44NCAzMzguMzYiLz48L2c+PC9zdmc+" alt="" width="40" height="40">
   <h1>Map GEO Verificação Topológica</h1>
-  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.106</button>
+  <button class="ver" id="verBtn" title="Histórico de versões">v0.0.107</button>
   <span id="procAviso" class="procav" style="display:none">⚠ Arquivo processado em edição</span>
   <span class="sp"></span>
   <select id="layoutSel" title="Layout"><option value="F">Layout: Painel GIS</option><option value="E">Layout: GIS desktop</option><option value="B">Layout: Assistente</option><option value="D">Layout: Painel de resultados</option></select>
@@ -249,6 +249,7 @@ tr.row{transition:background .15s}
     <h2>Regras</h2>
     <div id="rules"></div>
     <label class="empty" style="display:block;margin:8px 0 4px">Tolerância de área (m²)<br><input id="tol" type="number" min="0" step="0.1" value="1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
+    <label class="empty" style="display:block;margin:0 0 4px">Tolerância da soma da AIR (ha)<br><input id="tolAir" type="number" min="0" step="0.0001" value="0.001" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
     <label class="empty" style="display:block;margin:0 0 4px">Tolerância de largura (m)<br><input id="wtol" type="number" min="0" step="0.01" value="0.1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
     <label class="empty" style="display:block;margin:0 0 4px">Distância mínima entre vértices (m)<br><input id="vtol" type="number" min="0" step="0.01" value="0.1" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"></label>
     <label class="empty" style="display:block;margin:0 0 4px">Módulo de cálculo de área<br><select id="areaModo" style="width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)"><option value="SIMCAR">SIMCAR — UTM SIRGAS 2000 (plana)</option><option value="SIGEF">SIGEF — Elipsóide GRS80</option></select></label>
@@ -310,8 +311,9 @@ tr.row{transition:background .15s}
 <script>
 "use strict";
 /* ============ VERSÃO ============ */
-const APP_VERSION = "0.0.106";
+const APP_VERSION = "0.0.107";
 const CHANGELOG = [
+  {v:"0.0.107", d:"2026-11-24", t:["AIR-02: novo campo \"Tolerância da soma da AIR (ha)\" (padrão 0,0010 ha = 10 m²). A soma de várias interseções acumula diferenças de poucos m², que não são erro."]},
   {v:"0.0.106", d:"2026-11-23", t:["ARU-01 (AREA_USO_RESTRITO): removida a exigência de estar completamente contida por AVN, AUAS ou AREA_CONSOLIDADA."]},
   {v:"0.0.105", d:"2026-11-23", t:["AIR-02: a hidrografia da soma passa a incluir LAGOA_NATURAL e RESERVATORIO_ARTIFICIAL (o reservatório com BARRAMENTO = N não entra, pois já está em AUAS/AREA_CONSOLIDADA)."]},
   {v:"0.0.104", d:"2026-11-22", t:["Áreas dos resultados e das mensagens passam de m² para ha (4 casas decimais): cards, tabela, exportação CSV e mensagens das regras."]},
@@ -637,7 +639,7 @@ const RULES = [
           try{ const i=H.isect(a,f); if(i) soma+=AREA(i); }catch(e){}
         }
         const dif=AREA(a)-soma;
-        if(Math.abs(dif)>ctx.tol)
+        if(Math.abs(dif)>(ctx.tolAir!=null?ctx.tolAir:ctx.tol))
           out.push({camada:"AIR",fid:H.id(a),msg:`A soma das áreas de AVN, AUAS, Área Consolidada e Hidrografia não corresponde à área total da AIR de tipo '${p.TIPO}' e identificação '${p.IDENTIFIC}'.`,area:Math.abs(dif),sev:"erro",geom:a.geometry});
       }
       return out;
@@ -1519,9 +1521,9 @@ async function run(){
   $("run").disabled=true; $("sum").className="empty"; $("sum").textContent="Executando…";
   const sel=new Set([...document.querySelectorAll("#rules input:checked")].map(i=>i.dataset.r));
   RESULTS=[]; RAN=new Set(sel);
-  const ctx={layers:LAYERS,dict:DICT,get:n=>LAYERS[n],tol:Math.max(0,parseFloat($("tol").value)||0),wtol:Math.max(0,parseFloat($("wtol").value)||0),vtol:Math.max(0,parseFloat($("vtol").value)||0)};
+  const ctx={layers:LAYERS,dict:DICT,get:n=>LAYERS[n],tol:Math.max(0,parseFloat($("tol").value)||0),wtol:Math.max(0,parseFloat($("wtol").value)||0),vtol:Math.max(0,parseFloat($("vtol").value)||0),tolAir:Math.max(0,parseFloat($("tolAir").value)||0)*10000};
   H.W=ctx.wtol; H.T=ctx.tol;
-  const par=[ctx.tol,ctx.wtol,ctx.vtol,AK()].join("|");
+  const par=[ctx.tol,ctx.wtol,ctx.vtol,ctx.tolAir,AK()].join("|");
   for(const r of RULES) if(sel.has(r.id)){
     const c=RC[r.id], nomes=Object.keys(LAYERS).sort().join(",");
     if(c&&c.par===par&&Object.keys(c.v).every(n=>lver(n)===c.v[n])&&(!c.all||c.nomes===nomes)&&(!r.usaApp||c.av===APPG.ver)){ c.res.forEach(x=>RESULTS.push({regra:r.id,...x})); continue; }
