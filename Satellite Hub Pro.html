@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="version" content="1.0.70">
+<meta name="version" content="1.0.71">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Satellite Hub Pro</title>
@@ -206,7 +206,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 </defs></svg>
 <div id="app" data-view="split" data-m="aoi">
   <div id="top">
-    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.70 · 26/11 16:10</small></h1>
+    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.71 · 26/11 16:40</small></h1>
     <span class="tag" id="beStat" data-ok="0">backend: verificando…</span>
     <span class="sp"></span>
     <div class="seg" role="group" aria-label="Modo de exibição"><button id="vMap" aria-pressed="false" title="Mapa em foco"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span class="lb">Mapa</span></button><button id="vSplit" class="on" aria-pressed="true" title="Lista e mapa"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="lb">Dividido</span></button><button id="vGal" aria-pressed="false" title="Galeria de cenas"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg><span class="lb">Galeria</span></button></div>
@@ -314,7 +314,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script>
-const APP_VERSION="1.0.70";
+const APP_VERSION="1.0.71";
 "use strict";
 /* ===== Registro de fontes (espelha backend/app/sources.py; status = verificado em 2026-10-15) ===== */
 const SOURCES=[
@@ -760,12 +760,12 @@ function makeBat(){
  '(goto) 2>nul & del "%~f0"',
  "#PS-BEGIN","$b64=@'",BACKEND_B64.replace(/(.{76})/g,"$1\n"),"'@"];
  return L.join("\r\n")+"\r\n"+PS_GUI.replace(/\r?\n/g,"\r\n")+"\r\n"}
-function baixarBat(msgEl){try{const b=new Blob([makeBat()],{type:"application/octet-stream"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="Modulo-Local-Satellite-Hub-Pro.bat";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+function baixarBat(msgEl){try{try{localStorage.removeItem("shp_inst")}catch{}const b=new Blob([makeBat()],{type:"application/octet-stream"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="Modulo-Local-Satellite-Hub-Pro.bat";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
   msgEl.textContent="Abra o arquivo Modulo-Local-Satellite-Hub-Pro.bat na barra de downloads do navegador. Uma janela mostrará o andamento e o arquivo será apagado ao terminar. Se o Windows avisar que o arquivo não é assinado, escolha Mais informações e Executar assim mesmo."}catch(e){msgEl.textContent="Falha ao gerar o arquivo: "+e.message}}
 const REM_BAT="@echo off\nif not \"%~1\"==\"shpmin\" (start \"\" /min cmd /c \"\"%~f0\" shpmin\" & exit /b 0)\npowershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command \"$t=[IO.File]::ReadAllText('%~f0'); $m='#PS-'+'BEGIN'; iex $t.Substring($t.IndexOf($m))\"\n(goto) 2>nul & del \"%~f0\"\n#PS-BEGIN\nAdd-Type -AssemblyName System.Windows.Forms\n$t = 'Remover Módulo Local - Satellite Hub Pro'\n$r = [System.Windows.Forms.MessageBox]::Show(\"Este assistente vai remover o Módulo Local do Satellite Hub Pro deste computador.`r`n`r`nSerão apagados: os arquivos do módulo, o atalho de início automático e os registros de instalação.`r`n`r`nDeseja continuar?\", $t, 'YesNo', 'Question')\nif ($r -ne 'Yes') { exit 0 }\n$py = [System.Windows.Forms.MessageBox]::Show(\"Deseja remover também o Python 3.12 instalado para o seu usuário?`r`n`r`nEscolha Não se você usa o Python para outras coisas.\", $t, 'YesNo', 'Question')\n$feito = @()\n$aviso = @()\ntry {\n    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*uvicorn app.main:app*' -or $_.CommandLine -like '*SatelliteHubPro*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }\n    $feito += 'Módulo encerrado'\n} catch { }\nStart-Sleep -Seconds 2\ntry {\n    if (Test-Path 'HKCU:\\Software\\Classes\\satellitehub') { Remove-Item 'HKCU:\\Software\\Classes\\satellitehub' -Recurse -Force -ErrorAction Stop }\n    $feito += 'Atalho de início automático removido'\n} catch { $aviso += 'Não foi possível remover o atalho de início automático.' }\n$pasta = Join-Path $env:LOCALAPPDATA 'SatelliteHubPro'\nif (Test-Path $pasta) {\n    Remove-Item $pasta -Recurse -Force -ErrorAction SilentlyContinue\n    if (Test-Path $pasta) { Start-Sleep -Seconds 3; Remove-Item $pasta -Recurse -Force -ErrorAction SilentlyContinue }\n    if (Test-Path $pasta) { $aviso += 'Alguns arquivos do módulo não puderam ser apagados. Reinicie o computador e apague a pasta: ' + $pasta } else { $feito += 'Arquivos do módulo removidos' }\n} else { $feito += 'Arquivos do módulo já não existiam' }\nforeach ($x in @((Join-Path $env:TEMP 'shp-log'), (Join-Path $env:TEMP 'shp-backend.zip'), (Join-Path $env:TEMP 'python-instalador.exe'))) {\n    if (Test-Path $x) { Remove-Item $x -Recurse -Force -ErrorAction SilentlyContinue }\n}\n$feito += 'Registros temporários apagados'\nif ($py -eq 'Yes') {\n    $ok = $false\n    try {\n        $chaves = @(Get-ChildItem 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall' -ErrorAction SilentlyContinue | ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } | Where-Object { $_.DisplayName -like 'Python 3.12*' -and $_.UninstallString })\n        foreach ($c in $chaves) {\n            Start-Process -FilePath 'cmd.exe' -ArgumentList ('/c \"' + $c.UninstallString + ' /quiet\"') -Wait -WindowStyle Hidden\n            $ok = $true\n        }\n    } catch { }\n    $cand = Join-Path $env:LOCALAPPDATA 'Programs\\Python\\Python312'\n    if (Test-Path $cand) { Remove-Item $cand -Recurse -Force -ErrorAction SilentlyContinue }\n    if (-not (Test-Path $cand)) { $feito += 'Python 3.12 removido' } else { $aviso += 'O Python 3.12 não pôde ser removido por completo. Use Configurações > Aplicativos.' }\n}\n$msg = 'Remoção concluída.' + \"`r`n`r`n\" + (($feito | ForEach-Object { '✔  ' + $_ }) -join \"`r`n\")\nif ($aviso.Count -gt 0) { $msg += \"`r`n`r`nAtenção:`r`n\" + ($aviso -join \"`r`n\") }\n[System.Windows.Forms.MessageBox]::Show($msg, $t, 'OK', 'Information') | Out-Null\nexit 0\n";
-function baixarRem(msgEl){try{const b=new Blob([REM_BAT.replace(/\n/g,"\r\n")],{type:"application/octet-stream"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="Remover-Modulo-Local-Satellite-Hub-Pro.bat";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);try{localStorage.removeItem("shp_inst")}catch{}
+function baixarRem(msgEl){try{const b=new Blob([REM_BAT.replace(/\n/g,"\r\n")],{type:"application/octet-stream"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="Remover-Modulo-Local-Satellite-Hub-Pro.bat";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);try{localStorage.setItem("shp_inst","0")}catch{}
   msgEl.textContent="Abra o arquivo Remover-Modulo-Local-Satellite-Hub-Pro.bat na barra de downloads. Um assistente pede confirmação e remove o módulo deste computador."}catch(e){msgEl.textContent="Falha ao gerar o arquivo: "+e.message}}
-function modInstalado(){let f=false;try{f=localStorage.getItem("shp_inst")!==null}catch{}return !!S.beOk||f}
+function modInstalado(){let f=false;try{f=localStorage.getItem("shp_inst")==="1"}catch{}return !!S.beOk||f}
 function ehWindows(){let p="";try{p=navigator.userAgentData&&navigator.userAgentData.platform||""}catch{}return /windows/i.test(p||navigator.userAgent)&&!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)}
 function updInst(){const b=$("beBat");if(!b)return;if(!ehWindows()){if(b.dataset.m==="x")return;b.dataset.m="x";b.disabled=true;b.classList.add("sec");b.textContent="Disponível apenas para Windows";$("beDesc").textContent="O módulo local só funciona em computadores com Windows.";$("beBatMsg").textContent="";return}
  const i=modInstalado();if(b.dataset.m===(i?"r":"i"))return;b.dataset.m=i?"r":"i";
@@ -781,7 +781,7 @@ const lsGet=k=>{try{return localStorage.getItem(k)}catch{return null}},lsSet=(k,
 let compTimer=null;
 function ligarComp(){try{const f=document.createElement("iframe");f.style.display="none";f.src="satellitehub://iniciar";document.body.append(f);setTimeout(()=>f.remove(),4000)}catch{}}
 function esperarComp(ms,aoLigar,aoFalhar){clearInterval(compTimer);const t0=Date.now();compTimer=setInterval(async()=>{if(await checkBackend()){clearInterval(compTimer);aoLigar()}else if(Date.now()-t0>ms){clearInterval(compTimer);aoFalhar&&aoFalhar()}},2000)}
-function abrirComp(motivo){if(ehMovel||$("dlgComp").open)return;const inst=lsGet("shp_inst")!==null;
+function abrirComp(motivo){if(ehMovel||$("dlgComp").open)return;const inst=lsGet("shp_inst")==="1";
  $("compTxt").textContent=motivo==="desligou"?"O módulo local foi encerrado. Inicie-o novamente para continuar usando as suas contas do USGS e do Copernicus.":inst?"O módulo local está instalado, mas não foi iniciado.":"Para baixar e compor imagens do USGS e do Copernicus com as suas contas, instale o módulo local (uma única vez).";
  $("compLigar").style.display=inst||motivo==="desligou"?"":"none";$("compMsg").textContent="";$("dlgComp").showModal();
  esperarComp(10*60*1000,()=>{$("compMsg").textContent="Módulo local detectado.";setTimeout(()=>$("dlgComp").close(),1200)})}
@@ -799,7 +799,7 @@ const AUTO_MS=35000;
 checkBackend().then(ok=>{if(ok||ehMovel)return;
  // só tenta ligar sozinho se este navegador já viu o módulo funcionando; se não ligar, esquece isso (ex.: módulo removido) para não repetir a mensagem do Windows
  {let tentou=false;try{tentou=sessionStorage.getItem("shp_tent")==="1";sessionStorage.setItem("shp_tent","1")}catch{}
-  if(!tentou&&modInstalado()){ligarComp();toast("Ligando o módulo local…",5000);esperarComp(AUTO_MS,()=>toast("Módulo local iniciado.",3500),()=>abrirComp("falta"))}
+  if(!tentou&&lsGet("shp_inst")!=="0"){ligarComp();toast("Ligando o módulo local…",5000);esperarComp(AUTO_MS,()=>toast("Módulo local iniciado.",3500),()=>abrirComp("falta"))}
   else abrirComp("falta")}});
 setInterval(async()=>{if(!S.backend||!ehLocal(S.backend))return;const era=S.beOk;try{const r=await fetch(S.backend+"/api/ping",{signal:AbortSignal.timeout(4000)});if(r.ok){S.beOk=true;return}}catch{}
  if(era){S.beOk=false;$("beStat").textContent="backend: offline (busca direta; sem composição/download autenticado)";$("beStat").dataset.ok="0";abrirComp("desligou")}},15000);
