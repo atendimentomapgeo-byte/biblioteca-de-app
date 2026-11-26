@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="version" content="1.0.71">
+<meta name="version" content="1.0.72">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Satellite Hub Pro</title>
@@ -206,7 +206,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 </defs></svg>
 <div id="app" data-view="split" data-m="aoi">
   <div id="top">
-    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.71 · 26/11 16:40</small></h1>
+    <h1 class="brand"><span class="logo"><span class="satico" role="img" aria-label="Satellite Hub Pro"></span></span><span>Satellite Hub Pro</span><small>busca universal de imagens de satélite</small><small id="appVer" title="Versão publicada" style="margin-left:8px;opacity:.75;font-variant-numeric:tabular-nums">v1.0.72 · 26/11 17:10</small></h1>
     <span class="tag" id="beStat" data-ok="0">backend: verificando…</span>
     <span class="sp"></span>
     <div class="seg" role="group" aria-label="Modo de exibição"><button id="vMap" aria-pressed="false" title="Mapa em foco"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span class="lb">Mapa</span></button><button id="vSplit" class="on" aria-pressed="true" title="Lista e mapa"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="lb">Dividido</span></button><button id="vGal" aria-pressed="false" title="Galeria de cenas"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg><span class="lb">Galeria</span></button></div>
@@ -303,7 +303,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 <div class="sm" style="margin:4px 0">Para gerar composição direto do USGS e do Copernicus com as suas contas. <span id="beDesc">O instalador já inclui o módulo local: instala no seu PC e inicia. Não funciona no celular.</span></div>
 <div class="btns"><button class="btn" id="beBat" type="button">Instalar o módulo local (Windows)</button></div>
 <div class="sm" id="beBatMsg" role="status"></div></div>
-<div class="btns"><button class="btn" id="stTest">Testar conectividade agora (do navegador)</button></div>
+<div class="btns"><button class="btn" id="stTest">Testar conectividade agora (do navegador)</button><button class="btn" id="stDl">Testar downloads agora</button></div><div class="sm" id="dlTestOut" role="status" style="margin-top:6px"></div>
 <div class="sm">O teste mede se ESTE navegador consegue consultar a API (inclui CORS). Isso não prova autenticação nem download.</div><div id="stBody"></div></dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"></script>
@@ -314,7 +314,7 @@ dialog::backdrop{background:rgba(5,10,10,.55);backdrop-filter:blur(2px)}
 <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script>
-const APP_VERSION="1.0.71";
+const APP_VERSION="1.0.72";
 "use strict";
 /* ===== Registro de fontes (espelha backend/app/sources.py; status = verificado em 2026-10-15) ===== */
 const SOURCES=[
@@ -1066,6 +1066,28 @@ $("acTest").onclick=async()=>{const m=$("acMsg");if(!S.beOk){m.textContent="Ligu
  for(const w of["usgs","cdse"]){try{const r=await fetch(S.backend+"/api/credentials/test/"+w,{method:"POST"});const j=await r.json();out.push((j.ok?"✔ ":"✖ ")+(j.message||j.detail))}catch(e){out.push("✖ "+w+": "+e.message)}}
  m.innerHTML=out.map(esc).join("<br>")};
 
+$("stDl").onclick=async()=>{const out=$("dlTestOut"),b=$("stDl");b.disabled=true;out.innerHTML="";const row=(ok,t)=>{out.insertAdjacentHTML("beforeend","<div>"+(ok===true?"✔ ":ok===false?"✖ ":"• ")+esc(t)+"</div>")};
+ const kb=n=>n==null?"?":n<1048576?Math.max(1,Math.round(n/1024))+" KB":(n/1048576).toFixed(1)+" MB";
+ for(const s of SOURCES.filter(x=>x.base)){
+  if(s.auth!=="none"){row(null,s.name+": exige conta; teste em \"Testar login\" acima.");continue}
+  let sc,a;
+  try{const r=await pfetch(s.base+"/search",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/geo+json, application/json"},body:JSON.stringify({limit:1,collections:s.cols})});
+   if(!r.ok)throw new Error("busca HTTP "+r.status);const j=await r.json();if(!(j.features||[]).length)throw new Error("a busca não devolveu cenas");
+   sc=normalize(s,j.features[0]);const as=downloadable(sc);if(!as.length)throw new Error("a cena de teste não tem arquivo https");
+   a=as.find(x=>/\.tiff?(\?|$)/i.test(x.href))||as[0]}
+  catch(e){row(false,s.name+": "+(e instanceof TypeError?"falha de rede/CORS na busca":e.message));continue}
+  let url=a.href;
+  try{url=await pcSign(a.href)}catch(e){row(false,s.name+": não consegui o token público ("+e.message+")");continue}
+  const nome=a.k+" da cena "+sc.id;let done=false;
+  for(const range of [true,false]){
+   const ac=new AbortController(),to=setTimeout(()=>ac.abort(),15000);
+   try{const r=await fetch(url,{headers:range?{Range:"bytes=0-1023"}:{},signal:ac.signal});clearTimeout(to);ac.abort();
+    const tot=+(r.headers.get("content-range")||"").split("/")[1]||+r.headers.get("content-length")||null;
+    if(r.ok||r.status===206){row(true,s.name+": o arquivo responde (HTTP "+r.status+(tot?", "+kb(tot):"")+") — "+nome)}
+    else row(false,s.name+": o servidor recusou o arquivo (HTTP "+r.status+") — "+nome);done=true;break}
+   catch(e){clearTimeout(to);if(e.name==="AbortError"&&done)break}}
+  if(!done)row(null,s.name+": o navegador não deixa o teste ler este servidor (CORS). Isso não impede o download por clique em Assets; confirme baixando um arquivo — "+nome)}
+ row(null,"Teste concluído.");b.disabled=false};
 $("stTest").onclick=async()=>{for(const s of SOURCES.filter(x=>x.base)){probe[s.id]="testando…";renderStatus();const t=performance.now();
  try{let r=await fetch(s.base+"/",{signal:AbortSignal.timeout(10000)});if(!r.ok&&r.status>=500)r=await fetch(s.base+"/collections?limit=1",{signal:AbortSignal.timeout(10000)});probe[s.id]=(r.ok?"alcançável":"HTTP "+r.status)+` (${Math.round(performance.now()-t)} ms)`}catch(e){probe[s.id]="inalcançável/CORS: "+(e.name||"erro")}renderStatus()}};
 
