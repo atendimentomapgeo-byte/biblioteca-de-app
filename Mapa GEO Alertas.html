@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mapa GEO Alertas v1.1.0</title>
-<meta name="version" content="1.1.0">
-<meta name="app-version" content="1.1.0">
+<title>Mapa GEO Alertas v1.1.1</title>
+<meta name="version" content="1.1.1">
+<meta name="app-version" content="1.1.1">
 <meta name="description" content="Mapa GEO Alertas — download de polígonos de alertas de desmatamento SCCON/SEMA-MT">
 <meta name="theme-color" content="#0b1220">
 <meta name="color-scheme" content="dark light">
@@ -117,7 +117,7 @@
 <div class="orbs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <header>
   <div>
-    <h1><svg class="title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><path d="M12 17v.01"/></svg>Mapa GEO Alertas <span class="ver" id="appVer">v1.1.0</span></h1>
+    <h1><svg class="title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><path d="M12 17v.01"/></svg>Mapa GEO Alertas <span class="ver" id="appVer">v1.1.1</span></h1>
     <span class="sub">Polígonos de alertas — SCCON / SEMA-MT</span>
   </div>
   <div class="tb-grid">
@@ -129,6 +129,21 @@
 
 <div class="layout">
   <section class="panel" aria-label="Busca de alertas">
+
+    <div class="info" id="atalhoBox">
+      <b>Como baixar os alertas agora (o SCCON fechou a busca direta)</b>
+      <ol style="margin:6px 0 4px;padding-left:20px;line-height:1.55">
+        <li>Mostre a barra de favoritos do navegador: tecle <b>Ctrl + Shift + B</b>.</li>
+        <li>Arraste este botão e solte na barra de favoritos:
+          <a id="bmLink" href="#" onclick="return false" style="display:inline-block;margin-top:4px;padding:5px 12px;border:1px solid var(--accent);border-radius:8px;text-decoration:none;font-weight:600">⭐ Baixar alertas Map GEO</a></li>
+        <li>Abra o painel do SCCON em <i>Visualizar mapa</i> e espere os alertas aparecerem.</li>
+        <li>Clique nesse favorito, digite os IDs e clique em <i>Copiar</i>.</li>
+        <li>Volte aqui e clique em <i>Usar JSON colado</i> (abaixo, em "Se a busca automática falhar").</li>
+      </ol>
+      <div class="hint">Não conseguiu arrastar? <button type="button" id="btnCopiarBm" style="padding:3px 10px;font-size:12px">Copiar código do atalho</button>
+        Depois tecle Ctrl+D, ponha o nome que quiser, clique em "Mais" ou "Editar", apague o endereço, cole o código no campo URL e salve.
+        O atalho roda no seu navegador, usa a sessão pública que o painel já abriu e não envia nada a ninguém.</div>
+    </div>
 
     <div class="tabs" role="tablist" aria-label="Forma de busca">
       <button class="tab" role="tab" id="tabId" aria-selected="true" data-mode="id">Por ID</button>
@@ -229,11 +244,6 @@
     <details id="manual">
       <summary>Se a busca automática falhar</summary>
       <div class="inner">
-        <div class="info"><b>Atalho para o painel do SCCON (sem digitar token).</b><br>
-          1) Arraste este botão para a barra de favoritos: <a id="bmLink" href="#" style="display:inline-block;padding:5px 12px;border:1px solid var(--accent);border-radius:8px;text-decoration:none;font-weight:600" onclick="return false">Baixar alertas Map GEO</a><br>
-          2) Abra o painel do SCCON (alertas.sccon.com.br/matogrosso) em <i>Visualizar mapa</i> e espere os alertas aparecerem.<br>
-          3) Clique no favorito, informe os IDs, clique em <i>Copiar</i>, volte aqui e use <i>Usar JSON colado</i>.<br>
-          O atalho roda no seu navegador, usa a sessão pública que o próprio painel já abriu e não envia nada a ninguém.</div>
         <div class="hint">Clique em Buscar primeiro (isso gera os links). Abra cada link abaixo em uma nova aba, copie todo o texto que aparecer e cole aqui. O app converte e baixa do mesmo jeito. Se houver mais de um link, cole um de cada vez, na ordem, e use "Usar JSON colado" a cada um.</div>
         <div class="links" id="manualLinks"></div>
         <textarea id="pasteJson" placeholder='Cole aqui o JSON ({"type":"FeatureCollection", ...})'></textarea>
@@ -913,9 +923,16 @@ if (typeof module !== 'undefined') {
 <script type="text/plain" id="bmSrc">(async()=>{ try{ const ids=(prompt('Mapa GEO Alertas — IDs dos alertas (separados por vírgula, espaço ou linha):')||'').match(/\d{4,12}/g); if(!ids||!ids.length)return; const urls=performance.getEntriesByType('resource').map(r=>r.name).filter(n=>n.includes('geoserver-dashboard-mt')&&n.includes('viewparams=')); if(!urls.length){alert('Abra o painel do SCCON em "Visualizar mapa", espere os alertas aparecerem no mapa e clique no atalho de novo.');return} let vp=decodeURIComponent(new URL(urls[urls.length-1]).searchParams.get('viewparams')); vp=vp.replace(/fromDate:'[^']*'/,"fromDate:'2000-01-01'").replace(/toDate:'[^']*'/,"toDate:'2100-01-01'"); const feats=[]; for(let i=0;i<ids.length;i+=30){ const c=ids.slice(i,i+30); const u='https://geoserver-dashboard-mt.sccon.com.br/geoserver/dashboards/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dashboards:vw_v2_dashboard_alerts_all_defo-data_prod-mt&outputFormat=application/json&srsName=EPSG:4674&cql_filter='+encodeURIComponent('idt_local_alert IN ('+c.join(',')+')')+'&viewparams='+encodeURIComponent(vp); const j=await (await fetch(u)).json();feats.push(...j.features); } const txt=JSON.stringify({type:'FeatureCollection',features:feats}); const d=document.createElement('div'); d.style.cssText='position:fixed;z-index:2147483647;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font:14px system-ui'; d.innerHTML='<div style="background:#fff;color:#111;padding:18px;border-radius:12px;width:min(560px,92vw)"><b>'+feats.length+' alerta(s) encontrado(s) de '+ids.length+' pedido(s).</b><p style="margin:8px 0">Clique em Copiar, volte ao Mapa GEO Alertas e use "Usar JSON colado".</p><textarea style="width:100%;height:110px;font:12px monospace"></textarea><div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end"><button id="mgc" style="padding:8px 14px">Copiar</button><button id="mgf" style="padding:8px 14px">Fechar</button></div></div>'; document.body.appendChild(d); const ta=d.querySelector('textarea');ta.value=txt; d.querySelector('#mgc').onclick=async()=>{ta.select();try{await navigator.clipboard.writeText(txt)}catch(e){document.execCommand('copy')}d.querySelector('#mgc').textContent='Copiado!'}; d.querySelector('#mgf').onclick=()=>d.remove(); }catch(e){alert('Falhou: '+e.message)} })();</script>
 <script id="ui">
 (function () {
-  const APP_VERSION = '1.1.0';
-  try { $('bmLink').href = 'javascript:' + encodeURIComponent($('bmSrc').textContent); } catch (e) {}
+  const APP_VERSION = '1.1.1';
   const $ = id => document.getElementById(id);
+  const bmCode = () => 'javascript:' + encodeURIComponent($('bmSrc').textContent);
+  try { $('bmLink').href = bmCode(); } catch (e) {}
+  $('btnCopiarBm').addEventListener('click', async () => {
+    const t = bmCode(), b = $('btnCopiarBm');
+    try { await navigator.clipboard.writeText(t); }
+    catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    b.textContent = 'Copiado!'; setTimeout(() => { b.textContent = 'Copiar código do atalho'; }, 2000);
+  });
   $('appVer').textContent = 'v' + APP_VERSION;
   const themeBtn = $('themeBtn');
   const paintTheme = () => { themeBtn.textContent = document.documentElement.dataset.theme === 'dark' ? '☀ Claro' : '☾ Escuro'; };
@@ -1098,9 +1115,8 @@ if (typeof module !== 'undefined') {
       let r; try { r = await fetchUrl(wfsUrlCql('INCLUDE', 1), ctl.signal); } finally { clearTimeout(t); }
       if (r && r.n === 0) {
         const box = $('missing'); box.hidden = false;
-        box.textContent = 'O servidor do SCCON respondeu, mas a camada de alertas não devolve nenhum registro mesmo sem filtro. O SCCON passou a exigir uma sessão (token) nessa camada, por isso a busca direta não encontra os alertas. Não é erro do ID nem do seu arquivo. Use o atalho em "Se a busca automática falhar" (abaixo), que pega os alertas pelo painel do SCCON.';
-        setStatus('Busca direta indisponível: use o atalho abaixo.', 'err');
-        $('manual').open = true;
+        box.textContent = 'O servidor do SCCON respondeu, mas a camada de alertas não devolve nenhum registro mesmo sem filtro. O SCCON passou a exigir uma sessão (token) nessa camada, por isso a busca direta não encontra os alertas. Não é erro do ID nem do seu arquivo. Use o atalho no quadro acima, que pega os alertas pelo painel do SCCON.';
+        setStatus('Busca direta indisponível: use o atalho do quadro acima.', 'err');
       }
     } catch (e) { /* sem rede: a mensagem normal já cobre */ }
   }
