@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mapa GEO Alertas v1.1.1</title>
-<meta name="version" content="1.1.1">
-<meta name="app-version" content="1.1.1">
+<title>Mapa GEO Alertas v1.2.0</title>
+<meta name="version" content="1.2.0">
+<meta name="app-version" content="1.2.0">
 <meta name="description" content="Mapa GEO Alertas — download de polígonos de alertas de desmatamento SCCON/SEMA-MT">
 <meta name="theme-color" content="#0b1220">
 <meta name="color-scheme" content="dark light">
@@ -117,7 +117,7 @@
 <div class="orbs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <header>
   <div>
-    <h1><svg class="title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><path d="M12 17v.01"/></svg>Mapa GEO Alertas <span class="ver" id="appVer">v1.1.1</span></h1>
+    <h1><svg class="title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><path d="M12 17v.01"/></svg>Mapa GEO Alertas <span class="ver" id="appVer">v1.2.0</span></h1>
     <span class="sub">Polígonos de alertas — SCCON / SEMA-MT</span>
   </div>
   <div class="tb-grid">
@@ -137,9 +137,12 @@
         <li>Arraste este botão e solte na barra de favoritos:
           <a id="bmLink" href="#" onclick="return false" style="display:inline-block;margin-top:4px;padding:5px 12px;border:1px solid var(--accent);border-radius:8px;text-decoration:none;font-weight:600">⭐ Baixar alertas Map GEO</a></li>
         <li>Abra o painel do SCCON em <i>Visualizar mapa</i> e espere os alertas aparecerem.</li>
-        <li>Clique nesse favorito, digite os IDs e clique em <i>Copiar</i>.</li>
+        <li>Clique nesse favorito. Digite os IDs <b>ou</b>, para buscar pelo polígono, cole o código copiado no passo abaixo. Depois clique em <i>Copiar</i>.</li>
         <li>Volte aqui e clique em <i>Usar JSON colado</i> (abaixo, em "Se a busca automática falhar").</li>
       </ol>
+      <div class="hint" style="margin:2px 0 6px"><b>Busca pelo polígono ou coordenadas:</b> carregue o arquivo na aba <i>Arquivo vetorial</i> (ou digite as coordenadas), clique em
+        <button type="button" id="btnCopiarBusca" style="padding:3px 10px;font-size:12px">Copiar busca para o atalho</button>
+        e cole no atalho no lugar dos IDs.</div>
       <div class="hint">Não conseguiu arrastar? <button type="button" id="btnCopiarBm" style="padding:3px 10px;font-size:12px">Copiar código do atalho</button>
         Depois tecle Ctrl+D, ponha o nome que quiser, clique em "Mais" ou "Editar", apague o endereço, cole o código no campo URL e salve.
         O atalho roda no seu navegador, usa a sessão pública que o painel já abriu e não envia nada a ninguém.</div>
@@ -920,10 +923,10 @@ if (typeof module !== 'undefined') {
 
 <!-- ======================= INTERFACE ======================= -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="text/plain" id="bmSrc">(async()=>{ try{ const ids=(prompt('Mapa GEO Alertas — IDs dos alertas (separados por vírgula, espaço ou linha):')||'').match(/\d{4,12}/g); if(!ids||!ids.length)return; const urls=performance.getEntriesByType('resource').map(r=>r.name).filter(n=>n.includes('geoserver-dashboard-mt')&&n.includes('viewparams=')); if(!urls.length){alert('Abra o painel do SCCON em "Visualizar mapa", espere os alertas aparecerem no mapa e clique no atalho de novo.');return} let vp=decodeURIComponent(new URL(urls[urls.length-1]).searchParams.get('viewparams')); vp=vp.replace(/fromDate:'[^']*'/,"fromDate:'2000-01-01'").replace(/toDate:'[^']*'/,"toDate:'2100-01-01'"); const feats=[]; for(let i=0;i<ids.length;i+=30){ const c=ids.slice(i,i+30); const u='https://geoserver-dashboard-mt.sccon.com.br/geoserver/dashboards/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dashboards:vw_v2_dashboard_alerts_all_defo-data_prod-mt&outputFormat=application/json&srsName=EPSG:4674&cql_filter='+encodeURIComponent('idt_local_alert IN ('+c.join(',')+')')+'&viewparams='+encodeURIComponent(vp); const j=await (await fetch(u)).json();feats.push(...j.features); } const txt=JSON.stringify({type:'FeatureCollection',features:feats}); const d=document.createElement('div'); d.style.cssText='position:fixed;z-index:2147483647;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font:14px system-ui'; d.innerHTML='<div style="background:#fff;color:#111;padding:18px;border-radius:12px;width:min(560px,92vw)"><b>'+feats.length+' alerta(s) encontrado(s) de '+ids.length+' pedido(s).</b><p style="margin:8px 0">Clique em Copiar, volte ao Mapa GEO Alertas e use "Usar JSON colado".</p><textarea style="width:100%;height:110px;font:12px monospace"></textarea><div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end"><button id="mgc" style="padding:8px 14px">Copiar</button><button id="mgf" style="padding:8px 14px">Fechar</button></div></div>'; document.body.appendChild(d); const ta=d.querySelector('textarea');ta.value=txt; d.querySelector('#mgc').onclick=async()=>{ta.select();try{await navigator.clipboard.writeText(txt)}catch(e){document.execCommand('copy')}d.querySelector('#mgc').textContent='Copiado!'}; d.querySelector('#mgf').onclick=()=>d.remove(); }catch(e){alert('Falhou: '+e.message)} })();</script>
+<script type="text/plain" id="bmSrc">(async()=>{ try{ const raw=prompt('Mapa GEO Alertas — cole os IDs dos alertas OU o código da busca copiado no app (polígono/coordenadas):')||''; let jobs=[]; const m=raw.match(/MGQ:(\[[\s\S]*\])/); if(m){ jobs=JSON.parse(m[1]); }else{ const ids=raw.match(/\d{4,12}/g)||[]; for(let i=0;i<ids.length;i+=30)jobs.push('idt_local_alert IN ('+ids.slice(i,i+30).join(',')+')'); } if(!jobs.length)return; const urls=performance.getEntriesByType('resource').map(r=>r.name).filter(n=>n.includes('geoserver-dashboard-mt')&&n.includes('viewparams=')); if(!urls.length){alert('Abra o painel do SCCON em "Visualizar mapa", espere os alertas aparecerem no mapa e clique no atalho de novo.');return} let vp=decodeURIComponent(new URL(urls[urls.length-1]).searchParams.get('viewparams')); vp=vp.replace(/fromDate:'[^']*'/,"fromDate:'2000-01-01'").replace(/toDate:'[^']*'/,"toDate:'2100-01-01'"); const mp=new Map(); for(const c of jobs){ const u='https://geoserver-dashboard-mt.sccon.com.br/geoserver/dashboards/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dashboards:vw_v2_dashboard_alerts_all_defo-data_prod-mt&outputFormat=application/json&srsName=EPSG:4674&count=5000&cql_filter='+encodeURIComponent(c)+'&viewparams='+encodeURIComponent(vp); const j=await (await fetch(u)).json(); (j.features||[]).forEach(f=>mp.set(f.id,f)); } const feats=[...mp.values()]; const txt=JSON.stringify({type:'FeatureCollection',features:feats}); const d=document.createElement('div'); d.style.cssText='position:fixed;z-index:2147483647;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font:14px system-ui'; d.innerHTML='<div style="background:#fff;color:#111;padding:18px;border-radius:12px;width:min(560px,92vw)"><b>'+feats.length+' alerta(s) encontrado(s).</b><p style="margin:8px 0">Clique em Copiar, volte ao Mapa GEO Alertas e use "Usar JSON colado".</p><textarea style="width:100%;height:110px;font:12px monospace"></textarea><div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end"><button id="mgc" style="padding:8px 14px">Copiar</button><button id="mgf" style="padding:8px 14px">Fechar</button></div></div>'; document.body.appendChild(d); const ta=d.querySelector('textarea');ta.value=txt; d.querySelector('#mgc').onclick=async()=>{ta.select();try{await navigator.clipboard.writeText(txt)}catch(e){document.execCommand('copy')}d.querySelector('#mgc').textContent='Copiado!'}; d.querySelector('#mgf').onclick=()=>d.remove(); }catch(e){alert('Falhou: '+e.message)} })();</script>
 <script id="ui">
 (function () {
-  const APP_VERSION = '1.1.1';
+  const APP_VERSION = '1.2.0';
   const $ = id => document.getElementById(id);
   const bmCode = () => 'javascript:' + encodeURIComponent($('bmSrc').textContent);
   try { $('bmLink').href = bmCode(); } catch (e) {}
@@ -1197,6 +1200,30 @@ if (typeof module !== 'undefined') {
     buscarEspacial(inputs, 0, $('btnBuscarFile'));
   }
 
+
+  function copiarBusca() {
+    let inputs, tol = 0;
+    if (mode === 'file') {
+      const set = fileSets[parseInt($('shpSel').value, 10) || 0];
+      if (!set || !set.geoms.length) { setStatus('Carregue primeiro um arquivo na aba Arquivo vetorial.', 'warn'); return; }
+      inputs = set.geoms.slice(0, 500);
+    } else if (mode === 'coord') {
+      const parsed = parseCoordText($('coords').value, effFmt(), parseInt($('zone').value, 10) || 21, $('hemi').value);
+      if (parsed.errors.length) { setStatus(parsed.errors.slice(0, 3).join(' '), 'err'); return; }
+      if (!parsed.points.length) { setStatus('Informe pelo menos um ponto.', 'warn'); return; }
+      inputs = parsed.points; tol = Math.max(0, Math.min(2000, parseFloat($('tol').value) || 0));
+    } else { setStatus('Abra a aba Coordenadas ou Arquivo vetorial para copiar a busca. Por ID, digite os IDs direto no atalho.', 'warn'); return; }
+    lastInputs = inputs; lastTol = tol; drawInputs(inputs);
+    const cqls = buildSpatialQueries(inputs, tol).map(q => new URL(q.url).searchParams.get('cql_filter'));
+    const code = 'MGQ:' + JSON.stringify(cqls);
+    const done = () => setStatus('Busca copiada. Agora, no painel do SCCON, clique no favorito e cole o código no lugar dos IDs.', 'ok');
+    navigator.clipboard.writeText(code).then(done, () => {
+      const ta = document.createElement('textarea'); ta.value = code; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { setStatus('Não consegui copiar automaticamente.', 'err'); }
+      ta.remove();
+    });
+  }
+
   function describeSet(s) {
     const polys = s.geoms.filter(g => g.kind === 'poly'), pts = s.geoms.filter(g => g.kind === 'point');
     const verts = polys.reduce((a, g) => a + g.rings.reduce((b, r) => b + r.length, 0), 0);
@@ -1284,6 +1311,7 @@ if (typeof module !== 'undefined') {
   $('shpSel').addEventListener('change', showSet);
   $('btnBuscarFile').addEventListener('click', buscarArquivo);
   $('btnColar').addEventListener('click', usarJsonColado);
+  $('btnCopiarBusca').addEventListener('click', copiarBusca);
   $('btnLimpar').addEventListener('click', limpar);
   $('dlShp').addEventListener('click', () => { const b = baseName(); save(buildShapefileZip(results, b), b + '.zip', 'application/zip'); });
   $('dlGeo').addEventListener('click', () => save(JSON.stringify(toGeoJSON(results)), baseName() + '.geojson', 'application/geo+json'));
